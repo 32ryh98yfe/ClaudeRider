@@ -245,14 +245,18 @@ export class RaceRoom {
     }
   }
 
-  /** Rate limit: at most perSec + burst messages in any 1 s window; > 3 violations in 1 s disconnects. */
+  /**
+   * Rate limit (§11: 70 msg/s, burst 10, > 3 violations/s disconnects). The budget is enforced over a 2 s window
+   * (2·rate + burst): a TCP head-of-line stall after a lost segment delivers a few hundred ms of queued inputs at once,
+   * which a strict 10-message burst would punish, while a sustained flood still trips it within a second.
+   */
   private admit(p: Peer): boolean {
     const L = this.limits;
     if (!L || !this.clock) return true;
     const now = this.clock.nowMs();
     const win = p.window;
-    while (win.length && win[0]! <= now - 1000) win.shift();
-    if (win.length >= L.perSec + L.burst) {
+    while (win.length && win[0]! <= now - 2000) win.shift();
+    if (win.length >= 2 * L.perSec + L.burst) {
       p.violations.push(now);
       while (p.violations.length && p.violations[0]! <= now - 1000) p.violations.shift();
       if (p.violations.length > 3) this.kick(p, 'rate_limited');

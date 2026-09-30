@@ -24,11 +24,14 @@ const POS = 4096, VEL = 4096, DIR = 32768, YAW = 4096, GAUGE = 65536, SLIP = 327
 const MAXI = 2 ** 51;
 
 type Obj = Record<string, number>;
-interface Group { name: string; dense: boolean; obj: (k: KartState) => Obj; keys: readonly string[]; scales: readonly number[]; off: number }
+interface Group { name: string; dense: boolean; path: string; obj: (k: KartState) => Obj; keys: readonly string[]; scales: readonly number[]; off: number }
 
-function grp(name: string, dense: boolean, obj: (k: KartState) => unknown, spec: ReadonlyArray<string | readonly [string, number]>): Group {
+/** `path` is the sub-object of KartState holding the group's fields ('' = the kart itself). */
+function grp(name: string, dense: boolean, path: string, spec: ReadonlyArray<string | readonly [string, number]>): Group {
+  const parts = path ? path.split('.') : [];
+  const obj = (k: KartState): Obj => { let o = k as unknown as Record<string, unknown>; for (const p of parts) o = o[p] as Record<string, unknown>; return o as Obj; };
   return {
-    name, dense, obj: obj as (k: KartState) => Obj, off: 0,
+    name, dense, path, obj, off: 0,
     keys: spec.map((s) => (typeof s === 'string' ? s : s[0])),
     scales: spec.map((s) => (typeof s === 'string' ? 1 : s[1])),
   };
@@ -39,22 +42,22 @@ const LOC_KEYS = ['path', ['s', POS], 'i', ['u', POS], ['h', POS], ['sMain', POS
 
 /** Kart field groups; bit index = position in this list. Every numeric field of KartState is listed exactly once. */
 export const KART_GROUPS: readonly Group[] = [
-  grp('vel', true, (k) => k.body, [['vx', VEL], ['vy', VEL], ['vz', VEL]]),
-  grp('pose', true, (k) => k.body, [['px', POS], ['py', POS], ['pz', POS]]),
-  grp('dir', false, (k) => k.body, [['fx', DIR], ['fy', DIR], ['fz', DIR], ['nx', DIR], ['ny', DIR], ['nz', DIR]]),
-  grp('ground', false, (k) => k.body, [['yawRate', YAW], 'grounded', 'coyote', 'airTicks', 'surf', 'wallContact', 'ghostTicks']),
-  grp('drift', false, (k) => k.drive, ['drift', 'driftDir', 'driftTicks', ['driftPeak', SLIP], 'reDriftLock', 'fatigueTicks']),
-  grp('boost', false, (k) => k.drive, [['gauge', GAUGE], 'boosters', 'teamBoosters', 'boostTicks', 'boostKind', 'startTicks', 'wheelspinTicks', 'instWindow', 'instTicks', 'stunTicks']),
-  grp('draft', false, (k) => k.drive, ['draftCharge', 'draftTicks', 'prevHeld', 'prevThrottle', 'lowSpeedTicks', 'startPressTick']),
-  grp('items', false, (k) => k.items, ['slot0', 'slot1', 'rouletteSlot', 'rouletteEnd', 'rouletteBox', 'lastUseTick', 'aimLockTicks', 'aimTarget']),
-  grp('status', false, (k) => k.status, ['cc', 'ccStart', 'ccEnd', 'immuneUntil', 'shieldUntil', 'shieldGraceUntil', 'haloUntil', 'mashCredits', 'lastTapDir', 'lastTapTick', 'modMask']),
-  grp('loc', false, (k) => k.race.loc, LOC_KEYS),
-  grp('lastValid', false, (k) => k.race.lastValid, LOC_KEYS),
-  grp('race', false, (k) => k.race, ['lap', 'keyMask', ['raceDist', POS], 'lapStartTick', 'bestLapTicks', 'lastLapTicks', 'finishTick', ['finishFrac', GAUGE], 'rank',
+  grp('vel', true, 'body', [['vx', VEL], ['vy', VEL], ['vz', VEL]]),
+  grp('pose', true, 'body', [['px', POS], ['py', POS], ['pz', POS]]),
+  grp('dir', false, 'body', [['fx', DIR], ['fy', DIR], ['fz', DIR], ['nx', DIR], ['ny', DIR], ['nz', DIR]]),
+  grp('ground', false, 'body', [['yawRate', YAW], 'grounded', 'coyote', 'airTicks', 'surf', 'wallContact', 'ghostTicks']),
+  grp('drift', false, 'drive', ['drift', 'driftDir', 'driftTicks', ['driftPeak', SLIP], 'reDriftLock', 'fatigueTicks']),
+  grp('boost', false, 'drive', [['gauge', GAUGE], 'boosters', 'teamBoosters', 'boostTicks', 'boostKind', 'startTicks', 'wheelspinTicks', 'instWindow', 'instTicks', 'stunTicks']),
+  grp('draft', false, 'drive', ['draftCharge', 'draftTicks', 'prevHeld', 'prevThrottle', 'lowSpeedTicks', 'startPressTick']),
+  grp('items', false, 'items', ['slot0', 'slot1', 'rouletteSlot', 'rouletteEnd', 'rouletteBox', 'lastUseTick', 'aimLockTicks', 'aimTarget']),
+  grp('status', false, 'status', ['cc', 'ccStart', 'ccEnd', 'immuneUntil', 'shieldUntil', 'shieldGraceUntil', 'haloUntil', 'mashCredits', 'lastTapDir', 'lastTapTick', 'modMask']),
+  grp('loc', false, 'race.loc', LOC_KEYS),
+  grp('lastValid', false, 'race.lastValid', LOC_KEYS),
+  grp('race', false, 'race', ['lap', 'keyMask', ['raceDist', POS], 'lapStartTick', 'bestLapTicks', 'lastLapTicks', 'finishTick', ['finishFrac', GAUGE], 'rank',
     'wrongWayTicks', 'offGraphTicks', 'noGroundTicks', 'respawnPhase', 'respawnUntil', 'manualCooldownUntil', 'slowTicks', 'retired']),
-  grp('identity', false, (k) => k, ['slot', 'team', 'spec', 'active']),
-  grp('attach', false, (k) => k.body, ['attachKind', 'attachId', ['attachS', POS], 'attachT']),
-  grp('stats', false, (k) => k.stats, ['drifts', 'instantBoosts', 'boostsUsed', 'startTier', 'wallHits', 'hardHits', 'attacksLanded', 'attacksBlocked', 'hitsTaken',
+  grp('identity', false, '', ['slot', 'team', 'spec', 'active']),
+  grp('attach', false, 'body', ['attachKind', 'attachId', ['attachS', POS], 'attachT']),
+  grp('stats', false, 'stats', ['drifts', 'instantBoosts', 'boostsUsed', 'startTier', 'wallHits', 'hardHits', 'attacksLanded', 'attacksBlocked', 'hitsTaken',
     'itemsUsed', 'respawns', ['driftMeters', 16], 'draftBursts']),
 ];
 let kn = 0;
@@ -149,6 +152,29 @@ function toInt(x: number, s: number): number {
   return i;
 }
 
+type KartFlattener = (karts: readonly KartState[], k: Float64Array, raw: Float64Array, exc: Uint8Array) => void;
+
+/**
+ * The kart part of flattenWorld runs 30–60 times a second on every peer, so it is generated once from KART_GROUPS as
+ * straight-line code with fixed property names (the generic loop's dynamic keys are megamorphic in V8).
+ * Environments that forbid `new Function` (strict CSP) fall back to the generic loop.
+ */
+const FLATTEN_KARTS: KartFlattener | null = ((): KartFlattener | null => {
+  const lines: string[] = ['"use strict";', 'return function flattenKarts(karts, k, raw, exc) {', '  let x = 0, v = 0, i = 0, c = 0, ex = false, o;',
+    `  for (let s = 0; s < ${MAX_KARTS}; s++) {`, `    const K = karts[s], b = s * ${KN}, e = s * ${NG};`];
+  KART_GROUPS.forEach((G, gi) => {
+    lines.push(`    o = K${G.path ? '.' + G.path : ''}; c = 0;`);
+    G.keys.forEach((key, j) => {
+      const s = G.scales[j]!, at = G.off + j;
+      lines.push(`    x = o.${key}; v = ${s === 1 ? 'x' : `x * ${s}`}; i = Math.round(v); ex = i !== v || (i === 0 && 1 / x < 0);`
+        + ` if (!(i <= ${MAXI} && i >= -${MAXI})) { ex = true; i = 0; } if (ex) c++; raw[b + ${at}] = x; k[b + ${at}] = i;`);
+    });
+    lines.push(`    exc[e + ${gi}] = c;`);
+  });
+  lines.push('  }', '};');
+  try { return new Function(lines.join('\n'))() as KartFlattener; } catch { return null; }
+})();
+
 export function flattenWorld(w: Readonly<WorldState>, f: FlatWorld): FlatWorld {
   f.tick = w.tick;
   f.gExc = 0;
@@ -158,7 +184,8 @@ export function flattenWorld(w: Readonly<WorldState>, f: FlatWorld): FlatWorld {
     f.gRaw[j] = x; f.g[j] = toInt(x, 1);
     if (EXC) f.gExc++;
   }
-  for (let s = 0; s < MAX_KARTS; s++) {
+  if (FLATTEN_KARTS) FLATTEN_KARTS(w.karts, f.k, f.kRaw, f.kExc);
+  else for (let s = 0; s < MAX_KARTS; s++) {
     const k = w.karts[s]!;
     const base = s * KN;
     for (let gi = 0; gi < NG; gi++) {
@@ -195,14 +222,15 @@ export function flattenWorld(w: Readonly<WorldState>, f: FlatWorld): FlatWorld {
   return f;
 }
 
-/** FNV-1a over every flat integer and every exceptional raw value (covers all fields, unlike hashWorld). */
+/**
+ * Hash over every flat integer and every exceptional raw value (covers all fields, unlike hashWorld). One xor-multiply
+ * per 32-bit word: each step is a bijection of the state, so a single differing value always changes the result.
+ */
 export function flatHash(f: FlatWorld): number {
   let h = 0x811c9dc5 | 0;
   const mix = (v: number): void => {
-    let lo = v | 0; const hi = Math.floor(v / 4294967296) | 0;
-    h ^= lo & 0xffff; h = Math.imul(h, 0x01000193); lo >>>= 16;
-    h ^= lo; h = Math.imul(h, 0x01000193);
-    h ^= hi & 0xfffff; h = Math.imul(h, 0x01000193);
+    h = Math.imul(h ^ (v | 0), 0x01000193);
+    if (v > 2147483647 || v < -2147483648) h = Math.imul(h ^ (Math.floor(v / 4294967296) | 0), 0x01000193);
   };
   const mixRaw = (x: number): void => {
     if (Number.isNaN(x)) mix(0x7ff80000);
@@ -212,7 +240,12 @@ export function flatHash(f: FlatWorld): number {
   };
   mix(f.tick);
   for (let j = 0; j < NGL; j++) mix(f.g[j]!);
-  for (let j = 0; j < f.k.length; j++) mix(f.k[j]!);
+  const K = f.k;
+  for (let j = 0; j < K.length; j++) {
+    const v = K[j]!;
+    h = Math.imul(h ^ (v | 0), 0x01000193);
+    if (v > 2147483647 || v < -2147483648) h = Math.imul(h ^ (Math.floor(v / 4294967296) | 0), 0x01000193);
+  }
   for (const fa of f.arr) { mix(fa.n); for (let j = 0; j < fa.ints.length; j++) mix(fa.ints[j]!); }
   for (let j = 0; j < f.box.length; j++) mix(f.box[j]!);
   if (f.gExc) for (let j = 0; j < NGL; j++) mixRaw(f.gRaw[j]!);

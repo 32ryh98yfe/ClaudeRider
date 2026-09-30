@@ -57,6 +57,8 @@ export interface NetClientOptions {
   onLobby?: (msg: unknown) => void;
   /** Called after each decoded snapshot (metrics, tests). */
   onSnapshot?: (meta: Readonly<SnapshotMeta>, auth: Readonly<WorldState>) => void;
+  /** Called after each reconciliation with the drawn-pose correction per kart (m, 0 = none) and whether it replayed. */
+  onReconcile?: (corrections: Readonly<Float64Array>, replayed: boolean) => void;
 }
 
 const HASH_RING = 256;
@@ -76,6 +78,8 @@ export class NetClient {
   private readonly inputProvider: NetClientOptions['inputProvider'];
   private readonly onLobby: NetClientOptions['onLobby'];
   private readonly onSnap: NetClientOptions['onSnapshot'];
+  private readonly onRec: NetClientOptions['onReconcile'];
+  private readonly corr = new Float64Array(MAX_KARTS);
   private readonly token: Uint32Array | null;
 
   private pred: WorldState;
@@ -132,6 +136,7 @@ export class NetClient {
     this.inputProvider = o.inputProvider;
     this.onLobby = o.onLobby;
     this.onSnap = o.onSnapshot;
+    this.onRec = o.onReconcile;
     this.ownClock = !o.clock;
     this.clock = o.clock ?? new ClockSync();
     this.token = o.resumeToken ? hexU32(o.resumeToken) : null;
@@ -193,11 +198,13 @@ export class NetClient {
       if (!this.started) {
         if (target < 1) { this.reconcile(); this.smoother.update(dtMs / 1000); return 0; }
         this.started = true;
-        this.acc = 0;
         // joining a race in progress: start from the authoritative world instead of simulating from tick 0
         if (this.haveSnap && this.dec.world.tick > this.pred.tick) this.newSnap = true;
-      }
-      this.reconcile();
+        this.reconcile();
+        // run ahead to the target lead at once (every skipped tick still sends its input)
+        this.acc = Math.max(0, target - this.pred.tick);
+        budget = Math.min(240, Math.ceil(this.acc));
+      } else this.reconcile();
       const err = this.pred.tick + this.acc - target;
       if (err < -NET.RESYNC_TICKS || this.resyncWanted) {
         // hard resync forward: catch up now (inputs for the skipped ticks are still sent, stamped as they are simulated)
@@ -380,6 +387,7 @@ export class NetClient {
     if (!this.haveSnap) { this.dirtyMin = Infinity; this.dirtyMax = -Infinity; this.newSnap = false; return; }
     const N = this.dec.world.tick, P = this.pred.tick;
     let need = false;
+    const hadSnap = this.newSnap;
     if (this.newSnap) {
       if (N > P) need = true;
       else {
@@ -389,8 +397,10 @@ export class NetClient {
       }
     } else if (this.dirtyMin <= P) need = true;
     this.newSnap = false;
-    if (need) this.resimulate(); else if (this.dirtyMax !== -Infinity) this.stats.resimSkipped++;
+    this.corr.fill(0);
+    if (need) this.resimulate(); else if (hadSnap) this.stats.resimSkipped++;
     this.dirtyMin = Infinity; this.dirtyMax = -Infinity;
+    if (hadSnap || need) this.onRec?.(this.corr, need);
   }
 
   private resimulate(): void {
@@ -434,6 +444,7 @@ export class NetClient {
       const dz = this.oldPos[s * 4 + 2]! - (pa.pz + (pb.pz - pa.pz) * a);
       const dyaw = this.oldPos[s * 4 + 3]! - Math.atan2(pb.fx, pb.fz);
       const m = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      this.corr[s] = m;
       if (m > 0) {
         this.smoother.add(s, dx, dy, dz, dyaw);
         if (s === this.slot) {

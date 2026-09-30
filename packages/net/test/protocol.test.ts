@@ -8,7 +8,7 @@ import {
 import {
   ByteReader, ByteWriter, ProtocolError, InputMsg, PingMsg, PongMsg, ResumeMsg, RelayMsg, EventsMsg, encodeWith,
   encodeC2SLobby, decodeLobby, FlatWorld, flattenWorld, flatEquals, flatHash, encodeWorld, decodeWorld, referenceWorld,
-  SnapshotDecoder, SnapshotEncoder, NetFlag, newMeta, KART_GROUPS, unwrapSeq16, createSnapshotCodec, type NetEvent,
+  SnapshotDecoder, SnapshotEncoder, NetFlag, newMeta, KART_GROUPS, KN, unwrapSeq16, createSnapshotCodec, type NetEvent,
 } from '../src/index.ts';
 import { mulberry, raceConfig, testContent, testTrack } from './helpers.ts';
 
@@ -185,6 +185,40 @@ describe('world block', () => {
       expect(hashWorld(out)).toBe(hashWorld(w));
       expect({ ...out, decisions: null }).toEqual({ ...w, decisions: null });
     }
+  });
+
+  it('the generated kart flattener matches the field table exactly (ints, raws, exception counts)', () => {
+    const R = mulberry(8);
+    for (let i = 0; i < 50; i++) {
+      const w = randomWorld(R, template, true);
+      const f = flattenWorld(w, new FlatWorld());
+      for (let s = 0; s < 8; s++) KART_GROUPS.forEach((g, gi) => {
+        let exc = 0;
+        g.keys.forEach((key, j) => {
+          const x = g.obj(w.karts[s]!)[key]!, at = s * KN + g.off + j, v = x * g.scales[j]!;
+          let n = Math.round(v);
+          let e = n !== v || (n === 0 && 1 / x < 0);
+          if (!(n <= 2 ** 51 && n >= -(2 ** 51))) { e = true; n = 0; }
+          if (e) exc++;
+          expect(Object.is(f.kRaw[at], x)).toBe(true);
+          expect(f.k[at]).toBe(n);
+        });
+        expect(f.kExc[s * KART_GROUPS.length + gi]).toBe(exc);
+      });
+    }
+  });
+
+  it('every numeric KartState field is in exactly one group', () => {
+    const k = template.karts[0]!;
+    const listed = new Set<string>();
+    for (const g of KART_GROUPS) for (const key of g.keys) { const id = `${g.path}.${key}`; expect(listed.has(id)).toBe(false); listed.add(id); }
+    const walk = (o: Record<string, unknown>, path: string): void => {
+      for (const [key, v] of Object.entries(o)) {
+        if (typeof v === 'number') expect(listed.has(`${path}.${key}`), `${path}.${key}`).toBe(true);
+        else if (v && typeof v === 'object') walk(v as Record<string, unknown>, path ? `${path}.${key}` : key);
+      }
+    };
+    walk(k as unknown as Record<string, unknown>, '');
   });
 
   it('stays lossless for −0, NaN, ±Infinity and off-grid floats (exception list)', () => {

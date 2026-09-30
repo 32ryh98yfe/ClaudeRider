@@ -57,7 +57,10 @@ export class ClockSync {
     const use = kept.length ? kept : this.samples;
     this.offset = use.reduce((a, s) => a + s.offset, 0) / use.length;
     this.rttMs = use.reduce((a, s) => a + s.rtt, 0) / use.length;
-    this.jitterMs = sigma;
+    // One-way jitter from the kept samples: a single loss stall (RTO) must not inflate the lead for 8 samples, and
+    // RTT variance is the sum of both directions' (σ_rtt ≈ √2·σ_oneway).
+    const m2 = use.reduce((a, s) => a + (s.rtt - this.rttMs) * (s.rtt - this.rttMs), 0) / use.length;
+    this.jitterMs = Math.sqrt(m2) / Math.SQRT2;
   }
 
   /** Estimated (fractional) server tick at client time `nowMs`. */
