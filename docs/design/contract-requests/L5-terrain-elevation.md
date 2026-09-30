@@ -39,7 +39,7 @@ still blends to the far-field hills.
 I tried the diff locally and reverted it. On sandglass_canyon it changes the placed counts as follows: `pillar` 115 → 0,
 `canyon_wall` 11 → 45, `cactus` 45 → 58, `clay_pots` 0 → 3. The validator still reports 0 errors.
 
-## Second bug in the same function: NaN terrain vertices on every track
+## Second bug in the same function: NaN terrain vertices on every track (landed in the 43193fd merge; kept for the record)
 For a grid vertex whose nearest road sample is 60–85 m away, `best` is finite, because the 5×5 lookup covers
 about 85 m. `near` only collects samples closer than 60 m, so it stays empty. That leaves `yRef = Infinity` and
 `target = Infinity`, and once `sm = 1` the blend evaluates `Infinity * 0`, which is NaN.
