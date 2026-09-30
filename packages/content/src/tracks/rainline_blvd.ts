@@ -8,7 +8,7 @@ export default defineTrack({
   modes: ['speed', 'item'],
   topology: 'circuit',
   lapLengthM: 1350,
-  refLapTicks: 2367,
+  refLapTicks: 2338,
   nameKey: 'tracks.rainline_blvd.name',
   onRoster: true,
 });

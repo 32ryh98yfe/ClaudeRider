@@ -34,7 +34,7 @@ ITEMS at=@tram_s+53,@elevated_deck+43,@market_street+22,@canal+55,@boulevard+35 
 HAZ traffic cars at=@boulevard+62 to=@boulevard+128 lanes=[(d -5, speed 16, count 2, spacing 33),(d -2, speed 12, count 1, spacing 66)]
 # the neon alley: a 7 m shortcut cutting inside the harbour-crane corner
 BRANCH alley from=@alley_split+4 to=@container_row+48 kind=shortcut aiMin=0.5 w=8 wall=building:3.5 surf=cobble {
-  C R20 45 L ; S ?x ; C R20 45 L ; S ?y
+  C R20 45 L wallR=building:3.5:soft ; S ?x wallR=building:3.5:soft ; C R20 45 L ; S ?y
 }
 # ---- dressing (Neon Harbor kit): sodium lamps, arcade signs, harbour cranes and containers, the tram stop ----
 PROPS kind=street_lamp along=main side=both every=38 offset=0.6
