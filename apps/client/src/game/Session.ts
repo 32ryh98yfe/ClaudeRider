@@ -4,9 +4,10 @@
 // Constructor path (RaceScreen): `new Session(three, tier, opts)`; a pending online race (raceStart) is picked up
 // automatically. Explicit online entry point: `Session.online(three, tier, race)`.
 import type * as THREE from 'three/webgpu';
-import { loadContent, type CharacterId, type KartBodyId, type ModeId, type TrackId, type AiTier, CHARACTER_IDS, KART_BODY_IDS } from '@cr/content';
+import { loadContent, type CharacterId, type KartBodyId, type ModeId, type TrackId, type AiTier, type TeamFormat, CHARACTER_IDS, KART_BODY_IDS } from '@cr/content';
 import {
-  loadCtrk, toArrayBuffer, AI_TIERS, createAiDriver, makeInput, cloneWorld, copyWorld, Held, Phase,
+  loadCtrk, toArrayBuffer, AI_TIERS, createAiDriver, makeInput, cloneWorld, copyWorld, createWorld, makeContext, step, raceTicksOf, NULL_SINK, Held, Phase,
+  type StepContext, type SlotConfig,
   type RaceConfig, type SimEvent, type InputFrame, type AiDriver, type WorldState, type BakedTrack,
 } from '@cr/sim';
 import { NetClient, loopbackPair, type Transport, type RaceResultWire } from '@cr/net';
@@ -21,6 +22,9 @@ import { t } from '../i18n/index.ts';
 import { LocalAuthority } from '../net/localAuthority.ts';
 import { portTransport } from '../net/transports.ts';
 import { lobby } from '../net/lobby.ts';
+import { GhostRecorder, GhostPlayer, ghostConfig, type Ghost } from '@cr/sim/race/ghost.ts';
+import { loadGhost, saveGhost, type GhostData } from '../meta/ghost.ts';
+import { toast as uiToast } from '../ui/store/uiToast.ts';
 import { conn, registerActiveRace, takePendingRace, takeRaceChannel, latestStartTick, type OnlineRaceInfo } from '../net/online.ts';
 
 export interface SessionOptions {
@@ -29,6 +33,10 @@ export interface SessionOptions {
   authority?: 'worker' | 'main';
   /** An online race (from raceStart); otherwise a pending one is taken from the lobby connection. */
   online?: OnlineRaceInfo;
+  /** Time Attack: one kart, no bots, no rubber-band, no retire timer (13-modes-rules §4). */
+  solo?: boolean;
+  /** Offline team race with bots: duo = 4 teams of 2, squad = 2 teams of 4. */
+  teams?: TeamFormat;
 }
 
 const BOT_NAMES_KO = ['스파크', '토큰', '프롬프트', '컨텍스트', '벡터', '임베딩', '어텐션', '그래디언트', '로짓', '시드'];
@@ -62,6 +70,13 @@ export class Session {
   private watchMsgs = -1;
   private watchAt = 0;
   private doneAt = 0;
+  // pause (offline only): the lockstep authority waits for inputs, so stopping inputs and the clock pauses the race
+  private paused = false;
+  private pauseAt = 0;
+  private pausedMs = 0;
+  // Time Attack ghost: record own inputs; replay the stored PB in a private world rendered translucent
+  private recorder: GhostRecorder | null = null;
+  private ghostRun: { player: GhostPlayer; w: WorldState; prev: WorldState; ctx: StepContext; inp: InputFrame[]; raceTicks: number } | null = null;
   slotNames: string[] = [];
   config!: RaceConfig;
   /** Where the authority runs ('worker' | 'main' | 'server'). */
@@ -131,9 +146,14 @@ export class Session {
       const want = this.opts.authority ?? (q.get('authority') === 'main' ? 'main' : 'worker');
       const transport = (want === 'worker' ? await this.startWorker(ctrk) : null) ?? this.startMainThread(track);
       this.net = new NetClient({
-        transport, track, content: this.content, cfg: this.config, slot: this.localSlot, nowMs: () => performance.now() * this.simRate,
+        transport, track, content: this.content, cfg: this.config, slot: this.localSlot, nowMs: () => this.clock(performance.now()),
         mode: 'free', maxSteps: 5 * this.simRate, onLobby: (m) => this.onAuthorityMessage(m), ...(provider ? { inputProvider: provider } : {}),
+        ...(this.opts.solo ? { onOwnInput: (_t: number, f: Readonly<InputFrame>) => this.recorder?.push(f) } : {}),
       });
+    }
+    if (this.opts.solo && !online) {
+      this.recorder = new GhostRecorder();
+      if (save.get().settings.ghost !== false) await this.loadGhostRun(track).catch((e: unknown) => console.warn('[ghost] load failed', e));
     }
     this.viewPrev = cloneWorld(this.net.world);
     this.viewCur = cloneWorld(this.net.world);
@@ -151,16 +171,21 @@ export class Session {
     const names = ko ? BOT_NAMES_KO : BOT_NAMES_EN;
     // deterministic-ish variety: other characters/karts for bots
     const chars = CHARACTER_IDS.filter((c) => c !== this.opts.characterId);
-    const slots = Array.from({ length: 8 }, (_, i) => {
-      if (i === this.localSlot) return { kind: 'human' as const, team: 0, name: save.get().profile.name, characterId: this.opts.characterId, kartBodyId: this.opts.kartBodyId, vMul: 1 };
+    const teams: TeamFormat = this.opts.solo ? 'solo' : (this.opts.teams ?? 'solo');
+    // duo: 4 teams of 2 (slots 0-1, 2-3, …); squad: 2 teams of 4 (alternating, so the grid mixes colours)
+    const teamOf = (i: number): number => (teams === 'duo' ? i >> 1 : teams === 'squad' ? i & 1 : 0);
+    const slots = Array.from({ length: 8 }, (_, i): SlotConfig => {
+      if (i === this.localSlot) return { kind: 'human' as const, team: teamOf(i), name: save.get().profile.name, characterId: this.opts.characterId, kartBodyId: this.opts.kartBodyId, vMul: 1 };
+      if (this.opts.solo) return { kind: 'empty' as const, team: 0, name: '', characterId: 'clay', kartBodyId: 'pebble', vMul: 1 };
       const c = chars[(i * 5 + seed) % chars.length]!;
       const k = KART_BODY_IDS[(i * 3 + seed) % KART_BODY_IDS.length]!;
-      return { kind: 'bot' as const, team: 0, name: `${names[(i + seed) % names.length]}-${String((seed >> (i + 2)) % 90 + 10)}`, characterId: c, kartBodyId: k, ai: this.opts.tier, vMul: AI_TIERS[this.opts.tier].vMul };
+      return { kind: 'bot' as const, team: teamOf(i), name: `${names[(i + seed) % names.length]}-${String((seed >> (i + 2)) % 90 + 10)}`, characterId: c, kartBodyId: k, ai: this.opts.tier, vMul: AI_TIERS[this.opts.tier].vMul };
     });
     this.slotNames = slots.map((s) => s.name);
     return {
-      simVersion: 1, mode: this.opts.mode, teams: 'solo', trackId: this.opts.trackId, trackHash: track.hash, laps: this.opts.laps ?? track.laps,
-      slots, seed, rules: { retireTicks: 600, friendlyFire: 'area', itemSet: 'standard', rubberBand: true, instantBoostInItem: true },
+      simVersion: 1, mode: this.opts.mode, teams, trackId: this.opts.trackId, trackHash: track.hash, laps: this.opts.laps ?? track.laps,
+      slots, seed: this.opts.solo ? 0 : seed,
+      rules: { retireTicks: this.opts.solo ? 60 * 60 * 60 : 600, friendlyFire: 'area', itemSet: 'standard', rubberBand: !this.opts.solo, instantBoostInItem: true },
       introTicks: 150, countdownTicks: 180,
     };
   }
@@ -220,7 +245,7 @@ export class Session {
     // reconciling, so a timer steps the simulation whenever no frame has run for 50 ms.
     this.pump = setInterval(() => {
       const now = performance.now();
-      if (this.running && now - this.lastFrameAt > 50) this.simulate(now);
+      if (this.running && !this.paused && now - this.lastFrameAt > 50) this.simulate(now);
     }, 16);
   }
 
@@ -230,13 +255,14 @@ export class Session {
     this.renderer.lookBack = (inp.held & Held.LOOK_BACK) !== 0;
     if (!this.autopilot) { this.net.submit(inp); copyInputInto(this.lastInput, inp); }
     inp.edges = 0;
-    this.net.update(now * (this.isOnline ? 1 : this.simRate));
+    this.net.update(this.isOnline ? now : this.clock(now));
     this.net.drainEvents(this.events);
     if (this.isOnline) this.watchOnline(now);
     return this.autopilot ? this.lastInput : inp;
   }
 
   private frame(now: number): void {
+    if (this.paused) { this.last = now; this.lastFrameAt = now; this.renderer.render(); return; }
     let dt = (now - this.last) / 1000;
     this.last = now;
     this.lastFrameAt = now;
@@ -259,6 +285,7 @@ export class Session {
       }
     }
     this.renderer.update(vp, vc, this.net.alpha, dt);
+    if (this.ghostRun) this.stepGhost(dt);
     this.renderer.render();
     this.hud.update(now, this.net.alpha);
     raceAudioFrame(this.net.world, this.localSlot, inp);
@@ -291,10 +318,60 @@ export class Session {
   private finishSoon(r: RaceResultWire | RaceResult): void {
     if (this.ended) return;
     this.ended = true;
+    if (this.recorder) void this.saveGhostIfBest().catch((e: unknown) => console.warn('[ghost] save failed', e));
     setTimeout(() => { this.onEndCb?.(r as RaceResult); }, this.isOnline ? 2200 : 2200 / this.simRate);
   }
 
   world(): Readonly<WorldState> { return this.net.world; }
+
+  /** Offline races pause (L10-session-hooks §1). Online races never pause. */
+  setPaused(p: boolean): void {
+    if (this.isOnline || p === this.paused) return;
+    const now = performance.now();
+    if (p) this.pauseAt = now;
+    else this.pausedMs += now - this.pauseAt;
+    this.paused = p;
+    this.last = now;
+  }
+
+  get isPaused(): boolean { return this.paused; }
+
+  /** The offline race clock: wall time minus paused time, scaled by ?simRate. */
+  private clock(now: number): number { return (now - this.pausedMs) * this.simRate; }
+
+  /** Time Attack: the PB ghost replays in its own world, one tick per race tick (L1 race/ghost.ts). */
+  private async loadGhostRun(track: BakedTrack): Promise<void> {
+    const d = await loadGhost(this.config.trackId, this.config.simVersion, track.hash);
+    if (d === 'outdated') { uiToast(t('errors.ghost_outdated'), 'info'); return; }
+    if (!d) return;
+    const g = fromGhostData(d);
+    const cfg = ghostConfig(g);
+    const w = createWorld(cfg, track, this.content);
+    this.ghostRun = { player: new GhostPlayer(g), w, prev: cloneWorld(w), ctx: makeContext({ track, cfg, content: this.content, role: 'authority', events: NULL_SINK }), inp: [makeInput()], raceTicks: d.raceTicks };
+    this.renderer.setGhost({ characterId: g.characterId, kartBodyId: g.kartBodyId });
+  }
+
+  private stepGhost(dt: number): void {
+    const gr = this.ghostRun!;
+    let n = 0;
+    while (gr.w.tick < this.net.world.tick && n < 32) {
+      copyWorld(gr.prev, gr.w);
+      if (!gr.player.next(gr.inp[0]!)) break;
+      step(gr.w, gr.inp, gr.ctx);
+      n++;
+    }
+    this.renderer.updateGhost(gr.prev, gr.w, this.net.alpha, dt);
+  }
+
+  /** Saves this run as the track's ghost when it finished and beat the stored one. */
+  private async saveGhostIfBest(): Promise<void> {
+    const w = this.net.world, k = w.karts[this.localSlot];
+    if (!this.recorder || !k || k.race.finishTick < 0) return;
+    const raceTicks = raceTicksOf(w, k);
+    if (this.ghostRun && this.ghostRun.raceTicks <= raceTicks) return;
+    const g = this.recorder.finish(this.config, { raceTicks, bestLapTicks: k.race.bestLapTicks, lapTicks: [], finalHash: 0 }, this.localSlot);
+    await saveGhost(toGhostData(g));
+  }
 
   stop(): void {
     this.running = false;
@@ -314,6 +391,21 @@ export class Session {
 
 function copyInputInto(d: InputFrame, s: Readonly<InputFrame>): void {
   d.steer = s.steer; d.throttle = s.throttle; d.brake = s.brake; d.held = s.held; d.edges = s.edges; d.aim = s.aim; d.emote = s.emote;
+}
+
+function toGhostData(g: Ghost): GhostData {
+  return { v: 1, trackId: g.trackId, simVersion: g.simVersion, trackHash: g.trackHash, config: ghostConfig(g), inputs: g.runs, raceTicks: g.raceTicks, savedAt: Date.now() };
+}
+
+function fromGhostData(d: GhostData): Ghost {
+  const c = d.config, s = c.slots[0]!;
+  let ticks = 0;
+  for (let i = 1; i < d.inputs.length; i += 2) ticks += d.inputs[i]!;
+  return {
+    simVersion: d.simVersion, seed: c.seed, mode: c.mode, laps: c.laps, introTicks: c.introTicks, countdownTicks: c.countdownTicks, rules: { ...c.rules },
+    trackId: d.trackId, trackHash: d.trackHash, characterId: s.characterId, kartBodyId: s.kartBodyId, name: s.name,
+    ticks, raceTicks: d.raceTicks, bestLapTicks: 0, lapTicks: [], finalHash: 0, runs: d.inputs,
+  };
 }
 
 const KART_COLORS = ['#d97757', '#6a9bcc', '#788c5d', '#e8b04b', '#b57cff', '#3fb8af', '#e84a6a', '#5a6b7b'];

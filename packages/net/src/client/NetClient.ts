@@ -50,6 +50,8 @@ export interface NetClientOptions {
   resumeToken?: string;
   /** Per-tick input source (autopilot, scripted tests); otherwise frames passed to submit() are used. */
   inputProvider?: (w: Readonly<WorldState>, out: InputFrame) => void;
+  /** Called once per newly predicted tick with the local frame used for it (Time Attack ghost recording). */
+  onOwnInput?: (tick: Tick, f: Readonly<InputFrame>) => void;
   /** Steps per update() call (default 5). */
   maxSteps?: number;
   smoothing?: { remoteMs?: number; localMs?: number; snapM?: number };
@@ -78,6 +80,7 @@ export class NetClient {
   private startTick: Tick;
   private readonly maxSteps: number;
   private readonly inputProvider: NetClientOptions['inputProvider'];
+  private readonly onOwnInput: NetClientOptions['onOwnInput'];
   private readonly onLobby: NetClientOptions['onLobby'];
   private readonly onSnap: NetClientOptions['onSnapshot'];
   private readonly onRec: NetClientOptions['onReconcile'];
@@ -140,6 +143,7 @@ export class NetClient {
     this.startTick = o.startTick ?? 0;
     this.maxSteps = o.maxSteps ?? 5;
     this.inputProvider = o.inputProvider;
+    this.onOwnInput = o.onOwnInput;
     this.onLobby = o.onLobby;
     this.onSnap = o.onSnapshot;
     this.onRec = o.onReconcile;
@@ -490,6 +494,7 @@ export class NetClient {
     if (this.inputProvider) this.inputProvider(this.pred, f);
     else { copyInput(f, this.pending); this.pending.edges = 0; }
     this.own.set(T, f);
+    this.onOwnInput?.(T, f);
     // frames produced in one update go out together, up to 4 per INPUT message (§3.2)
     if (this.outN === 4 || (this.outN > 0 && this.outFirst + this.outN !== T)) this.flushInputs();
     if (this.outN === 0) this.outFirst = T;
