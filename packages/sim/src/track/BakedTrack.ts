@@ -1,9 +1,12 @@
 // FROZEN interface (review-enforced, not hash-locked: lanes L1/L4 extend the implementation). Runtime view of a baked .ctrk track: collision queries + spline graph.
 // All queries are deterministic (arithmetic + sqrt) and allocation-free.
+// v2 (L4): f32 arrays are widened to f64 once at load; locate follows path links (branch split/merge, rail exits);
+// per-sample gravity scales; respawn tables; analytic hazard motion (docs/design/contract-requests/L4-ctrk-v2.md).
 import type { TrackId } from '@cr/content';
 import type { Tick } from '../core/units.ts';
 import type { TrackLoc } from '../core/state.ts';
-import { readContainer } from './container.ts';
+import { detSinCos } from '../core/math.ts';
+import { readContainer, type TypedArray } from './container.ts';
 import { findCell, type TriHashData } from './trihash.ts';
 import {
   AIS, CTRK_MAGIC, CTRK_VERSION, SFLAG, SMP,
@@ -16,7 +19,8 @@ export interface Contact { x: number; y: number; z: number; nx: number; ny: numb
 export interface FrameSample { px: number; py: number; pz: number; tx: number; ty: number; tz: number; rx: number; ry: number; rz: number; ux: number; uy: number; uz: number; wL: number; wR: number; sMain: number; flags: number }
 export interface AiSample { lineU: number; vLim: number; kappa: number; turnAhead40: number; driftZone: number; width: number }
 export interface GravityOut { x: number; y: number; z: number; scale: number }
-export interface HazardPose { x: number; y: number; z: number; active: 0 | 1; telegraph: 0 | 1 }
+/** Hazard pose at a tick. v2 adds the shape's local frame (f = forward/long axis, u = up/cylinder axis) and phase ∈ [0,1). */
+export interface HazardPose { x: number; y: number; z: number; active: 0 | 1; telegraph: 0 | 1; fx?: number; fy?: number; fz?: number; ux?: number; uy?: number; uz?: number; phase?: number }
 
 export interface BakedTrack {
   readonly id: TrackId;
@@ -50,11 +54,26 @@ export interface BakedTrack {
   aiAt(path: number, s: number, out: AiSample): void;
   respawnPose(loc: Readonly<TrackLoc>, out: PoseBaked): void;
   hazardPose(h: number, tick: Tick, out: HazardPose): void;
-  /** Main-line s → sMain (identity on main); branch s → mapped main progress. */
+  /** Main-line s → sMain (identity on circuits); branch s → mapped main progress. */
   toMainS(path: number, s: number): number;
+  // ---- v2 additions (optional so older implementations/mocks stay valid)
+  /** true if sample i of path p is a valid respawn slot (ground, clear of walls, outside gaps/warps/rails). */
+  respawnOk?(path: number, i: number): boolean;
+  /** The loc of the pose respawnPose() would pick (copy it into race.loc after placing the kart). */
+  respawnLoc?(loc: Readonly<TrackLoc>, out: TrackLoc): void;
+  /** Indices of zones containing (path, s, u); writes up to `max` into `out`, returns the count. */
+  zonesAt?(path: number, s: number, u: number, out: Int32Array | number[], max: number): number;
+  /** Sample flags (SFLAG) at (path, s). */
+  flagsAt?(path: number, s: number): number;
 }
 
-interface PathData { meta: CtrkPathMeta; smp: Float64Array; flg: Uint16Array; ai: Float64Array | null }
+interface PathData { meta: CtrkPathMeta; smp: Float64Array; flg: Uint16Array; ai: Float64Array | null; grav: Float64Array | null; rok: Uint8Array | null; lineS: number }
+
+/** f32 arrays (v2 files) are widened once; f64 arrays (v1 files) are used zero-copy. */
+function f64(a: TypedArray | undefined): Float64Array | null {
+  if (!a) return null;
+  return a instanceof Float64Array ? a : Float64Array.from(a as ArrayLike<number>);
+}
 
 function hashFrom(arrays: Map<string, unknown>, prefix: string, cells: { cs: number; cy: number }, dims: Float64Array): TriHashData {
   return {
@@ -64,6 +83,7 @@ function hashFrom(arrays: Map<string, unknown>, prefix: string, cells: { cs: num
 }
 
 const G_WORLD = 28;
+const DT = 1 / 60;
 
 class BakedTrackImpl implements BakedTrack {
   readonly id: TrackId; readonly meta: CtrkMeta; readonly hash: string; readonly lapLength: number; readonly laps: number;
@@ -73,9 +93,10 @@ class BakedTrackImpl implements BakedTrack {
   private paths: PathData[];
   private gPos: Float64Array; private gNrm: Float64Array; private gIdx: Uint32Array; private gSurf: Uint8Array; private gFlg: Uint8Array; private gHash: TriHashData;
   private wPos: Float64Array; private wIdx: Uint32Array; private wFlg: Uint8Array; private wHash: TriHashData;
-  private seen: Int32Array = new Int32Array(128);
+  private seen: Int32Array = new Int32Array(256);
   private tmpFrame: FrameSample = { px: 0, py: 0, pz: 0, tx: 0, ty: 0, tz: 0, rx: 0, ry: 0, rz: 0, ux: 0, uy: 0, uz: 0, wL: 0, wR: 0, sMain: 0, flags: 0 };
   private cand: TrackLoc = { path: 0, i: 0, s: 0, u: 0, h: 0, sMain: 0, valid: 0 };
+  private sc = { s: 0, c: 0 };
 
   constructor(buf: ArrayBuffer) {
     const c = readContainer(buf, CTRK_MAGIC, CTRK_VERSION);
@@ -85,12 +106,13 @@ class BakedTrackImpl implements BakedTrack {
     this.nPaths = m.paths.length; this.grid = m.grid; this.boxes = m.boxes; this.pads = m.pads; this.keyGates = m.keyGates;
     this.hazards = m.hazards; this.zones = m.zones; this.rails = m.rails; this.warps = m.warps; this.jumps = m.jumps; this.killY = m.killY;
     this.paths = m.paths.map((pm, k) => ({
-      meta: pm, smp: A.get(`p${k}.smp`) as Float64Array, flg: A.get(`p${k}.flg`) as Uint16Array, ai: (A.get(`p${k}.ai`) as Float64Array | undefined) ?? null,
+      meta: pm, smp: f64(A.get(`p${k}.smp`))!, flg: A.get(`p${k}.flg`) as Uint16Array, ai: f64(A.get(`p${k}.ai`)),
+      grav: f64(A.get(`p${k}.grav`)), rok: (A.get(`p${k}.rok`) as Uint8Array | undefined) ?? null, lineS: pm.lineS ?? 0,
     }));
-    this.gPos = A.get('g.pos') as Float64Array; this.gNrm = A.get('g.nrm') as Float64Array; this.gIdx = A.get('g.idx') as Uint32Array;
+    this.gPos = f64(A.get('g.pos'))!; this.gNrm = f64(A.get('g.nrm'))!; this.gIdx = A.get('g.idx') as Uint32Array;
     this.gSurf = A.get('g.surf') as Uint8Array; this.gFlg = A.get('g.flg') as Uint8Array;
     this.gHash = hashFrom(A, 'g', m.hashCells, A.get('g.hd') as Float64Array);
-    this.wPos = A.get('w.pos') as Float64Array; this.wIdx = A.get('w.idx') as Uint32Array; this.wFlg = A.get('w.flg') as Uint8Array;
+    this.wPos = f64(A.get('w.pos'))!; this.wIdx = A.get('w.idx') as Uint32Array; this.wFlg = A.get('w.flg') as Uint8Array;
     this.wHash = hashFrom(A, 'w', m.hashCells, A.get('w.hd') as Float64Array);
   }
 
@@ -201,7 +223,8 @@ class BakedTrackImpl implements BakedTrack {
     out.u = dx * rx + dy * ry + dz * rz;
     out.h = dx * ux + dy * uy + dz * uz;
     out.sMain = S[a + SMP.SMAIN]! + (S[b + SMP.SMAIN]! - S[a + SMP.SMAIN]!) * t;
-    if (pathIdx === 0 && pd.meta.closed && out.sMain >= pd.meta.length) out.sMain -= pd.meta.length;
+    const L = this.lapLength;
+    if (this.topology === 'circuit' && out.sMain >= L) out.sMain -= L;
     const wL = S[a + SMP.WL]!, wR = S[a + SMP.WR]!;
     const lateralOk = out.u <= wR + 3 && out.u >= -wL - 3;
     const heightOk = out.h >= -2 && out.h <= 6;
@@ -209,37 +232,42 @@ class BakedTrackImpl implements BakedTrack {
     return dx * dx + dy * dy + dz * dz;
   }
 
-  private searchWindow(pathIdx: number, center: number, back: number, fwd: number, px: number, py: number, pz: number, best: { d: number }, out: TrackLoc): void {
+  private searchWindow(pathIdx: number, center: number, back: number, fwd: number, px: number, py: number, pz: number, best: { d: number }, out: TrackLoc, bias: number): void {
     const pd = this.paths[pathIdx]!;
     const nSeg = pd.meta.n - 1;
     for (let k = -back; k <= fwd; k++) {
       let i = center + k;
       if (pd.meta.closed) { i %= nSeg; if (i < 0) i += nSeg; }
       else if (i < 0 || i >= nSeg) continue;
-      const d = this.projectOn(pd, pathIdx, i, px, py, pz, this.cand);
+      const d = this.projectOn(pd, pathIdx, i, px, py, pz, this.cand) + bias;
       if (this.cand.valid && d < best.d) { best.d = d; copyLoc(out, this.cand); }
     }
   }
 
+  private indexOf(pd: PathData, s: number): number {
+    return Math.max(0, Math.min(pd.meta.n - 2, Math.floor(s / pd.meta.ds)));
+  }
+
   locate(px: number, py: number, pz: number, prev: Readonly<TrackLoc>, out: TrackLoc): boolean {
     const best = BEST; best.d = 1e30;
-    this.searchWindow(prev.path, prev.i, 20, 40, px, py, pz, best, out);
-    // junctions: branches whose start/end lie near the current main-line position
-    for (let p = 1; p < this.paths.length; p++) {
-      const pm = this.paths[p]!.meta;
-      if (!pm.map) continue;
-      if (prev.path === 0) {
-        const ds = prev.s - pm.map.fromS;
-        if (ds > -30 && ds < 40) this.searchWindow(p, 0, 0, 40, px, py, pz, best, out);
-      } else if (prev.path === p) {
-        const nSeg = pm.n - 1;
-        if (prev.i > nSeg - 40) {
-          const mainPd = this.paths[0]!;
-          const iMain = Math.floor(pm.map.toS / mainPd.meta.ds);
-          this.searchWindow(0, iMain, 10, 30, px, py, pz, best, out);
-        }
-      }
+    const pd = this.paths[prev.path] ?? this.paths[0]!;
+    const pi = this.paths[prev.path] ? prev.path : 0;
+    this.searchWindow(pi, prev.i, 20, 40, px, py, pz, best, out, 0);
+    // follow links (branch split/merge, rail exit) near the current position; other paths pay a small bias so the
+    // kart keeps its path through overlapping junction surfaces (hysteresis)
+    const links = pd.meta.links;
+    if (links) for (let k = 0; k < links.length; k++) {
+      const ln = links[k]!;
+      let ds = prev.s - ln.at;
+      if (pd.meta.closed) { const L = pd.meta.length; if (ds > L / 2) ds -= L; else if (ds < -L / 2) ds += L; }
+      if (ds < -40 || ds > 45) continue;
+      const tp = this.paths[ln.to]!;
+      if (tp.meta.kind === 'rail' && ln.kind === 'railIn') continue; // rails are entered by capture only
+      this.searchWindow(ln.to, this.indexOf(tp, ln.toS), 30, 45, px, py, pz, best, out, 1.0);
     }
+    if (best.d < 1e29) return true;
+    // wider search on the same path before giving up (respawn walk-back, long frames)
+    this.searchWindow(pi, prev.i, 90, 90, px, py, pz, best, out, 0);
     if (best.d < 1e29) return true;
     copyLoc(out, prev); out.valid = 0;
     return false;
@@ -249,6 +277,7 @@ class BakedTrackImpl implements BakedTrack {
     let bestD = 1e30, bestP = -1, bestI = 0;
     for (let p = 0; p < this.paths.length; p++) {
       const pd = this.paths[p]!, S = pd.smp, st = SMP.STRIDE;
+      if (pd.meta.kind === 'rail') continue;
       for (let i = 0; i < pd.meta.n - 1; i += 2) {
         const dx = S[i * st]! - px, dy = S[i * st + 1]! - py, dz = S[i * st + 2]! - pz;
         const d = dx * dx + 4 * dy * dy + dz * dz;
@@ -257,7 +286,7 @@ class BakedTrackImpl implements BakedTrack {
     }
     if (bestP < 0) { out.valid = 0; return false; }
     const best = BEST; best.d = 1e30;
-    this.searchWindow(bestP, bestI, 6, 6, px, py, pz, best, out);
+    this.searchWindow(bestP, bestI, 6, 6, px, py, pz, best, out, 0);
     if (best.d < 1e29) return true;
     this.projectOn(this.paths[bestP]!, bestP, Math.min(bestI, this.paths[bestP]!.meta.n - 2), px, py, pz, out);
     out.valid = 0;
@@ -285,13 +314,14 @@ class BakedTrackImpl implements BakedTrack {
     const s0 = S[a + SMP.S]!, s1 = S[b + SMP.S]!;
     let t = s1 > s0 ? (ss - s0) / (s1 - s0) : 0;
     t = t < 0 ? 0 : t > 1 ? 1 : t;
-    const L = (k: number): number => S[a + k]! + (S[b + k]! - S[a + k]!) * t;
-    out.px = L(SMP.PX); out.py = L(SMP.PY); out.pz = L(SMP.PZ);
-    out.tx = L(SMP.TX); out.ty = L(SMP.TY); out.tz = L(SMP.TZ);
-    out.rx = L(SMP.RX); out.ry = L(SMP.RY); out.rz = L(SMP.RZ);
-    out.ux = L(SMP.UX); out.uy = L(SMP.UY); out.uz = L(SMP.UZ);
+    out.px = S[a]! + (S[b]! - S[a]!) * t; out.py = S[a + 1]! + (S[b + 1]! - S[a + 1]!) * t; out.pz = S[a + 2]! + (S[b + 2]! - S[a + 2]!) * t;
+    out.tx = S[a + 3]! + (S[b + 3]! - S[a + 3]!) * t; out.ty = S[a + 4]! + (S[b + 4]! - S[a + 4]!) * t; out.tz = S[a + 5]! + (S[b + 5]! - S[a + 5]!) * t;
+    out.rx = S[a + 6]! + (S[b + 6]! - S[a + 6]!) * t; out.ry = S[a + 7]! + (S[b + 7]! - S[a + 7]!) * t; out.rz = S[a + 8]! + (S[b + 8]! - S[a + 8]!) * t;
+    out.ux = S[a + 9]! + (S[b + 9]! - S[a + 9]!) * t; out.uy = S[a + 10]! + (S[b + 10]! - S[a + 10]!) * t; out.uz = S[a + 11]! + (S[b + 11]! - S[a + 11]!) * t;
     normalizeFrame(out);
-    out.wL = L(SMP.WL); out.wR = L(SMP.WR); out.sMain = L(SMP.SMAIN);
+    out.wL = S[a + SMP.WL]! + (S[b + SMP.WL]! - S[a + SMP.WL]!) * t; out.wR = S[a + SMP.WR]! + (S[b + SMP.WR]! - S[a + SMP.WR]!) * t;
+    out.sMain = S[a + SMP.SMAIN]! + (S[b + SMP.SMAIN]! - S[a + SMP.SMAIN]!) * t;
+    if (this.topology === 'circuit' && out.sMain >= this.lapLength) out.sMain -= this.lapLength;
     out.flags = pd.flg[t < 0.5 ? i : i + 1]!;
   }
 
@@ -303,7 +333,7 @@ class BakedTrackImpl implements BakedTrack {
       const S = pd.smp, a = loc.i * SMP.STRIDE;
       out.x = -S[a + SMP.UX]! * G_WORLD; out.y = -S[a + SMP.UY]! * G_WORLD; out.z = -S[a + SMP.UZ]! * G_WORLD; out.scale = 1;
     } else {
-      const sc = mode === 2 ? (pd.meta.gravityScale ?? 0.4) : 1;
+      const sc = mode === 2 ? (pd.grav ? pd.grav[loc.i]! : (pd.meta.gravityScale ?? 0.4)) : 1;
       out.x = 0; out.y = -G_WORLD * sc; out.z = 0; out.scale = sc;
     }
   }
@@ -318,12 +348,45 @@ class BakedTrackImpl implements BakedTrack {
     out.turnAhead40 = A[o + AIS.TURN40]!; out.driftZone = A[o + AIS.ZONE]!; out.width = A[o + AIS.WIDTH]!;
   }
 
+  respawnOk(path: number, i: number): boolean {
+    const pd = this.paths[path];
+    if (!pd) return false;
+    return pd.rok ? pd.rok[i] === 1 : true;
+  }
+
+  /** Walks back (≤ 15 samples, inside the locate window) from loc to the nearest respawn-ok sample of the same path. */
+  private respawnIndex(loc: Readonly<TrackLoc>): number {
+    const pd = this.paths[loc.path]!;
+    const nSeg = pd.meta.n - 1;
+    let i = this.indexAt(pd, loc.s);
+    if (!pd.rok) return -1;
+    for (let k = 0; k <= 15; k++) {
+      let j = i - k;
+      if (pd.meta.closed) { j %= nSeg; if (j < 0) j += nSeg; } else if (j < 0) break;
+      if (pd.rok[j] === 1) return j;
+    }
+    i = -1;
+    return i;
+  }
+
+  respawnLoc(loc: Readonly<TrackLoc>, out: TrackLoc): void {
+    copyLoc(out, loc);
+    const j = this.respawnIndex(loc);
+    if (j < 0) return;
+    const pd = this.paths[loc.path]!, S = pd.smp, a = j * SMP.STRIDE;
+    out.i = j; out.s = S[a + SMP.S]!; out.sMain = S[a + SMP.SMAIN]!; out.u = 0; out.h = 0; out.valid = 1;
+    if (this.topology === 'circuit' && out.sMain >= this.lapLength) out.sMain -= this.lapLength;
+  }
+
   respawnPose(loc: Readonly<TrackLoc>, out: PoseBaked): void {
     const f = this.tmpFrame;
-    this.frameAt(loc.path, loc.s, f);
+    const j = this.respawnIndex(loc);
+    const pd = this.paths[loc.path]!;
+    const s = j >= 0 ? pd.smp[j * SMP.STRIDE + SMP.S]! : loc.s;
+    this.frameAt(loc.path, s, f);
     // keep a little of the lateral offset, clamped well inside the road
-    const lim = Math.min(f.wL, f.wR) - 2.5;
-    const u = lim > 0 ? (loc.u > lim ? lim : loc.u < -lim ? -lim : loc.u) * 0.3 : 0;
+    const lim = (f.wL < f.wR ? f.wL : f.wR) - 2.5;
+    const u = j < 0 && lim > 0 ? (loc.u > lim ? lim : loc.u < -lim ? -lim : loc.u) * 0.3 : 0;
     out.x = f.px + f.rx * u; out.y = f.py + f.ry * u; out.z = f.pz + f.rz * u;
     out.fx = f.tx; out.fy = f.ty; out.fz = f.tz;
   }
@@ -331,23 +394,91 @@ class BakedTrackImpl implements BakedTrack {
   hazardPose(h: number, tick: Tick, out: HazardPose): void {
     const hz = this.hazards[h];
     if (!hz) { out.x = out.y = out.z = 0; out.active = 0; out.telegraph = 0; return; }
-    const f = this.tmpFrame;
-    this.frameAt(hz.path, hz.s, f);
-    out.x = f.px + f.rx * hz.u; out.y = f.py + f.ry * hz.u; out.z = f.pz + f.rz * hz.u;
-    const ph = ((tick + hz.offsetTicks) % hz.periodTicks + hz.periodTicks) % hz.periodTicks;
+    const P = hz.periodTicks > 0 ? hz.periodTicks : 1;
+    const ph = ((tick + hz.offsetTicks) % P + P) % P;
     out.active = ph >= hz.activeFrom && ph < hz.activeTo ? 1 : 0;
     out.telegraph = !out.active && ph >= hz.activeFrom - hz.telegraphTicks && ph < hz.activeFrom ? 1 : 0;
+    out.phase = ph / P;
+    const mo = hz.motion;
+    const f = this.tmpFrame;
+    let s = hz.s, u = hz.u, hh = hz.h ?? 0;
+    if (mo && mo.type === 'lane') {
+      // travels s0 → s1 at |speed| (direction by sign); position is a pure function of the phase
+      const s0 = mo.s0 ?? hz.s, s1 = mo.s1 ?? hz.s + 100, span = s1 - s0, v = mo.speed ?? 10;
+      let d = (ph * DT * (v < 0 ? -v : v)) % span;
+      if (d < 0) d += span;
+      s = v >= 0 ? s0 + d : s1 - d;
+      out.active = 1; out.telegraph = 0;
+    }
+    this.frameAt(hz.path, s, f);
+    let fx = f.tx, fy = f.ty, fz = f.tz, ux = f.ux, uy = f.uy, uz = f.uz;
+    if (mo && mo.type === 'cross') {
+      // crosses the road along the track right vector during the active window, parked off-road otherwise
+      const half = mo.halfSpan ?? 20;
+      const span = hz.activeTo - hz.activeFrom;
+      const q = span > 0 ? (ph - hz.activeFrom) / span : 0;
+      u = hz.u + (out.active ? -half + 2 * half * q : q < 0 ? -half - 40 : half + 40);
+      fx = f.rx; fy = f.ry; fz = f.rz;
+    } else if (mo && mo.type === 'piston') {
+      // raised by `rise` outside the active phase, eased over rampTicks at both ends
+      const rise = mo.rise ?? 4, ramp = mo.rampTicks ?? 10;
+      let k = 1;
+      if (ph >= hz.activeFrom && ph < hz.activeTo) {
+        const a = ph - hz.activeFrom, b = hz.activeTo - ph;
+        k = a < ramp ? 1 - a / ramp : b < ramp ? 1 - b / ramp : 0;
+      }
+      hh += rise * k;
+    } else if (mo && (mo.type === 'pendulum' || mo.type === 'rotate')) {
+      // angle θ(phase): pendulum amp·sin(2π·phase), rotate 2π·phase; bob at arm length below/around the pivot
+      const TAU = 6.283185307179586;
+      let th: number;
+      if (mo.type === 'rotate') th = TAU * (ph / P);
+      else { detSinCos(TAU * (ph / P), this.sc); th = ((mo.ampDeg ?? 60) * 0.017453292519943295) * this.sc.s; }
+      detSinCos(th, this.sc);
+      const arm = mo.arm ?? 5, piv = mo.pivotH ?? arm + 1.5;
+      // swing plane: across the road (right/up) or along it (forward/up)
+      const ax = mo.plane === 'along' ? f.tx : f.rx, ay = mo.plane === 'along' ? f.ty : f.ry, az = mo.plane === 'along' ? f.tz : f.rz;
+      const lat = arm * this.sc.s, dn = arm * this.sc.c;
+      out.x = f.px + f.rx * u + f.ux * (piv - dn) + ax * lat;
+      out.y = f.py + f.ry * u + f.uy * (piv - dn) + ay * lat;
+      out.z = f.pz + f.rz * u + f.uz * (piv - dn) + az * lat;
+      // arm direction (pivot → bob) is the shape's up axis
+      ux = -(ax * this.sc.s) + f.ux * this.sc.c; uy = -(ay * this.sc.s) + f.uy * this.sc.c; uz = -(az * this.sc.s) + f.uz * this.sc.c;
+      out.fx = fx; out.fy = fy; out.fz = fz; out.ux = ux; out.uy = uy; out.uz = uz;
+      return;
+    }
+    out.x = f.px + f.rx * u + f.ux * hh; out.y = f.py + f.ry * u + f.uy * hh; out.z = f.pz + f.rz * u + f.uz * hh;
+    out.fx = fx; out.fy = fy; out.fz = fz; out.ux = ux; out.uy = uy; out.uz = uz;
+  }
+
+  zonesAt(path: number, s: number, u: number, out: Int32Array | number[], max: number): number {
+    let n = 0;
+    const Z = this.zones, pd = this.paths[path]!;
+    for (let k = 0; k < Z.length && n < max; k++) {
+      const z = Z[k]!;
+      if (z.path !== path || z.aabb) continue;
+      let ss = s;
+      if (pd.meta.closed) { const L = pd.meta.length; if (ss < z.s0) ss += L; if (ss > z.s1 + L) ss -= L; }
+      if (ss >= z.s0 && ss <= z.s1 && u >= z.u0 && u <= z.u1) out[n++] = k;
+    }
+    return n;
+  }
+
+  flagsAt(path: number, s: number): number {
+    const pd = this.paths[path]!;
+    return pd.flg[this.indexAt(pd, s)]!;
   }
 
   toMainS(path: number, s: number): number {
-    if (path === 0) return s;
-    const pm = this.paths[path]!.meta;
+    const pd = this.paths[path]!;
+    if (path === 0) return this.topology === 'p2p' ? s - pd.lineS : s;
+    const pm = pd.meta;
     if (!pm.map) return 0;
     let to = pm.map.toS;
     if (to < pm.map.fromS) to += this.paths[0]!.meta.length;
     let v = pm.map.fromS + (to - pm.map.fromS) * (s / pm.length);
     const L = this.paths[0]!.meta.length;
-    if (v >= L) v -= L;
+    if (this.topology === 'circuit' && v >= L) v -= L;
     return v;
   }
 }

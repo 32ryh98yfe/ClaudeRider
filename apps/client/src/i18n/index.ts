@@ -4,15 +4,16 @@ import { signal, type Signal } from '@preact/signals';
 export type Locale = 'ko' | 'en';
 type Dict = { [k: string]: string | Dict };
 
-const koMods = import.meta.glob<{ default: Dict }>('./ko/*.ts', { eager: true });
-const enMods = import.meta.glob<{ default: Dict }>('./en/*.ts', { eager: true });
+// `ko/<ns>.ts` → keys `<ns>.*`; `ko/<ns>/<sub>.ts` → keys `<ns>.<sub>.*` (per-entry files keep parallel lanes conflict-free).
+const koMods = import.meta.glob<{ default: Dict }>('./ko/**/*.ts', { eager: true });
+const enMods = import.meta.glob<{ default: Dict }>('./en/**/*.ts', { eager: true });
 
 function load(mods: Record<string, { default: Dict }>): Map<string, string> {
   const out = new Map<string, string>();
   const walk = (prefix: string, d: Dict): void => {
     for (const [k, v] of Object.entries(d)) { const key = prefix ? `${prefix}.${k}` : k; if (typeof v === 'string') out.set(key, v); else walk(key, v); }
   };
-  for (const [path, m] of Object.entries(mods)) walk(path.replace(/^.*\/(.+)\.ts$/, '$1'), m.default);
+  for (const [path, m] of Object.entries(mods)) walk(path.replace(/^\.\/(ko|en)\//, '').replace(/\.ts$/, '').split('/').join('.'), m.default);
   return out;
 }
 const TABLES: Record<Locale, Map<string, string>> = { ko: load(koMods), en: load(enMods) };
