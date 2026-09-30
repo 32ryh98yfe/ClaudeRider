@@ -43,10 +43,14 @@ export function bucketFor(w: Readonly<WorldState>, ctx: StepContext, k: Readonly
   else if ((rank - 1) * 100 <= 72 * (n - 1)) b = 'mid';
   else b = 'low';
   const gap = leaderD - k.race.raceDist;
-  if (gap > 600) return 'low';
-  if (gap > 350) return b === 'top' ? 'high' : b === 'high' ? 'mid' : b;
+  const o = teamMode(ctx) ? CATCH_UP.team : CATCH_UP.solo;
+  if (gap > o.lowM) return 'low';
+  if (gap > o.shiftM) return b === 'top' ? 'high' : b === 'high' ? 'mid' : b;
   return b;
 }
+
+/** Distance overrides (§8.2): solo per ADR-010; team formats pull the trailing pack in earlier [P]. */
+export const CATCH_UP = { solo: { shiftM: 350, lowM: 600 }, team: { shiftM: 350, lowM: 600 } };
 
 /** Validity rules for a rolled item (§8.4). */
 export function rollValid(w: Readonly<WorldState>, ctx: StepContext, k: Readonly<KartState>, code: number): boolean {

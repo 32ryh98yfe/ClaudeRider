@@ -139,7 +139,7 @@ export interface RaceTally {
 }
 
 /** Runs to the end and tallies item uses (by item id), effect hits (by effect id), results, stuck time and projectiles. */
-export function runItemRace(o: ItemRaceOptions = {}, maxTicks = 60 * 60 * 6): RaceTally & { race: ItemRace } {
+export function runItemRace(o: ItemRaceOptions = {}, maxTicks = 60 * 60 * 6, afterTick?: (w: WorldState) => void): RaceTally & { race: ItemRace } {
   const race = makeItemRace(o);
   const { w, ctx } = race;
   const content = ctx.content;
@@ -149,6 +149,7 @@ export function runItemRace(o: ItemRaceOptions = {}, maxTicks = 60 * 60 * 6): Ra
   let ev = 0;
   while (w.phase !== 4 && w.tick < maxTicks) {
     race.tick();
+    afterTick?.(w);
     for (; ev < race.events.length; ev++) {
       const e = race.events[ev]!;
       if (e.t === 'itemUse' || e.t === 'itemFizzle') { const id = content.items.byCode[e.item]?.id ?? '?'; uses.set(id, (uses.get(id) ?? 0) + 1); }

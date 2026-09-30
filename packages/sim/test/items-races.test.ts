@@ -33,6 +33,15 @@ describe('item-mode bot races', () => {
   }
 
   it('across the batch every item is used and every effect applied at least once', () => {
+    // rare team-table items (Mutex Lock 2%) may miss the fixed batch: top up with extra team races (bounded)
+    const missing = (): boolean => ITEM_IDS.some((id) => !uses.get(id)) || EFFECT_IDS.some((id) => !hits.get(id));
+    for (let extra = 0; extra < 6 && missing(); extra++) {
+      const r = runItemRace({ track: extra % 2 ? RING : MEADOW, teams: extra % 2 ? 'duo' : 'squad', seed: 200 + extra, tiers: ['pro', 'racer'], laps: 2 });
+      for (const [k, v] of r.uses) uses.set(k, (uses.get(k) ?? 0) + v);
+      for (const [k, v] of r.hits) hits.set(k, (hits.get(k) ?? 0) + v);
+      rows.push(`extra team race ${extra + 1}: finishers ${r.finishers}/8`);
+      expect(r.finishers).toBeGreaterThanOrEqual(6);
+    }
     const unusedItems = ITEM_IDS.filter((id) => !uses.get(id));
     const unappliedEffects = EFFECT_IDS.filter((id) => !hits.get(id));
     console.log(rows.join('\n'));

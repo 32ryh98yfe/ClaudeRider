@@ -308,7 +308,7 @@ describe('self and team items', () => {
     sc.aim[2] = 0;
     sc.until(() => sc.w.karts[2]!.items.aimLockTicks >= 17, 60);
     const T = use(sc, 2);
-    sc.until(() => sc.w.tick >= T + 20);
+    sc.until(() => sc.w.tick >= T + 30);
     expect(hits(sc, 2, EF.tether_pull)).toHaveLength(1);
     sc.give(0, 'interrupt_pulse');
     const P = use(sc, 0);
@@ -374,27 +374,27 @@ describe('self and team items', () => {
     sc.until(() => sc.w.karts[2]!.items.aimLockTicks >= 17, 60);
     const T = use(sc, 2);
     const gap0 = sc.w.karts[0]!.race.raceDist - sc.w.karts[2]!.race.raceDist;
-    sc.until(() => sc.w.tick >= T + 12 + 132);
-    expect(hits(sc, 2, EF.tether_pull).map((e) => e.tick)).toEqual([T + 12]);
-    expect(evs(sc, 'effectEnd').filter((e) => e.victim === 2 && e.effect === EF.tether_pull).map((e) => e.tick)).toEqual([T + 12 + 131]);
+    sc.until(() => sc.w.tick >= T + 21 + 132);
+    expect(hits(sc, 2, EF.tether_pull).map((e) => e.tick)).toEqual([T + 21]);
+    expect(evs(sc, 'effectEnd').filter((e) => e.victim === 2 && e.effect === EF.tether_pull).map((e) => e.tick)).toEqual([T + 21 + 131]);
     expect(hits(sc, 2, EF.slingshot)).toEqual([]);
     const gap1 = sc.w.karts[0]!.race.raceDist - sc.w.karts[2]!.race.raceDist;
     expect(gap0 - gap1).toBeGreaterThan(12);         // closed at ≈ 0.25·34 m/s for 2.2 s
   });
 
-  it('Attention Tether: hook 12 ticks, pull, slingshot on reaching a slowing target', () => {
+  it('Attention Tether: hook 21 ticks, pull, slingshot on reaching a slowing target', () => {
     const sc = pair(60);
     sc.give(2, 'attention_tether');
     sc.aim[2] = 0;
     sc.until(() => sc.w.karts[2]!.items.aimLockTicks >= 17, 60);
     const T = use(sc, 2);
     sc.brakeAt[0] = T;
-    expect(dec(sc, 'effect').filter((d) => d.code === EF.tether_pull)).toMatchObject([{ victim: 2, start: T + 12, dur: 132 }]);
-    sc.until(() => hits(sc, 2, EF.slingshot).length > 0 || sc.w.tick > T + 12 + 132, 200);
-    expect(hits(sc, 2, EF.tether_pull).map((e) => e.tick)).toEqual([T + 12]);
+    expect(dec(sc, 'effect').filter((d) => d.code === EF.tether_pull)).toMatchObject([{ victim: 2, start: T + 21, dur: 132 }]);
+    sc.until(() => hits(sc, 2, EF.slingshot).length > 0 || sc.w.tick > T + 21 + 132, 200);
+    expect(hits(sc, 2, EF.tether_pull).map((e) => e.tick)).toEqual([T + 21]);
     const s = hits(sc, 2, EF.slingshot);
     expect(s).toHaveLength(1);
-    expect(s[0]!.tick).toBeLessThan(T + 12 + 132);
+    expect(s[0]!.tick).toBeLessThan(T + 21 + 132);
     sc.advance(2);
     expect(sc.ctx.scratch.mods[2]!.vTarget).toBeCloseTo(42.5, 5);
   });

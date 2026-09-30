@@ -135,10 +135,16 @@ function report(w: WorldState, ctx: StepContext, e: EffectInstance, res: number)
   const name = res < 0 ? 'miss' : RESULT_NAME[res]!;
   ctx.events.push({ t: 'effect', victim: e.victim, effect: e.code, source: e.source, result: name, tick: w.tick, key: evKey(w.tick, 80, e.victim, e.code | (e.source << 8)) });
   if (e.source === e.victim) return; // self buffs: cosmetic event only
-  const src = w.karts[e.source];
+  // a teammate's halo / pulse guard / lens is a gift, not an attack: no stats, no feed result
+  const def = effectDef(ctx.content, e.code);
+  if (def && def.class !== 'hardCC' && def.class !== 'softCC') return;
+  // item stats count kart attacks only; track hazards (source 255) still get the event and the result decision
+  const src = e.source < w.karts.length ? w.karts[e.source] : undefined;
   const v = w.karts[e.victim];
-  if (res === Res.HIT) { if (src) src.stats.attacksLanded++; if (v) v.stats.hitsTaken++; }
-  if (res === Res.SHIELDED && v) v.stats.attacksBlocked++;
+  if (src && v) {
+    if (res === Res.HIT) { src.stats.attacksLanded++; v.stats.hitsTaken++; }
+    if (res === Res.SHIELDED) v.stats.attacksBlocked++;
+  }
   const auth = authorityOf(w, ctx);
   if (auth) auth.emit({ k: 'result', tick: w.tick, eff: e.id, victim: e.victim, result: name });
 }
