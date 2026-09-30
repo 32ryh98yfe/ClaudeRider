@@ -1,0 +1,19 @@
+export default {
+  create: '방 만들기', join: '코드로 참가', code: '방 코드', copyCode: '코드 복사', hideCode: '코드 숨기기', showCode: '코드 보기',
+  ready: '레디', notReady: '레디 취소', start: '게임 시작', autoStart: '{s}초 후 자동 시작', host: '방장', kick: '강퇴',
+  openSlot: '슬롯 열기', closeSlot: '슬롯 닫기', addBot: 'AI 추가',
+  team: { red: '레드 팀', blue: '블루 팀', green: '그린 팀', yellow: '옐로 팀' },
+  settings: {
+    track: '트랙', roulette: '트랙 룰렛', laps: '바퀴 수', lapsAuto: '자동', retire: '리타이어 타이머', itemSet: '아이템 구성',
+    'itemSet.standard': '기본', 'itemSet.light': '공격 약하게', 'itemSet.chaos': '대혼란', friendlyFire: '팀 공격', rubberBand: 'AI 보정',
+  },
+  rouletteVote: '달리고 싶은 트랙을 골라 주세요 ({s}초)', chatPlaceholder: '메시지를 입력하세요',
+  title: '커스텀 룸', landingSub: '방을 만들어 친구를 부르거나, 받은 코드로 참가하세요', codeInput: '6자리 방 코드', joinBtn: '참가하기',
+  createDesc: '모드와 트랙을 정하고 친구를 초대', joinDesc: '친구에게 받은 코드를 입력', codeInvalid: '방 코드는 6자리 영문·숫자예요 (0, O, 1, I 제외)',
+  copied: '방 코드를 복사했어요', open: '빈 자리', closed: '닫힌 자리', you: '나', waiting: '레디 대기 중', allReady: '모두 레디!',
+  needReady: '모든 레이서가 레디해야 시작할 수 있어요', chat: '채팅', send: '보내기', leave: '방 나가기', settingsTitle: '방 설정',
+  hostOnly: '방장만 바꿀 수 있어요', mode: '모드', format: '방식', fillBots: '빈 자리 AI로 채우기', botTier: 'AI 난이도', private: '비공개 방 (코드로만 참가)',
+  maxHumans: '최대 인원', slotMenu: '슬롯 관리', assignTeam: '팀 변경', ping: '{ms}ms', rouletteTitle: '트랙 룰렛', voted: '투표 완료', votes: '{n}표',
+  racers: '레이서 {n}/8', noChat: '아직 대화가 없어요. 인사를 건네 보세요!', hidden: '숨김',
+  phase: { waiting: '대기 중', countdown: '곧 시작', roulette: '트랙 룰렛', loading: '로딩 중', racing: '레이스 중', results: '결과 확인 중' },
+};

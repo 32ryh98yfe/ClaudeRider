@@ -197,6 +197,27 @@ AREA market polygon pts=[(0,0),(60,0),(70,40),(10,55)] y=4 surf=cobble wall=plan
   are solid walls (`.vis areas[]` lists them for the renderer).
 - V16: the area must triangulate, the guide must stay inside it, and its height must match the area `y` (±0.3 m).
 
+## 8. F4 recipes
+### Rail (grind path)
+```
+RAIL ore host=main from=@t2-12 to=@t2+75 d=[@t2-12:-3,@t2+6:-13,@t2+50:-13,@t2+75:-2] h=1.0
+     capture=(dMax 2.0, hdg 25, vMin 15) speed=(min 38, accel 3, max 42) gauge=0.30/s
+```
+- The rail is the host centreline + lateral `d` and height `h` offsets (`s:d` or `s:d:h` keys, smoothstep between keys,
+  so it leaves and rejoins tangentially). It becomes its own path (kind `rail`) mapped onto the host for progress.
+- Start it over the road (`|d| ≤ w/2`, h ≈ 1) so karts can be captured; end with a flat key so the exit is tangent.
+- **V17:** exit tangent ≤ 5°, lock time `length/speed` within 48–180 ticks (0.8–3 s), entry reachable.
+- Key gates avoid rail spans; host samples under the rail carry `SFLAG.RAIL`.
+
+### Warps
+```
+WARP portal at=@canyon+40 to=@rim+50 d=[3.5,7] transit=0.8 keep     # side-window portal skip
+S 60 warp=gate ; WARP gate transit=0.8 keep                          # no-geometry span: entry at its start, exit at its end
+```
+- `d=[a,b]` is the entry window (lateral), `exitD=` the exit offset, `toPath=` another path, `hMax=` entry height.
+- Karts that warp skip everything between entry and exit: **no key gate may lie in that span** (V8), and the time
+  saved should stay ≤ 8% of the lap. The renderer draws portal frames (`.vis portals[]`).
+
 ## 9. Validators and common errors
 Severity: structural rules are always errors. **V5 V6 V9 V10 V13 V14 V19 V20 are errors only in strict mode** (tracks
 with `@signature`, or `--strict`); M1-era tracks see them as warnings.
@@ -224,6 +245,8 @@ with `@signature`, or `--strict`); M1-era tracks see them as warnings.
 | V14 `straight ratio …` | Adjust straights vs corners toward the D band (R ≥ 150 counts as straight). |
 | V16 `AREA … guide path leaves the area` / `height differs` | Put the guide arc (`area=<id>`) inside the plaza and at its `y`. |
 | V15 `samples have no ground` | Something removed the road: check `warp=`, jump spans, area clipping. |
+| V17 `rail … lock time … outside 48–180` | Lengthen/shorten the rail span or change `speed=(min, …, max)`. |
+| V17 `entry … not reachable` | Start the rail over the road: first key `d` within the road, `h` ≈ 1. |
 | V18 `rejoin tangent error` | The branch's turns must match the host heading change between from and to. |
 | V18 `no key gate between branch …` | Add a KEYS entry between the merge of one branch and the split of the next. |
 | V19 `corners where drift beats grip` | Needs N(D) = 3/4/5/7/9 drift corners; without a ghost this is an analytic estimate (warning). |

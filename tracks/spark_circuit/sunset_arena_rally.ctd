@@ -1,0 +1,83 @@
+# Sunset Arena Rally — Spark Circuit D3, both modes (2 x ~1950 m). Two loops joined by one crossover:
+# the rally stage leaves the stadium bowl north over gravel (rally jump 1, the wooded dirt S), curls 270 degrees left
+# through the off-camber corner and up the ridge, and crosses back over its own gravel straight on a bridge 9 m up;
+# the outer loop drops into the quarry hook (or skips it on the dirt service road), runs the tarmac return and the forest-road S,
+# flies rally jump 2 on the north leg, sweeps through the paddock and the grandstand S, and enters the bowl through the stadium tunnel. Turning number 2 (V1 allows it: the single
+# crossing is z-separated by 9 m).
+@signature jump, surfaces, stacked
+TRACK sunset_arena_rally name="Sunset Arena Rally" theme=spark_circuit diff=3 laps=2 topo=circuit
+DEFAULTS w=14 surf=asphalt wall=barrier:1.0 shoulder=2 shoulderSurf=grass blend=16
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=7 stagger=3.5 d=3.5
+S 75 w=15                                          @bowl_straight
+C R30 180 L bank=8                                 @bowl_hairpin
+S 40 w=14                                          @stadium_gate
+C R25 90 R bank=-6                                 @gate_corner
+S 50 surf=gravel shoulderSurf=gravel               @gravel_straight
+J ramp=8@8 gap=8 drop=2 land=45 vmin=20 vmax=44 @rally_jump1
+WIGGLE R25 45/90/45 L surf=dirt bank=5 dy=2        @wooded_s
+C R20 120 L bank=-5 surf=asphalt shoulderSurf=grass @off_camber
+S 60 dy=3                                          @bridge_approach
+C R30 60 L dy=1.5 bank=5
+S 87 dy=4.5                                        @ridge_run
+C R30 90 L bank=6                                  @bridge_corner
+S 100                                              @crossover_bridge
+WIGGLE R120 12/24/12 L dy=-9                       @bridge_descent
+C R22 60 R bank=-5                                 @quarry_entry
+C R16 150 L bank=6                                 @quarry_hairpin
+WIGGLE R22 40/80/40 R w=13                         @quarry_s
+S ?b w=14                                          @tarmac_return
+C R60 90 L bank=5                                  @rim_sweeper
+WIGGLE R70 25/50/25 R dy=3                         @forest_s
+S ?c                                               @north_leg
+J ramp=8@8 gap=8 drop=2 land=45 vmin=24 vmax=46     @rally_jump2
+C R50 90 L bank=5 dy=-1                            @paddock_sweeper
+WIGGLE R30 40/80/40 R                              @grandstand_s
+WIGGLE R110 20/40/20 R                             @grandstand_sweep
+C R70 90 L bank=6 w=15                             @bowl_entry
+S ?a                                               @stadium_tunnel
+CLOSE solve=[?a,?b,?c] length=1950
+LINE start at=0
+# the service road: an 8 m dirt track that skips the quarry hook, for drivers who dare the ruts
+BRANCH service_road from=@quarry_entry to=@tarmac_return+45 kind=shortcut aiMin=0.45 w=8 wall=fence:1.2 surf=dirt shoulder=0 {
+  S ?x ; C R30 90 L ; S ?y
+}
+ITEMS at=@bowl_straight+60,@gravel_straight+40,@bridge_approach+25,@crossover_bridge+30,@rim_sweeper+30,@forest_s+120,@grandstand_sweep+70 n=5
+PAD at=@stadium_tunnel+8,@stadium_tunnel+40 d=0 len=6 w=4
+KEYS @stadium_gate+10,@rally_jump1+70,@ridge_run+40,@bridge_descent+50,@tarmac_return+60,@forest_s+40,@grandstand_sweep+80,@bowl_entry+30
+# the stadium bowl: stands all round the outside, race control and floodlights in the infield, the tunnel under the stand
+PROPS kind=stadium along=main from=@bowl_straight+6 to=@bowl_straight+70 side=R every=32 offset=5
+PROPS kind=stadium along=main from=@bowl_hairpin+9 to=@bowl_hairpin+85 side=R every=30 offset=11
+PROPS kind=stadium along=main from=@stadium_gate+5 to=@stadium_gate+37 side=R every=32 offset=5
+PROPS kind=control_tower along=main from=@bowl_straight+40 to=@bowl_straight+40 side=L every=10 offset=14
+PROPS kind=floodlight along=main from=@bowl_straight+2 to=@bowl_straight+72 side=L every=35 offset=4
+PROPS kind=tyre_wall along=main from=@bowl_hairpin to=@bowl_hairpin+94 side=R every=4 offset=1.2
+PROPS kind=tyre_wall along=main from=@gate_corner to=@gate_corner+40 side=L every=4 offset=1.2
+# gravel rally stage: hay-bale lines, the wooded S in the pines
+PROPS kind=hay_bale along=main from=@gravel_straight+3 to=@wooded_s side=both every=8 offset=1.2
+PROPS kind=pine along=main from=@wooded_s to=@off_camber side=both every=6 offset=3 jitter=8
+PROPS kind=pine along=main from=@gravel_straight to=@bridge_approach+40 side=both every=12 offset=16 jitter=24
+PROPS kind=tyre_wall along=main from=@off_camber to=@off_camber+44 side=R every=4 offset=1.2
+PROPS kind=banner along=main from=@bridge_approach+3 to=@bridge_approach+57 side=both every=12 offset=1.4
+PROPS kind=pine along=main from=@ridge_run-30 to=@bridge_corner+40 side=both every=9 offset=3 jitter=10
+# the crossover bridge: boards on the parapets
+PROPS kind=banner along=main from=@crossover_bridge+2 to=@crossover_bridge+96 side=both every=16 offset=0.3
+# quarry: boulders, a tyre wall round the hairpin
+PROPS kind=rock along=main from=@bridge_descent+60 to=@tarmac_return side=both every=9 offset=3 jitter=10
+PROPS kind=tyre_wall along=main from=@quarry_hairpin to=@quarry_hairpin+44 side=R every=4 offset=1.2
+PROPS kind=marshal_post along=main from=@quarry_s+30 to=@quarry_s+30 side=L every=10 offset=5
+PROPS kind=banner along=main from=@tarmac_return+3 to=@rim_sweeper side=both every=14 offset=1.4
+PROPS kind=camera_tower along=main from=@rim_sweeper to=@rim_sweeper side=R every=10 offset=12
+# forest roads
+PROPS kind=pine along=main from=@rim_sweeper to=@paddock_sweeper side=both every=8 offset=4 jitter=14
+PROPS kind=tree_round along=main from=@rim_sweeper to=@paddock_sweeper side=both every=21 offset=22 jitter=20
+# paddock: team garages on the outside of the sweeper
+PROPS kind=pit_garage along=main from=@paddock_sweeper+5 to=@paddock_sweeper+75 side=R every=22 offset=8
+PROPS kind=floodlight along=main from=@paddock_sweeper+5 to=@paddock_sweeper+75 side=L every=40 offset=8
+# grandstand S and sweep, bowl entry
+PROPS kind=grandstand along=main from=@grandstand_s+5 to=@bowl_entry side=R every=28 offset=6
+PROPS kind=grandstand along=main from=@grandstand_s+15 to=@bowl_entry side=L every=56 offset=6
+PROPS kind=banner along=main from=@grandstand_sweep+6 to=@bowl_entry side=L every=11 offset=1.4
+PROPS kind=tyre_wall along=main from=@bowl_entry to=@bowl_entry+110 side=R every=4 offset=1.2
+PROPS kind=stadium along=main from=@stadium_tunnel+2 to=@stadium_tunnel+20 side=R every=30 offset=5
+THEME scatter=pine,tree_round,bush,rock density=6 hills=7 sky=sunset time=18:00

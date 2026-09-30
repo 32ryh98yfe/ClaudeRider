@@ -8,7 +8,7 @@ export default defineTrack({
   modes: ['speed', 'item'],
   topology: 'circuit',
   lapLengthM: 1850,
-  refLapTicks: 0,
+  refLapTicks: 3638,
   nameKey: 'tracks.magma_switchback.name',
   onRoster: true,
 });
