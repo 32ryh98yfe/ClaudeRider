@@ -10,8 +10,8 @@ export interface ProxyMeshes { root: THREE.Group; lit: THREE.Mesh | null; glow: 
 export function makeProxy(parts: ProxyParts, name: string): ProxyMeshes {
   const root = new THREE.Group();
   root.name = `proxy:${name}`;
-  const lit = parts.lit ? new THREE.Mesh(parts.lit, MaterialLibrary.vertexLit(0.45, 0.1)) : null;
-  const glow = parts.glow ? new THREE.Mesh(parts.glow, MaterialLibrary.emissiveVertex(3.5)) : null;
+  const lit = parts.lit ? new THREE.Mesh(parts.lit, MaterialLibrary.vertexLit(0.5, 0.2)) : null;
+  const glow = parts.glow ? new THREE.Mesh(parts.glow, MaterialLibrary.emissiveVertex(3)) : null;
   if (lit) { lit.castShadow = true; root.add(lit); }
   if (glow) root.add(glow);
   return { root, lit, glow };

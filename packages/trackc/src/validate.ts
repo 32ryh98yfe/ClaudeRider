@@ -562,9 +562,12 @@ function v20(r: BuildResult, push: Push): void {
     if (ch.groups.length > V20_TIERS.low.groups) { push('V20', `chunk ${ch.id} has ${ch.groups.length} draw groups (Low ≤ ${V20_TIERS.low.groups})`, ch.s0); break; }
     if (ch.tris > V20_TIERS.low.tris) { push('V20', `chunk ${ch.id} has ${ch.tris} triangles (Low ≤ ${V20_TIERS.low.tris})`, ch.s0); break; }
   }
-  const pvs = (r as BuildResult & { pvsWorst?: { draws: number; tris: number } }).pvsWorst;
+  const pvs = r.pvsWorst;
   if (pvs) {
-    if (pvs.draws > V20_TIERS.low.draws) push('V20', `worst visible static set ${pvs.draws} draws (Low ≤ ${V20_TIERS.low.draws})`);
+    if (pvs.draws > V20_TIERS.low.draws) {
+      const top = Object.entries(pvs.bySlot).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, n]) => `${k} ${n}`).join(', ');
+      push('V20', `worst visible static set ${pvs.draws} draws at s ${pvs.s.toFixed(0)} (Low ≤ ${V20_TIERS.low.draws}; ${top})`, pvs.s);
+    }
     if (pvs.tris > V20_TIERS.low.visTris) push('V20', `worst visible static set ${pvs.tris} triangles (Low ≤ ${V20_TIERS.low.visTris})`);
   }
   void TFLAG;

@@ -6,10 +6,10 @@
 import * as THREE from 'three/webgpu';
 import {
   attribute, uniform, float, vec2, vec3, vec4, uv, cameraViewMatrix, cameraProjectionMatrix, positionLocal, Fn, exp, max, mix,
-  smoothstep, clamp, abs, length, sin, cos, floor, mod, varyingProperty, mx_noise_float, pow, select,
+  smoothstep, clamp, abs, length, sin, cos, floor, mod, varyingProperty, pow, select,
 } from 'three/tsl';
 import { MaterialLibrary } from '../materials/library.ts';
-import { setEmissive } from '../materials/tsl.ts';
+import { setEmissive, vnoise } from '../materials/tsl.ts';
 
 type N = any;
 
@@ -85,7 +85,7 @@ function particleMaterial(): THREE.MeshBasicNodeMaterial {
     const st = uv().sub(0.5);
     const r = length(st).mul(2);
     const soft = pow(smoothstep(1, 0, r), 1.5);
-    const smokeN = mx_noise_float(vec3(st.mul(3.2), iPar.w.mul(37).add(t.mul(0.8)))).mul(0.5).add(0.5);
+    const smokeN = vnoise(vec3(st.mul(3.2), iPar.w.mul(37).add(t.mul(0.8))));
     const smoke = smoothstep(1, 0.15, r).mul(smokeN.mul(0.8).add(0.35)).clamp(0, 1);
     const spark = exp(st.x.mul(st.x).mul(-60)).mul(smoothstep(0.5, 0.2, abs(st.y)));
     const star = clamp(float(1).sub(abs(st.x.mul(st.y)).mul(90)).sub(r.mul(0.75)), 0, 1).add(smoothstep(0.35, 0, r).mul(0.6)).clamp(0, 1);

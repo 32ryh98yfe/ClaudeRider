@@ -13,6 +13,7 @@ import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import { fxaa } from 'three/addons/tsl/display/FXAANode.js';
 import { smaa } from 'three/addons/tsl/display/SMAANode.js';
 import { ao } from 'three/addons/tsl/display/GTAONode.js';
+import { compileInContext } from '../engine/warm.ts';
 import type { TierSettings } from '../quality.ts';
 
 type N = any;
@@ -40,7 +41,12 @@ export interface Post {
   setScene(scene: THREE.Scene, camera: THREE.Camera): void;
   setGrade(g: GradeParams): void;
   setResolutionScale(s: number): void;
-  compileTargets(): THREE.Object3D[];
+  /**
+   * Compiles the scene's programs in the scene pass's own context (its render target + MRT), so the programs
+   * match what the first real frame links. A plain `renderer.compileAsync()` targets the canvas without MRT and
+   * builds a second, unused set of programs (on SwiftShader each link costs 0.3–3 s).
+   */
+  warm(): Promise<void>;
   dispose(): void;
 }
 
@@ -170,7 +176,10 @@ export function createPost(renderer: THREE.WebGPURenderer, scene: THREE.Scene, c
       if (g.bloom !== undefined) u.bloomStrength.value = g.bloom;
     },
     setResolutionScale(s: number): void { scenePass?.setResolutionScale(s); },
-    compileTargets(): THREE.Object3D[] { return []; },
+    async warm(): Promise<void> {
+      if (!scenePass) return;
+      await compileInContext(renderer, scenePass.renderTarget, scenePass.getMRT(), () => renderer.compileAsync(scenePass.scene, scenePass.camera));
+    },
     dispose(): void { pipeline.dispose(); bloomNode?.dispose?.(); },
   };
   if ('ts' in opts && opts.grade) post.setGrade(opts.grade);

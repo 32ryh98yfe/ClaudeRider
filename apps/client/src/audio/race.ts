@@ -241,13 +241,14 @@ export function raceAudioEvent(e: SimEvent, me: number): void {
       if (e.result !== 'hit') break;
       const id = name === 'spin' ? 'item.spin' : name === 'stun' ? 'item.stun_zap' : name === 'trap_bomb' ? 'item.token_bomb.hit' : name === 'trap_bug' ? 'item.bug_report.hit'
         : name === 'firewall_hit' ? 'item.firewall.hit' : name === 'tether_pull' ? 'item.attention_tether.hit' : name === 'mirror' && e.victim === me ? 'item.mirror_mode.hit'
-          : name === 'redaction' && e.victim === me ? 'item.redaction_cloud.hit' : name === 'overclock' && e.victim !== e.source ? 'item.overclock_aura.hit' : '';
+          : name === 'redaction' && e.victim === me ? 'item.redaction_cloud.hit' : name === 'overclock' && e.victim !== e.source ? 'item.overclock_aura.hit' : name === 'throttle' ? 'item.throttle_drone.hit' : '';
       if (id) at(e.victim, id);
       if (name === 'redaction' && e.victim === me) mx?.muffle(500, 1.5);
       if (e.source === me && e.victim !== me && (name === 'spin' || name === 'stun' || name === 'airborne' || name?.startsWith('trap'))) { Audio.sfx('voice.nice', { delay: 0.3 }); mx?.duck('voice', -4, 0.8); }
       break;
     }
     case 'effectEnd': { const name = EFFECT_IDS[e.effect - 1]; if ((name === 'trap_bomb' || name === 'trap_bug') && e.victim === me) Audio.sfx('item.escape_pop'); break; }
+    case 'escape': if (e.kart === me && e.fast) Audio.sfx('item.escape_fast', { delay: 0.08 }); break;
     case 'mash': if (e.kart === me) Audio.sfx('item.mash_tap', { k: Math.max(0, Math.min(1, 1 - e.remaining / 132)) }); break;
     case 'lap': if (e.kart === me && e.lap > 0) Audio.sfx(e.best ? 'race.best_lap' : 'race.lap'); break;
     case 'finalLap': if (e.kart === me) { Audio.sfx('voice.final_lap', { delay: 0.1 }); mx?.duck('voice', -4, 1.2); d?.setState('finalLap'); } break;

@@ -7,6 +7,7 @@
 //   `road.ice`, `water`), then fall back to a magenta placeholder with a dev warning (never a crash).
 import * as THREE from 'three/webgpu';
 import { CVIS_MAGIC, CVIS_VERSION, readContainer, type BakedTrack } from '@cr/sim';
+import { repairTerrain } from './repair.ts';
 import type { ThemeKit } from '../themes/kit.ts';
 import type { RoadStyle, WallStyle } from '../materials/library.ts';
 import { PLACEHOLDER_PROP } from '../props/defaults.ts';
@@ -61,13 +62,18 @@ const WALL_STYLE: Record<string, WallStyle> = { barrier: 'barrier', fence: 'fenc
  * Material for a vis slot: the kit's explicit `material:variant` entry → a variant look (surface / wall type /
  * kill plane / pad kind) → the kit's plain `material` → a magenta placeholder with a dev warning.
  */
-function resolveMaterial(slot: { name: string; material: string; variant?: string }, mats: Record<string, THREE.Material>, kit: ThemeKit, warned: Set<string>): THREE.Material {
+function resolveMaterial(slot: { name: string; material: string; variant?: string }, mats: Record<string, THREE.Material>, kit: ThemeKit, warned: Set<string>, area = false): THREE.Material {
   let family = slot.material, variant = slot.variant;
   if (!variant && /[.:]/.test(slot.name)) { const parts = slot.name.split(/[.:]/); family = parts[0]!; variant = parts[1]; }
   const key = variant ? `${family}:${variant}` : family;
+  const L = kit.look;
+  // F3 plazas use world-space uv, so painted lane lines / wheel wear would land in random places: paint-free look
+  if (area && family === 'road') {
+    const look = variant && variant !== 'asphalt' ? SURFACE_LOOK[variant] : undefined;
+    return MaterialLibrary.road({ ...(look ? { style: look.style, a: look.a, b: look.b, line: L.road.line } : L.road), shoulder: true, tint: SURFACE_TINT[variant ?? 'asphalt'] ?? [1, 1, 1] });
+  }
   const explicit = mats[key];
   if (explicit) return explicit;
-  const L = kit.look;
   if (variant) {
     if ((family === 'road' || family === 'shoulder') && variant !== 'asphalt' && !(family === 'shoulder' && variant === 'grass')) {
       const look = SURFACE_LOOK[variant];
@@ -83,6 +89,7 @@ function resolveMaterial(slot: { name: string; material: string; variant?: strin
       const rock = variant === 'rock' || variant === 'cliff';
       return MaterialLibrary.wall(style, rock ? L.terrain.rock : variant === 'fence' ? '#a8805a' : L.wall.a, rock ? '#6f665c' : variant === 'fence' ? '#c49a6c' : L.wall.b, WALL_TINT[variant] ?? 1);
     }
+    if (family === 'underside' && variant === 'kill_water') return MaterialLibrary.water(L.water ? { shallow: L.water.shallow, deep: L.water.deep, foam: L.water.foam ?? '#ffffff', opacity: 1 } : { shallow: '#3fb8c9', deep: '#0e5f7a', foam: '#e6fffb', opacity: 1 });
     if (family === 'underside' && variant.startsWith('kill_')) return MaterialLibrary.killPlane(variant === 'kill_lava' ? 'lava' : 'void');
     if (family === 'boostpad' && (variant === 'boost' || variant === 'jump')) return MaterialLibrary.boostPad(variant);
     if (family === 'water') return MaterialLibrary.water(L.water ? { shallow: L.water.shallow, deep: L.water.deep, foam: L.water.foam ?? '#ffffff' } : { shallow: '#7FE3D6', deep: '#1FB5C9' });
@@ -122,31 +129,41 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
   root.name = `track:${meta.id}`;
   const mats = kit.materials();
   const warned = new Set<string>();
+  const chunkKind = new Map<number, string>();
+  for (const ck of (meta as { chunks?: { id: number; kind: string }[] }).chunks ?? []) chunkKind.set(ck.id, ck.kind);
   let meshes = 0, tris = 0;
   meta.slots.forEach((slot, j) => {
     const pos = c.arrays.get(`s${j}.pos`) as Float32Array, nrm = c.arrays.get(`s${j}.nrm`) as Float32Array;
     const uv = c.arrays.get(`s${j}.uv`) as Float32Array, col = c.arrays.get(`s${j}.col`) as Float32Array, idx = c.arrays.get(`s${j}.idx`) as Uint32Array;
+    const repaired = slot.material === 'terrain' ? repairTerrain(pos, nrm) : 0;
+    if (repaired && import.meta.env.DEV) console.warn(`[track] ${meta.id}: repaired ${repaired} non-finite terrain vertices (trackc bug, see contract-requests/L11-terrain-nan.md)`);
     const aPos = new THREE.BufferAttribute(pos, 3), aNrm = new THREE.BufferAttribute(nrm, 3), aUv = new THREE.BufferAttribute(uv, 2), aCol = new THREE.BufferAttribute(col, 3);
     const mat = resolveMaterial(slot, mats, kit, warned);
-    // merge runs of contiguous chunks (same index buffer, adjacent ranges) into groups of `mergeChunks`
-    const groups: { i0: number; n: number; bbox: number[] }[] = [];
+    // merge runs of contiguous chunks (same index buffer, adjacent ranges, same chunk kind) into groups of `mergeChunks`
+    const groups: { i0: number; n: number; bbox: number[]; kind: string; k: number }[] = [];
     for (const ch of slot.chunks) {
+      const kind = ch.chunk !== undefined ? chunkKind.get(ch.chunk) ?? 'track' : 'track';
       const last = groups[groups.length - 1];
-      const run = last ? (last as { k?: number }).k ?? 1 : 0;
-      if (last && run < opts.mergeChunks && last.i0 + last.n === ch.i0 && slot.material !== 'terrain') {
+      if (last && last.k < opts.mergeChunks && last.i0 + last.n === ch.i0 && last.kind === kind && kind === 'track' && slot.material !== 'terrain') {
         last.n += ch.n;
         for (let k = 0; k < 3; k++) { last.bbox[k] = Math.min(last.bbox[k]!, ch.bbox[k]!); last.bbox[k + 3] = Math.max(last.bbox[k + 3]!, ch.bbox[k + 3]!); }
-        (last as { k?: number }).k = run + 1;
-      } else groups.push({ i0: ch.i0, n: ch.n, bbox: [...ch.bbox] });
+        last.k++;
+      } else groups.push({ i0: ch.i0, n: ch.n, bbox: [...ch.bbox], kind, k: 1 });
     }
     for (const ch of groups) {
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', aPos); g.setAttribute('normal', aNrm); g.setAttribute('uv', aUv); g.setAttribute('color', aCol);
       g.setIndex(new THREE.BufferAttribute(idx.subarray(ch.i0, ch.i0 + ch.n), 1));
+      if (repaired) {
+        // repaired heights may leave the baked chunk bbox (it was computed with NaN): refit y from the geometry
+        let lo = Infinity, hi = -Infinity;
+        for (let i = ch.i0; i < ch.i0 + ch.n; i++) { const y = pos[idx[i]! * 3 + 1]!; if (y < lo) lo = y; if (y > hi) hi = y; }
+        ch.bbox[1] = Math.min(Number.isFinite(ch.bbox[1]!) ? ch.bbox[1]! : lo, lo); ch.bbox[4] = Math.max(Number.isFinite(ch.bbox[4]!) ? ch.bbox[4]! : hi, hi);
+      }
       const [x0, y0, z0, x1, y1, z1] = ch.bbox as [number, number, number, number, number, number];
       g.boundingBox = new THREE.Box3(new THREE.Vector3(x0, y0, z0), new THREE.Vector3(x1, y1, z1));
       g.boundingSphere = g.boundingBox.getBoundingSphere(new THREE.Sphere());
-      const m = new THREE.Mesh(g, mat);
+      const m = new THREE.Mesh(g, ch.kind === 'area' ? resolveMaterial(slot, mats, kit, warned, true) : mat);
       m.receiveShadow = true;
       m.castShadow = slot.material === 'wall';
       m.name = `${slot.name}#${meshes}`;
@@ -205,7 +222,7 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
     boxes = new THREE.InstancedMesh(g.body, MaterialLibrary.vinyl({ rim: '#ffd9c7', clearcoat: 1, roughness: 0.22 }), track.boxes.length);
     boxes.name = 'itemBoxes';
     boxes.castShadow = true;
-    glyphs = new THREE.InstancedMesh(g.glyph, MaterialLibrary.emissiveVertex(2.6), track.boxes.length);
+    glyphs = new THREE.InstancedMesh(g.glyph, MaterialLibrary.emissiveVertex(3), track.boxes.length);
     glyphs.name = 'itemBoxGlyphs';
     boxes.frustumCulled = glyphs.frustumCulled = false;
     root.add(boxes, glyphs);

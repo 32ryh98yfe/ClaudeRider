@@ -7,7 +7,8 @@ import { dropTest } from './drops.ts';
 import { flatPlane, corridor, cornerKit, halfpipe, helixKit, jumpKit } from './fixtures/kits.ts';
 import { racingRig, place } from './util.ts';
 
-const DROPS = Number(process.env.DROPS ?? 10000);
+// 2 000 per track by default (fast CI on a shared CPU); verify:full runs DROPS=10000
+const DROPS = Number(process.env.DROPS ?? 2000);
 
 describe('robustness: random drops (§14.8)', () => {
   const tracks: [string, () => BakedTrack][] = [

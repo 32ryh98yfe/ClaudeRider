@@ -33,10 +33,16 @@ export class CameraDirector {
   private tmp = new THREE.Vector3(); private tmp2 = new THREE.Vector3();
   private track: BakedTrack | null;
   cinematics = true;
+  /** Dev only: `?cam=px,py,pz,tx,ty,tz` pins the camera (visual checks of kill planes, plazas, vistas). */
+  private pinned: number[] | null = null;
 
   constructor(aspect: number, track: BakedTrack | null) {
     this.chase = new ChaseCamera(aspect);
     this.track = track;
+    if (import.meta.env.DEV && typeof location !== 'undefined') {
+      const v = new URLSearchParams(location.search).get('cam')?.split(',').map(Number);
+      if (v && v.length === 6 && v.every(Number.isFinite)) this.pinned = v;
+    }
     if (track && track.grid[0]) {
       const g = track.grid[0];
       const loc = { path: 0, i: 0, s: 0, u: 0, h: 0, sMain: 0, valid: 0 as 0 | 1 };
@@ -92,6 +98,8 @@ export class CameraDirector {
       cam.lookAt(this.look);
       if (this.mode !== 'chase') this.chase.applyFov(this.mode === 'intro' ? 58 : 62);
     }
+    const p = this.pinned;
+    if (p) { cam.position.set(p[0]!, p[1]!, p[2]!); cam.up.set(0, 1, 0); cam.lookAt(p[3]!, p[4]!, p[5]!); this.chase.applyFov(60); }
   }
 
   private cut(m: CamMode): void {

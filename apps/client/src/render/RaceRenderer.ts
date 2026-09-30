@@ -11,6 +11,7 @@ import type { ThemeKit } from './themes/kit.ts';
 import { buildEnvironment, type Environment } from './env/environment.ts';
 import { buildTrackView, type TrackView, type VisMeta } from './track/TrackView.ts';
 import { createPost, type Post } from './post/pipeline.ts';
+import { withEverythingVisible, finishReveals } from './engine/warm.ts';
 import { CameraDirector } from './camera/CameraDirector.ts';
 import type { ChaseCamera } from './camera/ChaseCamera.ts';
 import { buildMascot, type MascotInstance } from './mascot/rig.ts';
@@ -18,16 +19,17 @@ import { getCharacter } from './characters/registry.ts';
 import { getKartBody } from './karts/registry.ts';
 import type { KartModel } from './karts/types.ts';
 import { MaterialLibrary } from './materials/library.ts';
-import { tierSettings, prefersReducedMotion, type QualityTier, type TierSettings } from './quality.ts';
+import { tierSettings, prefersReducedMotion, withUserPrefs, FrameCap, type QualityTier, type TierSettings } from './quality.ts';
 import { BudgetTracker } from './engine/budget.ts';
 import { DrivingFx, type KartPose } from './vfx/driving.ts';
 import { ItemFx } from './vfx/itemFx.ts';
 import { AmbientFx } from './vfx/ambient.ts';
 import { Headlights } from './vfx/headlights.ts';
 import { setParticleClock, particleClock, setParticleFog } from './vfx/gpuParticles.ts';
+import { airborneLift } from '@cr/sim/items/public.ts';
 import { setListener } from '../audio/listener.ts';
 import { raceAudioPrepare } from '../audio/race.ts';
-import { save } from '../meta/save.ts';
+import { save, type SettingsV1 } from '../meta/save.ts';
 
 export interface KartSlotVisual { slot: number; characterId: string; kartBodyId: string; livery: { primary: string; secondary: string; pattern: number; number: number } }
 
@@ -56,6 +58,11 @@ export class RaceRenderer {
   private tmpM = new THREE.Matrix4(); private tmpX = new THREE.Vector3(); private tmpF = new THREE.Vector3(); private tmpP = new THREE.Vector3();
   private camFwd = new THREE.Vector3(); private camPrev = new THREE.Vector3(); private camVel = new THREE.Vector3();
   private lineAt = new THREE.Vector3();
+  private fxAt = new THREE.Vector3();
+  private ccM = new THREE.Matrix4();
+  private cap = new FrameCap();
+  private dtBank = 0; private skipFrame = false;
+  private unsub: (() => void) | null = null;
   private boostK = 0; private flashK = 0; private hitK = 0; private flickerT = 0;
   private resScale = 1; private dynT = 0; private goodT = 0;
   private reducedMotion: boolean;
@@ -69,12 +76,13 @@ export class RaceRenderer {
   constructor(renderer: THREE.WebGPURenderer, track: BakedTrack, vis: ArrayBuffer, content: ContentTables, tier: QualityTier) {
     this.renderer = renderer; this.track = track; this.vis = vis; this.tier = tier; this.content = content;
     this.kit = getThemeKit(track.meta.themeId, content);
-    this.ts = tierSettings(tier);
-    this.director = new CameraDirector(renderer.domElement.clientWidth / Math.max(1, renderer.domElement.clientHeight), track);
     const st = save.get().settings;
-    this.reducedMotion = prefersReducedMotion(st.reducedMotion);
-    this.director.chase.reducedMotion = this.reducedMotion;
-    this.director.chase.shakeEnabled = st.cameraShake;
+    this.ts = withUserPrefs(tierSettings(tier), st);
+    this.director = new CameraDirector(renderer.domElement.clientWidth / Math.max(1, renderer.domElement.clientHeight), track);
+    this.reducedMotion = false;
+    this.applySettings(st);
+    // live Settings (pause menu): camera, shake, reduced motion and the frame cap apply at once
+    this.unsub = save.subscribe((sv) => this.applySettings(sv.settings));
     this.countdownTicks = content.modes.countdownBeatTicks * 3;
   }
 
@@ -84,6 +92,9 @@ export class RaceRenderer {
   async init(slots: KartSlotVisual[]): Promise<void> {
     const ts = this.ts;
     MaterialLibrary.configure(this.tier);
+    finishReveals();
+    // Settings → shadows may differ from the tier the Stage booted with
+    this.renderer.shadowMap.enabled = ts.shadowSize > 0;
     const meta = readContainer(this.vis, CVIS_MAGIC, CVIS_VERSION).meta as VisMeta;
     this.env = await buildEnvironment(this.renderer, this.scene, this.kit, ts, meta.theme ?? {});
     const L = this.env.look;
@@ -106,6 +117,7 @@ export class RaceRenderer {
       root.add(kart.root);
       const mascot = buildMascot(getCharacter(s.characterId));
       mascot.root.scale.setScalar(0.62);
+      mascot.onFx = (name, at) => { at.getWorldPosition(this.fxAt); this.driving.emoteFx(name, this.fxAt); };
       kart.seat.add(mascot.root);
       this.scene.add(root);
       const pose: KartPose = { pos: new THREE.Vector3(), fwd: new THREE.Vector3(0, 0, 1), up: new THREE.Vector3(0, 1, 0), left: new THREE.Vector3(1, 0, 0), speed: 0, lat: 0, visible: false };
@@ -133,14 +145,70 @@ export class RaceRenderer {
     }
     this.post = createPost(this.renderer, this.scene, cam, { ts, reducedMotion: this.reducedMotion, grade: { ...L.grade, bloom: L.bloom ?? ts.bloomStrength } });
     this.budget = new BudgetTracker(this.renderer, this.tier, ts, () => MaterialLibrary.count());
-    // warm up shader compilation behind the loading screen
-    await this.renderer.compileAsync(this.scene, cam);
+    this.items.prewarm();
+    await this.warmShaders();
     this.budget.countMaterials(this.scene);
   }
 
+  /**
+   * Compiles every program the race can need behind the loading screen: pooled/hidden objects and off-screen
+   * chunks are made visible and unculled for the pass, then one real frame links the post chain and shadow
+   * programs. Without this, SwiftShader stalls for seconds whenever a new item or chunk first appears.
+   */
+  private async warmShaders(): Promise<void> {
+    await withEverythingVisible(this.scene, async () => {
+      await this.post.warm();
+      this.post.render();
+    });
+    this.renderer.info.reset();
+  }
+
+  /**
+   * Render-only motion of hard crowd control (the sim moves the body but never tumbles it): `airborne` lifts the
+   * kart along airborneLift (4 m peak) with one barrel roll, `spin` turns it twice in 60 ticks easing out, and the
+   * `trap` bubbles float it 1 m with a slow bob. `m` is the kart's basis matrix, modified in place.
+   */
+  private ccPose(k: Readonly<WorldState['karts'][number]>, t: number, m: THREE.Matrix4, up: THREE.Vector3): void {
+    const st = k.status;
+    if (!st.cc || t >= st.ccEnd) return;
+    const kin = this.content.effects.byCode[st.cc]?.mods.kinematic;
+    if (kin !== 'airborne' && kin !== 'spin' && kin !== 'trap') return;
+    const ck = t - st.ccStart, dur = Math.max(1, st.ccEnd - st.ccStart);
+    let lift = 0;
+    if (kin === 'airborne') {
+      lift = airborneLift(ck, dur);
+      const x = Math.min(1, Math.max(0, ck / (dur * 0.8)));
+      this.ccM.makeRotationZ(Math.PI * 2 * x * x * (3 - 2 * x));
+      m.multiply(this.ccM);
+    } else if (kin === 'spin') {
+      const x = Math.min(1, Math.max(0, ck / 60));
+      this.ccM.makeRotationY(Math.PI * 4 * (1 - (1 - x) * (1 - x)));
+      m.multiply(this.ccM);
+    } else {
+      const inK = Math.min(1, ck / 8), outK = Math.min(1, Math.max(0, (dur - ck) / 8));
+      lift = (inK * inK * (3 - 2 * inK)) * (outK * outK * (3 - 2 * outK)) * (1 + Math.sin(this.t * 2.6) * 0.12);
+    }
+    if (lift > 0) { const e = m.elements; e[12]! += up.x * lift; e[13]! += up.y * lift; e[14]! += up.z * lift; }
+  }
+
+  private applySettings(st: Readonly<SettingsV1>): void {
+    this.reducedMotion = prefersReducedMotion(st.reducedMotion);
+    const ch = this.director.chase;
+    ch.reducedMotion = this.reducedMotion;
+    ch.shakeEnabled = st.cameraShake;
+    ch.distanceScale = st.cameraDistance === 'near' ? 0.82 : st.cameraDistance === 'far' ? 1.22 : 1;
+    this.cap.cap = st.fpsCap ?? 60;
+  }
+
   /** Per-frame update. `alpha` interpolates prev→curr sim states. */
-  update(prev: Readonly<WorldState>, curr: Readonly<WorldState>, alpha: number, dt: number): void {
+  update(prev: Readonly<WorldState>, curr: Readonly<WorldState>, alpha: number, dtIn: number): void {
     const now = performance.now();
+    // Settings → frame cap: skipped frames bank their time for the next drawn one (springs and particles stay in step)
+    this.dtBank += dtIn;
+    this.skipFrame = !this.cap.ready(now);
+    if (this.skipFrame) return;
+    const dt = Math.min(0.25, this.dtBank);
+    this.dtBank = 0;
     this.budget.beginFrame(now);
     const fxDt = dt * this.director.timeScale;
     this.t += fxDt;
@@ -165,6 +233,7 @@ export class RaceRenderer {
       const fwd = this.tmpF.crossVectors(left, p.up).normalize();
       p.left.copy(left);
       this.tmpM.makeBasis(left, p.up, fwd).setPosition(p.pos);
+      this.ccPose(b, curr.tick + alpha, this.tmpM, p.up);
       kv.root.matrix.copy(this.tmpM);
       kv.root.matrixWorldNeedsUpdate = true;
       const vx = B.vx, vy = B.vy, vz = B.vz;
@@ -335,6 +404,7 @@ export class RaceRenderer {
   }
 
   render(): void {
+    if (this.skipFrame) return;
     this.post.render();
     const now = performance.now();
     this.budget.endFrame(now, this.scene);
@@ -362,6 +432,7 @@ export class RaceRenderer {
   stats(): { meshes: number; tris: number; materials: number } { return { ...this.view.stats, materials: this.budget?.snap.uniqueMaterials ?? MaterialLibrary.count() }; }
 
   dispose(): void {
+    this.unsub?.(); this.unsub = null;
     this.setGhost(null);
     this.post.dispose();
     this.env.dispose();

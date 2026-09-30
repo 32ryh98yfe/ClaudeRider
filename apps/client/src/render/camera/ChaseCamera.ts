@@ -21,6 +21,8 @@ export class ChaseCamera {
   readonly camera: THREE.PerspectiveCamera;
   reducedMotion = false;
   shakeEnabled = true;
+  /** Settings → camera distance: scales the follow distance and height (near 0.82, normal 1, far 1.22). */
+  distanceScale = 1;
   /** Base vertical FOV (deg). */
   baseFov = 70;
   private fov = 70;
@@ -76,8 +78,9 @@ export class ChaseCamera {
     this.heightDir.copy(UP).lerp(this.upS, 0.6).normalize();
     // ---- distances: 5.2 m back, 1.9 m up; +0.6 m in boost; −0.3 m below 10 m/s; +0.5 m up in the air
     const slowPull = t.speed < 10 ? 0.3 * (1 - t.speed / 10) : 0;
-    const wantDist = 5.2 + (t.boosting ? 0.6 : 0) - slowPull;
-    const wantH = 1.9 + (t.airborne ? 0.5 : 0);
+    const ds = this.distanceScale;
+    const wantDist = (5.2 + (t.boosting ? 0.6 : 0) - slowPull) * ds;
+    const wantH = (1.9 + (t.airborne ? 0.5 : 0)) * (0.6 + 0.4 * ds);
     const kd = 1 - Math.exp(-4 * dt);
     this.dist += (wantDist - this.dist) * kd; this.height += (wantH - this.height) * kd;
     const want = this.want;

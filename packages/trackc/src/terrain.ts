@@ -73,7 +73,8 @@ export function buildTerrainField(m: TrackModel, c: Content, bounds: number[], n
   return { height, cell, x0, z0, nx, nz, H };
 }
 
-/** Emits terrain triangles into 12×12-cell tiles (one chunk each). */
+/** Emits terrain triangles into 24×24-cell tiles (≈ 190 m, one chunk and one draw each; smaller tiles blew the Low
+ *  tier draw budget on open vistas, V20). */
 export function terrainToRender(rb: RenderBuilder, tf: TerrainField, noise: (x: number, z: number) => number, ao: (x: number, y: number, z: number) => number): void {
   const { nx, nz, cell, x0, z0, H } = tf;
   const sl = rb.slot('terrain', 'terrain');
@@ -85,7 +86,7 @@ export function terrainToRender(rb: RenderBuilder, tf: TerrainField, noise: (x: 
     const shade = (0.85 + 0.15 * noise(x * 3.1, z * 3.1)) * ao(x, y, z);
     return [x, y, z, n[0]! / l, n[1]! / l, n[2]! / l, x / 16, z / 16, shade, shade, shade];
   };
-  const T = 12;
+  const T = 24;
   for (let cz = 0; cz < nz; cz += T) for (let cx = 0; cx < nx; cx += T) {
     const chunk = rb.tileChunk(cx / T, cz / T);
     for (let iz = cz; iz < Math.min(nz, cz + T); iz++) for (let ix = cx; ix < Math.min(nx, cx + T); ix++) {
