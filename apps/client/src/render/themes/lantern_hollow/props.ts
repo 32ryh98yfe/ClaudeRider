@@ -495,6 +495,40 @@ function stonePillar(): THREE.BufferGeometry {
   return merge(parts);
 }
 
+/** Swinging parade lantern (HAZ swinger, capsule 0.8 × 2.0): a giant glowing pumpkin lantern on a rope, centred, +Y up. */
+function hazardLantern(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  parts.push(part(new THREE.CapsuleGeometry(0.8, 2.0, 3, 10), GLOW(2.0), 0, 0, 0));
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; parts.push(part(box(0.08, 3.4, 0.08), C.pumpkinDeep, Math.cos(a) * 0.8, 0, Math.sin(a) * 0.8)); }
+  parts.push(part(cyl(0.55, 0.7, 0.4, 10), C.red, 0, 1.75, 0), part(cyl(0.7, 0.55, 0.4, 10), C.red, 0, -1.75, 0));
+  parts.push(part(box(0.06, 0.5, 0.2), C.eye, 0.82, 0.35, -0.25), part(box(0.06, 0.5, 0.2), C.eye, 0.82, 0.35, 0.25));
+  parts.push(part(cyl(0.05, 0.05, 5, 4), C.iron, 0, 4.4, 0), part(cyl(0.04, 0.04, 0.8, 4), C.gold, 0, -2.3, 0));
+  return merge(parts);
+}
+/** Swinging chandelier (HAZ swinger, capsule 1.2 × 1.0): gold rings, candles and crystal drops, chain up +Y. */
+function hazardChandelier(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  parts.push(part(torus(1.6, 0.12, 5, 16), C.gold, 0, 0, 0, Math.PI / 2, 0, 0), part(torus(0.9, 0.1, 5, 12), C.gold, 0, 0.6, 0, Math.PI / 2, 0, 0));
+  parts.push(part(cone(0.5, 1.2, 8), C.gold, 0, -0.7, 0, Math.PI, 0, 0));
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * 6.28;
+    parts.push(part(cyl(0.07, 0.07, 0.35, 5), C.ivory, Math.cos(a) * 1.6, 0.25, Math.sin(a) * 1.6), part(cone(0.06, 0.2, 5), FLAME(3), Math.cos(a) * 1.6, 0.55, Math.sin(a) * 1.6));
+    parts.push(part(ico(0.13, 0), hdr('#e6e0ff', 1.5), Math.cos(a + 0.4) * 1.3, -0.4, Math.sin(a + 0.4) * 1.3));
+  }
+  parts.push(part(cyl(0.06, 0.06, 7, 4), C.iron, 0, 4.2, 0));
+  return merge(parts);
+}
+/** Bookcase press (HAZ press, box 4 along × 6 across × 3 up): a toppling shelf of giant books, standing on +Y. */
+function hazardBookcase(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  const rnd = prng(257);
+  parts.push(part(box(6, 3, 4), C.woodDark, 0, 1.5, 0), part(box(6.2, 0.25, 4.2), C.wood, 0, 3.05, 0));
+  let x = -2.9;
+  while (x < 2.8) { const w = 0.35 + rnd() * 0.4, h = 1.6 + rnd() * 1.1; parts.push(part(box(w, h, 0.3), [C.red, C.cloth, C.leaf, C.plum, C.gold][Math.floor(rnd() * 5)]!, x + w / 2, 0.2 + h / 2, -2.1)); x += w + 0.05; }
+  parts.push(part(box(6.1, 0.18, 0.2), '#ffc857', 0, 0.1, -2.15));
+  return merge(parts);
+}
+
 // ------------------------------------------------------------------------------------------------ factory table
 const kind = (build: () => THREE.BufferGeometry, material: () => THREE.Material, castShadow = true): PropFactory => {
   let cache: THREE.BufferGeometry | null = null;
@@ -508,6 +542,11 @@ export const LANTERN_PROPS: Record<string, PropFactory> = {
   lantern_arch: kind(lanternArch, matte),
   lantern_string: kind(lanternString, matte, false),
   bridge_rail: kind(bridgeRail, matte, false),
+  hazard_swinger: kind(hazardLantern, matte),
+  hazard_lantern: kind(hazardLantern, matte),
+  hazard_chandelier: kind(hazardChandelier, matte),
+  hazard_press: kind(hazardBookcase, matte),
+  hazard_bookcase: kind(hazardBookcase, matte),
   creek: kind(creek, () => MaterialLibrary.vertexLit(0.12, 0), false),
   gore_cushion: kind(goreCushion, matte),
   pillar: kind(stonePillar, matte, false),

@@ -455,6 +455,28 @@ function logArch(): THREE.BufferGeometry {
   return merge(parts);
 }
 
+/** Swinging log (HAZ swinger, capsule 0.8 × 2.4): centred on the capsule, long axis +Y, rope up to the pivot. */
+function hazardLog(): THREE.BufferGeometry {
+  return merge([
+    part(facet(new THREE.CapsuleGeometry(0.8, 2.4, 3, 8)), C.bark, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0.1, 7),
+    part(new THREE.CircleGeometry(0.6, 8), C.rings, 0, 2.02, 0, -Math.PI / 2, 0, 0),
+    part(blob(0.7, 1, 0.2, 247, 1, 0.5, 1), C.moss, 0.45, 0.6, 0),
+    part(cyl(0.06, 0.06, 5.2, 4), C.rope, 0, 4.6, 0),
+    part(torus(0.84, 0.08, 4, 12), C.rope, 0, 1.0, 0, Math.PI / 2, 0, 0),
+  ]);
+}
+/** Pendulum-run gantry the swinging logs hang from (posts at ±10 m, beam 8 m up); no log of its own. */
+function logGantry(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  for (const x of [-10, 10]) {
+    parts.push(part(facet(lathe([[1.0, -2], [1.05, 0], [0.8, 5], [0.75, 8.8]], 8)), C.bark, x, 0, 0, 0, 0, 0, 1, 1, 1, 0.1, 4));
+    parts.push(part(blob(1.6, 1, 0.2, 251 + x, 1, 0.7, 1), C.leaf, x, 9.2, 0));
+  }
+  parts.push(part(facet(new THREE.CylinderGeometry(0.5, 0.5, 22, 7)), C.barkDark, 0, 8.2, 0, 0, 0, Math.PI / 2));
+  parts.push(part(blob(0.9, 1, 0.2, 253, 5, 0.3, 0.9), C.moss, 0, 8.75, 0));
+  return merge(parts);
+}
+
 // ------------------------------------------------------------------------------------------------ factory table
 const kind = (build: () => THREE.BufferGeometry, material: () => THREE.Material, castShadow = true): PropFactory => {
   let cache: THREE.BufferGeometry | null = null;
@@ -479,6 +501,9 @@ export const CANOPY_PROPS: Record<string, PropFactory> = {
   trestle: kind(trestle, matte, false),
   falls_curtain: kind(fallsCurtain, matte),
   log_arch: kind(logArch, matte),
+  log_gantry: kind(logGantry, matte),
+  hazard_log: kind(hazardLog, matte),
+  hazard_swinger: kind(hazardLog, matte),
   pillar: kind(trunkPillar, matte, false),
   log_rail: kind(logRail, matte),
   bridge_deck: kind(bridgeDeck, matte, false),
