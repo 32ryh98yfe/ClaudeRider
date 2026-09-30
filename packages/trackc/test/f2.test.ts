@@ -53,19 +53,26 @@ describe('F2 jump fixture', () => {
   it('a kart flies the gap and lands where the V11 ballistic model says (sim)', () => {
     const rig = simRig(t);
     place(rig, 0, J.lipS - 30, 0, 30);
-    let airborne = false, landedAt = -1, vTake = 0;
+    let airborne = false, landedAt = -1, takeoffS = 0, vTake = 0, angTake = 0, yTake = 0;
     for (let i = 0; i < 240 && landedAt < 0; i++) {
       rig.tick(1, (_w, inp) => { inp.throttle = 15; inp.steer = 0; });
       const k = rig.w.karts[0]!, b = k.body;
-      if (!b.grounded && !airborne) { airborne = true; vTake = Math.hypot(b.vx, b.vy, b.vz); }
-      else if (b.grounded && airborne) landedAt = k.race.loc.s;
+      if (!b.grounded && !airborne) {
+        airborne = true; takeoffS = k.race.loc.s; yTake = b.py;
+        vTake = Math.hypot(b.vx, b.vy, b.vz); angTake = (Math.asin(b.vy / vTake) * 180) / Math.PI;
+      } else if (b.grounded && airborne) landedAt = k.race.loc.s;
     }
     expect(airborne).toBe(true);
+    // the binding assertion: the kart lands inside the landing zone and nobody respawns
     expect(landedAt).toBeGreaterThan(J.landS0);
     expect(landedAt).toBeLessThan(J.landS1 - 5);
     expect(rig.w.karts[0]!.stats.respawns).toBe(0);
-    const x = landingDistance(vTake, 8, 2 + (10 * Math.tan((8 * Math.PI) / 180)) / 2);
-    expect(Math.abs(landedAt - J.lipS - x)).toBeLessThan(2.5);
+    // flight model check, predicted from the sim's own takeoff state (so lip detection is not part of the error).
+    // Tolerance 4 m ≈ 10% of a 30–40 m flight: V11 keeps 2 m before and 5 m after the landing window, and the sim's air
+    // model (attitude easing, landing snap, any drag L1 adds) may differ from the pure ballistic arc by a few metres.
+    const landY = t.jumps[0]!.drop !== undefined ? yTake - (yTake - (r.model.paths[0]!.samples.find((q) => q.s > J.landS0 + 1)!.y)) : 0;
+    const x = landingDistance(vTake, angTake, yTake - landY);
+    expect(Math.abs(landedAt - takeoffS - x)).toBeLessThan(4);
   });
 
   it('driving off the open ledge lands on the kill floor and respawns (sim)', () => {

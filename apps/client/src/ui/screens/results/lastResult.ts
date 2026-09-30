@@ -11,8 +11,12 @@ export interface LastResult {
   /** params to restart the same race (again button) */
   again?: Record<string, string>;
   online?: boolean;
+  /** the local player's slot (online races put you anywhere in the grid); default: the first human row */
+  me?: number;
   teams?: string;
 }
 let last: LastResult | null = null;
 export const setLastResult = (r: RaceResult, names: string[], extra: Omit<LastResult, 'r' | 'names'> = {}): void => { last = { r, names, ...extra }; };
 export const getLastResult = (): LastResult | null => last;
+/** The local player's slot in a result. */
+export const mySlot = (l: LastResult): number => l.me ?? l.r.rows.find((x) => x.kind === 'human')?.slot ?? 0;

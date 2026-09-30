@@ -10,12 +10,12 @@ import { lobby } from '../../../net/lobby.ts';
 import { levelProgress, MAX_LEVEL } from '../../../meta/progression.ts';
 import { nextUnlock } from '../../../meta/unlocks.ts';
 import { toggleFullscreen, fullscreen } from '../../../input/fullscreen.ts';
-import { saveState, raceSetup, setRaceSetup, refreshRotation } from '../../store/profile.ts';
+import { saveState, raceSetup, setRaceSetup, refreshRotation, teamParams } from '../../store/profile.ts';
 import { loadTrackIndex, resolveTrack, trackInfo, bakedIndex } from '../../store/tracks.ts';
 import { Logo } from '../../components/Logo.tsx';
 import { Icon } from '../../icons/Icon.tsx';
 import { ProfileChip, SparksChip, ItemIcon } from '../../components/common.tsx';
-import { Seg, Stars, Bar } from '../../components/controls.tsx';
+import { Seg, Stars, Bar, lapsText } from '../../components/controls.tsx';
 import { TrackArt } from '../../components/TrackArt.tsx';
 import { ChallengePanel } from '../../components/ChallengePanel.tsx';
 import { Portrait } from '../../components/Portrait.tsx';
@@ -46,7 +46,7 @@ export function LobbyScreen() {
     void Audio.unlock();
     Audio.sfx('uiOk');
     const track = resolveTrack(setup.track, setup.mode);
-    navigate('loading', { track, mode: setup.mode, tier: setup.tier, ...(setup.laps !== 'auto' ? { laps: String(setup.laps) } : {}) });
+    navigate('loading', { track, mode: setup.mode, tier: setup.tier, ...(setup.laps !== 'auto' ? { laps: String(setup.laps) } : {}), ...teamParams() });
   };
   const lp = levelProgress(s.progress.xp);
   const next = nextUnlock(lp.level);
@@ -105,7 +105,7 @@ export function LobbyScreen() {
               <div class="hero-track">{trackId ? t(`tracks.${trackId}.name`) : t('lobby.randomTrack')}</div>
               <div class="hero-tags">
                 {ti ? <Stars n={ti.difficulty} /> : null}
-                <span class="badge">{t('common.laps', { n: laps })}</span>
+                <span class="badge">{lapsText(laps)}</span>
                 <span class="badge ai">AI · {t(`common.tier.${setup.tier}`)}</span>
               </div>
             </div>

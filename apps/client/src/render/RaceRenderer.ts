@@ -283,6 +283,57 @@ export class RaceRenderer {
 
   minimap(): Float32Array { return this.view.minimap; }
 
+  // ---- Time Attack ghost (orchestrator, L10-session-hooks §3): a translucent, shadowless kart posed from a replay world
+  private ghost: { root: THREE.Group; kart: KartModel; mascot: MascotInstance; mat: THREE.Material } | null = null;
+  private readonly gM = new THREE.Matrix4();
+  private readonly gP = new THREE.Vector3();
+  private readonly gF = new THREE.Vector3();
+  private readonly gU = new THREE.Vector3();
+  private readonly gL = new THREE.Vector3();
+
+  /** Shows (or with null removes) the ghost kart. No FX, name tag, shadow or collision. */
+  setGhost(v: { characterId: string; kartBodyId: string } | null): void {
+    if (this.ghost) { this.scene.remove(this.ghost.root); this.ghost.kart.dispose(); this.ghost.mascot.dispose(); this.ghost.mat.dispose(); this.ghost = null; }
+    if (!v) return;
+    const root = new THREE.Group();
+    root.matrixAutoUpdate = false;
+    root.visible = false;
+    const kart = getKartBody(v.kartBodyId).build({ primary: '#9fd3f5', secondary: '#faf9f5', pattern: 0, number: 0 });
+    const mascot = buildMascot(getCharacter(v.characterId));
+    mascot.root.scale.setScalar(0.62);
+    kart.seat.add(mascot.root);
+    root.add(kart.root);
+    const mat = new THREE.MeshBasicNodeMaterial({ color: new THREE.Color('#bfe6ff'), transparent: true, opacity: 0.32, depthWrite: false });
+    root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.material = mat; m.castShadow = false; m.receiveShadow = false; m.renderOrder = 2; } });
+    this.scene.add(root);
+    this.ghost = { root, kart, mascot, mat };
+  }
+
+  /** Poses the ghost from slot `slot` of the replay world, interpolated like the race karts. */
+  updateGhost(prev: Readonly<WorldState>, curr: Readonly<WorldState>, alpha: number, dt: number, slot = 0): void {
+    const g = this.ghost;
+    if (!g) return;
+    const a = prev.karts[slot], b = curr.karts[slot];
+    if (!a || !b || !b.active) { g.root.visible = false; return; }
+    const A = a.body, B = b.body;
+    const k = Math.abs(A.px - B.px) + Math.abs(A.pz - B.pz) > 8 ? 1 : alpha;
+    this.gP.set(A.px + (B.px - A.px) * k, A.py + (B.py - A.py) * k, A.pz + (B.pz - A.pz) * k);
+    this.gF.set(A.fx + (B.fx - A.fx) * k, A.fy + (B.fy - A.fy) * k, A.fz + (B.fz - A.fz) * k).normalize();
+    this.gU.set(A.nx + (B.nx - A.nx) * k, A.ny + (B.ny - A.ny) * k, A.nz + (B.nz - A.nz) * k).normalize();
+    this.gL.crossVectors(this.gU, this.gF).normalize();
+    this.gF.crossVectors(this.gL, this.gU).normalize();
+    this.gM.makeBasis(this.gL, this.gU, this.gF).setPosition(this.gP);
+    g.root.matrix.copy(this.gM);
+    g.root.matrixWorldNeedsUpdate = true;
+    // fade out when the ghost sits on top of the player's kart so it never hides the car you drive
+    const me = this.poses[this.localSlot];
+    const near = me ? me.pos.distanceToSquared(this.gP) : 1e9;
+    g.root.visible = near > 2.5 * 2.5;
+    const speed = Math.sqrt(B.vx * B.vx + B.vy * B.vy + B.vz * B.vz);
+    const u = B.vx * this.gF.x + B.vy * this.gF.y + B.vz * this.gF.z;
+    g.kart.update({ steer: Math.max(-1, Math.min(1, -B.yawRate / 1.6)), wheelSpin: u / 0.22, boost: b.drive.boostKind, drift: b.drive.drift === 1, speed }, dt);
+  }
+
   render(): void {
     this.post.render();
     const now = performance.now();
@@ -311,6 +362,7 @@ export class RaceRenderer {
   stats(): { meshes: number; tris: number; materials: number } { return { ...this.view.stats, materials: this.budget?.snap.uniqueMaterials ?? MaterialLibrary.count() }; }
 
   dispose(): void {
+    this.setGhost(null);
     this.post.dispose();
     this.env.dispose();
     this.view.dispose();

@@ -2,7 +2,7 @@
 // The authority is injected (RaceRoom lives in @cr/room, which depends on this package); anything with the RaceRoom
 // peer API works, so the same harness drives the server room and the offline Worker's room alike.
 import type { ContentTables } from '@cr/content';
-import { MAX_KARTS, type BakedTrack, type InputFrame, type RaceConfig, type Tick, type WorldState } from '@cr/sim';
+import { MAX_KARTS, type BakedTrack, type Decision, type InputFrame, type RaceConfig, type Tick, type WorldState } from '@cr/sim';
 import { ByteReader, ByteWriter, u32Hex } from '../protocol/bytes.ts';
 import { C2S, NET } from '../protocol/ids.ts';
 import { PingMsg, PongMsg } from '../protocol/messages.ts';
@@ -18,6 +18,8 @@ export interface AuthorityLike {
   detach(peerId: string, reason: string): void;
   tick(): void;
   readonly world: Readonly<WorldState>;
+  /** Every decision the authority emitted (items); compared with what each client received. */
+  readonly decisionLog?: readonly Decision[];
 }
 
 export interface ScenarioOptions {
@@ -62,6 +64,19 @@ export interface ClientMetrics {
   downMsgsPerSec: number; upMsgsPerSec: number;
   /** S9: ms from reconnect until a snapshot at or after the reconnect tick was decoded. */
   resumeMs: number | null;
+  /** M8: item grants (any kart) whose decision arrived before the client's timeline reached the roulette landing. */
+  grants: number; grantsKnownBeforeLanding: number;
+  /**
+   * M3: effects on this client's kart whose schedule arrived after their start tick on this client's timeline,
+   * counting only effects scheduled with the ADR-007 lead (≥ 21 ticks); shorter leads are counted separately.
+   */
+  effectsOnMe: number; effectsLate: number;
+  /** The same for effects on any kart (a proxy when players are rarely hit in short races). */
+  effectsAll: number; effectsAllLate: number;
+  /** Effects scheduled with less than the 21-tick SCE lead, and how many of those arrived after their start. */
+  shortLeadEffects: number; shortLeadLate: number;
+  /** The client's decision log equals the authority's (unchanged over EVENTS). */
+  decisionsEqual: boolean | null;
   client: NetClient;
 }
 
@@ -125,6 +140,7 @@ export function runScenario(o: ScenarioOptions): ScenarioResult {
     const m: ClientMetrics = {
       slot, localCorrections: [], remoteErrors: [], remoteHumanErrors: [], updateMs: [], snapshots: 0, snapshotMismatches: 0, reconciles: 0, predictedMatches: 0,
       downKBps: 0, upKBps: 0, downPayloadKBps: 0, upPayloadKBps: 0, downMsgsPerSec: 0, upMsgsPerSec: 0, resumeMs: null, client: null as unknown as NetClient,
+      grants: 0, grantsKnownBeforeLanding: 0, effectsOnMe: 0, effectsLate: 0, effectsAll: 0, effectsAllLate: 0, shortLeadEffects: 0, shortLeadLate: 0, decisionsEqual: null,
     };
     const c: C = {
       slot, token, nc: null as unknown as NetClient, links: [connect(slot, token)], m, clockOffset: rng() * 100000,
@@ -138,6 +154,17 @@ export function runScenario(o: ScenarioOptions): ScenarioResult {
         m.snapshots++;
         if (meta.tick < histLen && hashes[meta.tick] !== flatHash(flattenWorld(auth, authFlat))) m.snapshotMismatches++;
         if (c.resumeFrom >= 0 && meta.tick >= c.resumeFrom && m.resumeMs === null) m.resumeMs = loop.now - c.reconnectAt;
+      },
+      onDecision: (d, predTick) => {
+        if (d.k === 'grant') { m.grants++; if (predTick < d.tick + 30) m.grantsKnownBeforeLanding++; }
+        if (d.k === 'effect') {
+          const late = predTick >= d.start;
+          if (d.start - d.tick < NET.SCE_LEAD) { m.shortLeadEffects++; if (late) m.shortLeadLate++; }
+          else {
+            m.effectsAll++; if (late) m.effectsAllLate++;
+            if (d.victim === slot) { m.effectsOnMe++; if (late) m.effectsLate++; }
+          }
+        }
       },
       onReconcile: (corr, replayed) => {
         m.reconciles++;
@@ -222,6 +249,13 @@ export function runScenario(o: ScenarioOptions): ScenarioResult {
     m.upKBps = upW / 1024 / liveSec; m.downKBps = dnW / 1024 / liveSec;
     m.upPayloadKBps = upB / 1024 / liveSec; m.downPayloadKBps = dnB / 1024 / liveSec;
     m.upMsgsPerSec = upM / liveSec; m.downMsgsPerSec = dnM / liveSec;
+    // the authority runs past the end of the clients' frames, so compare what was delivered: an exact prefix
+    // that covers every decision up to the client's last authoritative tick
+    if (authority.decisionLog) {
+      const got = c.nc.decisions, all = authority.decisionLog;
+      const due = all.filter((d) => d.tick <= c.nc.auth.tick).length;
+      m.decisionsEqual = got.length >= due && canon(got) === canon(all.slice(0, got.length));
+    }
   }
   // after the race every client's authoritative world equals the server's (lossless snapshots, same tick)
   const finalHashMatch = clients.every((c) => {
@@ -230,6 +264,9 @@ export function runScenario(o: ScenarioOptions): ScenarioResult {
   });
   return { clients: clients.map((c) => c.m), serverTicks: k, serverTickMs, finalHashMatch };
 }
+
+/** Key-order independent JSON (decoded decisions list their fields in wire order). */
+const canon = (xs: readonly object[]): string => JSON.stringify(xs.map((x) => Object.fromEntries(Object.entries(x).sort(([a], [b]) => (a < b ? -1 : 1)))));
 
 export function percentile(xs: readonly number[], p: number): number {
   if (!xs.length) return 0;

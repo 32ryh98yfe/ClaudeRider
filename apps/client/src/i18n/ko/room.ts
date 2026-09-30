@@ -6,6 +6,7 @@ export default {
   settings: {
     track: '트랙', roulette: '트랙 룰렛', laps: '바퀴 수', lapsAuto: '자동', retire: '리타이어 타이머', itemSet: '아이템 구성',
     'itemSet.standard': '기본', 'itemSet.light': '공격 약하게', 'itemSet.chaos': '대혼란', friendlyFire: '팀 공격', rubberBand: 'AI 보정',
+    more: '상세 규칙', secN: '{n}초', 'ff.off': '끔', 'ff.area': '범위 공격만', 'ff.all': '모두', instantBoost: '아이템전 순간 부스터',
   },
   rouletteVote: '달리고 싶은 트랙을 골라 주세요 ({s}초)', chatPlaceholder: '메시지를 입력하세요',
   title: '커스텀 룸', landingSub: '방을 만들어 친구를 부르거나, 받은 코드로 참가하세요', codeInput: '6자리 방 코드', joinBtn: '참가하기',
@@ -16,4 +17,5 @@ export default {
   maxHumans: '최대 인원', slotMenu: '슬롯 관리', assignTeam: '팀 변경', ping: '{ms}ms', rouletteTitle: '트랙 룰렛', voted: '투표 완료', votes: '{n}표',
   racers: '레이서 {n}/8', noChat: '아직 대화가 없어요. 인사를 건네 보세요!', hidden: '숨김',
   phase: { waiting: '대기 중', countdown: '곧 시작', roulette: '트랙 룰렛', loading: '로딩 중', racing: '레이스 중', results: '결과 확인 중' },
+  inProgress: '레이스가 진행 중이에요. 끝나면 다음 레이스에 함께해요', nowTrack: '이번 트랙: {name}',
 };
