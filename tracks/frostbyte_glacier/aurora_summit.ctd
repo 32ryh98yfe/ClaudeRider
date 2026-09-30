@@ -8,9 +8,6 @@
 @signature jump, ledge, kill, helix, stacked
 @fallback helix -> "2 × C R16 170° switchback hairpins with the same −24 m drop" when=F6
 @fallback stacked -> "switchback hairpins stay on one level (no overlap)" when=F6
-@fallback jump -> "ski-jump down-ramp (no air): S 110 dy -10" when=F2
-@fallback ledge -> "ice-shelf and cornice S keep low snow walls" when=F2
-@fallback kill -> "no kill planes; walls everywhere" when=F2
 TRACK aurora_summit name="Aurora Summit" theme=frostbyte_glacier diff=5 laps=1 topo=p2p finishBefore=182
 DEFAULTS w=12 surf=asphalt wall=barrier:1.1 shoulder=0.5 shoulderSurf=snow blend=20
 START pos=(0,0,0) hdg=0
@@ -24,9 +21,9 @@ C R140 12 R dy=-3
 WIGGLE R60 30/60/30 L dy=-6 bank=4        @upper_s
 C R120 95 L dy=-8                         @upper_sweeper
 S 25 w=13                                 @shelf_brake
-WIGGLE R15 35/70/35 L dy=-3 w=13 wall=barrier:0.8 @ice_shelf_s  # ice-shelf S (V19 ×2)
-S 22 w=13                                 @shelf_link
-WIGGLE R16 30/60/30 R dy=-3 w=13          @cornice_s     # (V19 ×2)
+WIGGLE R15 35/70/35 L dy=-3 w=13 wallL=barrier:0.8 wallR=none:0:ledgeKill @ice_shelf_s  # ice shelf: open valley edge (V19 ×2)
+S 22 w=13 wallR=barrier:0.8                @shelf_link
+WIGGLE R16 30/60/30 R dy=-3 w=13 wallL=none:0:ledgeKill @cornice_s  # cornice: open edge (V19 ×2)
 S 45 w=13 wall=barrier:1.1                @shelf_run
 S 50 dy=-5 w=12                           @spiral_a      # spiral descent fallback: switchback 1
 C R16 170 R dy=-5 bank=-6 w=14            @spiral_1      # (V19)
@@ -42,7 +39,8 @@ C R140 12 R dy=-2.5
 WIGGLE R18 35/70/35 R dy=-2 w=13 wall=barrier:1.1 @gully_s   # (V19 ×2)
 WIGGLE R16 30/60/30 L dy=-2              @serac_s       # (V19 ×2)
 S 68 dy=-4 w=13                           @ski_runup     # pads before the lip
-S 110 dy=-10                              @ski_jump      # jump fallback: down-ramp
+J ramp=14@10 gap=30 drop=10 land=60 vmin=30 vmax=46 @ski_jump  # the ski jump (~70 ticks of air)
+S 6
 C R40 90 L bank=5 w=12                    @landing_bend
 WIGGLE R80 30/60/30 L dy=-2               @landing_s
 S 20 w=13                                 @slalom_brake

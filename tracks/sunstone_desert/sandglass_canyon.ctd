@@ -6,8 +6,7 @@
 # the U-turn is a right-hander paired with the left mesa sweeper; every named section keeps its radius.
 # Grades are spread over the S-chains and hairpins so no stretch exceeds the D4 12% cap.
 @signature warp, jump, surfaces
-@fallback warp -> "ledge branch 7 m, no walls, kill below (F2)" when=F4
-@fallback jump -> "canyon-mouth drop (no air): S 80 dy -4 down-ramp" when=F2
+@fallback warp -> "hourglass portal omitted until F4; the gorge jump carries the risk" when=F4
 TRACK sandglass_canyon name="Sandglass Canyon" theme=sunstone_desert diff=4 laps=2 topo=circuit
 DEFAULTS w=13 surf=stone wall=rock:1.4 shoulder=0.5 shoulderSurf=sand blend=16
 START pos=(0,0,0) hdg=0
@@ -19,7 +18,7 @@ C R40 60 L dy=-2 bank=4                   @descent_kink
 WIGGLE R16 50/90/55 L dy=-3 w=14 shoulder=1 @sandfall_1 # sandfall S-chain 1 (V19 ×2)
 WIGGLE R18 35/70/25 R dy=-2 w=14          @sandfall_2    # sandfall S-chain 2 (V19 ×2)
 WIGGLE R30 30/55/20 L dy=-1 w=13 surf=wood shoulder=0.3 @rope_bridge
-S 53.3 surf=stone shoulder=0.5            @canyon_floor  # the hourglass portal would split here
+S 53.3 surf=stone shoulder=0.5            @canyon_floor  # the hourglass portal will split here (F4)
 C R12 180 L dy=1 w=14                     @obelisk       # obelisk hairpin R12 (V19)
 S 40.6 dy=2.5 w=13                        @switch_1
 C R14 180 R dy=2.5 w=14                   @hairpin_2     # (V19)
@@ -29,7 +28,7 @@ S 48.4 dy=2 w=13                          @rim_straight  # item row
 WIGGLE R28 45/80/45 L bank=4              @rim_s         # (V19)
 C R45 60 R bank=-5                        @rim_corner
 S 44 w=14                                 @run_up        # pad before the lip
-S 80 dy=-4                                @canyon_mouth  # jump fallback: down-ramp
+J ramp=12@8 gap=18 drop=6 land=50 vmin=26 vmax=46 @canyon_mouth  # canyon-mouth jump over the gorge
 C R35 60 L bank=5 w=13                    @landing_exit
 WIGGLE R30 40/85/40 R bank=4              @mesa_s
 S ?b=30                                   @mesa_road
@@ -43,11 +42,11 @@ C R30 95 L bank=8 w=14 shoulder=0.5       @mesa_corner   # (V19)
 WIGGLE R70 20/40/35 R w=13                @dune_s
 C R40 60 L bank=4                         @gate_in       # obelisk-gate corner
 C R40 50 R bank=-6                        @gate_out
-C R60 80 L bank=4 dy=2                    @rim_return
-S ?a=59 w=14 dy=1                         @run_in
+C R60 80 L bank=4 dy=3                    @rim_return
+S ?a=59 w=14 dy=2                         @run_in
 CLOSE solve=[?a,?b,?c] length=1920
 LINE start at=0
-ITEMS at=65,400,675,900,1080,1290,1640,1830 n=4
+ITEMS at=65,400,675,852,1080,1290,1640,1830 n=4
 PAD at=1886,10,826 d=0 len=6 w=4
 KEYS 200,450,700,900,1100,1300,1500,1730
 # sandfalls: clip the pour on the outside of each S-chain and the sand steals grip (0.85 / ×0.92)
