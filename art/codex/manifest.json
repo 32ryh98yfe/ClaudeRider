@@ -1,0 +1,2282 @@
+{
+ "version": 1,
+ "styleGuide": "style-guide.md",
+ "count": 110,
+ "slots": [
+  {
+   "id": "portrait.clay",
+   "kind": "portrait",
+   "w": 512,
+   "h": 512,
+   "alpha": true,
+   "subject": {
+    "characterId": "clay"
+   },
+   "palette": [
+    "#D87656",
+    "#BE684D",
+    "#FAF9F5",
+    "#D97757",
+    "#141413"
+   ],
+   "fallback": "showcase.portrait",
+   "format": "webp",
+   "prompt": "prompts/portrait.clay.md",
+   "ref": "refs/portrait.clay.png"
+  },
+  {
+   "id": "portrait.pixel",
+   "kind": "portrait",
+   "w": 512,
+   "h": 512,
+   "alpha": true,
+   "subject": {
+    "characterId": "pixel"
+   },
+   "palette": [
+    "#D87656",
+    "#BE684D",
+    "#8B8B8B",
+    "#F9F8F4",
+    "#141413"
+   ],
+   "fallback": "showcase.portrait",
+   "format": "webp",
+   "prompt": "prompts/portrait.pixel.md",
+   "ref": "refs/portrait.pixel.png"
+  },
+  {
+   "id": "portrait.turbo",
+   "kind": "portrait",
+   "w": 512,
+   "h": 512,
+   "alpha": true,
+   "subject": {
+    "characterId": "turbo"
+   },
+   "palette": [
+    "#D97757",
+    "#BE684D",
+    "#6A9BCC",
+    "#FAF9F5",
+    "#2A2A28"
+   ],
+   "fallback": "showcase.portrait",
+   "format": "webp",
+   "prompt": "prompts/portrait.turbo.md",
+   "ref": "refs/portrait.turbo.png"
+  },
+  {
+   "id": "portrait.anchor",
+   "kind": "portrait",
+   "w": 512,
+   "h": 512,
+   "alpha": true,
+   "subject": {
+    "characterId": "anchor"
+   },
+   "palette": [
+    "#C96442",
+    "#A8533A",
+    "#B53333",
+    "#30302E",
+    "#E0B04B"
+   ],
+   "fallback": "showcase.portrait",
+   "format": "webp",
+   "prompt": "prompts/portrait.anchor.md",
+   "ref": "refs/portrait.anchor.png"
+  },
+  {
+   "id": "portrait.rune",
+   "kind": "portrait",
+   "w": 512,
+   "h": 512,
+   "alpha": true,
+   "subject": {
+    "characterId": "rune"
+   },
+   "palette": [
+    "#E08A6D",
+    "#C4745A",
+    "#3B3F8F",
+    "#F0EEE6",
+    "#141413"
+   ],
+   "fallback": "showcase.portrait",
+   "format": "webp",
+   "prompt": "prompts/portrait.rune.md",
+   "ref": "refs/portrait.rune.png"
+  },
+  {
+   "id": "portrait.nova",
+   "kind": "portrait",
+   "w": 512,
+   "h": 512,
+   "alpha": true,
+   "subject": {
+    "characterId": "nova"
+   },
+   "palette": [
+    "#D97757",
+    "#BE684D",
+    "#F5F4ED",
+    "#6A9BCC",
+    "#141413"
+   ],
+   "fallback": "showcase.portrait",
+   "format": "webp",
+   "prompt": "prompts/portrait.nova.md",
+   "ref": "refs/portrait.nova.png"
+  },
+  {
+   "id": "portrait.kage",
+   "kind": "portrait",
+   "w": 512,
+   "h": 512,
+   "alpha": true,
+   "subject": {
+    "characterId": "kage"
+   },
+   "palette": [
+    "#D97757",
+    "#BE684D",
+    "#1F1E1D",
+    "#B0AEA5",
+    "#141413"
+   ],
+   "fallback": "showcase.portrait",
+   "format": "webp",
+   "prompt": "prompts/portrait.kage.md",
+   "ref": "refs/portrait.kage.png"
+  },
+  {
+   "id": "portrait.bisque",
+   "kind": "portrait",
+   "w": 512,
+   "h": 512,
+   "alpha": true,
+   "subject": {
+    "characterId": "bisque"
+   },
+   "palette": [
+    "#D97757",
+    "#BE684D",
+    "#FFFFFF",
+    "#788C5D",
+    "#141413"
+   ],
+   "fallback": "showcase.portrait",
+   "format": "webp",
+   "prompt": "prompts/portrait.bisque.md",
+   "ref": "refs/portrait.bisque.png"
+  },
+  {
+   "id": "portrait.frost",
+   "kind": "portrait",
+   "w": 512,
+   "h": 512,
+   "alpha": true,
+   "subject": {
+    "characterId": "frost"
+   },
+   "palette": [
+    "#9FD3F2",
+    "#7BB8DE",
+    "#FFFFFF",
+    "#E8F6FF",
+    "#0E2A47"
+   ],
+   "fallback": "showcase.portrait",
+   "format": "webp",
+   "prompt": "prompts/portrait.frost.md",
+   "ref": "refs/portrait.frost.png"
+  },
+  {
+   "id": "portrait.glitch",
+   "kind": "portrait",
+   "w": 512,
+   "h": 512,
+   "alpha": true,
+   "subject": {
+    "characterId": "glitch"
+   },
+   "palette": [
+    "#1C1B22",
+    "#121117",
+    "#FF7A50",
+    "#2EF2FF"
+   ],
+   "fallback": "showcase.portrait",
+   "format": "webp",
+   "prompt": "prompts/portrait.glitch.md",
+   "ref": "refs/portrait.glitch.png"
+  },
+  {
+   "id": "portrait.bolt",
+   "kind": "portrait",
+   "w": 512,
+   "h": 512,
+   "alpha": true,
+   "subject": {
+    "characterId": "bolt"
+   },
+   "palette": [
+    "#B87333",
+    "#8C5626",
+    "#FFB347",
+    "#5A5A5A"
+   ],
+   "fallback": "showcase.portrait",
+   "format": "webp",
+   "prompt": "prompts/portrait.bolt.md",
+   "ref": "refs/portrait.bolt.png"
+  },
+  {
+   "id": "portrait.duke",
+   "kind": "portrait",
+   "w": 512,
+   "h": 512,
+   "alpha": true,
+   "subject": {
+    "characterId": "duke"
+   },
+   "palette": [
+    "#C96442",
+    "#A8533A",
+    "#F2C14E",
+    "#B53333",
+    "#FAF9F5"
+   ],
+   "fallback": "showcase.portrait",
+   "format": "webp",
+   "prompt": "prompts/portrait.duke.md",
+   "ref": "refs/portrait.duke.png"
+  },
+  {
+   "id": "hero.clay",
+   "kind": "hero",
+   "w": 1024,
+   "h": 1536,
+   "alpha": true,
+   "subject": {
+    "characterId": "clay",
+    "kartBodyId": "pebble"
+   },
+   "palette": [
+    "#D87656",
+    "#BE684D",
+    "#FAF9F5",
+    "#D97757",
+    "#141413"
+   ],
+   "fallback": "showcase.hero",
+   "format": "webp",
+   "prompt": "prompts/hero.clay.md",
+   "ref": "refs/hero.clay.png"
+  },
+  {
+   "id": "hero.pixel",
+   "kind": "hero",
+   "w": 1024,
+   "h": 1536,
+   "alpha": true,
+   "subject": {
+    "characterId": "pixel",
+    "kartBodyId": "arrowhead"
+   },
+   "palette": [
+    "#D87656",
+    "#BE684D",
+    "#8B8B8B",
+    "#F9F8F4",
+    "#141413"
+   ],
+   "fallback": "showcase.hero",
+   "format": "webp",
+   "prompt": "prompts/hero.pixel.md",
+   "ref": "refs/hero.pixel.png"
+  },
+  {
+   "id": "hero.turbo",
+   "kind": "hero",
+   "w": 1024,
+   "h": 1536,
+   "alpha": true,
+   "subject": {
+    "characterId": "turbo",
+    "kartBodyId": "arrowhead"
+   },
+   "palette": [
+    "#D97757",
+    "#BE684D",
+    "#6A9BCC",
+    "#FAF9F5",
+    "#2A2A28"
+   ],
+   "fallback": "showcase.hero",
+   "format": "webp",
+   "prompt": "prompts/hero.turbo.md",
+   "ref": "refs/hero.turbo.png"
+  },
+  {
+   "id": "hero.anchor",
+   "kind": "hero",
+   "w": 1024,
+   "h": 1536,
+   "alpha": true,
+   "subject": {
+    "characterId": "anchor",
+    "kartBodyId": "tugboat"
+   },
+   "palette": [
+    "#C96442",
+    "#A8533A",
+    "#B53333",
+    "#30302E",
+    "#E0B04B"
+   ],
+   "fallback": "showcase.hero",
+   "format": "webp",
+   "prompt": "prompts/hero.anchor.md",
+   "ref": "refs/hero.anchor.png"
+  },
+  {
+   "id": "hero.rune",
+   "kind": "hero",
+   "w": 1024,
+   "h": 1536,
+   "alpha": true,
+   "subject": {
+    "characterId": "rune",
+    "kartBodyId": "clay_comet"
+   },
+   "palette": [
+    "#E08A6D",
+    "#C4745A",
+    "#3B3F8F",
+    "#F0EEE6",
+    "#141413"
+   ],
+   "fallback": "showcase.hero",
+   "format": "webp",
+   "prompt": "prompts/hero.rune.md",
+   "ref": "refs/hero.rune.png"
+  },
+  {
+   "id": "hero.nova",
+   "kind": "hero",
+   "w": 1024,
+   "h": 1536,
+   "alpha": true,
+   "subject": {
+    "characterId": "nova",
+    "kartBodyId": "glacier_sled"
+   },
+   "palette": [
+    "#D97757",
+    "#BE684D",
+    "#F5F4ED",
+    "#6A9BCC",
+    "#141413"
+   ],
+   "fallback": "showcase.hero",
+   "format": "webp",
+   "prompt": "prompts/hero.nova.md",
+   "ref": "refs/hero.nova.png"
+  },
+  {
+   "id": "hero.kage",
+   "kind": "hero",
+   "w": 1024,
+   "h": 1536,
+   "alpha": true,
+   "subject": {
+    "characterId": "kage",
+    "kartBodyId": "neon_blade"
+   },
+   "palette": [
+    "#D97757",
+    "#BE684D",
+    "#1F1E1D",
+    "#B0AEA5",
+    "#141413"
+   ],
+   "fallback": "showcase.hero",
+   "format": "webp",
+   "prompt": "prompts/hero.kage.md",
+   "ref": "refs/hero.kage.png"
+  },
+  {
+   "id": "hero.bisque",
+   "kind": "hero",
+   "w": 1024,
+   "h": 1536,
+   "alpha": true,
+   "subject": {
+    "characterId": "bisque",
+    "kartBodyId": "jet_kettle"
+   },
+   "palette": [
+    "#D97757",
+    "#BE684D",
+    "#FFFFFF",
+    "#788C5D",
+    "#141413"
+   ],
+   "fallback": "showcase.hero",
+   "format": "webp",
+   "prompt": "prompts/hero.bisque.md",
+   "ref": "refs/hero.bisque.png"
+  },
+  {
+   "id": "hero.frost",
+   "kind": "hero",
+   "w": 1024,
+   "h": 1536,
+   "alpha": true,
+   "subject": {
+    "characterId": "frost",
+    "kartBodyId": "glacier_sled"
+   },
+   "palette": [
+    "#9FD3F2",
+    "#7BB8DE",
+    "#FFFFFF",
+    "#E8F6FF",
+    "#0E2A47"
+   ],
+   "fallback": "showcase.hero",
+   "format": "webp",
+   "prompt": "prompts/hero.frost.md",
+   "ref": "refs/hero.frost.png"
+  },
+  {
+   "id": "hero.glitch",
+   "kind": "hero",
+   "w": 1024,
+   "h": 1536,
+   "alpha": true,
+   "subject": {
+    "characterId": "glitch",
+    "kartBodyId": "neon_blade"
+   },
+   "palette": [
+    "#1C1B22",
+    "#121117",
+    "#FF7A50",
+    "#2EF2FF"
+   ],
+   "fallback": "showcase.hero",
+   "format": "webp",
+   "prompt": "prompts/hero.glitch.md",
+   "ref": "refs/hero.glitch.png"
+  },
+  {
+   "id": "hero.bolt",
+   "kind": "hero",
+   "w": 1024,
+   "h": 1536,
+   "alpha": true,
+   "subject": {
+    "characterId": "bolt",
+    "kartBodyId": "jet_kettle"
+   },
+   "palette": [
+    "#B87333",
+    "#8C5626",
+    "#FFB347",
+    "#5A5A5A"
+   ],
+   "fallback": "showcase.hero",
+   "format": "webp",
+   "prompt": "prompts/hero.bolt.md",
+   "ref": "refs/hero.bolt.png"
+  },
+  {
+   "id": "hero.duke",
+   "kind": "hero",
+   "w": 1024,
+   "h": 1536,
+   "alpha": true,
+   "subject": {
+    "characterId": "duke",
+    "kartBodyId": "crown_cruiser"
+   },
+   "palette": [
+    "#C96442",
+    "#A8533A",
+    "#F2C14E",
+    "#B53333",
+    "#FAF9F5"
+   ],
+   "fallback": "showcase.hero",
+   "format": "webp",
+   "prompt": "prompts/hero.duke.md",
+   "ref": "refs/hero.duke.png"
+  },
+  {
+   "id": "kart.pebble",
+   "kind": "kart",
+   "w": 1024,
+   "h": 640,
+   "alpha": true,
+   "subject": {
+    "kartBodyId": "pebble"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#141413"
+   ],
+   "fallback": "showcase.kart",
+   "format": "webp",
+   "prompt": "prompts/kart.pebble.md",
+   "ref": "refs/kart.pebble.png"
+  },
+  {
+   "id": "kart.clay_comet",
+   "kind": "kart",
+   "w": 1024,
+   "h": 640,
+   "alpha": true,
+   "subject": {
+    "kartBodyId": "clay_comet"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#141413"
+   ],
+   "fallback": "showcase.kart",
+   "format": "webp",
+   "prompt": "prompts/kart.clay_comet.md",
+   "ref": "refs/kart.clay_comet.png"
+  },
+  {
+   "id": "kart.arrowhead",
+   "kind": "kart",
+   "w": 1024,
+   "h": 640,
+   "alpha": true,
+   "subject": {
+    "kartBodyId": "arrowhead"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#141413"
+   ],
+   "fallback": "showcase.kart",
+   "format": "webp",
+   "prompt": "prompts/kart.arrowhead.md",
+   "ref": "refs/kart.arrowhead.png"
+  },
+  {
+   "id": "kart.tugboat",
+   "kind": "kart",
+   "w": 1024,
+   "h": 640,
+   "alpha": true,
+   "subject": {
+    "kartBodyId": "tugboat"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#141413"
+   ],
+   "fallback": "showcase.kart",
+   "format": "webp",
+   "prompt": "prompts/kart.tugboat.md",
+   "ref": "refs/kart.tugboat.png"
+  },
+  {
+   "id": "kart.glacier_sled",
+   "kind": "kart",
+   "w": 1024,
+   "h": 640,
+   "alpha": true,
+   "subject": {
+    "kartBodyId": "glacier_sled"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#141413"
+   ],
+   "fallback": "showcase.kart",
+   "format": "webp",
+   "prompt": "prompts/kart.glacier_sled.md",
+   "ref": "refs/kart.glacier_sled.png"
+  },
+  {
+   "id": "kart.neon_blade",
+   "kind": "kart",
+   "w": 1024,
+   "h": 640,
+   "alpha": true,
+   "subject": {
+    "kartBodyId": "neon_blade"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#141413"
+   ],
+   "fallback": "showcase.kart",
+   "format": "webp",
+   "prompt": "prompts/kart.neon_blade.md",
+   "ref": "refs/kart.neon_blade.png"
+  },
+  {
+   "id": "kart.jet_kettle",
+   "kind": "kart",
+   "w": 1024,
+   "h": 640,
+   "alpha": true,
+   "subject": {
+    "kartBodyId": "jet_kettle"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#141413"
+   ],
+   "fallback": "showcase.kart",
+   "format": "webp",
+   "prompt": "prompts/kart.jet_kettle.md",
+   "ref": "refs/kart.jet_kettle.png"
+  },
+  {
+   "id": "kart.crown_cruiser",
+   "kind": "kart",
+   "w": 1024,
+   "h": 640,
+   "alpha": true,
+   "subject": {
+    "kartBodyId": "crown_cruiser"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#141413"
+   ],
+   "fallback": "showcase.kart",
+   "format": "webp",
+   "prompt": "prompts/kart.crown_cruiser.md",
+   "ref": "refs/kart.crown_cruiser.png"
+  },
+  {
+   "id": "thumb.meadow_loop",
+   "kind": "thumb",
+   "w": 640,
+   "h": 360,
+   "alpha": false,
+   "subject": {
+    "trackId": "meadow_loop",
+    "themeId": "clayhill_village"
+   },
+   "palette": [
+    "#D97757",
+    "#F4EFE6",
+    "#8FB573",
+    "#9FD3F5",
+    "#5A6B7B"
+   ],
+   "fallback": "track.thumb",
+   "format": "webp",
+   "prompt": "prompts/thumb.meadow_loop.md",
+   "ref": "refs/thumb.meadow_loop.png"
+  },
+  {
+   "id": "thumb.belltower_piazza",
+   "kind": "thumb",
+   "w": 640,
+   "h": 360,
+   "alpha": false,
+   "subject": {
+    "trackId": "belltower_piazza",
+    "themeId": "clayhill_village"
+   },
+   "palette": [
+    "#D97757",
+    "#F4EFE6",
+    "#8FB573",
+    "#9FD3F5",
+    "#5A6B7B"
+   ],
+   "fallback": "track.thumb",
+   "format": "webp",
+   "prompt": "prompts/thumb.belltower_piazza.md",
+   "ref": "refs/thumb.belltower_piazza.png"
+  },
+  {
+   "id": "thumb.sunstone_bazaar",
+   "kind": "thumb",
+   "w": 640,
+   "h": 360,
+   "alpha": false,
+   "subject": {
+    "trackId": "sunstone_bazaar",
+    "themeId": "sunstone_desert"
+   },
+   "palette": [
+    "#E8C27A",
+    "#C98B4E",
+    "#3FB8AF",
+    "#F6D7A7",
+    "#7EC8E3"
+   ],
+   "fallback": "track.thumb",
+   "format": "webp",
+   "prompt": "prompts/thumb.sunstone_bazaar.md",
+   "ref": "refs/thumb.sunstone_bazaar.png"
+  },
+  {
+   "id": "thumb.sandglass_canyon",
+   "kind": "thumb",
+   "w": 640,
+   "h": 360,
+   "alpha": false,
+   "subject": {
+    "trackId": "sandglass_canyon",
+    "themeId": "sunstone_desert"
+   },
+   "palette": [
+    "#E8C27A",
+    "#C98B4E",
+    "#3FB8AF",
+    "#F6D7A7",
+    "#7EC8E3"
+   ],
+   "fallback": "track.thumb",
+   "format": "webp",
+   "prompt": "prompts/thumb.sandglass_canyon.md",
+   "ref": "refs/thumb.sandglass_canyon.png"
+  },
+  {
+   "id": "thumb.snowglobe_halfpipe",
+   "kind": "thumb",
+   "w": 640,
+   "h": 360,
+   "alpha": false,
+   "subject": {
+    "trackId": "snowglobe_halfpipe",
+    "themeId": "frostbyte_glacier"
+   },
+   "palette": [
+    "#BEE9F7",
+    "#F7FBFF",
+    "#2F6FA6",
+    "#6CF2C2",
+    "#B57CFF"
+   ],
+   "fallback": "track.thumb",
+   "format": "webp",
+   "prompt": "prompts/thumb.snowglobe_halfpipe.md",
+   "ref": "refs/thumb.snowglobe_halfpipe.png"
+  },
+  {
+   "id": "thumb.aurora_summit",
+   "kind": "thumb",
+   "w": 640,
+   "h": 360,
+   "alpha": false,
+   "subject": {
+    "trackId": "aurora_summit",
+    "themeId": "frostbyte_glacier"
+   },
+   "palette": [
+    "#BEE9F7",
+    "#F7FBFF",
+    "#2F6FA6",
+    "#6CF2C2",
+    "#B57CFF"
+   ],
+   "fallback": "track.thumb",
+   "format": "webp",
+   "prompt": "prompts/thumb.aurora_summit.md",
+   "ref": "refs/thumb.aurora_summit.png"
+  },
+  {
+   "id": "thumb.fernwood_hollow",
+   "kind": "thumb",
+   "w": 640,
+   "h": 360,
+   "alpha": false,
+   "subject": {
+    "trackId": "fernwood_hollow",
+    "themeId": "canopy_forest"
+   },
+   "palette": [
+    "#4E9F3D",
+    "#9BC53D",
+    "#6B4226",
+    "#E4572E",
+    "#DCEFE3"
+   ],
+   "fallback": "track.thumb",
+   "format": "webp",
+   "prompt": "prompts/thumb.fernwood_hollow.md",
+   "ref": "refs/thumb.fernwood_hollow.png"
+  },
+  {
+   "id": "thumb.cascade_slalom",
+   "kind": "thumb",
+   "w": 640,
+   "h": 360,
+   "alpha": false,
+   "subject": {
+    "trackId": "cascade_slalom",
+    "themeId": "canopy_forest"
+   },
+   "palette": [
+    "#4E9F3D",
+    "#9BC53D",
+    "#6B4226",
+    "#E4572E",
+    "#DCEFE3"
+   ],
+   "fallback": "track.thumb",
+   "format": "webp",
+   "prompt": "prompts/thumb.cascade_slalom.md",
+   "ref": "refs/thumb.cascade_slalom.png"
+  },
+  {
+   "id": "thumb.geode_rail_quarry",
+   "kind": "thumb",
+   "w": 640,
+   "h": 360,
+   "alpha": false,
+   "subject": {
+    "trackId": "geode_rail_quarry",
+    "themeId": "ember_mine"
+   },
+   "palette": [
+    "#2B2320",
+    "#FF6A2B",
+    "#FFC857",
+    "#7FDBFF",
+    "#C77DFF"
+   ],
+   "fallback": "track.thumb",
+   "format": "webp",
+   "prompt": "prompts/thumb.geode_rail_quarry.md",
+   "ref": "refs/thumb.geode_rail_quarry.png"
+  },
+  {
+   "id": "thumb.magma_switchback",
+   "kind": "thumb",
+   "w": 640,
+   "h": 360,
+   "alpha": false,
+   "subject": {
+    "trackId": "magma_switchback",
+    "themeId": "ember_mine"
+   },
+   "palette": [
+    "#2B2320",
+    "#FF6A2B",
+    "#FFC857",
+    "#7FDBFF",
+    "#C77DFF"
+   ],
+   "fallback": "track.thumb",
+   "format": "webp",
+   "prompt": "prompts/thumb.magma_switchback.md",
+   "ref": "refs/thumb.magma_switchback.png"
+  },
+  {
+   "id": "thumb.pumpkin_lane",
+   "kind": "thumb",
+   "w": 640,
+   "h": 360,
+   "alpha": false,
+   "subject": {
+    "trackId": "pumpkin_lane",
+    "themeId": "lantern_hollow"
+   },
+   "palette": [
+    "#1E1B3A",
+    "#6B4FA0",
+    "#FF9F1C",
+    "#5FFBF1",
+    "#FFF3C4"
+   ],
+   "fallback": "track.thumb",
+   "format": "webp",
+   "prompt": "prompts/thumb.pumpkin_lane.md",
+   "ref": "refs/thumb.pumpkin_lane.png"
+  },
+  {
+   "id": "thumb.manor_catacombs",
+   "kind": "thumb",
+   "w": 640,
+   "h": 360,
+   "alpha": false,
+   "subject": {
+    "trackId": "manor_catacombs",
+    "themeId": "lantern_hollow"
+   },
+   "palette": [
+    "#1E1B3A",
+    "#6B4FA0",
+    "#FF9F1C",
+    "#5FFBF1",
+    "#FFF3C4"
+   ],
+   "fallback": "track.thumb",
+   "format": "webp",
+   "prompt": "prompts/thumb.manor_catacombs.md",
+   "ref": "refs/thumb.manor_catacombs.png"
+  },
+  {
+   "id": "thumb.coral_cove_docks",
+   "kind": "thumb",
+   "w": 640,
+   "h": 360,
+   "alpha": false,
+   "subject": {
+    "trackId": "coral_cove_docks",
+    "themeId": "coral_cove"
+   },
+   "palette": [
+    "#1FB5C9",
+    "#7FE3D6",
+    "#F6E3B4",
+    "#8B5A2B",
+    "#D94F4F"
+   ],
+   "fallback": "track.thumb",
+   "format": "webp",
+   "prompt": "prompts/thumb.coral_cove_docks.md",
+   "ref": "refs/thumb.coral_cove_docks.png"
+  },
+  {
+   "id": "thumb.kraken_lighthouse",
+   "kind": "thumb",
+   "w": 640,
+   "h": 360,
+   "alpha": false,
+   "subject": {
+    "trackId": "kraken_lighthouse",
+    "themeId": "coral_cove"
+   },
+   "palette": [
+    "#1FB5C9",
+    "#7FE3D6",
+    "#F6E3B4",
+    "#8B5A2B",
+    "#D94F4F"
+   ],
+   "fallback": "track.thumb",
+   "format": "webp",
+   "prompt": "prompts/thumb.kraken_lighthouse.md",
+   "ref": "refs/thumb.kraken_lighthouse.png"
+  },
+  {
+   "id": "thumb.rainline_blvd",
+   "kind": "thumb",
+   "w": 640,
+   "h": 360,
+   "alpha": false,
+   "subject": {
+    "trackId": "rainline_blvd",
+    "themeId": "neon_harbor"
+   },
+   "palette": [
+    "#1C1F26",
+    "#FF3EA5",
+    "#3EE6FF",
+    "#FFB347",
+    "#6A4C93"
+   ],
+   "fallback": "track.thumb",
+   "format": "webp",
+   "prompt": "prompts/thumb.rainline_blvd.md",
+   "ref": "refs/thumb.rainline_blvd.png"
+  },
+  {
+   "id": "thumb.skyway_interchange",
+   "kind": "thumb",
+   "w": 640,
+   "h": 360,
+   "alpha": false,
+   "subject": {
+    "trackId": "skyway_interchange",
+    "themeId": "neon_harbor"
+   },
+   "palette": [
+    "#1C1F26",
+    "#FF3EA5",
+    "#3EE6FF",
+    "#FFB347",
+    "#6A4C93"
+   ],
+   "fallback": "track.thumb",
+   "format": "webp",
+   "prompt": "prompts/thumb.skyway_interchange.md",
+   "ref": "refs/thumb.skyway_interchange.png"
+  },
+  {
+   "id": "thumb.spark_grand_circuit",
+   "kind": "thumb",
+   "w": 640,
+   "h": 360,
+   "alpha": false,
+   "subject": {
+    "trackId": "spark_grand_circuit",
+    "themeId": "spark_circuit"
+   },
+   "palette": [
+    "#3A3D42",
+    "#E63946",
+    "#FFFFFF",
+    "#5BAA4A",
+    "#FF8C42"
+   ],
+   "fallback": "track.thumb",
+   "format": "webp",
+   "prompt": "prompts/thumb.spark_grand_circuit.md",
+   "ref": "refs/thumb.spark_grand_circuit.png"
+  },
+  {
+   "id": "thumb.sunset_arena_rally",
+   "kind": "thumb",
+   "w": 640,
+   "h": 360,
+   "alpha": false,
+   "subject": {
+    "trackId": "sunset_arena_rally",
+    "themeId": "spark_circuit"
+   },
+   "palette": [
+    "#3A3D42",
+    "#E63946",
+    "#FFFFFF",
+    "#5BAA4A",
+    "#FF8C42"
+   ],
+   "fallback": "track.thumb",
+   "format": "webp",
+   "prompt": "prompts/thumb.sunset_arena_rally.md",
+   "ref": "refs/thumb.sunset_arena_rally.png"
+  },
+  {
+   "id": "thumb.token_foundry",
+   "kind": "thumb",
+   "w": 640,
+   "h": 360,
+   "alpha": false,
+   "subject": {
+    "trackId": "token_foundry",
+    "themeId": "orbital_nexus"
+   },
+   "palette": [
+    "#EEF3F8",
+    "#7DE2FC",
+    "#D97757",
+    "#0B1026",
+    "#A6FFCB"
+   ],
+   "fallback": "track.thumb",
+   "format": "webp",
+   "prompt": "prompts/thumb.token_foundry.md",
+   "ref": "refs/thumb.token_foundry.png"
+  },
+  {
+   "id": "thumb.orbital_express",
+   "kind": "thumb",
+   "w": 640,
+   "h": 360,
+   "alpha": false,
+   "subject": {
+    "trackId": "orbital_express",
+    "themeId": "orbital_nexus"
+   },
+   "palette": [
+    "#EEF3F8",
+    "#7DE2FC",
+    "#D97757",
+    "#0B1026",
+    "#A6FFCB"
+   ],
+   "fallback": "track.thumb",
+   "format": "webp",
+   "prompt": "prompts/thumb.orbital_express.md",
+   "ref": "refs/thumb.orbital_express.png"
+  },
+  {
+   "id": "loading.meadow_loop",
+   "kind": "loading",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "trackId": "meadow_loop",
+    "themeId": "clayhill_village"
+   },
+   "palette": [
+    "#D97757",
+    "#F4EFE6",
+    "#8FB573",
+    "#9FD3F5",
+    "#5A6B7B"
+   ],
+   "fallback": "track.poster",
+   "format": "webp",
+   "prompt": "prompts/loading.meadow_loop.md",
+   "ref": "refs/loading.meadow_loop.png"
+  },
+  {
+   "id": "loading.belltower_piazza",
+   "kind": "loading",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "trackId": "belltower_piazza",
+    "themeId": "clayhill_village"
+   },
+   "palette": [
+    "#D97757",
+    "#F4EFE6",
+    "#8FB573",
+    "#9FD3F5",
+    "#5A6B7B"
+   ],
+   "fallback": "track.poster",
+   "format": "webp",
+   "prompt": "prompts/loading.belltower_piazza.md",
+   "ref": "refs/loading.belltower_piazza.png"
+  },
+  {
+   "id": "loading.sunstone_bazaar",
+   "kind": "loading",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "trackId": "sunstone_bazaar",
+    "themeId": "sunstone_desert"
+   },
+   "palette": [
+    "#E8C27A",
+    "#C98B4E",
+    "#3FB8AF",
+    "#F6D7A7",
+    "#7EC8E3"
+   ],
+   "fallback": "track.poster",
+   "format": "webp",
+   "prompt": "prompts/loading.sunstone_bazaar.md",
+   "ref": "refs/loading.sunstone_bazaar.png"
+  },
+  {
+   "id": "loading.sandglass_canyon",
+   "kind": "loading",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "trackId": "sandglass_canyon",
+    "themeId": "sunstone_desert"
+   },
+   "palette": [
+    "#E8C27A",
+    "#C98B4E",
+    "#3FB8AF",
+    "#F6D7A7",
+    "#7EC8E3"
+   ],
+   "fallback": "track.poster",
+   "format": "webp",
+   "prompt": "prompts/loading.sandglass_canyon.md",
+   "ref": "refs/loading.sandglass_canyon.png"
+  },
+  {
+   "id": "loading.snowglobe_halfpipe",
+   "kind": "loading",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "trackId": "snowglobe_halfpipe",
+    "themeId": "frostbyte_glacier"
+   },
+   "palette": [
+    "#BEE9F7",
+    "#F7FBFF",
+    "#2F6FA6",
+    "#6CF2C2",
+    "#B57CFF"
+   ],
+   "fallback": "track.poster",
+   "format": "webp",
+   "prompt": "prompts/loading.snowglobe_halfpipe.md",
+   "ref": "refs/loading.snowglobe_halfpipe.png"
+  },
+  {
+   "id": "loading.aurora_summit",
+   "kind": "loading",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "trackId": "aurora_summit",
+    "themeId": "frostbyte_glacier"
+   },
+   "palette": [
+    "#BEE9F7",
+    "#F7FBFF",
+    "#2F6FA6",
+    "#6CF2C2",
+    "#B57CFF"
+   ],
+   "fallback": "track.poster",
+   "format": "webp",
+   "prompt": "prompts/loading.aurora_summit.md",
+   "ref": "refs/loading.aurora_summit.png"
+  },
+  {
+   "id": "loading.fernwood_hollow",
+   "kind": "loading",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "trackId": "fernwood_hollow",
+    "themeId": "canopy_forest"
+   },
+   "palette": [
+    "#4E9F3D",
+    "#9BC53D",
+    "#6B4226",
+    "#E4572E",
+    "#DCEFE3"
+   ],
+   "fallback": "track.poster",
+   "format": "webp",
+   "prompt": "prompts/loading.fernwood_hollow.md",
+   "ref": "refs/loading.fernwood_hollow.png"
+  },
+  {
+   "id": "loading.cascade_slalom",
+   "kind": "loading",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "trackId": "cascade_slalom",
+    "themeId": "canopy_forest"
+   },
+   "palette": [
+    "#4E9F3D",
+    "#9BC53D",
+    "#6B4226",
+    "#E4572E",
+    "#DCEFE3"
+   ],
+   "fallback": "track.poster",
+   "format": "webp",
+   "prompt": "prompts/loading.cascade_slalom.md",
+   "ref": "refs/loading.cascade_slalom.png"
+  },
+  {
+   "id": "loading.geode_rail_quarry",
+   "kind": "loading",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "trackId": "geode_rail_quarry",
+    "themeId": "ember_mine"
+   },
+   "palette": [
+    "#2B2320",
+    "#FF6A2B",
+    "#FFC857",
+    "#7FDBFF",
+    "#C77DFF"
+   ],
+   "fallback": "track.poster",
+   "format": "webp",
+   "prompt": "prompts/loading.geode_rail_quarry.md",
+   "ref": "refs/loading.geode_rail_quarry.png"
+  },
+  {
+   "id": "loading.magma_switchback",
+   "kind": "loading",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "trackId": "magma_switchback",
+    "themeId": "ember_mine"
+   },
+   "palette": [
+    "#2B2320",
+    "#FF6A2B",
+    "#FFC857",
+    "#7FDBFF",
+    "#C77DFF"
+   ],
+   "fallback": "track.poster",
+   "format": "webp",
+   "prompt": "prompts/loading.magma_switchback.md",
+   "ref": "refs/loading.magma_switchback.png"
+  },
+  {
+   "id": "loading.pumpkin_lane",
+   "kind": "loading",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "trackId": "pumpkin_lane",
+    "themeId": "lantern_hollow"
+   },
+   "palette": [
+    "#1E1B3A",
+    "#6B4FA0",
+    "#FF9F1C",
+    "#5FFBF1",
+    "#FFF3C4"
+   ],
+   "fallback": "track.poster",
+   "format": "webp",
+   "prompt": "prompts/loading.pumpkin_lane.md",
+   "ref": "refs/loading.pumpkin_lane.png"
+  },
+  {
+   "id": "loading.manor_catacombs",
+   "kind": "loading",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "trackId": "manor_catacombs",
+    "themeId": "lantern_hollow"
+   },
+   "palette": [
+    "#1E1B3A",
+    "#6B4FA0",
+    "#FF9F1C",
+    "#5FFBF1",
+    "#FFF3C4"
+   ],
+   "fallback": "track.poster",
+   "format": "webp",
+   "prompt": "prompts/loading.manor_catacombs.md",
+   "ref": "refs/loading.manor_catacombs.png"
+  },
+  {
+   "id": "loading.coral_cove_docks",
+   "kind": "loading",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "trackId": "coral_cove_docks",
+    "themeId": "coral_cove"
+   },
+   "palette": [
+    "#1FB5C9",
+    "#7FE3D6",
+    "#F6E3B4",
+    "#8B5A2B",
+    "#D94F4F"
+   ],
+   "fallback": "track.poster",
+   "format": "webp",
+   "prompt": "prompts/loading.coral_cove_docks.md",
+   "ref": "refs/loading.coral_cove_docks.png"
+  },
+  {
+   "id": "loading.kraken_lighthouse",
+   "kind": "loading",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "trackId": "kraken_lighthouse",
+    "themeId": "coral_cove"
+   },
+   "palette": [
+    "#1FB5C9",
+    "#7FE3D6",
+    "#F6E3B4",
+    "#8B5A2B",
+    "#D94F4F"
+   ],
+   "fallback": "track.poster",
+   "format": "webp",
+   "prompt": "prompts/loading.kraken_lighthouse.md",
+   "ref": "refs/loading.kraken_lighthouse.png"
+  },
+  {
+   "id": "loading.rainline_blvd",
+   "kind": "loading",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "trackId": "rainline_blvd",
+    "themeId": "neon_harbor"
+   },
+   "palette": [
+    "#1C1F26",
+    "#FF3EA5",
+    "#3EE6FF",
+    "#FFB347",
+    "#6A4C93"
+   ],
+   "fallback": "track.poster",
+   "format": "webp",
+   "prompt": "prompts/loading.rainline_blvd.md",
+   "ref": "refs/loading.rainline_blvd.png"
+  },
+  {
+   "id": "loading.skyway_interchange",
+   "kind": "loading",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "trackId": "skyway_interchange",
+    "themeId": "neon_harbor"
+   },
+   "palette": [
+    "#1C1F26",
+    "#FF3EA5",
+    "#3EE6FF",
+    "#FFB347",
+    "#6A4C93"
+   ],
+   "fallback": "track.poster",
+   "format": "webp",
+   "prompt": "prompts/loading.skyway_interchange.md",
+   "ref": "refs/loading.skyway_interchange.png"
+  },
+  {
+   "id": "loading.spark_grand_circuit",
+   "kind": "loading",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "trackId": "spark_grand_circuit",
+    "themeId": "spark_circuit"
+   },
+   "palette": [
+    "#3A3D42",
+    "#E63946",
+    "#FFFFFF",
+    "#5BAA4A",
+    "#FF8C42"
+   ],
+   "fallback": "track.poster",
+   "format": "webp",
+   "prompt": "prompts/loading.spark_grand_circuit.md",
+   "ref": "refs/loading.spark_grand_circuit.png"
+  },
+  {
+   "id": "loading.sunset_arena_rally",
+   "kind": "loading",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "trackId": "sunset_arena_rally",
+    "themeId": "spark_circuit"
+   },
+   "palette": [
+    "#3A3D42",
+    "#E63946",
+    "#FFFFFF",
+    "#5BAA4A",
+    "#FF8C42"
+   ],
+   "fallback": "track.poster",
+   "format": "webp",
+   "prompt": "prompts/loading.sunset_arena_rally.md",
+   "ref": "refs/loading.sunset_arena_rally.png"
+  },
+  {
+   "id": "loading.token_foundry",
+   "kind": "loading",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "trackId": "token_foundry",
+    "themeId": "orbital_nexus"
+   },
+   "palette": [
+    "#EEF3F8",
+    "#7DE2FC",
+    "#D97757",
+    "#0B1026",
+    "#A6FFCB"
+   ],
+   "fallback": "track.poster",
+   "format": "webp",
+   "prompt": "prompts/loading.token_foundry.md",
+   "ref": "refs/loading.token_foundry.png"
+  },
+  {
+   "id": "loading.orbital_express",
+   "kind": "loading",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "trackId": "orbital_express",
+    "themeId": "orbital_nexus"
+   },
+   "palette": [
+    "#EEF3F8",
+    "#7DE2FC",
+    "#D97757",
+    "#0B1026",
+    "#A6FFCB"
+   ],
+   "fallback": "track.poster",
+   "format": "webp",
+   "prompt": "prompts/loading.orbital_express.md",
+   "ref": "refs/loading.orbital_express.png"
+  },
+  {
+   "id": "keyart.clayhill_village",
+   "kind": "keyart",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "themeId": "clayhill_village"
+   },
+   "palette": [
+    "#D97757",
+    "#F4EFE6",
+    "#8FB573",
+    "#9FD3F5",
+    "#5A6B7B"
+   ],
+   "fallback": "theme.vignette",
+   "format": "webp",
+   "prompt": "prompts/keyart.clayhill_village.md",
+   "ref": "refs/keyart.clayhill_village.png"
+  },
+  {
+   "id": "keyart.sunstone_desert",
+   "kind": "keyart",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "themeId": "sunstone_desert"
+   },
+   "palette": [
+    "#E8C27A",
+    "#C98B4E",
+    "#3FB8AF",
+    "#F6D7A7",
+    "#7EC8E3"
+   ],
+   "fallback": "theme.vignette",
+   "format": "webp",
+   "prompt": "prompts/keyart.sunstone_desert.md",
+   "ref": "refs/keyart.sunstone_desert.png"
+  },
+  {
+   "id": "keyart.frostbyte_glacier",
+   "kind": "keyart",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "themeId": "frostbyte_glacier"
+   },
+   "palette": [
+    "#BEE9F7",
+    "#F7FBFF",
+    "#2F6FA6",
+    "#6CF2C2",
+    "#B57CFF"
+   ],
+   "fallback": "theme.vignette",
+   "format": "webp",
+   "prompt": "prompts/keyart.frostbyte_glacier.md",
+   "ref": "refs/keyart.frostbyte_glacier.png"
+  },
+  {
+   "id": "keyart.canopy_forest",
+   "kind": "keyart",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "themeId": "canopy_forest"
+   },
+   "palette": [
+    "#4E9F3D",
+    "#9BC53D",
+    "#6B4226",
+    "#E4572E",
+    "#DCEFE3"
+   ],
+   "fallback": "theme.vignette",
+   "format": "webp",
+   "prompt": "prompts/keyart.canopy_forest.md",
+   "ref": "refs/keyart.canopy_forest.png"
+  },
+  {
+   "id": "keyart.ember_mine",
+   "kind": "keyart",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "themeId": "ember_mine"
+   },
+   "palette": [
+    "#2B2320",
+    "#FF6A2B",
+    "#FFC857",
+    "#7FDBFF",
+    "#C77DFF"
+   ],
+   "fallback": "theme.vignette",
+   "format": "webp",
+   "prompt": "prompts/keyart.ember_mine.md",
+   "ref": "refs/keyart.ember_mine.png"
+  },
+  {
+   "id": "keyart.lantern_hollow",
+   "kind": "keyart",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "themeId": "lantern_hollow"
+   },
+   "palette": [
+    "#1E1B3A",
+    "#6B4FA0",
+    "#FF9F1C",
+    "#5FFBF1",
+    "#FFF3C4"
+   ],
+   "fallback": "theme.vignette",
+   "format": "webp",
+   "prompt": "prompts/keyart.lantern_hollow.md",
+   "ref": "refs/keyart.lantern_hollow.png"
+  },
+  {
+   "id": "keyart.coral_cove",
+   "kind": "keyart",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "themeId": "coral_cove"
+   },
+   "palette": [
+    "#1FB5C9",
+    "#7FE3D6",
+    "#F6E3B4",
+    "#8B5A2B",
+    "#D94F4F"
+   ],
+   "fallback": "theme.vignette",
+   "format": "webp",
+   "prompt": "prompts/keyart.coral_cove.md",
+   "ref": "refs/keyart.coral_cove.png"
+  },
+  {
+   "id": "keyart.neon_harbor",
+   "kind": "keyart",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "themeId": "neon_harbor"
+   },
+   "palette": [
+    "#1C1F26",
+    "#FF3EA5",
+    "#3EE6FF",
+    "#FFB347",
+    "#6A4C93"
+   ],
+   "fallback": "theme.vignette",
+   "format": "webp",
+   "prompt": "prompts/keyart.neon_harbor.md",
+   "ref": "refs/keyart.neon_harbor.png"
+  },
+  {
+   "id": "keyart.spark_circuit",
+   "kind": "keyart",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "themeId": "spark_circuit"
+   },
+   "palette": [
+    "#3A3D42",
+    "#E63946",
+    "#FFFFFF",
+    "#5BAA4A",
+    "#FF8C42"
+   ],
+   "fallback": "theme.vignette",
+   "format": "webp",
+   "prompt": "prompts/keyart.spark_circuit.md",
+   "ref": "refs/keyart.spark_circuit.png"
+  },
+  {
+   "id": "keyart.orbital_nexus",
+   "kind": "keyart",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {
+    "themeId": "orbital_nexus"
+   },
+   "palette": [
+    "#EEF3F8",
+    "#7DE2FC",
+    "#D97757",
+    "#0B1026",
+    "#A6FFCB"
+   ],
+   "fallback": "theme.vignette",
+   "format": "webp",
+   "prompt": "prompts/keyart.orbital_nexus.md",
+   "ref": "refs/keyart.orbital_nexus.png"
+  },
+  {
+   "id": "card.speed",
+   "kind": "card",
+   "w": 768,
+   "h": 1024,
+   "alpha": true,
+   "subject": {
+    "mode": "speed"
+   },
+   "palette": [
+    "#D97757",
+    "#C96442",
+    "#FAF9F5"
+   ],
+   "fallback": "showcase.card",
+   "format": "webp",
+   "prompt": "prompts/card.speed.md",
+   "ref": "refs/card.speed.png"
+  },
+  {
+   "id": "card.item",
+   "kind": "card",
+   "w": 768,
+   "h": 1024,
+   "alpha": true,
+   "subject": {
+    "mode": "item"
+   },
+   "palette": [
+    "#D97757",
+    "#C96442",
+    "#FAF9F5"
+   ],
+   "fallback": "showcase.card",
+   "format": "webp",
+   "prompt": "prompts/card.item.md",
+   "ref": "refs/card.item.png"
+  },
+  {
+   "id": "card.timeAttack",
+   "kind": "card",
+   "w": 768,
+   "h": 1024,
+   "alpha": true,
+   "subject": {
+    "mode": "timeAttack"
+   },
+   "palette": [
+    "#D97757",
+    "#C96442",
+    "#FAF9F5"
+   ],
+   "fallback": "showcase.card",
+   "format": "webp",
+   "prompt": "prompts/card.timeAttack.md",
+   "ref": "refs/card.timeAttack.png"
+  },
+  {
+   "id": "card.custom",
+   "kind": "card",
+   "w": 768,
+   "h": 1024,
+   "alpha": true,
+   "subject": {
+    "mode": "custom"
+   },
+   "palette": [
+    "#D97757",
+    "#C96442",
+    "#FAF9F5"
+   ],
+   "fallback": "showcase.card",
+   "format": "webp",
+   "prompt": "prompts/card.custom.md",
+   "ref": "refs/card.custom.png"
+  },
+  {
+   "id": "keyart.title",
+   "kind": "keyart",
+   "w": 2560,
+   "h": 1440,
+   "alpha": false,
+   "subject": {},
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#FF8C42",
+    "#6A4C93"
+   ],
+   "fallback": "title.lineup",
+   "format": "webp",
+   "prompt": "prompts/keyart.title.md",
+   "ref": "refs/keyart.title.png"
+  },
+  {
+   "id": "logo.wordmark",
+   "kind": "logo",
+   "w": 2048,
+   "h": 768,
+   "alpha": true,
+   "subject": {},
+   "palette": [
+    "#FAF9F5",
+    "#D97757",
+    "#141413"
+   ],
+   "fallback": "logo.canvas",
+   "format": "webp",
+   "prompt": "prompts/logo.wordmark.md",
+   "ref": "refs/logo.wordmark.png"
+  },
+  {
+   "id": "icon.item.turbo_token",
+   "kind": "icon",
+   "w": 256,
+   "h": 256,
+   "alpha": true,
+   "subject": {
+    "itemId": "turbo_token"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#6A9BCC"
+   ],
+   "fallback": "ui.icons.items.turbo_token",
+   "format": "webp",
+   "prompt": "prompts/icon.item.turbo_token.md",
+   "ref": "refs/icon.item.turbo_token.png"
+  },
+  {
+   "id": "icon.item.attention_tether",
+   "kind": "icon",
+   "w": 256,
+   "h": 256,
+   "alpha": true,
+   "subject": {
+    "itemId": "attention_tether"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#6A9BCC"
+   ],
+   "fallback": "ui.icons.items.attention_tether",
+   "format": "webp",
+   "prompt": "prompts/icon.item.attention_tether.md",
+   "ref": "refs/icon.item.attention_tether.png"
+  },
+  {
+   "id": "icon.item.overclock_aura",
+   "kind": "icon",
+   "w": 256,
+   "h": 256,
+   "alpha": true,
+   "subject": {
+    "itemId": "overclock_aura"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#6A9BCC"
+   ],
+   "fallback": "ui.icons.items.overclock_aura",
+   "format": "webp",
+   "prompt": "prompts/icon.item.overclock_aura.md",
+   "ref": "refs/icon.item.overclock_aura.png"
+  },
+  {
+   "id": "icon.item.prompt_missile",
+   "kind": "icon",
+   "w": 256,
+   "h": 256,
+   "alpha": true,
+   "subject": {
+    "itemId": "prompt_missile"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#6A9BCC"
+   ],
+   "fallback": "ui.icons.items.prompt_missile",
+   "format": "webp",
+   "prompt": "prompts/icon.item.prompt_missile.md",
+   "ref": "refs/icon.item.prompt_missile.png"
+  },
+  {
+   "id": "icon.item.top1_missile",
+   "kind": "icon",
+   "w": 256,
+   "h": 256,
+   "alpha": true,
+   "subject": {
+    "itemId": "top1_missile"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#6A9BCC"
+   ],
+   "fallback": "ui.icons.items.top1_missile",
+   "format": "webp",
+   "prompt": "prompts/icon.item.top1_missile.md",
+   "ref": "refs/icon.item.top1_missile.png"
+  },
+  {
+   "id": "icon.item.token_bomb",
+   "kind": "icon",
+   "w": 256,
+   "h": 256,
+   "alpha": true,
+   "subject": {
+    "itemId": "token_bomb"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#6A9BCC"
+   ],
+   "fallback": "ui.icons.items.token_bomb",
+   "format": "webp",
+   "prompt": "prompts/icon.item.token_bomb.md",
+   "ref": "refs/icon.item.token_bomb.png"
+  },
+  {
+   "id": "icon.item.bug_report",
+   "kind": "icon",
+   "w": 256,
+   "h": 256,
+   "alpha": true,
+   "subject": {
+    "itemId": "bug_report"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#6A9BCC"
+   ],
+   "fallback": "ui.icons.items.bug_report",
+   "format": "webp",
+   "prompt": "prompts/icon.item.bug_report.md",
+   "ref": "refs/icon.item.bug_report.png"
+  },
+  {
+   "id": "icon.item.broadcast_bolt",
+   "kind": "icon",
+   "w": 256,
+   "h": 256,
+   "alpha": true,
+   "subject": {
+    "itemId": "broadcast_bolt"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#6A9BCC"
+   ],
+   "fallback": "ui.icons.items.broadcast_bolt",
+   "format": "webp",
+   "prompt": "prompts/icon.item.broadcast_bolt.md",
+   "ref": "refs/icon.item.broadcast_bolt.png"
+  },
+  {
+   "id": "icon.item.throttle_drone",
+   "kind": "icon",
+   "w": 256,
+   "h": 256,
+   "alpha": true,
+   "subject": {
+    "itemId": "throttle_drone"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#6A9BCC"
+   ],
+   "fallback": "ui.icons.items.throttle_drone",
+   "format": "webp",
+   "prompt": "prompts/icon.item.throttle_drone.md",
+   "ref": "refs/icon.item.throttle_drone.png"
+  },
+  {
+   "id": "icon.item.firewall",
+   "kind": "icon",
+   "w": 256,
+   "h": 256,
+   "alpha": true,
+   "subject": {
+    "itemId": "firewall"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#6A9BCC"
+   ],
+   "fallback": "ui.icons.items.firewall",
+   "format": "webp",
+   "prompt": "prompts/icon.item.firewall.md",
+   "ref": "refs/icon.item.firewall.png"
+  },
+  {
+   "id": "icon.item.glitch_puddle",
+   "kind": "icon",
+   "w": 256,
+   "h": 256,
+   "alpha": true,
+   "subject": {
+    "itemId": "glitch_puddle"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#6A9BCC"
+   ],
+   "fallback": "ui.icons.items.glitch_puddle",
+   "format": "webp",
+   "prompt": "prompts/icon.item.glitch_puddle.md",
+   "ref": "refs/icon.item.glitch_puddle.png"
+  },
+  {
+   "id": "icon.item.redaction_cloud",
+   "kind": "icon",
+   "w": 256,
+   "h": 256,
+   "alpha": true,
+   "subject": {
+    "itemId": "redaction_cloud"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#6A9BCC"
+   ],
+   "fallback": "ui.icons.items.redaction_cloud",
+   "format": "webp",
+   "prompt": "prompts/icon.item.redaction_cloud.md",
+   "ref": "refs/icon.item.redaction_cloud.png"
+  },
+  {
+   "id": "icon.item.mirror_mode",
+   "kind": "icon",
+   "w": 256,
+   "h": 256,
+   "alpha": true,
+   "subject": {
+    "itemId": "mirror_mode"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#6A9BCC"
+   ],
+   "fallback": "ui.icons.items.mirror_mode",
+   "format": "webp",
+   "prompt": "prompts/icon.item.mirror_mode.md",
+   "ref": "refs/icon.item.mirror_mode.png"
+  },
+  {
+   "id": "icon.item.context_shield",
+   "kind": "icon",
+   "w": 256,
+   "h": 256,
+   "alpha": true,
+   "subject": {
+    "itemId": "context_shield"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#6A9BCC"
+   ],
+   "fallback": "ui.icons.items.context_shield",
+   "format": "webp",
+   "prompt": "prompts/icon.item.context_shield.md",
+   "ref": "refs/icon.item.context_shield.png"
+  },
+  {
+   "id": "icon.item.interrupt_pulse",
+   "kind": "icon",
+   "w": 256,
+   "h": 256,
+   "alpha": true,
+   "subject": {
+    "itemId": "interrupt_pulse"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#6A9BCC"
+   ],
+   "fallback": "ui.icons.items.interrupt_pulse",
+   "format": "webp",
+   "prompt": "prompts/icon.item.interrupt_pulse.md",
+   "ref": "refs/icon.item.interrupt_pulse.png"
+  },
+  {
+   "id": "icon.item.alignment_halo",
+   "kind": "icon",
+   "w": 256,
+   "h": 256,
+   "alpha": true,
+   "subject": {
+    "itemId": "alignment_halo"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#6A9BCC"
+   ],
+   "fallback": "ui.icons.items.alignment_halo",
+   "format": "webp",
+   "prompt": "prompts/icon.item.alignment_halo.md",
+   "ref": "refs/icon.item.alignment_halo.png"
+  },
+  {
+   "id": "icon.item.interpretability_lens",
+   "kind": "icon",
+   "w": 256,
+   "h": 256,
+   "alpha": true,
+   "subject": {
+    "itemId": "interpretability_lens"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#6A9BCC"
+   ],
+   "fallback": "ui.icons.items.interpretability_lens",
+   "format": "webp",
+   "prompt": "prompts/icon.item.interpretability_lens.md",
+   "ref": "refs/icon.item.interpretability_lens.png"
+  },
+  {
+   "id": "icon.item.mutex_lock",
+   "kind": "icon",
+   "w": 256,
+   "h": 256,
+   "alpha": true,
+   "subject": {
+    "itemId": "mutex_lock"
+   },
+   "palette": [
+    "#D97757",
+    "#FAF9F5",
+    "#6A9BCC"
+   ],
+   "fallback": "ui.icons.items.mutex_lock",
+   "format": "webp",
+   "prompt": "prompts/icon.item.mutex_lock.md",
+   "ref": "refs/icon.item.mutex_lock.png"
+  },
+  {
+   "id": "ui.lobby_bg",
+   "kind": "ui",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {},
+   "palette": [
+    "#F5F4ED",
+    "#FAF9F5",
+    "#D97757"
+   ],
+   "fallback": "ui.lobby_bg",
+   "format": "webp",
+   "prompt": "prompts/ui.lobby_bg.md",
+   "ref": "refs/ui.lobby_bg.png"
+  },
+  {
+   "id": "ui.results_bg",
+   "kind": "ui",
+   "w": 1920,
+   "h": 1080,
+   "alpha": false,
+   "subject": {},
+   "palette": [
+    "#F5F4ED",
+    "#FAF9F5",
+    "#D97757"
+   ],
+   "fallback": "ui.results_bg",
+   "format": "webp",
+   "prompt": "prompts/ui.results_bg.md",
+   "ref": "refs/ui.results_bg.png"
+  },
+  {
+   "id": "ui.garage_backdrop",
+   "kind": "ui",
+   "w": 2048,
+   "h": 1024,
+   "alpha": false,
+   "subject": {},
+   "palette": [
+    "#F5F4ED",
+    "#FAF9F5",
+    "#D97757"
+   ],
+   "fallback": "ui.garage_backdrop",
+   "format": "webp",
+   "prompt": "prompts/ui.garage_backdrop.md",
+   "ref": "refs/ui.garage_backdrop.png"
+  },
+  {
+   "id": "ui.pattern_parchment",
+   "kind": "ui",
+   "w": 1024,
+   "h": 1024,
+   "alpha": false,
+   "subject": {},
+   "palette": [
+    "#F5F4ED",
+    "#FAF9F5",
+    "#D97757"
+   ],
+   "fallback": "ui.pattern_parchment",
+   "format": "webp",
+   "prompt": "prompts/ui.pattern_parchment.md",
+   "ref": "refs/ui.pattern_parchment.png"
+  }
+ ]
+}

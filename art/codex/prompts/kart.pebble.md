@@ -1,0 +1,25 @@
+---
+id: kart.pebble
+size: 1024x640
+alpha: true
+format: webp
+ref: ../refs/kart.pebble.png
+palette: [#D97757, #FAF9F5, #141413]
+---
+# kart.pebble
+
+Paste the **style guide** (`art/codex/style-guide.md`), then one of the prompts below, then the negative prompt. Attach `art/codex/refs/kart.pebble.png` as the reference image when it exists (`pnpm art:refs`).
+Export **1024 × 640** (or the same aspect ratio) with a transparent background, save as `apps/client/public/art/overrides/kart.pebble.webp`.
+
+## English
+Product render of the original toy kart "Pebble": an open tube-frame go-kart with a rounded pebble-shaped nose, chunky tyres and a single exhaust. Three-quarter front view from slightly above, default livery in terracotta #D97757 and cream #FAF9F5 with dark #141413 trim, chunky rounded toy proportions, glossy candy paint, soft studio lighting with a gentle rim light, empty driver seat, transparent background. No text, no numbers, no logos.
+
+## 한국어
+독창적인 장난감 카트 "페블"의 제품 렌더: 둥근 조약돌 모양 노즈와 두툼한 타이어, 배기구 하나를 단 오픈 튜브 프레임 고카트. 약간 위에서 본 앞쪽 3/4 각도, 테라코타 #D97757와 크림 #FAF9F5에 어두운 #141413 장식의 기본 도색, 두툼하고 둥근 장난감 비율, 광택 캔디 페인트, 은은한 림 라이트의 부드러운 스튜디오 조명, 빈 운전석, 투명 배경. 글자·숫자·로고 없음.
+
+## Negative prompt
+text, watermark, logo, signature, letters, KartRider, Nexon, Dao, Bazzi, Anthropic logo, Claude logo, starburst logo, realistic human, photo, blurry, low quality, extra limbs, mouth, teeth
+
+## Notes
+- Garage kart list and detail; silhouette must be distinct from the other 7 karts.
+- Palette to stay close to: #D97757 #FAF9F5 #141413
