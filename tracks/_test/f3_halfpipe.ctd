@@ -1,0 +1,27 @@
+# F3 fixture (L4): hp60 halfpipe straight (walls up to 60° are ground), a custom gutter profile on a corner,
+# and an annulus plaza (AREA) around a tower obstacle with its guide arc. Circuit, D2.
+TRACK f3_halfpipe name="F3 Profile Fixture" theme=frostbyte_glacier diff=2 laps=3 topo=circuit
+DEFAULTS w=16 surf=asphalt wall=barrier:1.0 shoulders=1:snow blend=15
+PROFILE gutter custom pts=[-9:1.6,-8:0.9,-7:0.3,-6:0,6:0,7:0.3,8:0.9,9:1.6]
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=6 stagger=3 d=4
+S ?a                                           @home
+C R40 90 L                                     @t1
+S 40
+S 120 prof=hp60 surf=ice wall=barrier:1.0      @pipe
+S 60 surf=asphalt
+C R40 90 L prof=gutter                         @gutter
+S 180                                          @westRun
+C R24 90 R w=18                                @veerIn
+C R33 270 L w=30 area=piazza                   @plaza
+C R24 90 R w=16                                @veerOut
+S ?b                                           @back
+C R40 90 L                                     @t4
+CLOSE solve=[?a,?b] length=1300
+LINE start at=@home+40
+AREA piazza annulus rIn=18 rOut=48 surf=stone wallIn=curb:0.4 wallOut=planter:0.8 tower=cyl(r=14,h=30)
+
+PAD at=@home+60,@home+110 d=0 len=6 w=4
+ITEMS at=@home+200,@pipe+60,@westRun+90,@plaza+70(n=6,span=20),@back+80 n=5
+PROPS kind=igloo along=main side=both every=40 offset=6
+THEME scatter=pine,snowman density=3 hills=4 sky=overcast

@@ -423,9 +423,7 @@ function v15(r: BuildResult, push: Push): void {
 
 // ------------------------------------------------------------------------------------------------ V16 areas
 function v16(r: BuildResult, push: Push): void {
-  const a = (r as BuildResult & { areas?: { id: string; ok: boolean; guideInside: boolean; dy: number }[] }).areas;
-  if (!a) return;
-  for (const q of a) {
+  for (const q of r.areaReports) {
     if (!q.ok) push('V16', `AREA ${q.id} does not triangulate`);
     if (!q.guideInside) push('V16', `AREA ${q.id}: its guide path leaves the area`);
     if (Math.abs(q.dy) > 0.3) push('V16', `AREA ${q.id}: guide path height differs from the area by ${q.dy.toFixed(2)} m`);

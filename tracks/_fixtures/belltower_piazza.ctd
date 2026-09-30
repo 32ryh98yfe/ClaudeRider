@@ -1,0 +1,31 @@
+# gap-3 §7 Example A, verbatim (docs/research/10-gap-3-…md). Compiler regression fixture, not the roster track:
+# the roster belltower_piazza lives in tracks/clayhill_village/ (lane L5). Must compile with closure < 0.01 m.
+TRACK belltower_piazza name="Belltower Piazza" theme=village diff=2 laps=3 topo=circuit
+DEFAULTS w=18 prof=flat surf=cobble wall=barrier:1.0 blend=15
+START pos=(0,0,0) hdg=0          GRID rows=4 cols=2 pitch=6 stagger=3 d=4
+S 80 w=20                         @home            # s 0–80
+C R45 90 L bank=6                 @t1              # 80–150.7
+S 30 dy=+2                                          # 150.7–180.7
+C R40 45 R w=16 bank=-3 ; C R40 45 L bank=3         # canal kink 180.7–243.5
+S 40 dy=+2 w=14 wall=parapet:1.0  @bridge          # 243.5–283.5
+C R22 90 R w=18 bank=-4           @veerIn          # 283.5–318.1
+C R27 270 L w=30 area=piazza      @plazaIn         # 318.1–445.3 (guide arc)
+C R22 90 R w=18 bank=-4           @plazaOut        # 445.3–479.9
+S 40 dy=-2 w=16 ; C R55 60 R bank=-3 ; C R55 60 L bank=3            # 479.9–635.1
+S ?a=128.94 dy=-2 shoulders=1.5:grass @marketSt    # 635.1–764.0
+C R70 35 L ; C R70 35 R ; S 20                      # 764.0–869.5
+C R26 150 L w=16 bank=8           @hairpin         # 869.5–937.6
+C R36 60 R bank=-4 ; S ?b=14.54 w=14                # 937.6–989.8
+C R28 50 R w=14 bank=-3 ; C R28 50 L bank=3 @chicane # 989.8–1038.7
+S 25                                                # alley split at 1040.0
+C R42 90 L w=18 bank=5 ; S 40                       # merge at 1153.4
+C R90 30 R w=20 ; C R90 30 L ; S ?c=86.08           # 1169.7–1350
+CLOSE solve=[?a,?b,?c] length=1350
+AREA piazza annulus c=(170.4,4,-220.6) rIn=12 rOut=42 from=270 sweep=270 surf=stone
+     wallIn=curb:0.4 wallOut=planter:0.8 tower=cyl(r=10,h=38)     # SW wedge = building
+BRANCH alley from=1040.0 to=1153.4 kind=shortcut aiMin=0.45 w=8 wall=building:4 {
+  C R25 45 L ; S 57.56 surf=gravel@20+30 bump=48:0.5x6 ; C R25 45 L }
+ITEMS at=165,335(n=6,span=26),505,690,860,1185 n=5
+PAD at=400 d=+10 len=6 w=4   # outer plaza line balances the shorter inner line
+PAD at=1290 d=0 len=6 w=4
+KEYS 0,243.5,445.3,764,975.3,1263.9

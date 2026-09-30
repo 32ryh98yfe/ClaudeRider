@@ -10,12 +10,14 @@ import { TriSoup, VS, type WallQuad } from './soup.ts';
 import { ROLE } from './mesh.ts';
 
 export type Ring = [number, number][];
-export interface Footprint { rings: Ring[]; bbox: [number, number, number, number] } // outer rings (no holes)
+/** A plan footprint: polygons, each an outer ring plus optional hole rings (rings closed, first == last). */
+export interface Footprint { polys: Ring[][]; bbox: [number, number, number, number] }
 
-export function footprint(rings: Ring[]): Footprint {
+export function footprint(rings: Ring[], holes: Ring[] = []): Footprint { return footprintPolys([[...rings.slice(0, 1), ...holes], ...rings.slice(1).map((r) => [r])]); }
+export function footprintPolys(polys: Ring[][]): Footprint {
   let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
-  for (const r of rings) for (const [x, z] of r) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (z < z0) z0 = z; if (z > z1) z1 = z; }
-  return { rings, bbox: [x0, z0, x1, z1] };
+  for (const poly of polys) for (const [x, z] of poly[0]!) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (z < z0) z0 = z; if (z > z1) z1 = z; }
+  return { polys, bbox: [x0, z0, x1, z1] };
 }
 
 /** Plan footprint of a path between s0 and s1: 'road' (±w/2) or 'full' (road + shoulders). */
@@ -46,9 +48,10 @@ function pointInRing(x: number, z: number, r: Ring): boolean {
 }
 export function inFootprint(x: number, z: number, f: Footprint): boolean {
   if (x < f.bbox[0] || x > f.bbox[2] || z < f.bbox[1] || z > f.bbox[3]) return false;
-  for (const r of f.rings) if (pointInRing(x, z, r)) return true;
+  for (const poly of f.polys) if (pointInRing(x, z, poly[0]!) && !poly.slice(1).some((h) => pointInRing(x, z, h))) return true;
   return false;
 }
+const allRings = (f: Footprint): Ring[] => f.polys.flat();
 
 function segCross(ax: number, az: number, bx: number, bz: number, cx: number, cz: number, dx: number, dz: number): number {
   // returns t along a→b of the intersection with c→d, or −1
@@ -60,7 +63,7 @@ function segCross(ax: number, az: number, bx: number, bz: number, cx: number, cz
 }
 
 function triCrosses(P: number[][], f: Footprint): boolean {
-  for (const r of f.rings) for (let i = 0; i + 1 < r.length; i++) {
+  for (const r of allRings(f)) for (let i = 0; i + 1 < r.length; i++) {
     const c = r[i]!, d = r[i + 1]!;
     for (let e = 0; e < 3; e++) {
       const a = P[e]!, b = P[(e + 1) % 3]!;
@@ -74,7 +77,7 @@ function triCrosses(P: number[][], f: Footprint): boolean {
 export function subtractFromSoup(soup: TriSoup, pick: (t: number) => boolean, f: Footprint): number {
   let touched = 0;
   const out = new TriSoup();
-  const clipGeom = f.rings.map((r) => [r] as [number, number][][]);
+  const clipGeom = f.polys as [number, number][][][];
   for (let t = 0; t < soup.count; t++) {
     const P = [soup.vert(t, 0), soup.vert(t, 1), soup.vert(t, 2)];
     const keepAll = (): void => out.push(P[0]!, P[1]!, P[2]!, soup.surf[t]!, soup.flg[t]!, soup.path[t]!, soup.role[t]!);
@@ -86,7 +89,7 @@ export function subtractFromSoup(soup: TriSoup, pick: (t: number) => boolean, f:
     const crosses = triCrosses(P, f);
     if (!crosses && ins.every((x) => !x)) {
       // the footprint may still sit entirely inside a big triangle: test one footprint vertex
-      const r0 = f.rings[0]![0]!;
+      const r0 = f.polys[0]![0]![0]!;
       if (!pointInTri(r0[0], r0[1], P)) { keepAll(); continue; }
     }
     if (!crosses && ins.every((x) => x)) { touched++; continue; } // fully covered → drop
@@ -151,7 +154,7 @@ export function subtractFromWalls(walls: WallQuad[], pick: (w: WallQuad) => bool
     const x0 = Math.min(ax, bx), x1 = Math.max(ax, bx), z0 = Math.min(az, bz), z1 = Math.max(az, bz);
     if (x1 < f.bbox[0] || x0 > f.bbox[2] || z1 < f.bbox[1] || z0 > f.bbox[3]) { out.push(w); continue; }
     const ts = [0, 1];
-    for (const r of f.rings) for (let i = 0; i + 1 < r.length; i++) {
+    for (const r of allRings(f)) for (let i = 0; i + 1 < r.length; i++) {
       const t = segCross(ax, az, bx, bz, r[i]![0], r[i]![1], r[i + 1]![0], r[i + 1]![1]);
       if (t >= 0) ts.push(t);
     }
