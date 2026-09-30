@@ -29,9 +29,15 @@ export function place(rig: Rig, slot: number, p: Place): KartState {
   const v = p.speed ?? 0;
   b.vx = b.fx * v; b.vy = b.fy * v; b.vz = b.fz * v;
   b.yawRate = 0; b.grounded = h > 0.05 ? 0 : 1; b.coyote = b.grounded ? 7 : 0; b.airTicks = b.grounded ? 0 : 1; b.wallContact = 0;
+  // the surface under the kart, as the first ground contact would report it
+  const hit = { t: 0, x: 0, y: 0, z: 0, nx: 0, ny: 1, nz: 0, surf: 0, tri: 0, flags: 0 };
+  if (T.groundRay(b.px + b.nx, b.py + b.ny, b.pz + b.nz, -b.nx, -b.ny, -b.nz, 2 + h, hit)) b.surf = hit.surf;
   T.locateGlobal(b.px, b.py, b.pz, k.race.loc);
   Object.assign(k.race.lastValid, k.race.loc);
   k.race.raceDist = k.race.loc.sMain;
+  const r = k.race;
+  r.noGroundTicks = 0; r.offGraphTicks = 0; r.wrongWayTicks = 0; r.respawnPhase = 0; r.respawnUntil = 0;
+  b.attachKind = 0; b.attachId = 0; b.attachS = 0; b.attachT = 0;
   if (k.race.lap < 0 && k.race.loc.sMain > 0 && T.topology === 'p2p') k.race.lap = 0;
   return k;
 }
@@ -49,3 +55,21 @@ export function drive(rig: Rig, n: number, fn: (w: WorldState, inp: InputFrame[]
 
 /** Integer steer for a sim-convention (+ = left) steer value in [−1, 1]. */
 export const steerLeft = (s: number): number => Math.round(-Math.max(-1, Math.min(1, s)) * 127);
+
+/**
+ * Pure pursuit in the kart's own tangent plane (works upside down in loops and on walls): aims at the point
+ * `L` m ahead on (path, s) at lateral offset `u`; returns a sim-convention steer (+ = left).
+ */
+export function pursue3d(T: BakedTrack, k: KartState, L: number, u = 0, path = k.race.loc.path): number {
+  const f = FS(), b = k.body;
+  T.frameAt(path, k.race.loc.s + L, f);
+  const dx = f.px + f.rx * u - b.px, dy = f.py + f.ry * u - b.py, dz = f.pz + f.rz * u - b.pz;
+  const lx = b.ny * b.fz - b.nz * b.fy, ly = b.nz * b.fx - b.nx * b.fz, lz = b.nx * b.fy - b.ny * b.fx;
+  const fwd = dx * b.fx + dy * b.fy + dz * b.fz, lat = dx * lx + dy * ly + dz * lz;
+  const dist = Math.max(1, Math.hypot(fwd, lat));
+  const kappa = (2 * Math.sin(Math.atan2(lat, fwd))) / dist;
+  const v = Math.max(1, Math.hypot(b.vx, b.vy, b.vz));
+  // grip yaw gain of the Balance kart: 1.55·v/(v+4)/(1+(v/33.5)²)
+  const g = (1.55 * v) / (v + 4) / (1 + (v / 33.5) * (v / 33.5));
+  return Math.max(-1, Math.min(1, (kappa * v) / g));
+}

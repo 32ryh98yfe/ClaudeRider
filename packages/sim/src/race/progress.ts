@@ -63,8 +63,8 @@ export function updateProgress(w: WorldState, k: KartState, ctx: StepContext): v
 
   const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
   const exemptPrev = inJumpSpan(T, r.loc);
-  let ok = T.locate(b.px, b.py, b.pz, r.loc, loc);
-  if (!ok && (r.offGraphTicks >= GLOBAL_SEARCH_AFTER || exemptPrev)) ok = T.locateGlobal(b.px, b.py, b.pz, loc);
+  let ok = T.locate(b.px, b.py, b.pz, r.loc, loc) && onSample(T, k, loc);
+  if (!ok && (r.offGraphTicks >= GLOBAL_SEARCH_AFTER || exemptPrev)) ok = T.locateGlobal(b.px, b.py, b.pz, loc) && onSample(T, k, loc);
   let accepted = false;
   if (ok) {
     let dS = loc.sMain - prevS;
@@ -75,7 +75,7 @@ export function updateProgress(w: WorldState, k: KartState, ctx: StepContext): v
   if (accepted) {
     const newS = loc.sMain;
     copyLoc(r.loc, loc);
-    if (b.grounded && loc.path === 0 && !kill && !inJumpSpan(T, loc)) copyLoc(r.lastValid, loc);
+    if (b.grounded && loc.path === 0 && !kill && respawnSafe(T, loc)) copyLoc(r.lastValid, loc);
     r.offGraphTicks = 0;
     advanceLaps(w, k, ctx, prevS, newS, L);
     const info = trackInfo(T);
@@ -105,9 +105,30 @@ export function updateProgress(w: WorldState, k: KartState, ctx: StepContext): v
     r.wrongWayTicks = 0;
   }
 
-  if (kill || b.py < T.killY || (T.zones.length > 0 && inKillZone(k, T)) || r.noGroundTicks >= NO_GROUND_RESPAWN || r.offGraphTicks >= OFF_GRAPH_RESPAWN || r.wrongWayTicks >= WRONG_WAY_RESPAWN) {
-    startRespawn(w, k, ctx);
+  // finished karts cruise on past the line (and off the end of point-to-point tracks): only kills respawn them
+  const lost = r.finishTick < 0 && (r.noGroundTicks >= NO_GROUND_RESPAWN || r.offGraphTicks >= OFF_GRAPH_RESPAWN || r.wrongWayTicks >= WRONG_WAY_RESPAWN);
+  if (kill || b.py < T.killY || (T.zones.length > 0 && inKillZone(k, T)) || lost) startRespawn(w, k, ctx);
+}
+
+/**
+ * Rejects a location whose sample lies more than 2 m along the tangent from the kart. The graph search clamps its
+ * projection to segment ends, so a kart flying over a gap could otherwise be "located" far behind itself.
+ */
+function onSample(T: BakedTrack, k: Readonly<KartState>, loc: Readonly<TrackLoc>): boolean {
+  T.frameAt(loc.path, loc.s, FR);
+  const b = k.body;
+  const along = (b.px - FR.px) * FR.tx + (b.py - FR.py) * FR.ty + (b.pz - FR.pz) * FR.tz;
+  return along <= 2 && along >= -2;
+}
+
+/** Respawn anchors stay out of declared jumps and their 60 m run-up, so a respawned kart can reach take-off speed. */
+function respawnSafe(T: BakedTrack, loc: Readonly<TrackLoc>): boolean {
+  const J = T.jumps;
+  for (let i = 0; i < J.length; i++) {
+    const j = J[i]!;
+    if (j.path === loc.path && loc.s >= j.lipS - 60 && loc.s <= j.landS1 + 10) return false;
   }
+  return true;
 }
 
 export function advanceLaps(w: WorldState, k: KartState, ctx: StepContext, prevS: number, newS: number, L: number): void {

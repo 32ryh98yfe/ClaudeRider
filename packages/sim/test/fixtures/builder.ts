@@ -42,7 +42,7 @@ export type Seg = { len: number } | { r: number; deg: number; dir: 'L' | 'R' };
  * Planar turtle path (heading ψ in degrees CCW from +x; north = −z, as in trackc) sampled every `ds` metres.
  * `y(s)` and `bank(s)` add elevation and bank; frames are worldUp.
  */
-export function turtle(segs: readonly Seg[], o: { x?: number; z?: number; hdg?: number; ds?: number; y?: (s: number) => number; bank?: (s: number) => number } = {}): Frame[] {
+export function turtle(segs: readonly Seg[], o: { x?: number; z?: number; hdg?: number; ds?: number; y?: (s: number) => number; slope?: (s: number) => number; bank?: (s: number) => number } = {}): Frame[] {
   const ds = o.ds ?? 1;
   const yOf = o.y ?? ((): number => 0);
   const bankOf = o.bank ?? ((): number => 0);
@@ -69,7 +69,8 @@ export function turtle(segs: readonly Seg[], o: { x?: number; z?: number; hdg?: 
     const pr = prims[pi]!;
     const pt = primPoint(pr, Math.min(Math.max(s - pr.s0, 0), pr.len));
     const h = (pt.psi * Math.PI) / 180;
-    const dy = (yOf(s + 0.01) - yOf(s - 0.01)) / 0.02;
+    // an explicit slope keeps one-sided tangents at kinks (a jump lip must carry the ramp's normal)
+    const dy = o.slope ? o.slope(s) : (yOf(s + 0.01) - yOf(s - 0.01)) / 0.02;
     out.push(worldUpFrame({ x: pt.x, y: yOf(s), z: pt.z }, { x: Math.cos(h), y: dy, z: -Math.sin(h) }, bankOf(s)));
   }
   return out;
@@ -85,8 +86,34 @@ function primPoint(pr: { x: number; z: number; psi: number; curv: number }, l: n
   return { x: cx + sg * r * Math.sin(p2 * D), z: cz + sg * r * Math.cos(p2 * D), psi: p2 };
 }
 
-/** Rotation-minimizing frames along a polyline (double reflection, Wang et al. 2008); `up0` seeds the first frame. */
-export function rmfFrames(pts: readonly V3[], up0: V3 = { x: 0, y: 1, z: 0 }): Frame[] {
+/**
+ * Rotation-minimizing frames along a polyline (double reflection, Wang et al. 2008); `up0` seeds the first frame.
+ * With `span = [i0, i1]` the residual twist at i1 relative to the worldUp frame there is distributed over the span
+ * as φ·smoothstep(arc fraction) (11-track-spec §4), and frames after i1 continue from the corrected one.
+ */
+export function rmfFrames(pts: readonly V3[], up0: V3 = { x: 0, y: 1, z: 0 }, span?: readonly [number, number]): Frame[] {
+  const F = rmfRaw(pts, up0);
+  if (!span) return F;
+  const [i0, i1] = span;
+  const e = F[i1]!, T = { x: e.tx, y: e.ty, z: e.tz };
+  const Rw = norm(-T.z, 0, T.x);
+  const r = { x: e.rx, y: e.ry, z: e.rz };
+  const phi = Math.atan2(dot(cross(r, Rw), T), dot(r, Rw));
+  const S = [0];
+  for (let i = 1; i < F.length; i++) S.push(S[i - 1]! + Math.hypot(F[i]!.x - F[i - 1]!.x, F[i]!.y - F[i - 1]!.y, F[i]!.z - F[i - 1]!.z));
+  for (let i = i0; i < F.length; i++) {
+    const x = i >= i1 ? 1 : (S[i]! - S[i0]!) / (S[i1]! - S[i0]!);
+    const a = phi * x * x * (3 - 2 * x);
+    const f = F[i]!, t = { x: f.tx, y: f.ty, z: f.tz }, ri = { x: f.rx, y: f.ry, z: f.rz };
+    const txr = cross(t, ri), c = Math.cos(a), s = Math.sin(a);
+    const rr = norm(ri.x * c + txr.x * s, ri.y * c + txr.y * s, ri.z * c + txr.z * s);
+    const u = cross(rr, t);
+    f.rx = rr.x; f.ry = rr.y; f.rz = rr.z; f.ux = u.x; f.uy = u.y; f.uz = u.z;
+  }
+  return F;
+}
+
+function rmfRaw(pts: readonly V3[], up0: V3): Frame[] {
   const n = pts.length;
   const tan: V3[] = pts.map((_, i) => { const a = pts[Math.max(0, i - 1)]!, b = pts[Math.min(n - 1, i + 1)]!; const d = sub(b, a); return norm(d.x, d.y, d.z); });
   // right = t × up (so that up = right × t, matching worldUp frames)
@@ -202,7 +229,8 @@ export interface FixtureSpec {
   refLapTicks?: number;
 }
 
-function arcLen(F: readonly Frame[]): number[] {
+/** Arc length of every frame along the polyline (the path's `s` column). */
+export function arcLen(F: readonly Frame[]): number[] {
   const s = [0];
   for (let i = 1; i < F.length; i++) s.push(s[i - 1]! + Math.hypot(F[i]!.x - F[i - 1]!.x, F[i]!.y - F[i - 1]!.y, F[i]!.z - F[i - 1]!.z));
   return s;

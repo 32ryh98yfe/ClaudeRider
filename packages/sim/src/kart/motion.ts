@@ -108,6 +108,7 @@ function land(w: WorldState, k: KartState, P: KartParams, ctx: StepContext, vnh:
   if (imp >= 2 || b.airTicks > 10) ctx.events.push({ t: 'land', kart: k.slot, impact: imp, tick: w.tick, key: evKey(w.tick, 21, k.slot) });
   bounceV = imp > P.landSpeed ? Math.min(1.5, 0.08 * (imp - P.landSpeed)) : 0;
   bnx = nx; bny = ny; bnz = nz;
+  b.airTicks = 0; // the rebound hop is a new (short) air phase
 }
 // rebound requested by land(), applied after the wall pass of the same half-step (never carried across ticks)
 let bounceV = 0, bnx = 0, bny = 1, bnz = 0;
@@ -149,10 +150,21 @@ function walls(w: WorldState, k: KartState, P: KartParams, ctx: StepContext, ms:
   }
   for (let i = 0; i < S.length; i++) {
     const c = S[i]!;
-    b.px += c.nx * c.depth; b.py += c.ny * c.depth; b.pz += c.nz * c.depth;
+    // Re-evaluate against the centre moved by earlier (deeper) contacts. A sphere on a flat wall also touches the
+    // edges and corners of the neighbouring coplanar triangles; once the face contact has pushed it out those are
+    // no longer penetrating, and pushing along their slanted normals would shove the kart sideways or down.
+    let nx = c.nx, ny = c.ny, nz = c.nz, depth = c.depth;
+    if (i > 0) {
+      const ex = b.px + b.nx * KART_CY - c.x, ey = b.py + b.ny * KART_CY - c.y, ez = b.pz + b.nz * KART_CY - c.z;
+      const d = Math.sqrt(ex * ex + ey * ey + ez * ez);
+      if (d >= KART_R) continue;
+      depth = KART_R - d;
+      if (d > 1e-9) { nx = ex / d; ny = ey / d; nz = ez / d; }
+    }
+    b.px += nx * depth; b.py += ny * depth; b.pz += nz * depth;
     // wall normal in the kart's tangent plane; floor/ceiling-like contacts only fix the position
-    const dn = c.nx * b.nx + c.ny * b.ny + c.nz * b.nz;
-    let hx = c.nx - dn * b.nx, hy = c.ny - dn * b.ny, hz = c.nz - dn * b.nz;
+    const dn = nx * b.nx + ny * b.ny + nz * b.nz;
+    let hx = nx - dn * b.nx, hy = ny - dn * b.ny, hz = nz - dn * b.nz;
     const hl = Math.sqrt(hx * hx + hy * hy + hz * hz);
     if (hl < 0.3) continue;
     hx /= hl; hy /= hl; hz /= hl;
