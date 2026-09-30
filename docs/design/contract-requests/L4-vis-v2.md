@@ -75,4 +75,26 @@ triangles with steep normals.
 - Telegraph cue (≥ 0.6 s): geyser steam and ground glow, press shake, crossing bells and lights.
 - Traffic vehicles of one HAZ line share `group` (one car model, varied by id).
 
-Later ladder steps append to this file (portals, rails, LOD1, PVS).
+## 9. LOD1, PVS, baked AO (CLI bakes)
+- **LOD1.**
+  - Each slot's `s{j}.idx1` (Uint32) is an index-only LOD over the same vertex buffer, and `slots[j].lod1` gives one
+    `{ i0, n, chunk }` range per LOD0 chunk range.
+  - It is at most 40% of the LOD0 triangles (0.30–0.37 on real tracks). Kerbs, the start line, boost pads and portals
+    have `n = 0` (not drawn at LOD1).
+  - Vertices on chunk seams are kept, so a LOD1 chunk meets a LOD0 neighbour without a crack.
+  - Suggested switch: beyond 150 m (V20 counts it that way).
+- **PVS.**
+  - `visMeta.pvsStep = 10` and `pvsBytes`. The `pvs` Uint8 array holds one bitset per `pvsStep` metres of sMain;
+    bit k is chunk id k. `TrackVis.visibleChunks(sMain, out)` decodes it.
+  - It is omnidirectional (look-back works) and conservative, with no frustum test. A chunk counts as visible when:
+    - it is within 120 m of the chase camera (5 m back, 2.5 m up, on every path covering that progress), or
+    - it is within 1000 m and one of its bbox test points is unblocked by terrain, road or walls.
+  - Readers without PVS draw everything, as before.
+- **Terrain tiles** are now 24 × 24 cells (≈ 190 m). One draw each; terrain is not merged.
+- **Baked AO.** The CLI multiplies vertex AO into `s{j}.col` (12 rays, 16 m). The renderer needs nothing new, though
+  it may lower its own SSAO strength where the bake already darkens.
+- **V20 worst visible static set, Low tier.** Per 10 m sample, V20 counts the chunks that are both in the PVS and in a
+  120° forward cone within 600 m. Draws are per slot, as runs of 3 contiguous chunks (TrackView's `mergeChunks`);
+  terrain is one draw per tile. Triangles are LOD0 within 150 m and LOD1 beyond. The finding lists the heaviest slots.
+
+Later ladder steps append to this file.
