@@ -9,7 +9,7 @@
 @fallback helix -> "2 × C R16 170° switchback hairpins with the same −24 m drop" when=F6
 @fallback stacked -> "switchback hairpins stay on one level (no overlap)" when=F6
 TRACK aurora_summit name="Aurora Summit" theme=frostbyte_glacier diff=5 laps=1 topo=p2p finishBefore=182
-DEFAULTS w=12 surf=asphalt wall=barrier:1.1 shoulder=0.5 shoulderSurf=snow blend=20
+DEFAULTS w=12 surf=asphalt wall=barrier:1.1 shoulder=0 shoulderSurf=snow blend=20   # no shoulder strip: one draw per visible chunk run fewer (V20, Low tier)
 START pos=(0,0,0) hdg=0
 GRID rows=4 cols=2 pitch=7 stagger=3.5 d=3
 S 46 w=13                                 @grid          # grid lead-in behind the start gate
@@ -49,8 +49,8 @@ S 20 wall=barrier:1.1                     @slalom_link
 WIGGLE R22 35/75/40 R dy=-2 bank=7        @pine_slalom_2 # (V19)
 S 54 dy=-4                                @lower_valley
 C R16 135 R bank=-7 w=14                  @ice_bridge    # (V19)
-S 65 w=12 surf=ice shoulder=1.5 shoulderSurf=ice @frozen_lake # frozen-lake straight
-C R120 75 R dy=-2 surf=asphalt shoulder=0.5 shoulderSurf=snow @lake_sweeper
+S 65 w=15 surf=ice shoulder=0 @frozen_lake # frozen-lake straight
+C R120 75 R dy=-2 surf=asphalt shoulder=0 shoulderSurf=snow @lake_sweeper
 WIGGLE R60 40/60/30 L dy=-2               @lake_shore_s
 WIGGLE R30 40/70/40 R dy=-2 bank=4        @aurora_s
 S 20 w=13                                 @lodge_brake
