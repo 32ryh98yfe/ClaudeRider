@@ -11,12 +11,13 @@ import { buildModel, sampleAt, type PathModel, type Sample, type TrackModel } fr
 import { resolveContent, zoneFlags, inS, type Content } from './content.ts';
 import { DEFAULT_MESH, buildRibbon, wallTriangles, type MeshOptions } from './mesh.ts';
 import { TriSoup, weld, type WallQuad } from './soup.ts';
-import { clipJunctions, findJunctions, type Junction } from './clip.ts';
+import { clipJunctions, findJunctions, inFootprint, type Junction } from './clip.ts';
 import { RenderBuilder, groundToRender, startLineToRender, undersideToRender, wallsToRender, type RenderSlot, type ChunkInfo } from './render.ts';
 import { buildTerrainField, terrainToRender, type TerrainField } from './terrain.ts';
 import { GroundIndex, exclusions, placeProps, type PropSet } from './props.ts';
 import { bakeAi } from './aibake.ts';
 import { buildFeatures, jumpFacesToRender, killPlanesToRender } from './features.ts';
+import { areaFootprint, buildAreas, resolveAreas, type AreaReport, type AreaModel } from './area.ts';
 import { validate, type Finding } from './validate.ts';
 import { previewSvg } from './preview.ts';
 
@@ -36,6 +37,7 @@ export interface VisMeta {
   chunks?: (ChunkInfo & { groups: { slot: number; i0: number; n: number }[]; tris: number })[];
   junctions?: { kind: string; gore: { x: number; y: number; z: number; fx: number; fy: number; fz: number } | null }[];
   killPlanes?: { id: string; y: number; surf: string; aabb: number[] }[];
+  areas?: { id: string; kind: string; y: number; surf: number; center: [number, number] | null; rIn: number; rOut: number; from: number; sweep: number; obstacles: unknown[] }[];
   minimapPaths?: { id: string; kind: string; array: string }[];
   materials?: string[];
 }
@@ -58,6 +60,7 @@ export interface BuildResult {
   slots: RenderSlot[];
   /** @deprecated M1 name: the main path's geometry summary */
   geometry: { closed: boolean; length: number; samples: Sample[]; closure: TrackModel['closure']; prims: PathModel['prims'] };
+  areas: AreaModel[]; areaReports: AreaReport[];
   timings: Record<string, number>;
 }
 
@@ -113,7 +116,7 @@ function pathArrays(p: PathModel, k: number, m: TrackModel): [string, TypedArray
     smp[o + SMP.TX] = s.tx; smp[o + SMP.TY] = s.ty; smp[o + SMP.TZ] = s.tz;
     smp[o + SMP.RX] = s.rx; smp[o + SMP.RY] = s.ry; smp[o + SMP.RZ] = s.rz;
     smp[o + SMP.UX] = s.ux; smp[o + SMP.UY] = s.uy; smp[o + SMP.UZ] = s.uz;
-    smp[o + SMP.S] = s.s; smp[o + SMP.WL] = s.w / 2 + s.shL; smp[o + SMP.WR] = s.w / 2 + s.shR;
+    smp[o + SMP.S] = s.s; smp[o + SMP.WL] = s.reachL ?? s.w / 2 + s.shL; smp[o + SMP.WR] = s.reachR ?? s.w / 2 + s.shR;
     smp[o + SMP.SMAIN] = s.sMain;
     flg[i] = s.flags;
     if (s.grav !== 1) anyGrav = true;
@@ -194,6 +197,9 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     for (const s of h.samples) if (inS(m, h.index, s.s, j.hostS0, j.hostS1)) s.flags |= SFLAG.BLEND;
     for (const s of b.samples) if (s.s >= j.branchS0 && s.s <= j.branchS1) s.flags |= SFLAG.BLEND;
   }
+  const areas = resolveAreas(m);
+  const ar = buildAreas(m, areas, ground, kerbs, walls);
+  walls = ar.walls;
   const feat = buildFeatures(m, c, rows, ground, walls);
   const wallSoup = new TriSoup();
   wallTriangles(walls, wallSoup);
@@ -279,7 +285,12 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   const amp = Number(c.theme.hills ?? 6);
   const nf = (x: number, z: number): number => noise(x / 180, z / 180) * 0.7 + noise(x / 60, z / 60) * 0.3;
   const wantTerrain = opts.terrain !== false && c.theme.terrain !== 'none';
-  const tf: TerrainField | null = wantTerrain ? buildTerrainField(m, c, meta.bounds, nf, amp) : null;
+  const areaPts: { x: number; z: number; y: number }[] = [];
+  for (const a of areas) {
+    const [x0, z0, x1, z1] = [Math.min(...a.outer.map((q) => q[0])), Math.min(...a.outer.map((q) => q[1])), Math.max(...a.outer.map((q) => q[0])), Math.max(...a.outer.map((q) => q[1]))];
+    for (let x = x0; x <= x1; x += 4) for (let z = z0; z <= z1; z += 4) if (inFootprint(x, z, areaFootprint(a))) areaPts.push({ x, z, y: a.y });
+  }
+  const tf: TerrainField | null = wantTerrain ? buildTerrainField(m, c, meta.bounds, nf, amp, areaPts) : null;
   const ao = (): number => 1;
   const rb = new RenderBuilder();
   groundToRender(rb, m, c, ground, kerbs, ao);
@@ -310,6 +321,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     chunks: chunkGroups.filter((g) => g.groups.length),
     junctions: junctions.map((j) => ({ kind: j.kind, gore: j.gore })),
     minimapPaths: m.paths.filter((p) => p.kind !== 'main').map((p) => ({ id: p.id, kind: p.kind, array: `minimap.${p.id}` })),
+    areas: areas.map((a) => ({ id: a.id, kind: a.kind, y: a.y, surf: a.surf, center: a.center, rIn: a.rIn, rOut: a.rOut, from: a.from, sweep: a.sweep, obstacles: a.obstacles })),
     killPlanes: c.killPlanes.map((k) => ({ id: k.id, y: k.y, surf: k.surf, aabb: k.aabb ?? [meta.bounds[0]! - 120, meta.bounds[2]! - 120, meta.bounds[3]! + 120, meta.bounds[5]! + 120] })),
     materials: [...new Set(slots.map((s) => s.material))],
   };
@@ -337,7 +349,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     slots: slots.length, chunks: visMeta.chunks!.length, clippedTris: jr.touched, killTris: feat.kills, jumpFaces: feat.faces,
   };
   const result: BuildResult = {
-    id: ast.id, ctrk, vis, meta, visMeta, findings: [], stats, previewSvg: '', track, model: m, content: c, junctions, slots,
+    id: ast.id, ctrk, vis, meta, visMeta, findings: [], stats, previewSvg: '', track, model: m, content: c, junctions, slots, areas, areaReports: ar.reports,
     geometry: { closed: m.closed, length: main.length, samples: main.samples, closure: m.closure, prims: main.prims }, timings: T,
   };
   result.findings = validate(result, { strict: opts.strict ?? ast.signature.length > 0 });
