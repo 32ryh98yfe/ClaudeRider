@@ -45,6 +45,8 @@ export interface PathPlan {
   readonly next: { path: number; s: number; at: number } | null;
   /** Optional route choices starting on this path (branch splits), sorted by `at`. */
   readonly forks: readonly Fork[];
+  /** Where branches rejoin this path (host s, side the branch arrives from). */
+  readonly merges: readonly { at: number; side: -1 | 1 }[];
   /** Jumps on this path, sorted by lip s. */
   readonly jumps: readonly JumpPlan[];
   /** Safe lateral limit per side (m, positive): the paved half-width minus a margin that is larger where the
@@ -65,6 +67,8 @@ export interface Fork {
   path: number; at: number; to: number; toS: number;
   aiMinSkill: number;
   kind: 'shortcut' | 'risk' | 'alt';
+  /** Side of the host road the branch leaves from (−1 left, +1 right). */
+  side: -1 | 1;
 }
 
 export interface TrackPlan {
@@ -80,6 +84,7 @@ export interface TrackPlan {
 }
 
 const CACHE = new WeakMap<BakedTrack, TrackPlan>();
+const CONTACTS = Array.from({ length: 4 }, () => ({ x: 0, y: 0, z: 0, nx: 0, ny: 0, nz: 0, depth: 0, flags: 0, tri: 0 }));
 
 /** Racing-line fade around drift corners (metres before entry / after exit). Mutable for tools/balance experiments. */
 export const LINE_FADE = { before0: 90, before1: 60, after0: 25, after1: 55, sweepPad: 40, base: 0 };
@@ -130,7 +135,7 @@ function buildPlan(track: BakedTrack): TrackPlan {
     paths.push({
       index: pi, n, ds, length: L, closed, X, Y, H, TX, TY, HW, WALL, LINE, KAP, VLIM, T40,
       LK: new Float64Array(n), LINEW: new Float64Array(n).fill(1), KEFF: new Float64Array(n), STRAIGHT: new Float64Array(n), CORNER: new Int16Array(n).fill(-1), corners: [],
-      next: null, forks: [], jumps: [],
+      next: null, forks: [], merges: [], jumps: [],
       LIM_L: new Float64Array(n), LIM_R: new Float64Array(n), LEDGE: new Uint8Array(n), PIPE: new Uint8Array(n), RMF: widenAhead(RMFS, closed, Math.round(40 / ds)),
     });
   }
@@ -314,7 +319,12 @@ function probeEdges(track: BakedTrack, pp: PathPlan): void {
       const d = side * (hw + 1.5);
       const ox = F.px + F.rx * d + F.ux * 1.5, oy = F.py + F.ry * d + F.uy * 1.5, oz = F.pz + F.rz * d + F.uz * 1.5;
       const ground = track.groundRay(ox, oy, oz, -F.ux, -F.uy, -F.uz, 4.5, hit);
-      if (!ground) mask |= side < 0 ? 1 : 2;
+      if (!ground) {
+        // no ground past the edge: open only if no wall stands at the edge either (walls have nothing behind them)
+        const e = side * (Math.max(hw, side < 0 ? F.wL : F.wR) + 0.3);
+        const nW = track.sphereWalls(F.px + F.rx * e + F.ux * 0.7, F.py + F.ry * e + F.uy * 0.7, F.pz + F.rz * e + F.uz * 0.7, 1.4, CONTACTS, 4);
+        if (nW === 0) mask |= side < 0 ? 1 : 2;
+      }
     }
     LE[i] = mask;
     LL[i] = Math.max(0.3, hw - ((mask & 1) ? 1.9 : 1.2));
@@ -350,10 +360,19 @@ function linkRoutes(track: BakedTrack, paths: PathPlan[]): Fork[] {
       if (!to || ln.to === pp.index) continue;
       const tm = track.path(ln.to);
       if (ln.kind === 'split' && tm.kind !== 'rail' && ln.toS < 1 && (tm.hostFrom === undefined || Math.abs(tm.hostFrom - ln.at) < 2)) {
-        const f: Fork = { id: forks.length, path: pp.index, at: ln.at, to: ln.to, toS: ln.toS, aiMinSkill: tm.aiMinSkill ?? 0, kind: tm.branchKind ?? 'shortcut' };
+        // which side the branch leaves on: its centre 15 m in, measured in the host frame 15 m past the split
+        const hi = Math.min(pp.n - 1, Math.round((ln.at + 15) / pp.ds) % pp.n), bi = Math.min(to.n - 1, Math.round((ln.toS + 15) / to.ds));
+        const side = (to.X[bi]! - pp.X[hi]!) * pp.TY[hi]! - (to.Y[bi]! - pp.Y[hi]!) * pp.TX[hi]! >= 0 ? 1 : -1;
+        const f: Fork = { id: forks.length, path: pp.index, at: ln.at, to: ln.to, toS: ln.toS, aiMinSkill: tm.aiMinSkill ?? 0, kind: tm.branchKind ?? 'shortcut', side };
         forks.push(f); pf.push(f);
       }
       if (ln.kind === 'merge' && !pp.closed && ln.at >= pp.length - 2) (pp as { next: PathPlan['next'] }).next = { path: ln.to, s: ln.toS, at: ln.at };
+      if (ln.kind === 'merge' && tm.kind !== 'rail' && ln.toS >= to.length - 2) {
+        // host side of a merge: the branch end arrives from this side (measured 15 m before the merge)
+        const hi = ((Math.round((ln.at - 15) / pp.ds) % pp.n) + pp.n) % pp.n, bi = Math.max(0, Math.round((ln.toS - 15) / to.ds));
+        const side = (to.X[bi]! - pp.X[hi]!) * pp.TY[hi]! - (to.Y[bi]! - pp.Y[hi]!) * pp.TX[hi]! >= 0 ? 1 : -1;
+        (pp as { merges: readonly { at: number; side: -1 | 1 }[] }).merges = [...pp.merges, { at: ln.at, side }];
+      }
     }
     if (!pp.closed && !pp.next && meta.map) (pp as { next: PathPlan['next'] }).next = { path: meta.map.host, s: meta.hostTo ?? meta.map.toS, at: pp.length };
     pf.sort((a, b) => a.at - b.at);

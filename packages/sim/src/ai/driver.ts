@@ -29,6 +29,8 @@ const REDACTION_BIT = 1 << (EF.redaction - 1);
 const DEG = Math.PI / 180;
 /** A split this far behind the kart's located s still counts as taken (the sim relocates onto the branch late). */
 const FORK_GRACE = 40;
+/** Branch ends converge into the host over this many metres; queries there resolve onto the host. */
+const MERGE_BLEND = 20;
 /** Validated gap-2 controller constants (docs/research/sim-prototype.md aiDriver). */
 const A = {
   Lk0: 6, Lk1: 0.35, trigDeg: 25, trigLook: 40, gripFrac: 0.9, tLead: 0.5, outBias: 0.6, tHead: 0.45, kHead: 2.5, kLatPos: 0.6,
@@ -101,6 +103,7 @@ class BotDriver implements AiDriverEx {
   private readonly forkTake: Uint8Array;
   private readonly forkLap: Int32Array;
   private routePath = -1; private routeS0 = 0.5; private onRiskBranch = false;
+  private forkNear = 0; private forkTakeNear = false; private forkNoDrift = false; private mergeSide = 0;
   private P: KartParams | null = null;
   private grip: Float64Array[] | null = null;
 
@@ -204,7 +207,8 @@ class BotDriver implements AiDriverEx {
           }
         }
       }
-      if (!moved && !pp.closed && pp.next && ss > pp.next.at) {
+      // the last MERGE_BLEND metres of a branch overlap the host road: steer by the host there
+      if (!moved && !pp.closed && pp.next && ss > pp.next.at - MERGE_BLEND) {
         ss = pp.next.s + (ss - pp.next.at); from = pp.next.s; pp = paths[pp.next.path] ?? pp; moved = true;
       }
       if (!moved) break;
@@ -219,6 +223,8 @@ class BotDriver implements AiDriverEx {
     this.rp = pp; this.ri = i; this.rf = f; this.rs = ss;
   }
   private lerp(a: Float64Array): number { const x = a[this.ri]!; return x + (a[this.rj]! - x) * this.rf; }
+  /** Edge limit (0 = left, 1 = right) at (path, s). */
+  private lerpAt(path: number, s: number, side: 0 | 1): number { this.at(path, s); return this.lerp(side === 0 ? this.rp.LIM_L : this.rp.LIM_R); }
 
   // ------------------------------------------------------------------------------------------------ decide
   decide(w: Readonly<WorldState>, out: InputFrame): void {
@@ -363,7 +369,10 @@ class BotDriver implements AiDriverEx {
     const planDrift = this.cPlan !== DriftPlan.GRIP;
 
     // ---- lateral target at the pursuit point
-    const Lk = A.Lk0 + A.Lk1 * v;
+    // open ledges (no wall, a drop beside the road): short lookahead so the chord never cuts off the edge
+    const ledgeHere = ppS.LEDGE[this.ri] !== 0;
+    const narrowLedge = ledgeHere && hw < 5;
+    const Lk = ledgeHere ? 4 + 0.22 * v : A.Lk0 + A.Lk1 * v;
     this.at(path, s + Lk);
     const ppT = this.rp;
     const cxT = this.lerp(ppT.X), cyT = this.lerp(ppT.Y), txT = this.lerp(ppT.TX), tyT = this.lerp(ppT.TY);
@@ -390,6 +399,19 @@ class BotDriver implements AiDriverEx {
     }
     // jump approach: line up on the ramp centre (no lane games, no line bias) over the last 50 m
     if (jumpNear) { const f = dLip < 10 ? 0 : (dLip - 10) / 40; off *= f < 1 ? f : 1; }
+    // branch splits: set up on the branch side when taking it, stay clear of the gore when not
+    if (this.forkNear !== 0) {
+      const usable = Math.max(0.5, hwT - 1.5), sd = this.forkNear;
+      if (this.forkTakeNear) { if (off * sd < 0.6 * usable) off = sd * 0.6 * usable; }
+      else if (off * sd > -0.25 * usable) off = -sd * 0.25 * usable;
+    }
+    if (ledgeHere || (ledge !== 0)) {
+      // hold the line: damp lateral drift and respect the edge limits where the kart is, not only at the target
+      off -= vU * 0.3;
+      const lL = this.lerpAt(path, s, 0), lR = this.lerpAt(path, s, 1);
+      if (lL < limL) limL = lL;
+      if (lR < limR) limR = lR;
+    }
     if (off > limR) off = limR; else if (off < -limL) off = -limL;
     const gx = cxT + tyT * off, gy = cyT - txT * off; // right = (ty, −tx)
     const exT = gx - kx, eyT = gy - ky;
@@ -412,11 +434,11 @@ class BotDriver implements AiDriverEx {
       if (this.tapLeft > 0) {
         // entry tap whose drift the model did not see start (speed or lock): finish the tap anyway
         drift = true; steer = this.tapDir; this.tapLeft--;
-      } else if (planDrift && !jumpNear) {
+      } else if (planDrift && !jumpNear && !narrowLedge && !this.forkNoDrift) {
         // drift trigger (14-ai §3.4) with the plan's timing
         let lead = v * A.tLead * Math.max(0.3, Math.min(1, A.rLead / cornerR));
         if (this.cPlan === DriftPlan.SLOPPY) lead = Math.max(0, lead - this.cLate);
-        if (Math.abs(t40) > A.trigDeg * DEG && v > 15 && dCorner <= lead && pr.lock <= 0) {
+        if (Math.abs(t40) > A.trigDeg * DEG && v > 15 && dCorner <= lead && pr.lock <= 0 && cornerDir !== this.mergeSide) {
           drift = true; steer = cornerDir; this.tapDir = cornerDir; this.tapLeft = A.tapFrames - 1; this.rek = 0;
           this.onDriftStart(prof);
         }
@@ -444,8 +466,13 @@ class BotDriver implements AiDriverEx {
       const style = prof.personality.driftStyle;
       const eExit = style === 'long' ? AI_TUNING.eExit + 0.03 : style === 'chain' ? AI_TUNING.eExit - 0.02 : AI_TUNING.eExit;
       // long corner: hold one drag drift through it (soft counter-steer, no cut) instead of chaining short drifts
-      const holding = !this.cChain && corner !== null && inCorner && this.remainingTurn(corner, ppS.length) > AI_TUNING.holdTurn;
+      const holding = !this.cChain && corner !== null && inCorner && corner.dir === dd && this.remainingTurn(corner, ppS.length) > AI_TUNING.holdTurn;
       if (dLip < 30) { this.holdExtra = 0; if (e > -eExit - 0.01) e_forceExit = true; }
+      // S-bends: the next bend turns the other way within 15 m — cut now instead of sliding across it
+      this.at(path, s + 15);
+      { const kn = this.rp.KAP[this.ri]!; if (kn * dd < -1 / 150) { e_forceExit = true; this.holdExtra = 0; } }
+      // beside an open drop nobody over-holds a drift (sloppy plans and over-hold mistakes are dropped there)
+      if (ledgeHere) this.holdExtra = 0;
       if (e < -eExit || e_forceExit) {
         if (this.holdExtra > 0) { this.holdExtra--; if (sIn < 0.25) sIn = 0.25; }
         else if (holding && !e_forceExit) { if (sIn < AI_TUNING.holdMinSIn) sIn = AI_TUNING.holdMinSIn; }
@@ -500,6 +527,13 @@ class BotDriver implements AiDriverEx {
       if (vj < vLim) vLim = vj;
       if (vLim < jvMin + 2) vLim = jvMin + 2; // never brake below the clearing speed before a gap
     }
+    if (narrowLedge) { const cap = 26 + 6 * prof.personality.risk; if (cap < vLim) vLim = cap; }
+    if (ledgeHere) {
+      // beside an open drop a failed drift must still stay on the road: corners at grip speed (+ a risk margin)
+      const gt = this.grip![this.rp.index]!;
+      const g = (gt[this.ri]! + (gt[this.rj]! - gt[this.ri]!) * this.rf) * (1.06 + 0.06 * prof.personality.risk);
+      if (g < vLim) vLim = g;
+    }
     if (cruising) vLim = Math.min(vLim, 0.8 * P.vGrip);
     let wantBrake = v > vLim + 0.5, wantCoast = !wantBrake && v > vLim;
     if (wantBrake && this.cMistake === Mistake.LATE_BRAKE && this.lateBrakeLeft > 0) { this.lateBrakeLeft--; wantBrake = false; wantCoast = false; }
@@ -515,7 +549,7 @@ class BotDriver implements AiDriverEx {
     else if (wantCoast && !keepThrottle) thr = 0;
 
     // ---- boosters (speed mode; 14-ai §3.7) by booster discipline
-    if (!cruising && d.boosters + d.teamBoosters > 0 && !airborne) boost = this.wantBoost(k, applyTick, t40, straightAhead, drifting, ex.boostSkill, prof);
+    if (!cruising && d.boosters + d.teamBoosters > 0 && !airborne && !narrowLedge) boost = this.wantBoost(k, applyTick, t40, straightAhead, drifting, ex.boostSkill, prof);
     else if (d.boosters + d.teamBoosters === 0) this.boostReadyAt = -1;
     if (boost) this.stats.boostsFired++;
     this.prevBoost = boost;
@@ -593,6 +627,37 @@ class BotDriver implements AiDriverEx {
       this.forkTake[f.id] = take ? 1 : 0;
       this.stats.forksSeen++;
       if (take) this.stats.forksTaken++;
+    }
+    // the nearest split within 70 m ahead (or just passed): approach lane and no drifting through the split
+    this.forkNear = 0; this.forkNoDrift = false;
+    for (let q = 0; q < pp.forks.length; q++) {
+      const f = pp.forks[q]!;
+      let d = f.at - s;
+      if (pp.closed) { if (d < -pp.length / 2) d += pp.length; else if (d > pp.length / 2) d -= pp.length; }
+      if (d < -8 || d > 70) continue;
+      this.forkNear = f.side; this.forkTakeNear = this.forkTake[f.id] === 1;
+      // not lined up on the branch side 30 m out (traffic, a late drift): keep to the host road this time
+      if (this.forkTakeNear && d > 0 && d < 30) {
+        const usable = Math.max(0.5, pp.HW[Math.min(pp.n - 1, Math.max(0, Math.round(s / pp.ds)))]! - 1.5);
+        const onSide = k.race.loc.u * f.side > 0.3 * usable;
+        const b = k.body, tIdx = Math.min(pp.n - 1, Math.max(0, Math.round(s / pp.ds)));
+        let hx = b.fx, hy = -b.fz; const hl = Math.sqrt(hx * hx + hy * hy) || 1; hx /= hl; hy /= hl;
+        const cosPsi = hx * pp.TX[tIdx]! + hy * pp.TY[tIdx]!;
+        if (!onSide || cosPsi < 0.9) { this.forkTake[f.id] = 0; this.forkTakeNear = false; this.stats.forksTaken--; }
+      }
+      if (d < 40) this.forkNoDrift = true;
+      break;
+    }
+    // host side of a merge: keep clear of the arriving branch and don't swing toward it
+    this.mergeSide = 0;
+    if (this.forkNear === 0) for (let q = 0; q < pp.merges.length; q++) {
+      const m = pp.merges[q]!;
+      let d = m.at - s;
+      if (pp.closed) { if (d < -pp.length / 2) d += pp.length; else if (d > pp.length / 2) d -= pp.length; }
+      if (d < -5 || d > 60) continue;
+      this.forkNear = m.side; this.forkTakeNear = false;
+      if (d > 0 && d < 45) this.mergeSide = m.side;
+      break;
     }
     // on a kill-risk branch bots keep their items (14-ai §4.1)
     for (let q = 0; q < this.plan.forks.length; q++) {

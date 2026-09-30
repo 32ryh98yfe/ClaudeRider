@@ -33,7 +33,7 @@ export interface RaceSetup {
   /** Optional clock (ms) to time the AI separately from step(). */
   now?: () => number;
   /** Called after every step (tests can inspect the world). */
-  onTick?: (w: WorldState) => void;
+  onTick?: (w: WorldState, applied: readonly InputFrame[]) => void;
 }
 
 export interface KartResult {
@@ -81,7 +81,7 @@ export function runRace(o: RaceSetup): RaceOutcome {
     sink.drain(evs);
     for (const e of evs) if (e.t === 'bump') { totalBumps++; if (e.a < n) bumps[e.a]!++; if (e.b < n) bumps[e.b]!++; }
     evs.length = 0;
-    o.onTick?.(w);
+    o.onTick?.(w, inputs);
     if (w.phase < Phase.RACING) continue;
     for (let i = 0; i < n; i++) {
       const k = w.karts[i]!;
