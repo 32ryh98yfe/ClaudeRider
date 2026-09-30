@@ -33,8 +33,8 @@ function hemisphere(n: number): Float64Array {
 export interface AoReport { vertices: number; triangles: number; rays: number; ms: number; buildMs: number; mean: number }
 
 /** Darkens each receiving slot's vertex colours in place by its occlusion. */
-export function bakeAo(slots: RenderSlot[], o: AoOptions = DEFAULT_AO): AoReport {
-  const t0 = Date.now();
+/** One BVH over the triangles of `slots` (merged, offset indices). Shared by the AO and PVS bakes. */
+export function sceneBvh(slots: readonly RenderSlot[]): { bvh: MeshBVH; triangles: number } {
   let nv = 0, nt = 0;
   for (const s of slots) { nv += s.pos.length / 3; nt += s.idx.length / 3; }
   const pos = new Float32Array(nv * 3), idx = new Uint32Array(nt * 3);
@@ -47,7 +47,12 @@ export function bakeAo(slots: RenderSlot[], o: AoOptions = DEFAULT_AO): AoReport
   const geo = new BufferGeometry();
   geo.setAttribute('position', new BufferAttribute(pos, 3));
   geo.setIndex(new BufferAttribute(idx, 1));
-  const bvh = new MeshBVH(geo);
+  return { bvh: new MeshBVH(geo), triangles: nt };
+}
+
+export function bakeAo(slots: RenderSlot[], o: AoOptions = DEFAULT_AO, scene = sceneBvh(slots)): AoReport {
+  const t0 = Date.now();
+  const bvh = scene.bvh, nt = scene.triangles;
   const buildMs = Date.now() - t0;
 
   const H = hemisphere(o.rays);

@@ -23,11 +23,17 @@ import { validate, type Finding } from './validate.ts';
 import { previewSvg } from './preview.ts';
 import { respawnTables } from './respawn.ts';
 import { assertFinite } from './finite.ts';
-import { bakeAo } from './ao.ts';
+import { DEFAULT_AO, bakeAo, sceneBvh } from './ao.ts';
+import { buildLod1 } from './lod.ts';
+import { buildPvs } from './pvs.ts';
 
 export const COMPILER_VERSION = 'trackc/2.0';
 
-export interface VisSlotMeta { name: string; material: string; variant: string; chunks: { i0: number; n: number; bbox: number[]; chunk: number }[] }
+export interface VisSlotMeta {
+  name: string; material: string; variant: string; chunks: { i0: number; n: number; bbox: number[]; chunk: number }[];
+  /** v2: ranges into `s{j}.idx1` (LOD1, same vertices, ≤ 40% of the LOD0 triangles; n = 0 = not drawn at LOD1) */
+  lod1?: { i0: number; n: number; chunk: number }[];
+}
 export interface VisMeta {
   id: string; themeId: string; name: string;
   slots: VisSlotMeta[];
@@ -47,9 +53,12 @@ export interface VisMeta {
   materials?: string[];
   /** F5: one record per baked hazard (same index as CtrkMeta.hazards); the pose comes from BakedTrack.hazardPose */
   hazards?: { id: number; kind: string; name: string; prop: string; size: [number, number, number]; shape: string; group?: number }[];
+  /** PVS: `pvs` Uint8 array, one bitset (bit = chunk id) of `pvsBytes` bytes per `pvsStep` metres of sMain */
+  pvsStep?: number; pvsBytes?: number;
 }
 
-export interface BuildOptions { refLapTicks?: number; seed?: number; strict?: boolean; mesh?: Partial<MeshOptions>; terrain?: boolean; props?: boolean; /** baked vertex AO into the .vis colours (the CLI turns it on; off by default so sim/test bakes stay fast) */ ao?: boolean }
+export interface BuildOptions { refLapTicks?: number; seed?: number; strict?: boolean; mesh?: Partial<MeshOptions>; terrain?: boolean; props?: boolean; /** baked vertex AO into the .vis colours (the CLI turns it on; off by default so sim/test bakes stay fast) */ ao?: boolean;
+  /** PVS bitsets + V20 worst visible set (CLI on, off by default for the same reason) */ pvs?: boolean }
 
 export interface BuildResult {
   id: string;
@@ -69,6 +78,8 @@ export interface BuildResult {
   geometry: { closed: boolean; length: number; samples: Sample[]; closure: TrackModel['closure']; prims: PathModel['prims'] };
   areas: AreaModel[]; areaReports: AreaReport[]; warps: WarpModel[];
   timings: Record<string, number>;
+  /** V20: worst visible static set over the PVS samples (present when the PVS was baked) */
+  pvsWorst?: { draws: number; tris: number; s: number; bySlot: Record<string, number> };
 }
 
 const fnv = (bytes: Uint8Array): string => {
@@ -318,25 +329,32 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   if (tf) terrainToRender(rb, tf, nf, ao);
   const slots = rb.finalise();
   tick('render');
-  const aoReport = opts.ao ? bakeAo(slots) : null;
+  const scene = opts.ao || opts.pvs ? sceneBvh(slots) : null;
+  const aoReport = opts.ao ? bakeAo(slots, DEFAULT_AO, scene!) : null;
   tick('ao');
+  const lod1 = slots.map((sl) => buildLod1(sl));
+  tick('lod');
   const gi = new GroundIndex(ground);
   const props: PropSet[] = opts.props === false ? [] : placeProps(m, c, seed, gi, tf, exclusions(m, c, junctions, c.hazards.filter((h) => h.motion?.type !== 'lane')), junctions);
   tick('props');
 
   const lineSample = sampleAt(main, m.lineS);
-  const chunkGroups = rb.chunks.map((ch) => ({ ...ch, groups: [] as { slot: number; i0: number; n: number }[], tris: 0 }));
+  const chunkGroups = rb.chunks.map((ch) => ({ ...ch, groups: [] as { slot: number; i0: number; n: number }[], tris: 0, lod1Tris: 0 }));
   slots.forEach((sl, si) => { for (const cr of sl.chunks) { const g = chunkGroups[cr.chunk]!; g.groups.push({ slot: si, i0: cr.i0, n: cr.n }); g.tris += cr.n / 3; } });
+  lod1.forEach((l) => { for (const r of l.ranges) chunkGroups[r.chunk]!.lod1Tris += r.n / 3; });
+  const pvs = opts.pvs ? buildPvs(m, chunkGroups.filter((g) => g.groups.length), slots, scene!.bvh) : null;
+  tick('pvs');
   const visMeta: VisMeta = {
     id: ast.id, themeId: m.theme, name: m.name,
-    slots: slots.map((s) => ({ name: s.name, material: s.material, variant: s.variant, chunks: s.chunks.map((ch) => ({ i0: ch.i0, n: ch.n, bbox: ch.bbox, chunk: ch.chunk })) })),
+    slots: slots.map((s, j) => ({ name: s.name, material: s.material, variant: s.variant, chunks: s.chunks.map((ch) => ({ i0: ch.i0, n: ch.n, bbox: ch.bbox, chunk: ch.chunk })), lod1: lod1[j]!.ranges })),
     props: props.map((p) => ({ kind: p.kind, n: p.xf.length / 6 })),
     bounds: meta.bounds,
     line: { x: lineSample.x, y: lineSample.y, z: lineSample.z, fx: lineSample.tx, fy: lineSample.ty, fz: lineSample.tz, w: lineSample.w },
     theme: c.theme,
     lapLength: m.lapLength,
     visVersion: 2,
-    chunks: chunkGroups.filter((g) => g.groups.length),
+    chunks: chunkGroups.filter((g) => g.groups.length).map(({ lod1Tris: _l, ...g }) => g),
+    ...(pvs ? { pvsStep: pvs.step, pvsBytes: pvs.bytes } : {}),
     junctions: junctions.map((j) => ({ kind: j.kind, gore: j.gore })),
     minimapPaths: m.paths.filter((p) => p.kind !== 'main').map((p) => ({ id: p.id, kind: p.kind, array: `minimap.${p.id}` })),
     portals: warps.flatMap((w) => [
@@ -350,7 +368,9 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   const visArrays: [string, TypedArray][] = [];
   slots.forEach((s, j) => {
     visArrays.push([`s${j}.pos`, f32(s.pos)], [`s${j}.nrm`, f32(s.nrm)], [`s${j}.uv`, f32(s.uv)], [`s${j}.col`, f32(s.col)], [`s${j}.idx`, Uint32Array.from(s.idx)]);
+    visArrays.push([`s${j}.idx1`, Uint32Array.from(lod1[j]!.idx1)]);
   });
+  if (pvs) visArrays.push(['pvs', pvs.bits]);
   props.forEach((p, j) => visArrays.push([`p${j}.xf`, f32(p.xf)]));
   const mm: number[] = [];
   for (let i = 0; i < main.samples.length; i += 4) mm.push(main.samples[i]!.x, main.samples[i]!.z);
@@ -370,11 +390,14 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     boxes: c.boxes.length, ctrkBytes: ctrk.length, visBytes: vis.length, renderTris: slots.reduce((a, s) => a + s.idx.length / 3, 0),
     props: props.reduce((a, p) => a + p.xf.length / 6, 0), minR: minRadius(m, 0), minW: Math.min(...main.samples.map((s) => s.w)),
     slots: slots.length, chunks: visMeta.chunks!.length, clippedTris: jr.touched, killTris: feat.kills, jumpFaces: feat.faces,
+    lod1Ratio: Math.round((lod1.reduce((a, l) => a + l.idx1.length, 0) / Math.max(1, slots.reduce((a, sl) => a + sl.idx.length, 0))) * 1000) / 1000,
+    pvsMeanVisible: pvs ? Math.round(pvs.meanVisible * 10) / 10 : 0, pvsWorstDraws: pvs?.worst.draws ?? 0, pvsWorstTris: pvs?.worst.tris ?? 0,
     aoVertices: aoReport?.vertices ?? 0, aoRays: aoReport?.rays ?? 0, aoMean: aoReport ? Math.round(aoReport.mean * 1000) / 1000 : 1,
   };
   const result: BuildResult = {
     id: ast.id, ctrk, vis, meta, visMeta, findings: [], stats, previewSvg: '', track, model: m, content: c, junctions, slots, areas, areaReports: ar.reports, warps,
     geometry: { closed: m.closed, length: main.length, samples: main.samples, closure: m.closure, prims: main.prims }, timings: T,
+    ...(pvs ? { pvsWorst: { ...pvs.worst, bySlot: pvs.worstBySlot } } : {}),
   };
   result.findings = validate(result, { strict: opts.strict ?? ast.signature.length > 0 });
   tick('validate');

@@ -1,4 +1,4 @@
-// trackc CLI: node packages/trackc/src/cli.ts build <ids|all> [--validate] [--ghost] [--preview] [--strict] [--no-ao] [--out dir]
+// trackc CLI: node packages/trackc/src/cli.ts build <ids|all> [--validate] [--ghost] [--preview] [--strict] [--no-ao] [--no-pvs] [--out dir]
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { buildTrack } from './build.ts';
@@ -35,11 +35,11 @@ for (const id of want.sort()) {
   const t0 = Date.now();
   let r;
   try {
-    r = buildTrack(readFileSync(file, 'utf8'), file, { strict: flag('--strict') || undefined, ao: !flag('--no-ao') });
+    r = buildTrack(readFileSync(file, 'utf8'), file, { strict: flag('--strict') || undefined, ao: !flag('--no-ao'), pvs: !flag('--no-pvs') });
     if (flag('--ghost')) {
       const { ghostLap } = await import('./ghost.ts');
       const g = ghostLap(r.track);
-      r = buildTrack(readFileSync(file, 'utf8'), file, { refLapTicks: g.lapTicks, strict: flag('--strict') || undefined, ao: !flag('--no-ao') });
+      r = buildTrack(readFileSync(file, 'utf8'), file, { refLapTicks: g.lapTicks, strict: flag('--strict') || undefined, ao: !flag('--no-ao'), pvs: !flag('--no-pvs') });
       console.log(`  ghost: ${(g.lapTicks / 60).toFixed(2)} s/lap (${g.note})`);
     }
   } catch (e) { console.error(`✗ ${id}: ${(e as Error).message}`); errors++; continue; }
