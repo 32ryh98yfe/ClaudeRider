@@ -8,7 +8,7 @@ export default defineTrack({
   modes: ['speed', 'item'],
   topology: 'circuit',
   lapLengthM: 1350,
-  refLapTicks: 0,
+  refLapTicks: 2327,
   nameKey: 'tracks.token_foundry.name',
   onRoster: true,
 });

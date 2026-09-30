@@ -2,7 +2,6 @@
 # lines climbing to the tunnel level, a 300° geode spiral down into the amethyst chamber and a conveyor run past the
 # headframe yard.
 @signature rail, conveyor, hazard:traffic
-@fallback rail -> "banked trestle ribbon with a conveyor_fwd x1.15 lane at the rail line" when=F4
 @fallback hazard:traffic -> "cart tunnel always open" when=F5
 @fallback branch -> "cart_tunnel omitted (no BRANCH in the M1 DSL): main line only" when=F1
 TRACK geode_rail_quarry name="Geode Rail Quarry" theme=ember_mine diff=3 laps=3 topo=circuit
@@ -33,11 +32,14 @@ C R80 50 L bank=3                   @headframe_exit
 S 87                                       @to_line
 CLOSE solve=[?a,?b,?c] length=1375
 LINE start at=0
-ITEMS at=75,235,505,820,1140 n=5
+ITEMS at=75,505,760,1010,1200 n=5
 PAD at=1292,1335,704,742 d=0 len=6 w=4
 ZONE conveyor from=@conveyor_lift to=@ore_rail_2 d=[-7.5,7.5] mul=1.15
-ZONE conveyor from=@ore_rail_1 to=@ore_rail_1+88 d=[-5,-1] mul=1.15
-ZONE conveyor from=@ore_rail_2 to=@ore_rail_2+78 d=[-5,-1] mul=1.15
+# two ore rails along the left lane: grind them for speed and +0.30/s gauge
+RAIL ore1 host=main from=@ore_rail_1-4 to=@ore_rail_1+86 d=[@ore_rail_1-4:-2,@ore_rail_1+14:-4,@ore_rail_1+70:-4,@ore_rail_1+86:-2] h=1.0
+     capture=(dMax 2.0, hdg 25, vMin 15) speed=(min 38, accel 4, max 44) gauge=0.30/s
+RAIL ore2 host=main from=@ore_rail_2 to=@ore_rail_2+74 d=[@ore_rail_2:-2,@ore_rail_2+14:-4.5,@ore_rail_2+60:-4.5,@ore_rail_2+74:-2] h=1.0
+     capture=(dMax 2.0, hdg 25, vMin 15) speed=(min 38, accel 4, max 44) gauge=0.30/s
 KEYS 150,300,505,700,900,1100,1300
 # --- dressing (rows start beside the road and sit on the terrain; arches span from the right post: offset 9.3 - w/2)
 PROPS kind=timber_arch from=@cavern_straight+25 to=@cavern_straight+85 side=R every=30 offset=1.8 scale=1-1

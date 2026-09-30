@@ -1,0 +1,52 @@
+# Token Foundry — Orbital Nexus D3 (item-built). A clean orbital factory: the assembly hall's split conveyors, a press
+# gauntlet, the server-rack canyon, the coolant-pipe gutter, the elevator ramp up to the gantry deck, the drop into the
+# token-stream S, the kiln corner and the cooling line home past the belt sweepers.
+@signature hazard:press, conveyor
+TRACK token_foundry name="Token Foundry" theme=orbital_nexus diff=3 laps=3 topo=circuit
+DEFAULTS w=16 surf=metal wall=barrier:1.2 shoulder=0 blend=18
+PROFILE gutter custom pts=[-9:1.6,-8:0.9,-7:0.3,-6:0,6:0,7:0.3,8:0.9,9:1.6]
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=7 stagger=3.5 d=4
+S ?a                                        @assembly_hall
+C R20 90 L bank=5 w=15                      @hall_corner
+S 42 w=16                                   @press_gauntlet
+C R30 90 R bank=-5                          @press_exit
+WIGGLE R20 40/80/40 L w=15                  @rack_canyon
+S 36 prof=gutter                            @coolant_pipe
+C R16 150 L bank=6 w=15 dy=1.5              @pipe_hairpin
+S 60 dy=4.5 w=16                            @elevator_ramp
+C R35 30 L dy=2                             @gantry_corner
+WIGGLE R145 9/18/9 R                        @gantry_deck
+S ?b
+WIGGLE R45 35/70/35 R                       @server_s
+S 20
+CHICANE R40 30/60/30 L                      @loading_chicane
+S 20
+C R25 90 L dy=-4 bank=5 w=15                @gantry_drop
+WIGGLE R32 35/70/35 R dy=-4 w=16                 @token_s
+S ?c w=16                                   @token_straight
+C R30 90 L bank=6                           @kiln_corner
+WIGGLE R60 30/60/30 R                       @cooling_s
+C R90 40 L                                  @belt_in
+C R90 40 R                                  @belt_out
+S 30                                        @to_line
+CLOSE solve=[?a,?b,?c] length=1350
+LINE start at=@assembly_hall+10
+PAD at=@to_line+2,@gantry_deck+92 d=0 len=6 w=4
+# assembly-hall belts: the right half runs ×1.15, the left half ×0.85
+ZONE conveyor from=@assembly_hall+22 to=@assembly_hall+64 d=[0,8] mul=1.15
+ZONE conveyor from=@assembly_hall+22 to=@assembly_hall+64 d=[-8,0] mul=0.85
+# the press gauntlet: three stamps staggered left/right, 50% down, always a way through
+HAZ press p1 at=@press_gauntlet+8 d=-4.5 box=(5,7,3) period=4 on=0-1.6 tele=0.8 offset=0.0 rise=4
+HAZ press p2 at=@press_gauntlet+21 d=4.5 box=(5,7,3) period=4 on=0-1.6 tele=0.8 offset=1.33 rise=4
+HAZ press p3 at=@press_gauntlet+34 d=-4.5 box=(5,7,3) period=4 on=0-1.6 tele=0.8 offset=2.67 rise=4
+ITEMS at=@elevator_ramp+34,@gantry_deck+120,@token_straight+40,@cooling_s+76 n=5
+# ---- dressing (Orbital Nexus kit): hall holograms, rack canyon, coolant pipes, token stacks, light bollards ----
+PROPS kind=light_strip along=main side=both every=18 offset=0.4
+PROPS kind=holo_panel from=@assembly_hall+20 to=@assembly_hall+90 side=L every=35 offset=3
+PROPS kind=server_rack from=@rack_canyon to=@coolant_pipe side=both every=8 offset=1.5
+PROPS kind=coolant_pipe from=@coolant_pipe to=@pipe_hairpin side=both every=12 offset=1.2
+PROPS kind=token_stack from=@token_s to=@token_straight+70 side=both every=28 offset=3
+PROPS kind=holo_panel from=@token_straight+20 to=@token_straight+100 side=R every=40 offset=4
+PROPS kind=server_rack from=@cooling_s to=@belt_out+40 side=L every=24 offset=3
+THEME scatter=station_pylon density=4 hills=0 sky=space
