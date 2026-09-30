@@ -494,6 +494,34 @@ function v18(r: BuildResult, push: Push): void {
     const hA = sampleAt(m.paths[0]!, b.hostFrom), hB = sampleAt(m.paths[0]!, b.hostTo);
     if (Math.abs(hA.bank) > 4 || Math.abs(hB.bank) > 4) push('V18', `branch ${b.id}: host bank > 4° at a junction makes the surfaces step`, b.hostFrom, b.id, 'warn');
   }
+  // a branch must leave its host's footprint outside the junction windows: two drivable ribbons overlapping in plan
+  // at nearly the same height fight for the ground (0.3–1 m steps, a jump's landing face across the host road) and
+  // strand karts in respawn loops. Typical cause: a BRANCH laid as the chord of a symmetric host WIGGLE (L6 §8).
+  for (const b of branches) {
+    if (!b.map) continue;
+    const host = m.paths[b.map.host]!;
+    const win = r.junctions.filter((j) => j.branch === b.index);
+    const inWindow = (s: number): boolean => win.some((j) => s >= j.branchS0 - 1 && s <= j.branchS1 + 1);
+    const hs = host.samples.filter((q) => inS(m, host.index, q.s, b.hostFrom - 30, b.hostTo + 30));
+    let run = 0, worst = 0, at = -1, apart = 0, apartBest = 0, step = 0, stepWorst = 0, stepAt = -1, stepDy = 0;
+    for (let i = 0; i < b.samples.length; i += 2) {
+      const q = b.samples[i]!;
+      let best = Infinity, hq = hs[0];
+      for (const h of hs) { const d2 = (h.x - q.x) ** 2 + (h.z - q.z) ** 2; if (d2 < best) { best = d2; hq = h; } }
+      const overlap = !!hq && Math.sqrt(best) < q.w / 2 + hq.w / 2 - 0.5 && Math.abs(hq.y - q.y) < 4;
+      // the stretch where the two ribbons are fully apart (a real branch has one between its split and its merge)
+      if (!overlap) { apart += 2; if (apart > apartBest) apartBest = apart; } else apart = 0;
+      // inside the split/merge zones the two surfaces are blended, which only works while they are level with each
+      // other: a J, a ramp or a different dy there leaves a step of the host road into the branch (or the reverse)
+      const dy = hq ? q.y - hq.y : 0;
+      if (overlap && Math.abs(dy) > 0.25) { step += 2; if (step > stepWorst) { stepWorst = step; stepAt = q.s; stepDy = dy; } } else step = 0;
+      if (inWindow(q.s)) { run = 0; continue; }
+      if (overlap) { run += 2; if (run > worst) { worst = run; at = q.s; } } else run = 0;
+    }
+    if (apartBest < Math.min(10, b.length / 4)) push('V18', `branch ${b.id}: never leaves its host road (the ribbons overlap for its whole ${b.length.toFixed(0)} m; a chord of a host WIGGLE?); separate them by their half-widths, or by ≥ 4 m in height`, b.hostFrom, b.id);
+    else if (stepWorst > 4) push('V18', `branch ${b.id}: overlaps its host road with a ${Math.abs(stepDy).toFixed(2)} m height step for ${stepWorst.toFixed(0)} m (branch s ${(stepAt - stepWorst).toFixed(0)}–${stepAt.toFixed(0)}): a J, a ramp or a different dy inside the split/merge zone; keep the branch level with its host until the ribbons are apart`, b.hostFrom, b.id);
+    else if (worst > 4) push('V18', `branch ${b.id}: runs inside its host road for ${worst.toFixed(0)} m outside the junctions (near branch s ${(at - worst).toFixed(0)}–${at.toFixed(0)}); separate the ribbons by their half-widths, or by ≥ 4 m in height`, b.hostFrom, b.id);
+  }
   // ≥ 1 key gate between consecutive branches
   const keys = r.meta.keyGates.map((k) => (m.closed ? k : k + m.lineS));
   const sorted = branches.filter((b) => b.map).sort((a, b) => a.hostFrom - b.hostFrom);

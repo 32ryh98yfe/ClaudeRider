@@ -303,8 +303,13 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   );
   // pass 1 → load → respawn tables → final bytes (the hash covers everything but itself)
   const pass1 = loadCtrk(toArrayBuffer(writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays)));
-  const rc = { closed: m.closed, lapLength: m.lapLength, keyGates, jumps: meta.jumps, hazards: c.hazards };
-  m.paths.forEach((p, k) => { const t = respawnTables(pass1, p, rc); arrays.push([`p${k}.rok`, t.ok], [`p${k}.rto`, t.to]); });
+  const rc = { closed: m.closed, lapLength: m.lapLength, keyGates, jumps: meta.jumps, hazards: c.hazards, lineS: m.lineS };
+  const tables = new Map<number, { p: PathModel; to: Int32Array }>();
+  m.paths.forEach((p, k) => {
+    const t = respawnTables(pass1, p, rc, p.map ? tables.get(p.map.host) : undefined);
+    tables.set(p.index, { p, to: t.to });
+    arrays.push([`p${k}.rok`, t.ok], [`p${k}.rto`, t.to]);
+  });
   const pre = writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays);
   meta.hash = fnv(pre);
   assertFinite('.ctrk', meta, arrays);
