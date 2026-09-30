@@ -58,7 +58,8 @@ export function ResultsScreen() {
     Stage.showShowcase(p.characterId, p.kartBodyId);
     if (Stage.showcase) Stage.showcase.offsetX = -1.05;
     const me = last?.r.rows.find((r) => r.kind === 'human');
-    if (me && me.finished && me.rank <= 3) Stage.showcase?.emote();
+    // per-result emote (30-art-bible §8): win / podium / lose / retire
+    if (me) Stage.showcase?.emote(!me.finished ? 'retire' : me.rank === 1 ? 'win' : me.rank <= 3 ? 'podium' : 'lose');
     Audio.playLoop(100, 60, 'lobby');
   }, []);
   const left = Math.max(0, RESULTS_SEC - Math.floor((now - t0) / 1000));
