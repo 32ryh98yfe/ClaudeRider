@@ -129,6 +129,17 @@ function bridgeRail(): THREE.BufferGeometry {
   return merge(parts);
 }
 
+/** Creek under the bridge hop: a glossy water ribbon across the gap (local X runs across the road), stones, reeds. */
+function creek(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  const rnd = prng(221);
+  parts.push(part(new THREE.PlaneGeometry(80, 9), '#27406e', 0, 0, 0, -Math.PI / 2, 0, 0));
+  parts.push(part(new THREE.PlaneGeometry(80, 1.2), '#5d7fb8', 0, 0.02, 4.2, -Math.PI / 2, 0, 0), part(new THREE.PlaneGeometry(80, 1.2), '#5d7fb8', 0, 0.02, -4.2, -Math.PI / 2, 0, 0));
+  for (let i = 0; i < 14; i++) parts.push(part(blob(0.6 + rnd() * 0.7, 0, 0.3, 223 + i, 1.2, 0.5, 1), i % 2 ? C.stone : C.stoneDark, (rnd() - 0.5) * 70, 0.1, (rnd() > 0.5 ? 1 : -1) * (4.5 + rnd())));
+  for (let i = 0; i < 16; i++) { const x = (rnd() - 0.5) * 70, z = (rnd() > 0.5 ? 1 : -1) * (5 + rnd() * 1.5); parts.push(part(cyl(0.04, 0.05, 1.8, 4), C.leaf, x, 0.8, z), part(cyl(0.1, 0.1, 0.4, 5), C.woodDark, x, 1.7, z)); }
+  return merge(parts);
+}
+
 // ------------------------------------------------------------------------------------------------ graveyard
 /** Three smiling tombstones (rounded, cross, square) with sleepy slot eyes, blush and grass tufts. */
 function gravestones(): THREE.BufferGeometry {
@@ -497,6 +508,7 @@ export const LANTERN_PROPS: Record<string, PropFactory> = {
   lantern_arch: kind(lanternArch, matte),
   lantern_string: kind(lanternString, matte, false),
   bridge_rail: kind(bridgeRail, matte, false),
+  creek: kind(creek, () => MaterialLibrary.vertexLit(0.12, 0), false),
   gore_cushion: kind(goreCushion, matte),
   pillar: kind(stonePillar, matte, false),
   bridge_deck: CANOPY_PROPS.bridge_deck!,
