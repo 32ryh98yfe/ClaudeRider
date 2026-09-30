@@ -99,24 +99,27 @@ function lightStrip(): THREE.BufferGeometry {
   return merge([paint(place(cyl(0.22, 0.28, 1.2, 6), 0, 0.6, 0), NAVY_2), paint(place(cyl(0.26, 0.26, 0.25, 6), 0, 1.3, 0), CYAN), paint(place(torus(0.3, 0.05, 3, 8), 0, 0.5, 0, Math.PI / 2), ORANGE)]);
 }
 
-/** Token press (F5 press hazard): heavy stamp block with an orange die face and warning chevrons. */
+/**
+ * Token press (F5 press hazard), real size in the hazard frame (x across, y up, z along): the HAZ box is
+ * 5 along × 7 across × 3 up, so the stamp block is 7 × 3 × 5 with an orange die face and warning chevrons.
+ */
 function press(): THREE.BufferGeometry {
-  const parts = [paint(place(rbox(5, 3, 3, 0.2, 2), 0, 1.5, 0), PANEL, 0.03, 4), paint(place(box(5.1, 0.35, 3.1), 0, 0.18, 0), ORANGE)];
-  for (let i = -2; i <= 2; i++) parts.push(paint(place(box(0.5, 1.2, 0.06), i * 0.9, 2.1, 1.53, 0, 0, 0.6), i % 2 ? NAVY : AMBER));
-  parts.push(paint(place(cyl(0.5, 0.5, 5, 8), 0, 5.5, 0), GREY));
+  const parts = [paint(place(rbox(7, 3, 5, 0.2, 2), 0, 1.5, 0), PANEL, 0.03, 4), paint(place(box(7.1, 0.35, 5.1), 0, 0.18, 0), ORANGE)];
+  for (let i = -3; i <= 3; i++) parts.push(paint(place(box(0.5, 1.2, 0.06), i * 0.9, 2.1, 2.53, 0, 0, 0.6), i % 2 ? NAVY : AMBER));
+  parts.push(paint(place(cyl(0.6, 0.6, 5, 8), 0, 5.5, 0), GREY));
   return merge(parts);
 }
 
-/** Laser gate emitter (F5 press hazard with effect=block): two posts and a red beam bar across half the road. */
+/** Laser gate (F5 press hazard, effect=block; HAZ box 1.5 along × 6 across × 3 up): two posts, red beams across. */
 function laserGate(): THREE.BufferGeometry {
   return merge([
-    paint(place(box(0.5, 3.2, 0.5), 0, 1.6, -3.1), NAVY_2), paint(place(box(0.5, 3.2, 0.5), 0, 1.6, 3.1), NAVY_2),
-    glow(paint(place(box(0.14, 0.14, 6), 0, 1.0, 0), '#ff3a4a'), 2.6), glow(paint(place(box(0.14, 0.14, 6), 0, 2.0, 0), '#ff3a4a'), 2.6),
-    glow(paint(place(box(0.6, 0.4, 0.6), 0, 3.3, -3.1), ORANGE), 2), glow(paint(place(box(0.6, 0.4, 0.6), 0, 3.3, 3.1), ORANGE), 2),
+    paint(place(box(0.5, 3.2, 0.5), -3.1, 1.6, 0), NAVY_2), paint(place(box(0.5, 3.2, 0.5), 3.1, 1.6, 0), NAVY_2),
+    glow(paint(place(box(6, 0.14, 0.14), 0, 1.0, 0), '#ff3a4a'), 2.6), glow(paint(place(box(6, 0.14, 0.14), 0, 2.0, 0), '#ff3a4a'), 2.6),
+    glow(paint(place(box(0.6, 0.4, 0.6), -3.1, 3.3, 0), ORANGE), 2), glow(paint(place(box(0.6, 0.4, 0.6), 3.1, 3.3, 0), ORANGE), 2),
   ]);
 }
 
-/** Maglev freight pod (F5 train hazard): 24 m long along +Z, white hull, cyan windows, orange stripe. */
+/** Maglev freight pod (F5 train hazard, HAZ box 24 along × 3.4 across × 4 up): 24 m long along +Z, white hull, cyan windows, orange stripe. */
 function maglev(): THREE.BufferGeometry {
   const parts = [paint(place(rbox(3.2, 3.2, 24, 0.9, 2), 0, 2.0, 0), WHITE, 0.03, 6), paint(place(box(3.26, 0.3, 24.05), 0, 1.3, 0), ORANGE), paint(place(box(2.2, 0.5, 23), 0, 0.3, 0), GREY)];
   for (let z = -10; z <= 10; z += 2.5) for (const sx of [1, -1]) parts.push(glow(paint(place(box(0.05, 0.7, 1.8), sx * 1.62, 2.5, z), CYAN), 1.8));

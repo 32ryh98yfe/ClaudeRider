@@ -17,7 +17,7 @@ export const ORBITAL_LOOK: Partial<ThemeLook> = {
   hemi: { sky: '#8fb4ff', ground: '#d97757', intensity: 0.85 },
   fogColor: '#0b1026',
   stars: 1,
-  planet: { color: '#d98a5f', ring: '#e8d2b8', dir: [-0.55, 0.35, -0.75], size: 0.32 },
+  planet: { color: '#d98a5f', ring: '#e8d2b8', dir: [-0.55, 0.42, -0.72], size: 0.15 },
   bloom: 0.5,
   rimBoost: 1.3,
   envIntensity: 0.8,
