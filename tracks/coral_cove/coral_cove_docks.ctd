@@ -5,10 +5,8 @@
 # with the striped lighthouse on its islet across the bay. No baked terrain: the sea is open water right up to the
 # road, and every beach, dune and headland is a prop.
 @signature surfaces, jump
-@fallback jump -> "continuous gangplank ramp (S 50, -3 m) off the galleon deck" when=F2
 @fallback hazard:traffic -> "cosmetic cargo stacks on the pier S (no rolling barrels)" when=F5
 @fallback hazard:swinger -> "static dock crane with a hanging net at the market lane" when=F5
-@fallback branch -> "net-shed shortcut omitted; net sheds line the S" when=F1
 TRACK coral_cove_docks name="Coral Cove Docks" theme=coral_cove diff=2 laps=3 topo=circuit
 DEFAULTS w=17 surf=asphalt wall=barrier:1.0 shoulder=2 shoulderSurf=sand blend=16
 START pos=(0,0,0) hdg=0
@@ -18,7 +16,7 @@ C R30 90 L bank=5                                  @lifeguard_corner
 S 90 surf=wood shoulder=0                          @pier_boardwalk
 WIGGLE R40 40/80/40 R dy=3                         @pier_s
 S 68                                               @galleon_deck
-S 50 dy=-3                                         @gangplank
+J ramp=6@-4 gap=6 drop=3 land=40 vmin=21 vmax=46    @gangplank
 C R25 90 L bank=5 surf=cobble shoulder=2           @fish_market_corner
 WIGGLE R35 45/90/45 R                              @net_shed_s
 S ?b                                               @market_lane
@@ -32,8 +30,12 @@ S ?a                                               @to_the_line
 CLOSE solve=[?a,?b,?c] length=1350
 LINE start at=0
 ITEMS at=60,220,390,660,1000,1230 n=5
-PAD at=1325,35 d=0 len=6 w=4
-KEYS 80,300,540,720,900,1100,1250
+PAD at=1318,20 d=0 len=6 w=4
+# the net-shed alley: an 8 m wooden shortcut along the chord of the net-shed S, walled in by the sheds
+BRANCH net_shed from=@net_shed_s to=@market_lane kind=shortcut aiMin=0.35 w=8 wall=building:4 surf=wood shoulder=0 {
+  C R200 3 L ; S ?x ; C R200 6 R ; S ?y ; C R200 3 L
+}
+KEYS 80,300,640,720,900,1100,1250
 # segment map (s from the line): beach 0-100 | lifeguard 100-147 | pier 147-237 | pier S 237-349 | galleon deck 349-417
 #   gangplank 417-467 | fish market 467-506 | net-shed S 506-616 | market lane 616-795 | crane 795-850 | palm S 850-975
 #   dune-grass S 980-1106 | lighthouse corner 1106-1169 | beach sweepers 1169-1310 | to the line 1310-1350
