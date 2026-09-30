@@ -80,9 +80,9 @@ test('menus: lobby → settings / garage / mode select / time attack / queue / r
   await expect(page.getByTestId('ta-start')).toBeVisible();
   await page.keyboard.press('Escape');
 
-  // quick match and custom room show proper offline states against the stub
+  // quick match reaches the server (search) or shows the offline state; Esc cancels the search
   await page.getByTestId('quick-match').click();
-  await expect(page.getByTestId('queue-offline')).toBeVisible();
+  await expect(page.locator('[data-testid=queue-offline], .q-search').first()).toBeVisible();
   await page.keyboard.press('Escape');
   await page.getByTestId('open-room').click();
   await expect(page.getByTestId('room-landing')).toBeVisible();

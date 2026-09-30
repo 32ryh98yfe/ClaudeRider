@@ -6,5 +6,6 @@ export default {
   slow_consumer: '연결이 너무 느립니다.', connection_lost: '서버와 연결이 끊겼습니다.', webgl_unavailable: '이 브라우저에서 3D 그래픽을 사용할 수 없습니다.',
   save_corrupt: '저장 데이터를 읽을 수 없습니다.', ghost_outdated: '고스트가 이전 버전이라 삭제되었습니다.', audio_blocked: '소리를 켜려면 화면을 클릭하세요.',
   offline: '온라인 서버에 연결되어 있지 않습니다.', timeout: '서버 응답이 늦어요. 다시 시도해 주세요.', internal: '서버에 문제가 생겼어요.', unknown: '알 수 없는 오류가 발생했어요.',
+  bad_message: '잘못된 요청입니다. 새로고침해 주세요.',
   load_failed: '트랙을 불러오지 못했어요.', save_version: '더 새로운 버전의 저장 데이터라 읽을 수 없어요.',
 };
