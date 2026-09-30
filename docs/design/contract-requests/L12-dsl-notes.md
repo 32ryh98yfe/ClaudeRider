@@ -5,6 +5,7 @@
 2. **PROPS ranges that wrap past the line are not wrapped.** For example, `from=@quay_corner to=@harbour_corner` on a
    circuit gives `s1 += L` in `props.ts`, but `sampleAt(P, s)` clamps `s > L` to the end. Rows collapse onto the last
    sample and are dropped. Suggested fix: wrap `s` modulo the length for closed paths.
-3. **Junction exclusion covers the whole branch span on the host.** A branch that runs alongside its host (pit lane,
-   net-shed alley) loses every host-side PROPS row for its full length. Suggested fix: limit the `junction` exclusion
-   to the split and merge blend windows (±blend), not `hostS0…hostS1`.
+3. **The "no floating props" check drops props on the high side of banked corners.** `yRoad = smp.y + smp.ry·u`
+   extends the banked road plane outward, so at an 8° bank any row more than about 19 m out is "3 m above the terrain"
+   and gets dropped (a hairpin grandstand and its tyre wall vanished). Suggested fix: use the road-edge height
+   (`smp.y + smp.ry·(w/2 + sh)`) instead of the height at `u`.
