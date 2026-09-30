@@ -1,13 +1,13 @@
 # Magma Switchback — Ember Mine D5 (speed). From the basalt plateau a 540° helix corkscrews down beside the lava lake,
 # the road ducks under the plateau, threads the geyser field and the ore-rail corner, hops the lava channel and
 # climbs back up through the basalt chicane and the twin R12 switchbacks.
-# @signature helix, stacked, rail, jump, ledge, hazard:geyser, conveyor
-# @fallback helix -> "3 x C R16 180 descending switchbacks, dy -4.7 each" when=F6   (not taken: C+dy stacks cleanly)
-# @fallback rail -> "lava-edge corner at d -6, no capture" when=F4
-# @fallback jump -> "jump-pad hop over the lava channel (surf=jump_pad lip, no gap)" when=F2
-# @fallback ledge -> "ledge branch omitted (no BRANCH in the M1 DSL)" when=F1
-# @fallback hazard:geyser -> "static vents (cosmetic)" when=F5
-# @fallback conveyor -> "belts drawn on the split lanes, no speed change (ZONE conveyor)" when=F1
+@signature helix, stacked, rail, jump, ledge, hazard:geyser, conveyor
+@fallback helix -> "3 x C R16 180 descending switchbacks, dy -4.7 each" when=F6   (not taken: C+dy stacks cleanly)
+@fallback rail -> "lava-edge corner at d -6, no capture" when=F4
+@fallback jump -> "jump-pad hop over the lava channel (surf=jump_pad lip, no gap)" when=F2
+@fallback ledge -> "ledge branch omitted (no BRANCH in the M1 DSL)" when=F1
+@fallback hazard:geyser -> "static vents (cosmetic)" when=F5
+@fallback conveyor -> "belts drawn on the split lanes, no speed change (ZONE conveyor)" when=F1
 TRACK magma_switchback name="Magma Switchback" theme=ember_mine diff=5 laps=2 topo=circuit
 DEFAULTS w=12 surf=basalt wall=rock:1.5 shoulder=0 shoulderSurf=gravel blend=16
 START pos=(0,0,0) hdg=0

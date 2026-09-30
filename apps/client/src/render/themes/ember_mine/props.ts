@@ -13,18 +13,39 @@ const metal = (): THREE.Material => MaterialLibrary.vertexLit(0.5, 0.35);
 const TIMBER = '#8b5a2b', TIMBER_DARK = '#6b4226', IRON = '#4a4d52', RUST = '#8a4b2a', BASALT = '#2b2320';
 const CYAN = '#7fdbff', VIOLET = '#c77dff', AMBER = '#ffc857', LAVA = '#ff6a2b';
 
-/** Timber post-and-lintel mine support spanning the road (placed on the centreline). */
+/**
+ * Timber post-and-lintel mine support spanning the road. Rows may not start on the road, so the origin is the right
+ * post and the frame spans +X (toward and across the road) by ARCH_SPAN; place it with side=R, scale=1-1 and
+ * offset = ARCH_SPAN/2 − w/2 (9.3 − w/2) so both posts stand just outside the walls.
+ */
+export const ARCH_SPAN = 18.6;
 function timberArch(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
+  const c = ARCH_SPAN / 2;
   for (const sx of [-1, 1]) {
-    parts.push(paint(place(box(0.7, 10.5, 0.7), sx * 9.8, 2.2, 0), TIMBER, 0.08, 3));
-    parts.push(paint(beam(sx * 9.8, 5.2, 0, sx * 7.0, 7.3, 0, 0.45), TIMBER_DARK));
-    parts.push(paint(place(box(0.9, 0.5, 0.9), sx * 9.8, 7.25, 0), IRON));
+    parts.push(paint(place(box(0.7, 10.5, 0.7), c + sx * c, 2.2, 0), TIMBER, 0.08, 3));
+    parts.push(paint(beam(c + sx * c, 5.2, 0, c + sx * (c - 2.8), 7.3, 0, 0.45), TIMBER_DARK));
+    parts.push(paint(place(box(0.9, 0.5, 0.9), c + sx * c, 7.25, 0), IRON));
   }
-  parts.push(paint(place(box(21, 0.8, 0.8), 0, 7.7, 0), TIMBER, 0.06, 5));
-  parts.push(paint(place(box(21.4, 0.18, 0.95), 0, 8.15, 0), TIMBER_DARK));
-  // iron straps
-  for (const x of [-6, -2, 2, 6]) parts.push(paint(place(box(0.25, 0.85, 0.85), x, 7.7, 0), IRON));
+  parts.push(paint(place(box(ARCH_SPAN + 1.4, 0.8, 0.8), c, 7.7, 0), TIMBER, 0.06, 5));
+  parts.push(paint(place(box(ARCH_SPAN + 1.8, 0.18, 0.95), c, 8.15, 0), TIMBER_DARK));
+  for (const x of [-6, -2, 2, 6]) parts.push(paint(place(box(0.25, 0.85, 0.85), c + x, 7.7, 0), IRON));
+  return merge(parts);
+}
+
+/** Render-only support placed by the compiler under decks > 4 m above the terrain (y = terrain). */
+function pier(): THREE.BufferGeometry {
+  return merge([
+    paint(place(cyl(1.1, 1.35, 4.2, 6), 0, 2.0, 0), BASALT, 0.08, 7),
+    paint(place(box(3.4, 0.5, 1.6), 0, 4.1, 0), TIMBER_DARK),
+    paint(place(cyl(1.6, 1.9, 0.6, 6), 0, 0.1, 0), '#3b2f29'),
+  ]);
+}
+
+function goreCushion(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  for (let i = 0; i < 4; i++) parts.push(paint(place(cyl(0.45, 0.45, 0.9, 8), (i - 1.5) * 0.4, 0.45, -i * 0.5), i % 2 ? '#ffc857' : '#2b2320'));
+  parts.push(paint(place(box(1.6, 0.9, 0.12), 0, 1.35, 0.3), '#ffc857'));
   return merge(parts);
 }
 
@@ -192,10 +213,11 @@ function minePortal(): THREE.BufferGeometry {
 /** Cavern roof slab with stalactites (placed on the centreline); keeps above the intro flyover height (≥ 20 m). */
 function caveRoof(seed: number): THREE.BufferGeometry {
   const R = rng(seed);
-  const parts: THREE.BufferGeometry[] = [paint(place(rock(30, seed, 1), 0, 38, 0, 0, R() * 3, 0, 1.3, 0.42, 1.1), '#2a2429', 0.14, seed)];
+  // origin sits beside the road (rows cannot start on it); the slab is centred ~10 m toward the road
+  const parts: THREE.BufferGeometry[] = [paint(place(rock(30, seed, 1), 10, 38, 0, 0, R() * 3, 0, 1.3, 0.42, 1.1), '#2a2429', 0.14, seed)];
   for (let i = 0; i < 9; i++) {
     const a = R() * Math.PI * 2, d = 6 + R() * 26, h = 4 + R() * 6;
-    parts.push(paint(place(cone(1.2 + h * 0.18, h, 6), Math.cos(a) * d, 33 - h / 2, Math.sin(a) * d, Math.PI, 0, 0), i % 2 ? '#3a3238' : '#453b40', 0.1, i + seed));
+    parts.push(paint(place(cone(1.2 + h * 0.18, h, 6), 10 + Math.cos(a) * d, 33 - h / 2, Math.sin(a) * d, Math.PI, 0, 0), i % 2 ? '#3a3238' : '#453b40', 0.1, i + seed));
   }
   return merge(parts);
 }
@@ -282,4 +304,6 @@ export const EMBER_PROPS: Record<string, PropFactory> = {
   obsidian: { build: () => ({ geometry: obsidianShards(13), material: MaterialLibrary.vertexLit(0.25, 0.3) }) },
   geyser_vent: { build: () => ({ geometry: geyserVent(), material: lit() }) },
   gantry: { build: () => ({ geometry: minePortal(), material: lit(), castShadow: false }) },
+  pillar: { build: () => ({ geometry: pier(), material: lit() }) },
+  gore_cushion: { build: () => ({ geometry: goreCushion(), material: lit() }) },
 };

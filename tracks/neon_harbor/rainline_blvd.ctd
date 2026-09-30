@@ -1,9 +1,9 @@
 # Rainline Boulevard — Neon Harbor D3 (both modes). A rainy night run down a six-lane boulevard, through the neon
 # arcade S and the container yard, up onto an overpass that crosses 9 m above the boulevard, spiralling 270° back
 # down under its own deck into the noodle-bar market and home along the canal and the plaza.
-# @signature hazard:traffic, surfaces, branch, stacked
-# @fallback hazard:traffic -> "parked cars as static obstacles lining lanes 1 and 6" when=F5   (visual only until F5)
-# @fallback branch -> "alley shortcut omitted (no BRANCH in the M1 DSL)" when=F1
+@signature hazard:traffic, surfaces, branch, stacked
+@fallback hazard:traffic -> "parked cars as static obstacles lining lanes 1 and 6" when=F5   (visual only until F5)
+@fallback branch -> "alley shortcut omitted (no BRANCH in the M1 DSL)" when=F1
 TRACK rainline_blvd name="Rainline Boulevard" theme=neon_harbor diff=3 laps=3 topo=circuit
 DEFAULTS w=14 surf=wet wall=barrier:1.1 shoulder=0 shoulderSurf=asphalt blend=16
 START pos=(0,0,0) hdg=0
