@@ -18,7 +18,7 @@
     "packages/sim/src/core/world.ts": "fa059994a51f6f388122e0f198f87e4e56f10b968c75d34942ea578364acf717",
     "packages/sim/src/step.ts": "bf851eda07d0570df3753d0ed1b2e6ae05596a1c8072e95ac7019b8c7e87d5f1",
     "packages/sim/src/track/container.ts": "4f6c2d82a42ad7aecc6d55766c5bf9fafcd3b9d629ac4e78ee94d9cc974c4090",
-    "packages/sim/src/track/format.ts": "2aa5121188b221f7b1ae24e55842f29db10980bf8ec43def00568c45611d7da3",
+    "packages/sim/src/track/format.ts": "f31caa76121b0db7900529bc48c3ae837879d07478f4399113ad13e645c95637",
     "packages/sim/src/track/trihash.ts": "ed15a52c8c575bbb037a9ee826b1118d55e0e5f5ad558331d26498a58ee710d8"
   }
 }
