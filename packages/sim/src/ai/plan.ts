@@ -3,6 +3,7 @@
 // 2D frame everywhere in the AI: X = world x, Y = −world z (counter-clockwise, + = left, like the sim's yaw).
 import type { BakedTrack, AiSample, FrameSample } from '../track/BakedTrack.ts';
 import { gripGain, type KartParams } from '../kart/params.ts';
+import { SFLAG } from '../track/format.ts';
 import { relaxRacingLine } from './line.ts';
 
 /** A corner on one path: a run of same-direction curvature with at least ~17° of turning. */
@@ -51,6 +52,8 @@ export interface PathPlan {
   readonly LIM_L: Float64Array; readonly LIM_R: Float64Array; readonly LEDGE: Uint8Array;
   /** 1 where the cross-section curves up into ridable walls (halfpipe / gutter profiles, 14-ai §4.4). */
   readonly PIPE: Uint8Array;
+  /** 1 on loop / zero-g spans (RMF frames): throttle held, no drifting (14-ai §4.5). Widened 40 m ahead. */
+  readonly RMF: Uint8Array;
 }
 
 /** A jump as the AI needs it: lip position and the validated lip-speed window (14-ai §4.2). */
@@ -104,6 +107,7 @@ function buildPlan(track: BakedTrack): TrackPlan {
     const n = Math.max(4, closed ? Math.round(L) : Math.round(L) + 1);
     const ds = closed ? L / n : L / (n - 1);
     const X = new Float64Array(n), Y = new Float64Array(n), H = new Float64Array(n), TX = new Float64Array(n), TY = new Float64Array(n);
+    const RMFS = new Uint8Array(n);
     const HW = new Float64Array(n), WALL = new Float64Array(n), LINE = new Float64Array(n), KAP = new Float64Array(n), VLIM = new Float64Array(n), T40 = new Float64Array(n);
     for (let i = 0; i < n; i++) {
       const s = i * ds;
@@ -111,8 +115,11 @@ function buildPlan(track: BakedTrack): TrackPlan {
       track.aiAt(pi, s, A);
       X[i] = F.px; Y[i] = -F.pz; H[i] = F.py;
       let tx = F.tx, ty = -F.tz;
-      const tl = Math.sqrt(tx * tx + ty * ty) || 1; tx /= tl; ty /= tl;
+      const tl = Math.sqrt(tx * tx + ty * ty);
+      // inside a vertical loop the plan tangent vanishes: keep the previous direction instead of a random flip
+      if (tl < 0.3 && i > 0) { tx = TX[i - 1]!; ty = TY[i - 1]!; } else { tx /= tl || 1; ty /= tl || 1; }
       TX[i] = tx; TY[i] = ty;
+      if ((F.flags & SFLAG.RMF) !== 0) RMFS[i] = 1;
       const wall = Math.min(F.wL, F.wR);
       WALL[i] = wall;
       // paved half-width from the AI table; never wider than the walls
@@ -124,7 +131,7 @@ function buildPlan(track: BakedTrack): TrackPlan {
       index: pi, n, ds, length: L, closed, X, Y, H, TX, TY, HW, WALL, LINE, KAP, VLIM, T40,
       LK: new Float64Array(n), LINEW: new Float64Array(n).fill(1), KEFF: new Float64Array(n), STRAIGHT: new Float64Array(n), CORNER: new Int16Array(n).fill(-1), corners: [],
       next: null, forks: [], jumps: [],
-      LIM_L: new Float64Array(n), LIM_R: new Float64Array(n), LEDGE: new Uint8Array(n), PIPE: new Uint8Array(n),
+      LIM_L: new Float64Array(n), LIM_R: new Float64Array(n), LEDGE: new Uint8Array(n), PIPE: new Uint8Array(n), RMF: widenAhead(RMFS, closed, Math.round(40 / ds)),
     });
   }
   // old bakes carry lineU = 0 everywhere: relax a line here with the same algorithm the bake uses
@@ -356,6 +363,13 @@ function linkRoutes(track: BakedTrack, paths: PathPlan[]): Fork[] {
 }
 
 const mod = (x: number, L: number): number => x - L * Math.floor(x / L);
+
+/** Marks `ahead` samples before every set sample too (a drift must not start just before a loop). */
+function widenAhead(a: Uint8Array, closed: boolean, ahead: number): Uint8Array {
+  const n = a.length, out = Uint8Array.from(a);
+  for (let i = 0; i < n; i++) if (a[i]) for (let k = 1; k <= ahead; k++) { const j = closed ? (i - k + n) % n : i - k; if (j >= 0) out[j] = 1; }
+  return out;
+}
 function inSpan(s: number, s0: number, s1: number, L: number): boolean {
   if (s1 >= s0) return s >= s0 && s <= s1;
   return s >= s0 || s <= s1; // wraps the line

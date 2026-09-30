@@ -334,7 +334,7 @@ class BotDriver implements AiDriverEx {
         if (d > -2 && d < dLip) { dLip = d; jvMin = j.vMin; jvMax = j.vMax; }
       }
     }
-    const jumpNear = dLip < 60;
+    const jumpNear = dLip < 60 || ppS.RMF[this.ri] === 1; // loops / zero-g: no drift, straight line (14-ai §4.5)
     // ---- per-corner execution plan, rolled once per corner per pass
     if (ci !== this.cCorner || ppS.index !== this.cPath) this.rollCorner(ci, ppS, corner, prof);
     // ---- line noise (OU at 20 Hz: dt = 3 ticks, τ = 90 ticks)
