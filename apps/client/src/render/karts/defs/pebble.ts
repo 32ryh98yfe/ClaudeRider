@@ -8,7 +8,7 @@ export default defineKart({
   archetype: 'balance',
   dims: { length: 1.6, width: 1.1, height: 0.5, wheelR: 0.22 },
   livery: { primary: '#D97757', secondary: '#FAF9F5', pattern: 1, number: 7 },
-  seat: [0, 0.56, -0.12],
+  seat: [0, 0.6, -0.12],
   build(k) {
     const q = k.q;
     // floor tray + perimeter frame
@@ -27,13 +27,13 @@ export default defineKart({
     k.add(k.tb([[0.48, 0.2, 0.62], [0.42, 0.22, 0.84], [0, 0.23, 0.9], [-0.42, 0.22, 0.84], [-0.48, 0.2, 0.62]], 0.035), { color: 'chrome', surf: 'chrome' });
     k.add(k.tb([[0.5, 0.22, -0.62], [0.42, 0.24, -0.82], [0, 0.25, -0.86], [-0.42, 0.24, -0.82], [-0.5, 0.22, -0.62]], 0.04), { color: 'chrome', surf: 'chrome' });
     // bucket seat
-    k.add(k.rb(0.5, 0.08, 0.42, 0.035).translate(0, 0.31, -0.12), { color: 'seat', surf: 'matte' });
-    k.add(k.rb(0.54, 0.36, 0.08, 0.035).rotateX(-0.22).translate(0, 0.48, -0.37), { color: 'seat', surf: 'matte' });
+    k.add(k.rb(0.5, 0.14, 0.42, 0.04).translate(0, 0.32, -0.12), { color: 'seat', surf: 'matte' });
+    k.add(k.rb(0.54, 0.2, 0.08, 0.035).rotateX(-0.22).translate(0, 0.42, -0.37), { color: 'seat', surf: 'matte' });
     // engine block behind the seat
-    k.add(k.rb(0.42, 0.22, 0.26, 0.05).translate(0.04, 0.32, -0.62), { color: 'metal', surf: 'metal' });
-    if (k.lod === 0) for (let i = 0; i < 4; i++) k.add(box(0.44, 0.02, 0.02).translate(0.04, 0.36 + i * 0.03, -0.49), { color: 'chrome', surf: 'chrome' });
+    k.add(k.rb(0.42, 0.18, 0.26, 0.05).translate(0.04, 0.29, -0.62), { color: 'metal', surf: 'metal' });
+    if (k.lod === 0) for (let i = 0; i < 4; i++) k.add(box(0.44, 0.02, 0.02).translate(0.04, 0.32 + i * 0.03, -0.49), { color: 'chrome', surf: 'chrome' });
     // roll hoop framing the driver (chrome) — lower than the head accessories so hats stay readable
-    k.add(k.tb([[0.3, 0.22, -0.44], [0.29, 0.6, -0.47], [0.2, 0.72, -0.48], [-0.2, 0.72, -0.48], [-0.29, 0.6, -0.47], [-0.3, 0.22, -0.44]], 0.028, true), { color: 'chrome', surf: 'chrome' });
+    k.add(k.tb([[0.34, 0.22, -0.42], [0.34, 0.5, -0.46], [0.28, 0.6, -0.48], [-0.28, 0.6, -0.48], [-0.34, 0.5, -0.46], [-0.34, 0.22, -0.42]], 0.026, true), { color: 'chrome', surf: 'chrome' });
     k.handlebar({ color: 'chrome' });
     k.exhaust([-0.2, 0.36, -0.8], { r: 0.05, len: 0.2 });
     if (k.lod < 2) k.add(cyl(0.035, 0.035, 0.22, q(10, 6, 4)).rotateZ(Math.PI / 2).translate(-0.08, 0.36, -0.72), { color: 'chrome', surf: 'chrome' });
