@@ -16,6 +16,7 @@ import { RenderBuilder, groundToRender, startLineToRender, undersideToRender, wa
 import { buildTerrainField, terrainToRender, type TerrainField } from './terrain.ts';
 import { GroundIndex, exclusions, placeProps, type PropSet } from './props.ts';
 import { bakeAi } from './aibake.ts';
+import { buildFeatures, jumpFacesToRender, killPlanesToRender } from './features.ts';
 import { validate, type Finding } from './validate.ts';
 import { previewSvg } from './preview.ts';
 
@@ -34,6 +35,7 @@ export interface VisMeta {
   visVersion?: number;
   chunks?: (ChunkInfo & { groups: { slot: number; i0: number; n: number }[]; tris: number })[];
   junctions?: { kind: string; gore: { x: number; y: number; z: number; fx: number; fy: number; fz: number } | null }[];
+  killPlanes?: { id: string; y: number; surf: string; aabb: number[] }[];
   minimapPaths?: { id: string; kind: string; array: string }[];
   materials?: string[];
 }
@@ -192,6 +194,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     for (const s of h.samples) if (inS(m, h.index, s.s, j.hostS0, j.hostS1)) s.flags |= SFLAG.BLEND;
     for (const s of b.samples) if (s.s >= j.branchS0 && s.s <= j.branchS1) s.flags |= SFLAG.BLEND;
   }
+  const feat = buildFeatures(m, c, rows, ground, walls);
   const wallSoup = new TriSoup();
   wallTriangles(walls, wallSoup);
   tick('mesh');
@@ -283,6 +286,8 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   wallsToRender(rb, walls, ao);
   for (const p of m.paths) undersideToRender(rb, m, p, rows.get(p.index)!, (x, y, z) => (tf ? y - tf.height(x, z) : 0.6));
   startLineToRender(rb, m);
+  jumpFacesToRender(rb, m, c);
+  killPlanesToRender(rb, c, meta.bounds);
   if (tf) terrainToRender(rb, tf, nf, ao);
   const slots = rb.finalise();
   tick('render');
@@ -305,6 +310,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     chunks: chunkGroups.filter((g) => g.groups.length),
     junctions: junctions.map((j) => ({ kind: j.kind, gore: j.gore })),
     minimapPaths: m.paths.filter((p) => p.kind !== 'main').map((p) => ({ id: p.id, kind: p.kind, array: `minimap.${p.id}` })),
+    killPlanes: c.killPlanes.map((k) => ({ id: k.id, y: k.y, surf: k.surf, aabb: k.aabb ?? [meta.bounds[0]! - 120, meta.bounds[2]! - 120, meta.bounds[3]! + 120, meta.bounds[5]! + 120] })),
     materials: [...new Set(slots.map((s) => s.material))],
   };
   const visArrays: [string, TypedArray][] = [];
@@ -328,7 +334,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     length: main.length, lapLength: m.lapLength, samples: main.samples.length, paths: m.paths.length, groundTris: gIdx.length / 3, wallTris: wIdx.length / 3,
     boxes: c.boxes.length, ctrkBytes: ctrk.length, visBytes: vis.length, renderTris: slots.reduce((a, s) => a + s.idx.length / 3, 0),
     props: props.reduce((a, p) => a + p.xf.length / 6, 0), minR: minRadius(m, 0), minW: Math.min(...main.samples.map((s) => s.w)),
-    slots: slots.length, chunks: visMeta.chunks!.length, clippedTris: jr.touched,
+    slots: slots.length, chunks: visMeta.chunks!.length, clippedTris: jr.touched, killTris: feat.kills, jumpFaces: feat.faces,
   };
   const result: BuildResult = {
     id: ast.id, ctrk, vis, meta, visMeta, findings: [], stats, previewSvg: '', track, model: m, content: c, junctions, slots,

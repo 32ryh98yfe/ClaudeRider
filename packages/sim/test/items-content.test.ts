@@ -6,6 +6,8 @@ import { ITEM_BEHAVIORS } from '../src/generated/item-behaviors.gen.ts';
 import { EFFECT_BEHAVIORS } from '../src/generated/effect-behaviors.gen.ts';
 import { dropTableFor } from '../src/items/roll.ts';
 import { raceConfig } from './items-rig.ts';
+import ko from '../../../apps/client/src/i18n/ko/items.ts';
+import en from '../../../apps/client/src/i18n/en/items.ts';
 import { bakedTrack } from './rig.ts';
 
 const c = loadContent();
@@ -52,6 +54,14 @@ describe('item and effect definitions', () => {
       if (d.behavior) expect(EFFECT_BEHAVIORS, d.id).toHaveProperty(d.behavior);
       expect(d.presentation?.vfxKey).toBe(`effect.${d.id}`);
       expect(d.nameKey).toBe(`items.effect.${d.id}.name`);
+    }
+  });
+
+  it('every item and effect name/desc key exists in ko and en (namespace items)', () => {
+    const get = (d: Record<string, unknown>, key: string): unknown => key.split('.').slice(1).reduce<unknown>((o, p) => (o as Record<string, unknown> | undefined)?.[p], d);
+    for (const dict of [ko, en]) {
+      for (const d of c.items.all) for (const key of [d.presentation.nameKey, d.presentation.descKey]) expect(typeof get(dict, key), key).toBe('string');
+      for (const d of c.effects.all) for (const key of [d.nameKey, d.presentation!.descKey]) expect(typeof get(dict, key), key).toBe('string');
     }
   });
 

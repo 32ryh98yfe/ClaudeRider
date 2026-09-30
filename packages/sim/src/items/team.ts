@@ -35,12 +35,6 @@ export function leaderSlot(w: Readonly<WorldState>): number {
   return 0;
 }
 
-/** Highest-ranked kart that is still racing and satisfies `ok` (−1 if none). */
-export function bestRanked(w: Readonly<WorldState>, ok: (k: Readonly<KartState>) => boolean): number {
-  let best = -1, bestRank = 99;
-  for (const k of w.karts) if (inRace(k) && ok(k) && k.race.rank < bestRank) { bestRank = k.race.rank; best = k.slot; }
-  return best;
-}
 
 /**
  * `leader` targets (Top-1 Missile, Throttle Drone): the leader, or −1 when the leader is the user or a teammate
@@ -58,7 +52,9 @@ export function firewallTarget(w: Readonly<WorldState>, ctx: CfgCtx, user: Reado
     const l = w.karts[leaderSlot(w)]!;
     return l.slot === user.slot || !inRace(l) ? -1 : l.slot;
   }
-  return bestRanked(w, (k) => k.team !== user.team);
+  let best = -1, bestRank = 99;
+  for (const k of w.karts) if (inRace(k) && k.team !== user.team && k.race.rank < bestRank) { bestRank = k.race.rank; best = k.slot; }
+  return best;
 }
 
 /** `nextAheadOpponent` (Bug Report): the opponent directly ahead in rank (teammates skipped). */
