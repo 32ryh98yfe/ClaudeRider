@@ -7,7 +7,9 @@ import type { SlotConfig } from '@cr/sim';
 import { route, navigate } from '../../store/route.ts';
 import { t } from '../../../i18n/index.ts';
 import { Stage } from '../../../game/Stage.ts';
-import { Session, type SessionOptions } from '../../../game/Session.ts';
+import type { Session, SessionOptions } from '../../../game/Session.ts';
+import { createSession } from './sessionFactory.ts';
+import { lobby, lobbyActions } from '../../../net/lobby.ts';
 import { save } from '../../../meta/save.ts';
 import { applyRace } from '../../../meta/rewards.ts';
 import { currentRace, setCurrentRace } from '../../../meta/raceStats.ts';
@@ -25,7 +27,7 @@ import { SettingsScreen } from '../settings/SettingsScreen.tsx';
 import './race.css';
 
 /** Optional Session capabilities requested from the game lane (contract request L10-session-hooks.md). */
-interface SessionHooks { setPaused?: (p: boolean) => void; online?: boolean }
+interface SessionHooks { setPaused?: (p: boolean) => void }
 type ExtOptions = SessionOptions & { solo?: boolean; teams?: TeamFormat };
 
 const TIP_COUNT = 10;
@@ -109,7 +111,12 @@ export function RaceScreen() {
     setCurrentRace(null);
   };
   const restart = (): void => { stopSession(); navigate('loading', { ...params, nonce: String(Date.now()) }); };
-  const leave = (): void => { stopSession(); navigate(ta ? 'timeAttack' : 'lobby'); };
+  const leave = (): void => {
+    const online = sessionRef.current?.isOnline;
+    stopSession();
+    if (online && lobby.room.value) lobbyActions.leave();
+    navigate(ta ? 'timeAttack' : 'lobby');
+  };
 
   useEffect(() => {
     void loadTrackIndex();
@@ -124,7 +131,7 @@ export function RaceScreen() {
       ...(q.get('seed') ? { seed: Number(q.get('seed')) } : {}),
       ...(ta ? { solo: true } : {}),
     };
-    const s = new Session(Stage.renderer!, Stage.tier, opts);
+    const s = createSession(Stage.renderer!, Stage.tier, opts, params);
     sessionRef.current = s;
     endedRef.current = false;
     Stage.onResize = (w, h) => s.renderer?.resize(w, h);
@@ -153,7 +160,7 @@ export function RaceScreen() {
         setLastResult(r, s.slotNames, {
           slots: s.config.slots.map((x) => ({ characterId: x.characterId, kartBodyId: x.kartBodyId })),
           ...(summary ? { summary } : {}), ...(report ? { report } : {}),
-          again: { track: opts.trackId, mode, tier: opts.tier, ...(params['laps'] ? { laps: params['laps'] } : {}) }, teams: s.config.teams,
+          again: { track: opts.trackId, mode, tier: opts.tier, ...(params['laps'] ? { laps: params['laps'] } : {}) }, teams: s.config.teams, online: s.isOnline,
         });
         window.__cr = { ...window.__cr, race: 'done', result: r };
         endedRef.current = true;
@@ -165,8 +172,8 @@ export function RaceScreen() {
     }).catch((e: unknown) => { console.error(e); setError(String((e as Error)?.message ?? e)); });
     const offs = [
       onUiAction('pause', () => pause(true)),
-      onUiAction('restart', () => { if (ta || !(s as Session & SessionHooks).online) restart(); }),
-      onUiAction('blur', () => { if (!(s as Session & SessionHooks).online && !endedRef.current && sessionRef.current) pause(true); }),
+      onUiAction('restart', () => { if (!s.isOnline) restart(); }),
+      onUiAction('blur', () => { if (!s.isOnline && !endedRef.current && sessionRef.current) pause(true); }),
     ];
     return () => { cancelled = true; for (const o of offs) o(); if (!endedRef.current && route.value.screen !== 'race' && route.value.screen !== 'loading') stopSession(); };
   }, []);
@@ -180,7 +187,7 @@ export function RaceScreen() {
     );
   }
   if (!ready) return <Loading params={params} progress={progress} slots={slots} />;
-  const offline = !(sessionRef.current as (Session & SessionHooks) | null)?.online;
+  const offline = !sessionRef.current?.isOnline;
   return (
     <>
       <Hud minimap={minimap} />

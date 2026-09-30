@@ -36,7 +36,12 @@ function secondsLeft(endsAt: number | undefined, now: number): number { return e
 
 export function RoomScreen() {
   const room = lobby.room.value, conn = lobby.conn.value, err = lobby.error.value;
-  const leave = (): void => { if (lobby.room.value && !mockLobby.value) lobbyActions.leave(); if (mockLobby.value) lobby.room.value = null; navigate('lobby'); };
+  const leave = (): void => {
+    if (lobby.room.value && !mockLobby.value) lobbyActions.leave();
+    // the server sends no "room: null"; clear the local view so re-entering shows the landing
+    lobby.room.value = null; lobby.roulette.value = null; lobby.chat.value = [];
+    navigate('lobby');
+  };
   useBack(leave);
   const ensureConn = (): Promise<void> => {
     if (mockLobby.value || lobby.conn.value === 'online') return Promise.resolve();
@@ -44,7 +49,12 @@ export function RoomScreen() {
     return connect(save.get().profile.name, loadoutOf()).catch(() => { lobby.conn.value = 'offline'; });
   };
   useEffect(() => { void loadTrackIndex(); if (Stage.showcase) Stage.showcase.offsetX = 0.9; void ensureConn(); }, []);
-  useEffect(() => { if (err && err !== 'offline') { toast(t(errorKey(err)), 'bad'); } }, [err]);
+  useEffect(() => {
+    if (!err || err === 'offline') return;
+    toast(t(errorKey(err)), 'bad');
+    if (err === 'kicked') { lobby.room.value = null; lobby.chat.value = []; }
+    lobby.error.value = null;
+  }, [err]);
   return (
     <div class="screen room fade-in">
       <div class="room-scrim" />
@@ -62,7 +72,7 @@ function Landing({ conn, onLeave, retry }: { conn: string; onLeave: () => void; 
   return (
     <>
       <ScreenHead title={t('room.title')} sub={t('room.landingSub')} onBack={onLeave} />
-      <div class="room-landing">
+      <div class="room-landing" data-testid="room-landing">
         {offline ? (
           <div class="room-offline card" role="status">
             <Icon name="signal" size={22} />
@@ -169,7 +179,7 @@ function RoomView({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
           <button class={`btn big ${me?.ready ? 'dark' : 'primary'}`} type="button" data-autofocus onClick={() => { Audio.sfx('uiOk'); lobbyActions.ready(!me?.ready); }}><Icon name={me?.ready ? 'x' : 'check'} size={20} /><span class="display">{me?.ready ? t('room.notReady') : t('room.ready')}</span></button>
         )}
       </footer>
-      {room.phase === 'roulette' || lobby.roulette.value ? <Roulette room={room} now={now} /> : null}
+      {room.phase === 'roulette' ? <Roulette room={room} now={now} /> : null}
     </>
   );
 }

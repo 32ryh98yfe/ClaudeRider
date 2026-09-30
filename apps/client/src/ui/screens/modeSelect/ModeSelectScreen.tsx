@@ -48,7 +48,7 @@ export function ModeSelectScreen() {
           {CARDS.map((c) => {
             const sel = c === setup.mode;
             return (
-              <button key={c} type="button" role="radio" aria-checked={sel ? 'true' : 'false'} class={`mode-card mc-${c} ${sel ? 'sel' : ''} ${focus === c ? 'focus' : 'unfocus'}`}
+              <button key={c} type="button" role="radio" data-testid={`mode-card-${c}`} aria-checked={sel ? 'true' : 'false'} class={`mode-card mc-${c} ${sel ? 'sel' : ''} ${focus === c ? 'focus' : 'unfocus'}`}
                 onClick={() => pick(c)} onMouseEnter={() => setHover(c)} onMouseLeave={() => setHover(null)} onFocus={() => setHover(c)} onBlur={() => setHover(null)}>
                 <span class="mc-art" aria-hidden="true"><i /><i /><i /><Icon name={CARD_ICON[c]} size={72} class="mc-glyph" /></span>
                 <span class="mc-text">
@@ -111,7 +111,7 @@ export function ModeSelectScreen() {
       </div>
       <footer class="ms-foot">
         <NavHints items={[{ key: 'Esc', pad: 'B', label: t('common.back') }, { key: 'Enter', pad: 'A', label: t('common.select') }]} />
-        <button class="btn primary big ms-start" type="button" data-autofocus onClick={start}><Icon name="play" size={20} /><span class="display">{t('lobby.start')}</span></button>
+        <button class="btn primary big ms-start" type="button" data-testid="ms-start" data-autofocus onClick={start}><Icon name="play" size={20} /><span class="display">{t('lobby.start')}</span></button>
       </footer>
     </div>
   );

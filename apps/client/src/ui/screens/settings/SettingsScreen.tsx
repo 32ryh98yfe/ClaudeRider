@@ -1,7 +1,7 @@
 // Settings (31-ui-spec §9): graphics, audio buses, controls (rebinding with conflict detection, gamepad mapping,
 // Keyboard Lock), gameplay, HUD, accessibility, language, data (export/import/reset) and About (disclaimer).
 import type { ComponentChildren } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { navigate, route, type Screen } from '../../store/route.ts';
 import { t, locale, setLocale, type Locale } from '../../../i18n/index.ts';
 import { Audio } from '../../../audio/engine.ts';
@@ -48,13 +48,13 @@ export function SettingsScreen({ onClose }: { onClose?: () => void } = {}) {
   useBack(back);
   useTabs(TABS.map((x) => x.id), tab, setTab);
   return (
-    <div class={`screen settings fade-in ${onClose ? 'overlay' : ''}`} {...(onClose ? { 'data-focus-scope': true } : {})}>
+    <div data-testid="settings" class={`screen settings fade-in ${onClose ? 'overlay' : ''}`} {...(onClose ? { 'data-focus-scope': true } : {})}>
       <div class="set-scrim" />
       <ScreenHead title={t('settings.title')} onBack={back} />
       <div class="set-body">
         <nav class="set-nav" aria-label={t('settings.title')} role="tablist" aria-orientation="vertical">
           {TABS.map((x) => (
-            <button key={x.id} type="button" role="tab" aria-selected={tab === x.id ? 'true' : 'false'} class={tab === x.id ? 'on' : ''} onClick={() => { Audio.sfx('uiMove'); setTab(x.id); }}>
+            <button key={x.id} type="button" role="tab" data-testid={`tab-${x.id}`} aria-selected={tab === x.id ? 'true' : 'false'} class={tab === x.id ? 'on' : ''} onClick={() => { Audio.sfx('uiMove'); setTab(x.id); }}>
               <Icon name={x.icon} size={18} /><span>{t(`settings.${x.id}`)}</span>
             </button>
           ))}
@@ -132,23 +132,33 @@ function Controls({ s }: { s: Readonly<SettingsV1> }) {
   const [capture, setCapture] = useState<{ action: string; index: number; pad?: boolean } | null>(null);
   const [conflict, setConflict] = useState<{ action: string; index: number; code: string; other: string } | null>(null);
   const [padConflict, setPadConflict] = useState<{ action: string; index: number; button: number; other: string } | null>(null);
-  useEffect(() => {
-    if (!capture) return;
-    if (capture.pad) return capturePadButton((b) => {
-      setCapture(null);
-      const other = findPadConflict(save.get().settings.pad ?? {}, capture.action, b);
-      if (other) setPadConflict({ action: capture.action, index: capture.index, button: b, other });
-      else set((x) => { x.pad = bindPad(x.pad ?? {}, capture.action, capture.index, b); });
-    });
-    return captureKey((code) => {
-      setCapture(null);
-      if (code === 'Escape' && capture.action !== 'pause') return;
+  // capture registers synchronously in the click handler: effects run after paint, and a key pressed before the
+  // listener exists would re-activate the focused chip instead of binding
+  const cancelRef = useRef<(() => void) | null>(null);
+  useEffect(() => () => cancelRef.current?.(), []);
+  const beginCapture = (c: { action: string; index: number; pad?: boolean }): void => {
+    cancelRef.current?.();
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    setCapture(c);
+    if (c.pad) {
+      cancelRef.current = capturePadButton((b) => {
+        cancelRef.current = null; setCapture(null);
+        const other = findPadConflict(save.get().settings.pad ?? {}, c.action, b);
+        if (other) setPadConflict({ action: c.action, index: c.index, button: b, other });
+        else set((x) => { x.pad = bindPad(x.pad ?? {}, c.action, c.index, b); });
+      });
+      return;
+    }
+    cancelRef.current = captureKey((code) => {
+      cancelRef.current = null; setCapture(null);
+      if (code === 'Escape' && c.action !== 'pause') return;
       if (RESERVED.has(code)) return;
-      const other = findConflict(save.get().settings.keys, capture.action, code);
-      if (other) setConflict({ action: capture.action, index: capture.index, code, other });
-      else { Audio.sfx('uiOk'); set((x) => { x.keys = bindKey(x.keys, capture.action, capture.index, code); }); }
+      const other = findConflict(save.get().settings.keys, c.action, code);
+      if (other) setConflict({ action: c.action, index: c.index, code, other });
+      else { Audio.sfx('uiOk'); set((x) => { x.keys = bindKey(x.keys, c.action, c.index, code); }); }
     });
-  }, [capture]);
+  };
+  const cancelCapture = (): void => { cancelRef.current?.(); cancelRef.current = null; setCapture(null); };
   const space = t('common.key.space');
   const missing = unbound(s.keys);
   const groups: ActionGroup[] = ['drive', 'race', 'system'];
@@ -179,11 +189,11 @@ function Controls({ s }: { s: Readonly<SettingsV1> }) {
                     <span class="bind-keys">
                       {codes.map((c, i) => (
                         <span class="bind-chip" key={c}>
-                          <button type="button" class={`kbd-btn ${capture?.action === a.id && capture.index === i && !capture.pad ? 'capturing' : ''}`} aria-label={`${t('settings.rebind')} ${t(`settings.action.${a.id}`)} ${keyLabel(c, space)}`} onClick={() => setCapture({ action: a.id, index: i })}>{keyLabel(c, space)}</button>
+                          <button type="button" data-testid={`bind-${a.id}-${i}`} class={`kbd-btn ${capture?.action === a.id && capture.index === i && !capture.pad ? 'capturing' : ''}`} aria-label={`${t('settings.rebind')} ${t(`settings.action.${a.id}`)} ${keyLabel(c, space)}`} onClick={() => beginCapture({ action: a.id, index: i })}>{keyLabel(c, space)}</button>
                           <button type="button" class="bind-x" aria-label={t('settings.removeKey')} onClick={() => set((x) => { x.keys = unbindKey(x.keys, a.id, i); })}><Icon name="x" size={12} /></button>
                         </span>
                       ))}
-                      {codes.length < MAX_KEYS ? <button type="button" class="kbd-btn add" aria-label={`${t('settings.addKey')} ${t(`settings.action.${a.id}`)}`} onClick={() => setCapture({ action: a.id, index: codes.length })}><Icon name="plus" size={14} /></button> : null}
+                      {codes.length < MAX_KEYS ? <button type="button" class="kbd-btn add" aria-label={`${t('settings.addKey')} ${t(`settings.action.${a.id}`)}`} onClick={() => beginCapture({ action: a.id, index: codes.length })}><Icon name="plus" size={14} /></button> : null}
                     </span>
                   </div>
                 );
@@ -206,8 +216,8 @@ function Controls({ s }: { s: Readonly<SettingsV1> }) {
                 <div class="bind-row" key={a.id}>
                   <span class="bind-name">{t(`settings.action.${a.id}`)}</span>
                   <span class="bind-keys">
-                    {btns.map((b, i) => <button key={b} type="button" class={`kbd-btn pad ${capture?.pad && capture.action === a.id && capture.index === i ? 'capturing' : ''}`} onClick={() => setCapture({ action: a.id, index: i, pad: true })}>{padLabel(b)}</button>)}
-                    {btns.length < 2 ? <button type="button" class="kbd-btn add" aria-label={t('settings.addKey')} onClick={() => setCapture({ action: a.id, index: btns.length, pad: true })}><Icon name="plus" size={14} /></button> : null}
+                    {btns.map((b, i) => <button key={b} type="button" class={`kbd-btn pad ${capture?.pad && capture.action === a.id && capture.index === i ? 'capturing' : ''}`} onClick={() => beginCapture({ action: a.id, index: i, pad: true })}>{padLabel(b)}</button>)}
+                    {btns.length < 2 ? <button type="button" class="kbd-btn add" aria-label={t('settings.addKey')} onClick={() => beginCapture({ action: a.id, index: btns.length, pad: true })}><Icon name="plus" size={14} /></button> : null}
                   </span>
                 </div>
               );
@@ -226,7 +236,7 @@ function Controls({ s }: { s: Readonly<SettingsV1> }) {
             <Icon name={capture.pad ? 'pad' : 'keyboard'} size={40} />
             <h2>{capture.pad ? t('settings.pressButton') : t('settings.pressKey')}</h2>
             <p>{t(`settings.action.${capture.action}`)}</p>
-            <div class="actions"><span class="set-note">{t('settings.cancelHint')}</span><button class="btn quiet small" type="button" onClick={() => setCapture(null)}>{t('common.cancel')}</button></div>
+            <div class="actions"><span class="set-note">{t('settings.cancelHint')}</span><button class="btn quiet small" type="button" onClick={cancelCapture}>{t('common.cancel')}</button></div>
           </div>
         </div>
       ) : null}

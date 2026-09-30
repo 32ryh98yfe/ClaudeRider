@@ -171,3 +171,6 @@ input[type='range'].slider:focus-visible::-webkit-slider-thumb { box-shadow: 0 0
 html.rm *, html.rm *::before, html.rm *::after { animation-duration: 150ms !important; animation-iteration-count: 1 !important; transition-duration: 120ms !important; }
 html.rm .btn:hover, html.rm .btn:active { transform: none; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 150ms !important; animation-iteration-count: 1 !important; transition-duration: 120ms !important; } }
+
+/* low quality tier: flat translucent panels instead of backdrop blur */
+html.q-low *, html.q-low *::before, html.q-low *::after { backdrop-filter: none !important; }
