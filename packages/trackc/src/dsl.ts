@@ -1,16 +1,15 @@
-// Track DSL parser (gap-3 §9 subset + extensions). One command per line (or ';'-separated).
-// Grammar summary (see docs/design/11-track-spec.md):
-//   TRACK <id> name="..." theme=<id> diff=<1-5> laps=<n|auto> topo=circuit|p2p
-//   DEFAULTS w=18 surf=cobble wall=barrier:1.0 shoulder=0 shoulderSurf=grass blend=15
-//   START pos=(x,y,z) hdg=<deg>          GRID rows=4 cols=2 pitch=6 stagger=3 d=4
-//   S <len|?a> [dy= w= bank= surf= wall= wallL= wallR= shoulder= shoulderSurf= noitem=1]
-//   C R<r> <deg> L|R [dy= w= bank= ...]
-//   WIGGLE R<r> a/b/a L|R  |  CHICANE R<r> a/b/a L|R  |  HAIRPIN R<r> L|R
-//   CLOSE solve=[?a,?b,?c] length=<m>     LINE start at=<s>
-//   ITEMS at=<s>,<s>(n=6,span=26),... n=<default>     PAD at=<s> d=<u> len=<m> w=<m>
-//   KEYS <s>,<s>,...    JUMPS <s0>-<s1>,...    KILLY <y>
-//   PROPS kind=<k> along=<s0>-<s1>|all side=L|R|both every=<m> offset=<m>
-//   THEME sky=<preset> ...   @label   # comment
+// Track DSL parser (docs/design/11-track-spec.md §2, cookbook: docs/design/11a-dsl-cookbook.md).
+//
+// Lexical rules:
+//   - one command per line, several per line separated by `;`, or several on one line when each starts with a
+//     multi-letter command keyword (`START pos=(0,0,0) hdg=0   GRID rows=4 …`, as in the gap-3 fixtures);
+//   - `#` starts a comment when it begins a token (so hex colours like `fog=#cfe6f5:120:900` survive);
+//   - an indented physical line whose first token is `key=value` continues the previous command (gap-3 AREA/RAIL);
+//     a trailing `\` also continues;
+//   - `{ … }` opens a block (BRANCH); blocks may span lines;
+//   - `@label` marks the start of the statement it is attached to (or of the next statement when alone);
+//   - `@signature …` and `@fallback X -> "…" when=Fn` are whole-line directives.
+// The parser only structures text; every semantic check happens in the compiler (turtle.ts / content.ts).
 
 export interface DslError { file: string; line: number; col: number; msg: string }
 export class TrackDslError extends Error {
@@ -19,159 +18,218 @@ export class TrackDslError extends Error {
 }
 
 export type Attrs = Record<string, string>;
-export interface SegCmd { kind: 'S' | 'C'; line: number; len?: number | string; r?: number; deg?: number; dir?: 'L' | 'R'; attrs: Attrs }
+
+export interface Stmt {
+  cmd: string;            // upper-cased command keyword
+  args: string[];         // positional tokens after the command
+  attrs: Attrs;           // key=value tokens (quotes stripped)
+  flags: string[];        // bare lower-case words among args that look like switches (e.g. `keep`)
+  labels: string[];       // labels attached to this statement
+  line: number;
+  block?: Stmt[];
+}
+
+export interface Fallback { feature: string; substitute: string; when: string }
+
 export interface TrackAst {
   file: string;
   id: string;
   header: Attrs;
-  defaults: Attrs;
-  start: { x: number; y: number; z: number; hdg: number };
-  grid: { rows: number; cols: number; pitch: number; stagger: number; d: number };
-  segs: SegCmd[];
-  close?: { solve: string[]; length: number };
-  lineAt: number;
-  items: { s: number; n: number; span?: number }[];
-  itemDefaultN: number;
-  pads: { s: number; d: number; len: number; w: number }[];
-  keys: number[];
-  jumps: { s0: number; s1: number }[];
-  killY?: number;
-  props: Attrs[];
-  theme: Attrs;
-  labels: Record<string, number>; // label → segment index
+  stmts: Stmt[];
+  signature: string[];
+  fallbacks: Fallback[];
+  /** labels that were not attached to any statement (end of file / end of block) → resolved as path end. */
+  trailingLabels: { labels: string[]; block: Stmt[] | null }[];
 }
 
-function tokenize(line: string): string[] {
-  const out: string[] = [];
-  let cur = '', q = false, paren = 0;
-  for (const ch of line) {
+/** Every multi-letter command keyword. A token equal to one of these starts a new statement mid-line. */
+export const COMMANDS = [
+  'TRACK', 'DEFAULTS', 'START', 'GRID', 'LINE', 'CLOSE',
+  'S', 'C', 'E', 'J', 'LOOP', 'HELIX', 'WIGGLE', 'CHICANE', 'HAIRPIN', 'CLOVERLEAF', 'PLAZA',
+  'BRANCH', 'RAIL', 'WARP', 'AREA', 'PROFILE',
+  'ITEMS', 'PAD', 'HAZ', 'ZONE', 'KILL', 'KEYS', 'PROPS', 'PROP', 'THEME',
+  'JUMPS', 'KILLY', // M1 legacy commands (kept for backward compatibility)
+] as const;
+const SPLITTERS = new Set<string>(COMMANDS.filter((c) => c.length > 1));
+const KNOWN = new Set<string>(COMMANDS);
+
+interface Tok { t: string; line: number }
+
+/** Splits one logical line into tokens; `;`, `{`, `}` are standalone tokens; (), [] and "" group. */
+function tokenize(text: string, line: number, file: string): Tok[] {
+  const out: Tok[] = [];
+  let cur = '', q = false, depth = 0;
+  const flush = (): void => { if (cur) out.push({ t: cur, line }); cur = ''; };
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]!;
     if (ch === '"') { q = !q; cur += ch; continue; }
-    if (!q && ch === '(') paren++;
-    if (!q && ch === ')') paren--;
-    if (!q && paren === 0 && (ch === ' ' || ch === '\t')) { if (cur) out.push(cur); cur = ''; continue; }
+    if (q) { cur += ch; continue; }
+    if (ch === '(' || ch === '[') depth++;
+    if (ch === ')' || ch === ']') depth = Math.max(0, depth - 1);
+    if (depth === 0) {
+      if (ch === ' ' || ch === '\t') { flush(); continue; }
+      if (ch === ';' || ch === '{' || ch === '}') { flush(); out.push({ t: ch, line }); continue; }
+      if (ch === '#' && cur === '') break; // comment
+    }
     cur += ch;
   }
-  if (cur) out.push(cur);
+  if (q) throw new TrackDslError({ file, line, col: 1, msg: 'unterminated string' });
+  flush();
   return out;
 }
 
-function parseAttrs(toks: string[]): Attrs {
-  const a: Attrs = {};
-  for (const t of toks) {
-    const i = t.indexOf('=');
-    if (i > 0) a[t.slice(0, i)] = t.slice(i + 1).replace(/^"|"$/g, '');
-  }
-  return a;
-}
+const isAttr = (t: string): boolean => {
+  if (t.startsWith('?') || t.startsWith('@')) return false;
+  const i = t.indexOf('=');
+  return i > 0 && !t.slice(0, i).includes('(');
+};
 
-const num = (s: string | undefined, def: number): number => (s === undefined ? def : Number(s));
+function stripQuotes(v: string): string { return v.length >= 2 && v.startsWith('"') && v.endsWith('"') ? v.slice(1, -1) : v; }
 
 export function parse(src: string, file: string): TrackAst {
-  const ast: TrackAst = {
-    file, id: '', header: {}, defaults: {}, start: { x: 0, y: 0, z: 0, hdg: 0 },
-    grid: { rows: 4, cols: 2, pitch: 6, stagger: 3, d: 4 }, segs: [], lineAt: 0, items: [], itemDefaultN: 5,
-    pads: [], keys: [], jumps: [], props: [], theme: {}, labels: {},
-  };
+  const ast: TrackAst = { file, id: '', header: {}, stmts: [], signature: [], fallbacks: [], trailingLabels: [] };
   const fail = (line: number, msg: string): never => { throw new TrackDslError({ file, line, col: 1, msg }); };
-  const lines = src.split(/\r?\n/);
-  for (let li = 0; li < lines.length; li++) {
-    const raw = lines[li]!.replace(/#.*$/, '').trim();
-    if (!raw) continue;
-    for (const part of raw.split(';')) {
-      const cmdLine = part.trim();
-      if (!cmdLine) continue;
-      const toks = tokenize(cmdLine).filter((t) => {
-        if (t.startsWith('@')) { ast.labels[t.slice(1)] = ast.segs.length; return false; }
-        return true;
-      });
-      if (!toks.length) continue;
-      const cmd = toks[0]!.toUpperCase();
-      const lineNo = li + 1;
-      switch (cmd) {
-        case 'TRACK': ast.id = toks[1] ?? fail(lineNo, 'TRACK needs an id'); ast.header = parseAttrs(toks.slice(2)); break;
-        case 'DEFAULTS': Object.assign(ast.defaults, parseAttrs(toks.slice(1))); break;
-        case 'START': {
-          const a = parseAttrs(toks.slice(1));
-          const m = /\(([^)]*)\)/.exec(a.pos ?? '(0,0,0)');
-          const [x, y, z] = (m?.[1] ?? '0,0,0').split(',').map(Number);
-          ast.start = { x: x ?? 0, y: y ?? 0, z: z ?? 0, hdg: num(a.hdg, 0) };
-          if (a.GRID) break;
-          break;
-        }
-        case 'GRID': {
-          const a = parseAttrs(toks.slice(1));
-          ast.grid = { rows: num(a.rows, 4), cols: num(a.cols, 2), pitch: num(a.pitch, 6), stagger: num(a.stagger, 3), d: num(a.d, 4) };
-          break;
-        }
-        case 'S': {
-          const lenTok = toks[1] ?? fail(lineNo, 'S needs a length');
-          const len = lenTok.startsWith('?') ? lenTok.split('=')[0]! : Number(lenTok);
-          if (typeof len === 'number' && !(len > 0)) fail(lineNo, `bad straight length ${lenTok}`);
-          ast.segs.push({ kind: 'S', line: lineNo, len, attrs: parseAttrs(toks.slice(2)) });
-          break;
-        }
-        case 'C': {
-          const rTok = toks[1] ?? '';
-          if (!/^R\d/.test(rTok)) fail(lineNo, 'C needs R<radius>');
-          const r = Number(rTok.slice(1));
-          const deg = Number(toks[2]);
-          const dir = (toks[3] ?? '').toUpperCase();
-          if (!(r > 0) || !(deg > 0) || (dir !== 'L' && dir !== 'R')) fail(lineNo, 'C syntax: C R<r> <deg> L|R');
-          ast.segs.push({ kind: 'C', line: lineNo, r, deg, dir: dir as 'L' | 'R', attrs: parseAttrs(toks.slice(4)) });
-          break;
-        }
-        case 'WIGGLE': case 'CHICANE': {
-          // WIGGLE R<r> a/b/a L|R  → C a dir ; C b other ; C a dir
-          const r = Number((toks[1] ?? 'R0').slice(1));
-          const parts = (toks[2] ?? '').split('/').map(Number);
-          const dir = (toks[3] ?? 'L').toUpperCase() as 'L' | 'R';
-          const other = dir === 'L' ? 'R' : 'L';
-          const attrs = parseAttrs(toks.slice(4));
-          const dirs = [dir, other, dir];
-          const total = parts.reduce((a, b) => a + b, 0) || 1;
-          const dy = Number(attrs.dy ?? 0);
-          parts.forEach((deg, i) => ast.segs.push({ kind: 'C', line: lineNo, r, deg, dir: dirs[i] as 'L' | 'R', attrs: { ...attrs, dy: String((dy * deg) / total), ...(attrs.bank ? { bank: String((dirs[i] === dir ? 1 : -1) * Number(attrs.bank)) } : {}) } }));
-          break;
-        }
-        case 'HAIRPIN': {
-          const r = Number((toks[1] ?? 'R0').slice(1));
-          const dir = (toks[2] ?? 'L').toUpperCase() as 'L' | 'R';
-          ast.segs.push({ kind: 'C', line: lineNo, r, deg: 180, dir, attrs: parseAttrs(toks.slice(3)) });
-          break;
-        }
-        case 'CLOSE': {
-          const a = parseAttrs(toks.slice(1));
-          const solve = (a.solve ?? '').replace(/[[\]]/g, '').split(',').filter(Boolean);
-          ast.close = { solve, length: num(a.length, 0) };
-          break;
-        }
-        case 'LINE': { const a = parseAttrs(toks.slice(1)); ast.lineAt = num(a.at, 0); break; }
-        case 'ITEMS': {
-          const a = parseAttrs(toks.slice(1));
-          ast.itemDefaultN = num(a.n, 5);
-          for (const p of (a.at ?? '').split(/,(?![^(]*\))/)) {
-            if (!p) continue;
-            const m = /^([\d.]+)(?:\((.*)\))?$/.exec(p.trim());
-            if (!m) fail(lineNo, `bad ITEMS entry ${p}`);
-            const sub = parseAttrs((m![2] ?? '').split(','));
-            ast.items.push({ s: Number(m![1]), n: num(sub.n, ast.itemDefaultN), ...(sub.span ? { span: Number(sub.span) } : {}) });
-          }
-          break;
-        }
-        case 'PAD': {
-          const a = parseAttrs(toks.slice(1));
-          for (const s of (a.at ?? '').split(',')) if (s) ast.pads.push({ s: Number(s), d: num(a.d, 0), len: num(a.len, 6), w: num(a.w, 4) });
-          break;
-        }
-        case 'KEYS': ast.keys = (toks[1] ?? '').split(',').filter(Boolean).map(Number); break;
-        case 'JUMPS': ast.jumps = (toks[1] ?? '').split(',').filter(Boolean).map((r) => { const [a, b] = r.split('-').map(Number); return { s0: a ?? 0, s1: b ?? 0 }; }); break;
-        case 'KILLY': ast.killY = Number(toks[1]); break;
-        case 'PROPS': ast.props.push(parseAttrs(toks.slice(1))); break;
-        case 'THEME': Object.assign(ast.theme, parseAttrs(toks.slice(1))); break;
-        default: fail(lineNo, `unknown command ${cmd}`);
+
+  // ---- physical → logical lines (continuations), whole-line directives
+  const phys = src.split(/\r?\n/);
+  const logical: { text: string; line: number }[] = [];
+  for (let li = 0; li < phys.length; li++) {
+    const rawLine = phys[li]!;
+    const trimmed = rawLine.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    if (/^@signature\b/i.test(trimmed)) {
+      const body = trimmed.replace(/^@signature\s*/i, '').replace(/\s#.*$/, '');
+      ast.signature.push(...body.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean));
+      continue;
+    }
+    if (/^@fallback\b/i.test(trimmed)) {
+      const m = /^@fallback\s+(\S+)\s*->\s*(?:"([^"]*)"|(\S+))\s*(?:when=(F[1-6]))?/i.exec(trimmed);
+      if (!m) fail(li + 1, 'bad @fallback, expected: @fallback <feature> -> "<substitute>" when=F<n>');
+      ast.fallbacks.push({ feature: m![1]!, substitute: m![2] ?? m![3] ?? '', when: (m![4] ?? 'F6').toUpperCase() });
+      continue;
+    }
+    const indented = /^\s/.test(rawLine);
+    const first = trimmed.split(/\s+/)[0]!;
+    const prev = logical[logical.length - 1];
+    const continues = prev && ((indented && isAttr(first) && !KNOWN.has(first.split('=')[0]!.toUpperCase())) || prev.text.endsWith('\\'));
+    if (continues) { prev.text = prev.text.replace(/\\$/, '') + ' ' + trimmed; continue; }
+    logical.push({ text: trimmed, line: li + 1 });
+  }
+
+  // ---- statements with blocks
+  const stack: Stmt[][] = [ast.stmts];
+  const blockOwner: (Stmt | null)[] = [null];
+  let cur: Stmt | null = null;
+  let pending: string[] = [];
+  const endStmt = (): void => { cur = null; };
+  const startStmt = (cmd: string, line: number): Stmt => {
+    const s: Stmt = { cmd, args: [], attrs: {}, flags: [], labels: pending, line };
+    pending = [];
+    stack[stack.length - 1]!.push(s);
+    cur = s;
+    return s;
+  };
+  for (const L of logical) {
+    const toks = tokenize(L.text, L.line, file);
+    for (const { t, line } of toks) {
+      if (t === ';') { endStmt(); continue; }
+      if (t === '{') {
+        const owner: Stmt | null = cur;
+        if (!owner) fail(line, '`{` without a command');
+        owner!.block = [];
+        stack.push(owner!.block);
+        blockOwner.push(owner);
+        endStmt();
+        continue;
+      }
+      if (t === '}') {
+        if (stack.length === 1) fail(line, 'unbalanced `}`');
+        if (pending.length) { ast.trailingLabels.push({ labels: pending, block: stack[stack.length - 1]! }); pending = []; }
+        stack.pop(); blockOwner.pop();
+        endStmt();
+        continue;
+      }
+      if (/^@[A-Za-z_][A-Za-z0-9_]*$/.test(t)) {
+        // a bare @name marks a label; `@name+30` / `@a,@b` are s references (positional values)
+        const name = t.slice(1);
+        if (cur) (cur as Stmt).labels.push(name); else pending.push(name);
+        continue;
+      }
+      const up = t.toUpperCase();
+      if (!cur) {
+        if (!KNOWN.has(up) || t !== up) fail(line, `unknown command ${t}`);
+        startStmt(up, line);
+        continue;
+      }
+      if (SPLITTERS.has(t)) { endStmt(); startStmt(t, line); continue; }
+      const c = cur as Stmt;
+      if (isAttr(t)) {
+        const i = t.indexOf('=');
+        c.attrs[t.slice(0, i)] = stripQuotes(t.slice(i + 1));
+      } else {
+        c.args.push(stripQuotes(t));
+        if (/^[a-z][a-zA-Z]*$/.test(t)) c.flags.push(t);
       }
     }
+    endStmt(); // a newline ends a statement
   }
-  if (!ast.id) fail(1, 'missing TRACK line');
+  if (stack.length !== 1) fail(logical[logical.length - 1]?.line ?? 1, 'unclosed `{` block');
+  if (pending.length) ast.trailingLabels.push({ labels: pending, block: null });
+
+  const head = ast.stmts.find((s) => s.cmd === 'TRACK');
+  if (!head) fail(1, 'missing TRACK line');
+  ast.id = head!.args[0] ?? fail(head!.line, 'TRACK needs an id');
+  ast.header = head!.attrs;
   return ast;
+}
+
+// ------------------------------------------------------------------------------------------------ value helpers
+export function num(v: string | undefined, def: number): number {
+  if (v === undefined || v === '') return def;
+  const n = Number(v.replace(/^\+/, ''));
+  return Number.isFinite(n) ? n : def;
+}
+
+/** `(1, 2.5, -3)` → [1, 2.5, -3]; accepts `..` range separators (`aabb=(-330,-60 .. 180,240)`). */
+export function tuple(v: string | undefined): number[] {
+  if (!v) return [];
+  return v.replace(/^[([]|[)\]]$/g, '').split(/,|\.\.|\s+/).map((x) => x.trim()).filter(Boolean).map(Number);
+}
+
+/** `(dMax 2.0, hdg 25, vMin 15)` → { dMax: 2, hdg: 25, vMin: 15 }. */
+export function namedTuple(v: string | undefined): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!v) return out;
+  for (const part of v.replace(/^\(|\)$/g, '').split(',')) {
+    const m = /^\s*([A-Za-z]+)\s*[= ]\s*([-+]?[\d.]+)\s*$/.exec(part);
+    if (m) out[m[1]!] = Number(m[2]);
+  }
+  return out;
+}
+
+/** `[902:-4.5,911:-8]` → [[902,-4.5],[911,-8]]. Also accepts `(a,b)` pair lists: `[(0,0),(10,5)]`. */
+export function pairList(v: string | undefined): [string, string][] {
+  if (!v) return [];
+  const body = v.replace(/^\[|\]$/g, '');
+  if (body.includes('(')) {
+    const out: [string, string][] = [];
+    for (const m of body.matchAll(/\(\s*([^,)]+)\s*,\s*([^)]+)\)/g)) out.push([m[1]!.trim(), m[2]!.trim()]);
+    return out;
+  }
+  return body.split(',').filter(Boolean).map((p) => { const i = p.lastIndexOf(':'); return [p.slice(0, i).trim(), p.slice(i + 1).trim()] as [string, string]; });
+}
+
+/** Splits a list like `165,335(n=6,span=26),505` at top-level commas. */
+export function topList(v: string | undefined): string[] {
+  if (!v) return [];
+  const out: string[] = [];
+  let depth = 0, cur = '';
+  for (const ch of v) {
+    if (ch === '(' || ch === '[') depth++;
+    if (ch === ')' || ch === ']') depth--;
+    if (ch === ',' && depth === 0) { if (cur.trim()) out.push(cur.trim()); cur = ''; continue; }
+    cur += ch;
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out;
 }

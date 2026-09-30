@@ -135,7 +135,8 @@ export class Session {
     this.viewCur = cloneWorld(this.net.world);
     // HudPresenter reads only `.world` of the room it was written against; hand it the predicted world
     const net = (): NetClient => this.net;
-    const roomLike = { get world(): Readonly<WorldState> { return net().world; } };
+    // HudPresenter reads world + track (L10); the NetClient-backed session exposes both
+    const roomLike = { get world(): Readonly<WorldState> { return net().world; }, track };
     this.hud = new HudPresenter(roomLike as unknown as RaceRoom, this.localSlot, this.slotNames, this.config, (slot, out) => this.renderer.project(slot, out));
     progress(0.95, t('common.loading'));
   }

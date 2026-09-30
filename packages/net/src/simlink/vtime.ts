@@ -49,7 +49,7 @@ export class VirtualLoop {
         const l = 2 * i + 1, r = l + 1;
         let m = -1, best = last;
         if (l < n && less(h[l]!, best)) { m = l; best = h[l]!; }
-        if (r < n && less(h[r]!, best)) { m = r; best = h[r]!; }
+        if (r < n && less(h[r]!, best)) m = r;
         if (m < 0) break;
         h[i] = h[m]!; i = m;
       }

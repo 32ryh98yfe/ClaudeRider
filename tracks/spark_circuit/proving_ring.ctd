@@ -11,4 +11,19 @@ CLOSE solve=[?a] length=700
 LINE start at=120
 ITEMS at=40,220(n=6),390,560 n=5
 PAD at=60,410 d=0 len=6 w=4
-THEME scatter=tree_round,bush density=5 hills=4 sky=sunset
+# dressing (s from the line): main straight 580-700 + 0-104 | turn 1 104-230 | back straight 230-454 | turn 2 454-580
+PROPS kind=grandstand along=590-690 side=R every=27 offset=6
+PROPS kind=grandstand along=8-92 side=R every=27 offset=6
+PROPS kind=pit_wall along=584-696 side=L every=20 offset=3
+PROPS kind=pit_garage along=586-694 side=L every=21 offset=12
+PROPS kind=control_tower along=40-40 side=L every=10 offset=14
+PROPS kind=tyre_wall along=100-234 side=R every=5 offset=1.2
+PROPS kind=tyre_wall along=450-584 side=R every=5 offset=1.2
+PROPS kind=banner along=236-450 side=both every=12 offset=1.4
+PROPS kind=floodlight along=240-450 side=R every=52 offset=16
+PROPS kind=marshal_post along=168-168 side=R every=10 offset=4
+PROPS kind=marshal_post along=518-518 side=R every=10 offset=4
+PROPS kind=camera_tower along=342-342 side=L every=10 offset=12
+PROPS kind=footbridge along=300-300 side=R every=10 offset=-11
+PROPS kind=pine along=236-450 side=R every=16 offset=30 jitter=20
+THEME scatter=tree_round,bush,pine density=5 hills=4 sky=day

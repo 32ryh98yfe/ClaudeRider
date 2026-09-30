@@ -1,177 +1,259 @@
-// In-race HUD (docs/design/31-ui-spec.md). Layout follows the KRD teardown; all sizes scale with viewport height.
+// In-race HUD (31-ui-spec §4). The information architecture follows the KRD teardown (rank at 11.6 % H, standings,
+// LAP/TIME/BEST, 270° speedometer, 2 slots + gauges, minimap / progress rail) in ClaudeRider's own look.
+// Every element is positioned in a centred 16:9 safe box and scaled about its anchor by the HUD-scale setting.
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { useComputed } from '@preact/signals';
+import { ITEM_IDS, idOf, loadContent } from '@cr/content';
 import { hud } from '../store/hud.ts';
-import { banner } from '../store/banner.ts';
+import { hudX } from '../store/hudExtra.ts';
 import { t } from '../../i18n/index.ts';
-import { fmt, nameTags } from '../../game/HudPresenter.ts';
+import { fmt, nameTags, slotInfo } from '../../game/HudPresenter.ts';
+import { heldUi, inputDevice } from '../../input/keyboard.ts';
+import { lastSplit } from '../../meta/raceStats.ts';
+import { fmtDelta } from '../../meta/medals.ts';
+import { saveState } from '../store/profile.ts';
+import { ItemIcon, keyText } from '../components/common.tsx';
+import { Portrait } from '../components/Portrait.tsx';
+import { Speedometer } from './Speedometer.tsx';
+import { Overlays, ScreenOverlays } from './HudOverlays.tsx';
 import './hud.css';
 
 function Rank() {
-  const [pop, setPop] = useState(0);
-  const prev = useRef(hud.rank.value);
-  useEffect(() => hud.rank.subscribe((r) => { if (r !== prev.current) { setPop(r < prev.current ? 1 : -1); prev.current = r; setTimeout(() => setPop(0), 260); } }), []);
+  const f = hudX.rankFlash.value;
+  const [flash, setFlash] = useState<{ dir: number; key: number } | null>(null);
+  const last = useRef(0);
+  useEffect(() => {
+    if (!f || f.at === last.current) return;
+    last.current = f.at;
+    setFlash({ dir: f.dir, key: f.at });
+    const h = setTimeout(() => setFlash(null), 420);
+    return () => clearTimeout(h);
+  }, [f?.at]);
   return (
-    <div class={`hud-rank ${pop > 0 ? 'up' : pop < 0 ? 'down' : ''}`}>
-      <span class="num big">{hud.rank}</span><span class="num of">/{hud.total}</span>
+    <div class={`hud-rank ${flash ? (flash.dir > 0 ? 'up' : 'down') : ''}`} key={flash?.key ?? 0} aria-label={`${hud.rank.value}/${hud.total.value}`}>
+      <span class="num rk-big">{hud.rank}</span><span class="num rk-of">/{hud.total}</span>
     </div>
   );
 }
 
 function Standings() {
   const rows = hud.standings.value;
+  const full = heldUi.value.standings;
+  const item = hud.itemMode.value;
   return (
-    <ol class="hud-standings">
-      {rows.map((r) => (
-        <li key={r.slot} class={`${r.me ? 'me' : ''} ${r.retired ? 'retired' : ''}`} style={{ transform: `translateY(${(r.rank - 1) * 100}%)` }}>
-          <span class="num pos">{r.rank}</span>
-          {r.bot ? <span class="ai">AI</span> : <span class="ai hum">●</span>}
-          <span class="name">{r.name}</span>
-          {r.finished ? <span class="flag">🏁</span> : <span class="boosters">{'▮'.repeat(Math.min(2, r.boosters))}</span>}
-        </li>
-      ))}
+    <ol class={`hud-standings ${full ? 'full' : ''}`} aria-label={t('hud.standings')}>
+      {rows.map((r) => {
+        const info = slotInfo[r.slot];
+        return (
+          <li key={r.slot} class={`${r.me ? 'me' : ''} ${r.retired ? 'retired' : ''} ${r.finished ? 'fin' : ''}`} style={{ transform: `translateY(calc(${r.rank - 1} * (100% + 2px)))` }}>
+            <span class="num st-pos">{r.rank}</span>
+            {info ? <Portrait id={info.characterId} size={22} class="st-ico" /> : null}
+            {hud.teamMode.value ? <i class={`st-team t${r.team % 4}`} /> : null}
+            <span class="st-name">{r.name}</span>
+            {r.bot ? <span class="st-ai">AI</span> : null}
+            {r.finished ? <span class="st-flag" aria-hidden="true" /> : r.boosters > 0 ? (
+              <span class="st-boost">{Array.from({ length: Math.min(2, r.boosters) }, (_, i) => <i key={i} class={item ? 'itm' : ''} />)}</span>
+            ) : null}
+          </li>
+        );
+      })}
     </ol>
   );
 }
 
 function LapBlock() {
   const final = hud.finalLap.value;
+  const sp = lastSplit.value;
+  const showSplit = hudX.timeAttack.value && sp && performance.now() - sp.at < 3000;
+  const pop = hudX.lapPopup.value;
+  const showPop = pop && performance.now() - pop.at < 3000;
+  const [, force] = useState(0);
+  useEffect(() => { if (!showSplit && !showPop) return; const h = setTimeout(() => force((x) => x + 1), 3050); return () => clearTimeout(h); }, [sp?.at, pop?.at]);
   return (
     <div class="hud-lap">
-      <div class="lapline">
-        {final ? <span class="final">{t('hud.final')}</span> : null}
-        <span class="num big">{hud.lap}</span><span class="num of">/{hud.laps} {t('hud.lap')}</span>
+      <div class="lap-line">
+        {final ? <span class="lap-final">{t('hud.final')}</span> : null}
+        <span class="num lap-big">{hud.lap}</span><span class="num lap-of">/{hud.laps} <small>{t('hud.lap')}</small></span>
       </div>
-      <dl class="timers num">
+      <dl class="lap-timers num">
         <dt>{t('hud.lap')}</dt><dd>{fmt(hud.lapMs.value)}</dd>
         <dt>{t('hud.time')}</dt><dd>{fmt(hud.raceMs.value)}</dd>
-        <dt>{t('hud.best')}</dt><dd>{fmt(hud.bestMs.value)}</dd>
+        <dt>{t('hud.best')}</dt><dd class={hud.bestMs.value > 0 ? '' : 'none'}>{fmt(hud.bestMs.value, '--:--.---')}</dd>
       </dl>
+      {showSplit ? <div class={`lap-split num ${sp!.deltaTicks <= 0 ? 'good' : 'bad'}`} key={sp!.at}>{t('hud.split', { delta: fmtDelta(sp!.deltaTicks) })}</div> : null}
+      {showPop ? (
+        <div class="lap-pop num" key={pop!.at}>
+          <span>{fmt(pop!.lapTicks * (1000 / 60))}</span>
+          {pop!.best ? <b class="good">{t('hud.newBest')}</b> : pop!.deltaTicks !== null ? <b class={pop!.deltaTicks <= 0 ? 'good' : 'bad'}>{fmtDelta(pop!.deltaTicks)}</b> : null}
+        </div>
+      ) : null}
     </div>
   );
 }
 
-const SEG = 30;
-function Speedometer() {
-  const kmh = hud.kmh.value;
-  const frac = Math.min(1, kmh / 300);
-  const segs = [];
-  for (let i = 0; i < SEG; i++) {
-    const a0 = -225 + (i / SEG) * 270, a1 = a0 + 270 / SEG - 1.6;
-    const on = i / SEG < frac;
-    const hot = i / SEG > 0.78;
-    segs.push(<path key={i} d={arc(60, 60, 50, a0, a1)} class={`seg ${on ? 'on' : ''} ${hot ? 'hot' : ''}`} />);
-  }
+function ProgressRail() {
+  const dots = hudX.rail.value;
   return (
-    <div class={`hud-speed ${hud.boosting.value ? 'boost' : ''}`}>
-      <svg viewBox="0 0 120 120">{segs}<path d={arc(60, 60, 41, -225, 45)} class="inner" /></svg>
-      <div class="readout"><span class="num v">{kmh}</span><span class="unit">{t('common.km_h')}</span></div>
-      <div class={`draft ${hud.draft.value >= 1 ? 'on' : hud.draft.value > 0 ? 'charging' : ''}`}>{t('hud.draft')}</div>
+    <div class="hud-rail" aria-hidden="true">
+      <i class="rail-line" /><i class="rail-flag" />
+      {dots.map((d, i) => d.me ? null : <i key={i} class={`rail-dot ${hud.teamMode.value ? `t${d.team % 4}` : ''}`} style={{ top: `${(1 - d.p) * 100}%` }} />)}
+      {dots.filter((d) => d.me).map((d, i) => <i key={`me${i}`} class="rail-me" style={{ top: `${(1 - d.p) * 100}%` }} />)}
     </div>
   );
 }
-function arc(cx: number, cy: number, r: number, a0: number, a1: number): string {
-  const p = (a: number): string => `${cx + r * Math.cos((a * Math.PI) / 180)} ${cy + r * Math.sin((a * Math.PI) / 180)}`;
-  return `M ${p(a0)} A ${r} ${r} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${p(a1)}`;
+
+function SlotIcon({ code, booster }: { code: number; booster?: 'booster' | 'teamBooster' }) {
+  if (booster) return <ItemIcon id={booster} />;
+  // honour the item's presentation iconKey (`items/<id>`, 12-items-spec §10); fall back to the id list
+  const def = loadContent().items.byCode[code];
+  const id = def ? def.presentation.iconKey.replace(/^items\//, '') : idOf(ITEM_IDS, code);
+  return id ? <ItemIcon id={id} /> : null;
+}
+
+function Roulette() {
+  // 8–12 icon steps over 30 ticks, decelerating, then a 120 ms bounce (31-ui-spec §5)
+  return (
+    <span class="roulette" aria-hidden="true">
+      <span class="rl-strip">{['turbo_token', 'token_bomb', 'context_shield', 'prompt_missile', 'glitch_puddle', 'broadcast_bolt', 'bug_report', 'firewall', 'turbo_token'].map((id, i) => <ItemIcon key={i} id={id} />)}</span>
+    </span>
+  );
 }
 
 function Slots() {
   const item = hud.itemMode.value;
   const [a, b] = hud.slots.value;
   const boosters = hud.boosters.value, team = hud.teamBoosters.value;
-  const s0 = item ? a : team > 0 ? 'team' : boosters > 0 ? 'boost' : 0;
-  const s1 = item ? b : team > 0 ? (boosters > 0 ? 'boost' : 0) : boosters > 1 ? 'boost' : 0;
-  const icon = (v: number | string) => (v === 'boost' ? <span class="ico boost">N</span> : v === 'team' ? <span class="ico team">T</span> : typeof v === 'number' && v > 0 ? <span class="ico item">{v}</span> : null);
+  const rl = hudX.roulette.value;
+  const pops = hudX.gaugeFullAt.value;
+  const speedSlots: ('booster' | 'teamBooster' | null)[] = [];
+  for (let i = 0; i < team && speedSlots.length < 2; i++) speedSlots.push('teamBooster');
+  for (let i = 0; i < boosters && speedSlots.length < 2; i++) speedSlots.push('booster');
+  const s0 = item ? a : 0, s1 = item ? b : 0;
+  const b0 = item ? null : speedSlots[0] ?? null, b1 = item ? null : speedSlots[1] ?? null;
+  const full0 = item ? s0 > 0 : !!b0, full1 = item ? s1 > 0 : !!b1;
+  const lock = hudX.slotLock.value;
+  const pad = inputDevice.value === 'pad';
+  const cb = saveState.value.settings.colorBlind;
   return (
     <div class="hud-slots">
-      <div class="row">
-        <div class={`slot big ${s0 ? 'full' : ''}`}>{icon(s0) ?? <span class="kbd">{t('hud.boostKey')}</span>}</div>
-        <div class={`slot small ${s1 ? 'full' : ''}`}>{icon(s1)}</div>
+      {hudX.instantWindow.value ? <span class="instant-hint">{t('hud.instantBoost')}</span> : null}
+      <div class="slot-row">
+        <div class={`slot big ${full0 ? 'full' : ''} ${lock ? 'locked' : ''}`} key={`s0-${full0 ? (item ? s0 : `${b0}${pops ?? 0}`) : 'e'}`}>
+          {rl && rl.slot === 0 ? <Roulette /> : full0 ? <SlotIcon code={s0} {...(b0 ? { booster: b0 } : {})} /> : <span class={`kbd ${pad ? 'pad' : ''}`}>{keyText('item')}</span>}
+          {hud.auto.value ? <span class="slot-auto">{t('hud.auto')}</span> : null}
+          {lock ? <span class="slot-lock" aria-label={t('hud.locked')} /> : null}
+        </div>
+        <div class={`slot small ${full1 ? 'full' : ''} ${lock ? 'locked' : ''}`}>
+          {rl && rl.slot === 1 ? <Roulette /> : full1 ? <SlotIcon code={s1} {...(b1 ? { booster: b1 } : {})} /> : null}
+        </div>
       </div>
-      {!item ? <div class="gauge"><div class="fill" style={{ transform: `scaleX(${Math.min(1, hud.gauge.value)})` }} /><div class="shine" /></div> : null}
-      {hud.teamMode.value && !item ? <div class="gauge team"><div class="fill" style={{ transform: `scaleX(${Math.min(1, hud.teamGauge.value)})` }} /></div> : null}
-      <div class="keys"><span class="kbd">{t('hud.swapKey')}</span> ⟳</div>
+      {!item ? <div class={`gauge drift ${cb ? 'cb' : ''} ${hud.gauge.value >= 0.999 ? 'max' : ''}`}><i class="g-fill" style={{ transform: `scaleX(${Math.min(1, hud.gauge.value)})` }} /><i class="g-noise" /></div> : null}
+      {hud.teamMode.value && !item ? <div class="gauge team"><i class="g-fill" style={{ transform: `scaleX(${Math.min(1, hud.teamGauge.value)})` }} /></div> : null}
+      <div class="swap-chip"><span class={`kbd ${pad ? 'pad' : ''}`}>{keyText('swap')}</span><span aria-hidden="true">⟳</span><span class="sr-only">{t('hud.swapKey')}</span></div>
     </div>
   );
 }
 
 function Minimap({ points }: { points: Float32Array | null }) {
   const pts = points;
-  const box = useComputed(() => null);
-  void box;
-  if (!pts || pts.length < 4) return null;
-  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
-  for (let i = 0; i < pts.length; i += 2) { x0 = Math.min(x0, pts[i]!); x1 = Math.max(x1, pts[i]!); z0 = Math.min(z0, pts[i + 1]!); z1 = Math.max(z1, pts[i + 1]!); }
-  const pad = 20, w = x1 - x0 + pad * 2, h = z1 - z0 + pad * 2;
-  let d = '';
-  for (let i = 0; i < pts.length; i += 2) d += `${i ? 'L' : 'M'}${(pts[i]! - x0 + pad).toFixed(1)} ${(pts[i + 1]! - z0 + pad).toFixed(1)} `;
+  const [geo, setGeo] = useState<{ d: string; x0: number; z0: number; w: number; h: number } | null>(null);
+  useEffect(() => {
+    if (!pts || pts.length < 4) { setGeo(null); return; }
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+    for (let i = 0; i < pts.length; i += 2) { x0 = Math.min(x0, pts[i]!); x1 = Math.max(x1, pts[i]!); z0 = Math.min(z0, pts[i + 1]!); z1 = Math.max(z1, pts[i + 1]!); }
+    const pad = 24;
+    let d = '';
+    for (let i = 0; i < pts.length; i += 2) d += `${i ? 'L' : 'M'}${(pts[i]! - x0 + pad).toFixed(1)} ${(pts[i + 1]! - z0 + pad).toFixed(1)} `;
+    setGeo({ d: d + 'Z', x0: x0 - pad, z0: z0 - pad, w: x1 - x0 + pad * 2, h: z1 - z0 + pad * 2 });
+  }, [pts]);
+  if (!geo) return null;
+  const r = Math.max(geo.w, geo.h);
   return (
-    <svg class="hud-minimap" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="xMidYMid meet">
-      <path d={d + 'Z'} class="track-o" /><path d={d + 'Z'} class="track" />
-      {hud.minimap.value.slice().sort((a, b) => (a.me ? 1 : 0) - (b.me ? 1 : 0)).map((m, i) => (
-        <circle key={i} cx={m.x - x0 + pad} cy={m.z - z0 + pad} r={m.me ? w / 38 : w / 55} class={m.me ? 'dot me' : 'dot'} />
+    <svg class="hud-minimap" viewBox={`0 0 ${geo.w} ${geo.h}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <path d={geo.d} class="mm-o" style={{ strokeWidth: r / 28 }} /><path d={geo.d} class="mm-track" style={{ strokeWidth: r / 60 }} />
+      {hud.minimap.value.slice().sort((a, b) => (a.me ? 1 : 0) - (b.me ? 1 : 0) || b.rank - a.rank).map((m, i) => (
+        <circle key={i} cx={m.x - geo.x0} cy={m.z - geo.z0} r={m.me ? r / 34 : r / 52} class={m.me ? 'mm-dot me' : m.rank === 1 ? 'mm-dot lead' : 'mm-dot'} />
       ))}
     </svg>
   );
 }
 
-function Countdown() {
-  const c = hud.countdown.value;
-  if (c === null) return null;
-  return <div class={`hud-countdown ${c === 0 ? 'go' : ''}`} key={c}><span>{c === 0 ? t('hud.go') : c}</span>{c === 0 ? <i class="ring" /> : null}</div>;
-}
-
-function Banner() {
-  const b = banner.state.value;
-  if (!b) return null;
-  return <div class={`hud-banner ${b.kind}`} key={b.id}><span>{b.text}</span></div>;
+function NameTags() {
+  const root = useRef<HTMLDivElement>(null);
+  const show = saveState.value.settings.nameTags !== false;
+  useEffect(() => {
+    let raf = 0;
+    const loop = (): void => {
+      raf = requestAnimationFrame(loop);
+      const el = root.current;
+      if (!el) return;
+      const kids = el.children;
+      for (let i = 0; i < nameTags.length && i < kids.length; i++) {
+        const n = nameTags[i]!, c = kids[i] as HTMLElement;
+        const hide = !n.visible || n.dist > 75 || (n.me && n.dist < 2.5);
+        c.style.opacity = hide ? '0' : '1';
+        if (hide) continue;
+        c.style.transform = `translate(${(n.x * 100).toFixed(2)}vw, ${(n.y * 100).toFixed(2)}vh) translate(-50%, -100%) scale(${Math.max(0.55, 1 - n.dist / 95).toFixed(3)})`;
+        const r = c.firstChild as HTMLElement | null;
+        if (r && r.textContent !== String(n.rank)) r.textContent = String(n.rank);
+      }
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  if (!show) return null;
+  const team = hud.teamMode.value;
+  return (
+    <div class="hud-tags" ref={root} aria-hidden="true">
+      {nameTags.map((n) => (
+        <div key={n.slot} class={`tag ${n.me ? 'me' : ''} ${team ? `team t${n.team % 4}` : ''}`}><span class="num tg-r">{n.rank}</span>{n.me ? null : <span class="tg-n">{n.name}</span>}</div>
+      ))}
+    </div>
+  );
 }
 
 function Toasts() {
-  return <div class="hud-toasts">{hud.toasts.value.map((x) => <div key={x.id} class={`toast ${x.kind}`}>{x.text}</div>)}</div>;
+  return <div class="hud-toasts" aria-live="polite">{hud.toasts.value.slice(-2).map((x) => <div key={x.id} class={`toast ${x.kind}`}>{x.text}</div>)}</div>;
 }
 
-function WrongWay() {
-  if (!hud.wrongWay.value) return null;
-  return <div class="hud-wrongway"><div class="roundel"><i /></div><div class="txt">{t('hud.wrongWay')}</div><div class="hint">{t('hud.wrongWayHint')}</div></div>;
+function NetIndicator() {
+  const n = hudX.net.value;
+  if (!n) return null;
+  const q = n.pingMs < 60 ? 'good' : n.pingMs < 130 ? 'ok' : 'bad';
+  return <div class={`hud-net ${q}`}><span class="net-bars"><i /><i /><i /></span><span class="num">{n.pingMs}</span>{n.late > 0 ? <span class="net-late">{t('hud.lateSignal', { ms: n.late })}</span> : null}</div>;
 }
 
-function Retire() {
-  const r = hud.retireLeft.value;
-  if (r === null) return null;
-  return <div class="hud-retire"><span class="num">{r}</span><small>{t('hud.retireIn', { n: '' }).trim()}</small></div>;
-}
-
-function NameTags() {
-  const [, force] = useState(0);
-  useEffect(() => { let raf = 0; const loop = (): void => { force((x) => (x + 1) % 1e6); raf = requestAnimationFrame(loop); }; raf = requestAnimationFrame(loop); return () => cancelAnimationFrame(raf); }, []);
+function RearView() {
+  if (!heldUi.value.look) return null;
   return (
-    <div class="hud-tags">
-      {nameTags.map((n) => (!n.visible || n.dist > 70 || (n.me && n.dist < 3) ? null : (
-        <div key={n.slot} class={`tag ${n.me ? 'me' : ''}`} style={{ transform: `translate(${(n.x * 100).toFixed(2)}vw, ${(n.y * 100).toFixed(2)}vh) translate(-50%, -100%) scale(${Math.max(0.55, 1 - n.dist / 90).toFixed(2)})` }}>
-          <span class="r num">{n.rank}</span>{n.me ? null : <span class="n">{n.name}</span>}
-        </div>
-      )))}
+    <div class="hud-rear">
+      <span class="rear-tag">{t('hud.rear')}</span>
+      {/* render hook: the camera lane may draw a mirror texture into this slot (data-slot="rear-view") */}
+      <div class="rear-panel" data-slot="rear-view" />
     </div>
   );
 }
 
 export function Hud({ minimap }: { minimap: Float32Array | null }) {
   if (!hud.visible.value) return null;
+  const s = saveState.value.settings;
+  const showMap = hud.itemMode.value || !!s.minimapInSpeed;
   return (
-    <div class="hud">
+    <div class={`hud ${s.highContrast ? 'hc' : ''}`}>
       <NameTags />
-      <Rank />
-      <Standings />
-      <LapBlock />
-      <Speedometer />
-      <Slots />
-      <Minimap points={minimap} />
-      <Countdown />
-      <Banner />
-      <Toasts />
-      <WrongWay />
-      <Retire />
+      <ScreenOverlays />
+      <div class="hud-box">
+        <Rank />
+        <Standings />
+        <LapBlock />
+        {!hud.itemMode.value && !hudX.timeAttack.value ? <ProgressRail /> : null}
+        <Speedometer />
+        <Slots />
+        {showMap ? <Minimap points={minimap} /> : null}
+        <Toasts />
+        <NetIndicator />
+        <RearView />
+        <Overlays />
+      </div>
     </div>
   );
 }
