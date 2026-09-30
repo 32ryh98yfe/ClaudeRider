@@ -8,6 +8,11 @@ describe('i18n', () => {
     expect([...ko].filter((k) => !en.has(k)), 'missing in en').toEqual([]);
     expect([...en].filter((k) => !ko.has(k)), 'missing in ko').toEqual([]);
   });
+  it('per-entry files under <ns>/<sub>.ts merge into <ns>.<sub>.*', () => {
+    const ko = new Set(allKeys('ko'));
+    expect(ko.has('tracks.meadow_loop.name')).toBe(true);
+    expect(ko.has('tracks.meadow_loop.desc')).toBe(true);
+  });
   it('placeholders match between locales', () => {
     const ph = (s: string): string => (s.match(/\{\w+\}/g) ?? []).sort().join(',');
     for (const k of allKeys('ko')) {

@@ -6,7 +6,7 @@ import globals from 'globals';
 const BANNED_MATH = ['sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'atan2', 'exp', 'expm1', 'log', 'log2', 'log10', 'log1p', 'pow', 'hypot', 'cbrt', 'sinh', 'cosh', 'tanh', 'asinh', 'acosh', 'atanh', 'random'];
 
 export default tseslint.config(
-  { ignores: ['**/node_modules/**', '**/dist/**', '**/generated/**', 'apps/client/public/**', 'test-results/**', 'playwright-report/**', 'docs/**', 'art/codex/refs/**'] },
+  { ignores: ['**/node_modules/**', '**/dist/**', '**/generated/**', 'apps/client/public/**', 'test-results/**', 'playwright-report/**', 'docs/**', 'art/codex/refs/**', '.claude/**', 'tools/scratch/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

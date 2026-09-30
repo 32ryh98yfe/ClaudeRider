@@ -1,15 +1,15 @@
 {
   "note": "FROZEN contract files (M1). Change only via docs/design/contract-requests/ + orchestrator checkpoint; then run: node tools/check-frozen.mjs --update",
   "files": {
-    "apps/client/src/i18n/index.ts": "6c37208bbc2288a1efb093b24d495707f0429d0795cff8e1d1f24a38ffe2a6e8",
-    "apps/client/src/meta/save.ts": "0c3dd163fa8ebd29ddead8c39324d5edcb4fe361d3209ad58b744ecd4f6e8fea",
+    "apps/client/src/i18n/index.ts": "63d37492399758c7d54724e53e8a3e04c8528f9d1d2b0a8e1e99983c409dcd97",
+    "apps/client/src/meta/save.ts": "0b2eef5b5254b53844b3b8a905c5db1cd75e1f10faed654d77f663109db3454d",
     "apps/client/src/ui/store/hud.ts": "224a7dc7fbf4e269218723f14852b3489a207ce77172d065c9e0baa43e74d4de",
     "apps/client/src/ui/store/route.ts": "4832a966851dd52c7d230a27206da65cb85a1d88f947cd901607df2e4f959837",
     "packages/content/src/ids.ts": "05c188a33832264992b1646937a06c3ff60baefa35713b225d7a69f84f4a9d84",
     "packages/content/src/registry.ts": "1edb3d945e57627190a5d0825f4f7689567eac8a1cd405880c3b5ab1f6ba8e27",
     "packages/net/src/transport.ts": "92e715df4fcabfe0bd552c2e525a500d3888380d92b6d4fe5310aae2e1b14faa",
     "packages/sim/src/api.ts": "b927326b55ddf4e7b7a4824b93d8d3c2866d195a99c38261addbcb5a0c715478",
-    "packages/sim/src/core/events.ts": "eeea85193fd19009d45fc45c53bed1e7e5db694f742ae2310583aab3ff5be01c",
+    "packages/sim/src/core/events.ts": "d8fb72fd1b1e879115d3eb76a94ede6d7814685b52a96accf0b9bf38f586e5ac",
     "packages/sim/src/core/hash.ts": "163ab0c5d3a6f5467943c70d87fe99c09ba851712da12116a7ed4f8bb943221a",
     "packages/sim/src/core/input.ts": "08e7a4ee15e1443a374a78e694b118bcb0867f57157ea671ef77e6823a220437",
     "packages/sim/src/core/quant.ts": "19b53690a3f807b9a72fc69183fd5e27e7e484c0287ed2ff847e39b871a06dc8",
