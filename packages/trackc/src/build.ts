@@ -141,7 +141,15 @@ function pathArrays(p: PathModel, k: number, m: TrackModel): [string, TypedArray
     flg[i] = s.flags;
     if (s.grav !== 1) anyGrav = true;
   });
-  const ai = bakeAi(S, p.closed, p.length / (n - 1));
+  // The AI bake reads plan headings from the tangent. On RMF spans (loops) the tangent goes vertical, its plan part
+  // vanishes and flips, and the bake saw a 4 m "hairpin" (vLim 9 m/s, drift, spin-out). There the road still leads
+  // along the plan direction perpendicular to the (horizontal) loop axis, so hand the bake that instead.
+  const aiS = S.map((s) => {
+    if (!s.rmf) return s;
+    const px = s.rz, pz = -s.rx, pl = Math.hypot(px, pz) || 1;
+    return { ...s, tx: px / pl, ty: 0, tz: pz / pl };
+  });
+  const ai = bakeAi(aiS, p.closed, p.length / (n - 1));
   const out: [string, TypedArray][] = [[`p${k}.smp`, smp], [`p${k}.flg`, flg], [`p${k}.ai`, Float32Array.from(ai)]];
   if (anyGrav) out.push([`p${k}.grav`, Float32Array.from(S.map((s) => s.grav))]);
   void m;
