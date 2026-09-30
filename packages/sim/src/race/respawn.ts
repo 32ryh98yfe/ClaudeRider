@@ -19,6 +19,8 @@ export function updateRespawn(w: WorldState, k: KartState, ctx: StepContext): vo
   const r = k.race, b = k.body, d = k.drive;
   if (r.respawnPhase === 1 && w.tick >= r.respawnUntil) {
     const pose = POSE;
+    // place on the respawn sample, not the death point: locate and the anti-cut window restart from there (L4-respawn-jumps)
+    if (ctx.track.respawnLoc) { ctx.track.respawnLoc(r.lastValid, r.loc); copyLoc(r.lastValid, r.loc); } else copyLoc(r.loc, r.lastValid);
     ctx.track.respawnPose(r.lastValid, pose);
     b.px = pose.x; b.py = pose.y + 0.05; b.pz = pose.z;
     b.fx = pose.fx; b.fy = pose.fy; b.fz = pose.fz;
@@ -30,7 +32,6 @@ export function updateRespawn(w: WorldState, k: KartState, ctx: StepContext): vo
     b.ghostTicks = RESPAWN_GHOST + RESPAWN_LOCK;
     d.drift = 0; d.driftTicks = 0; d.boostTicks = 0; d.boostKind = Boost.NONE; d.instTicks = 0; d.instWindow = 0; d.startTicks = 0; d.stunTicks = 0;
     d.draftCharge = 0; d.draftTicks = 0;
-    copyLoc(r.loc, r.lastValid);
     r.wrongWayTicks = 0; r.offGraphTicks = 0; r.noGroundTicks = 0;
     r.respawnPhase = 2;
     r.respawnUntil = w.tick + RESPAWN_LOCK;

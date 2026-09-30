@@ -9,15 +9,15 @@ import { raceConfig, testContent, testTrack } from './helpers.ts';
 const track = testTrack();
 const content = testContent();
 
-function run(o: { rtt: number; jitter: number; loss: number; seed?: number; ticks?: number; humans?: number[]; disconnect?: { slot: number; atTick: number; forMs: number }; frameHz?: number; skew?: boolean }): ScenarioResult {
+function run(o: { rtt: number; jitter: number; loss: number; mode?: 'speed' | 'item'; laps?: number; seed?: number; ticks?: number; humans?: number[]; disconnect?: { slot: number; atTick: number; forMs: number }; frameHz?: number; skew?: boolean }): ScenarioResult {
   const humans = o.humans ?? [0, 1];
-  const cfg: RaceConfig = raceConfig({ humans: humans.length, laps: 1, seed: o.seed ?? 5 });
+  const cfg: RaceConfig = raceConfig({ humans: humans.length, laps: o.laps ?? 1, seed: o.seed ?? 5, mode: o.mode ?? 'speed' });
   const prof: LinkProfile = { rttMs: o.rtt, jitterMs: o.jitter, loss: o.loss };
   return runScenario({
     cfg, track, content, humans, seed: o.seed ?? 3, ticks: o.ticks ?? 1200, frameHz: o.frameHz ?? 60, frameJitterMs: 2,
     makeAuthority: (now) => new RaceRoom({ config: cfg, track, content, clock: { nowMs: now }, collectEvents: false, limits: { perSec: 70, burst: 10 } }),
     link: () => ({ up: prof, down: prof }),
-    driver: (slot) => { const d = createAiDriver(track, content, slot, AI_TIERS.pro, {}, 100 + slot); return (w, out) => d.decide(w, out); },
+    driver: (slot) => { const d = createAiDriver(track, content, slot, AI_TIERS.pro, {}, 100 + slot, cfg); return (w, out) => d.decide(w, out); },
     ...(o.skew ? { skewPpm: (s: number) => (s === 0 ? 150 : -150) } : {}),
     ...(o.disconnect ? { disconnect: o.disconnect } : {}),
   });
@@ -37,6 +37,15 @@ function summary(name: string, r: ScenarioResult): Record<string, number | strin
     predictedMatch: +(r.clients.reduce((a, m) => a + m.predictedMatches, 0) / Math.max(1, r.clients.reduce((a, m) => a + m.reconciles, 0))).toFixed(3),
     resumeMs: r.clients.map((m) => m.resumeMs).find((x) => x !== null) ?? -1,
     finalHashMatch: r.finalHashMatch,
+    grants: r.clients.reduce((a, m) => a + m.grants, 0),
+    m8KnownBeforeLanding: +(r.clients.reduce((a, m) => a + m.grantsKnownBeforeLanding, 0) / Math.max(1, r.clients.reduce((a, m) => a + m.grants, 0))).toFixed(4),
+    effectsOnMe: r.clients.reduce((a, m) => a + m.effectsOnMe, 0),
+    m3Late: r.clients.reduce((a, m) => a + m.effectsLate, 0),
+    effectsAll: r.clients.reduce((a, m) => a + m.effectsAll, 0),
+    m3LateAnyVictim: r.clients.reduce((a, m) => a + m.effectsAllLate, 0),
+    shortLeadEffects: r.clients.reduce((a, m) => a + m.shortLeadEffects, 0),
+    shortLeadLate: r.clients.reduce((a, m) => a + m.shortLeadLate, 0),
+    decisionsEqual: r.clients.every((m) => m.decisionsEqual !== false),
   };
   (globalThis as unknown as { process: { stdout: { write(s: string): void } } }).process.stdout.write(`[simlink] ${JSON.stringify(out)}\n`);
   return out;
@@ -73,6 +82,31 @@ describe('SimLink smoke', () => {
     expect(s.mismatches).toBe(0);
     expect(s.finalHashMatch).toBe(true);
     expect(s.downKBps).toBeLessThanOrEqual(24);
+  });
+});
+
+describe('SimLink items (L2 decisions over EVENTS + predictor)', () => {
+  it('item race at 0 ms: every decision arrives unchanged and snapshots stay lossless', () => {
+    const s = summary('item 0/0/0', run({ rtt: 0, jitter: 0, loss: 0, mode: 'item', ticks: 1500, humans: [0] }));
+    expect(s.mismatches).toBe(0);
+    expect(s.finalHashMatch).toBe(true);
+    expect(s.decisionsEqual).toBe(true);
+    expect(s.grants).toBeGreaterThan(0);
+  });
+
+  it('item race at 200 ms without loss: no effect schedule reaches its victim late (M3) and roulettes are known before landing (M8)', () => {
+    const s = summary('item 200/10/0', run({ rtt: 200, jitter: 10, loss: 0, mode: 'item', laps: 3, ticks: 3600 }));
+    expect(s.mismatches).toBe(0);
+    expect(s.decisionsEqual).toBe(true);
+    expect(s.m3Late).toBe(0);
+    expect(s.m3LateAnyVictim).toBe(0);
+    expect(s.m8KnownBeforeLanding).toBeGreaterThanOrEqual(0.999);
+  });
+
+  it('item race at 300 ms: roulettes are still known before landing (M8 ≥ 99.9%)', () => {
+    const s = summary('item 300/10/0', run({ rtt: 300, jitter: 10, loss: 0, mode: 'item', ticks: 1200 }));
+    expect(s.mismatches).toBe(0);
+    expect(s.m8KnownBeforeLanding).toBeGreaterThanOrEqual(0.999);
   });
 });
 

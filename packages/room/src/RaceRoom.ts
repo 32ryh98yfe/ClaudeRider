@@ -117,6 +117,10 @@ export class RaceRoom {
   private rd = new ByteReader();
   private inMsg: InputMsgT = { firstTick: 0, ackEventSeq: 0, frames: [] };
   private tmp = makeInput();
+  private evCache = new Map<number, { bytes: Uint8Array; last: number }>();
+  private relayCache = new Map<number, Uint8Array[]>();
+  private peerList: Peer[] = [];
+  private relayScratch: { slot: number; tick: Tick; frame: InputFrame }[] = [];
 
   constructor(o: RaceRoomOptions) {
     this.config = o.config;
@@ -153,11 +157,14 @@ export class RaceRoom {
     }
   }
 
-  private makeDriver(slot: number, tier: keyof typeof AI_TIERS): AiDriver {
+  /**
+   * Bots and takeover drivers (14-ai §10): the character's personality, the race config (item brain, team rules) and
+   * the lookahead, so the driver aims its frame at the tick it will be applied (applyTick = w.tick + 1 + lookaheadTicks).
+   */
+  private makeDriver(slot: number, tier: keyof typeof AI_TIERS, role: 'racer' | 'takeover' = 'racer'): AiDriver {
     const s = this.config.slots[slot]!;
-    const cm = this.content.characters.byId.get(s.characterId);
-    const pers = cm ? { aggression: cm.personality.aggression } : {};
-    return createAiDriver(this.track, this.content, slot, AI_TIERS[tier], pers, (this.config.seed ^ (slot * 7919)) >>> 0);
+    return createAiDriver(this.track, this.content, slot, AI_TIERS[tier], { character: s.characterId, role, lookaheadTicks: Math.max(0, this.lookahead - 1) },
+      (this.config.seed ^ (slot * 7919)) >>> 0, this.config);
   }
 
   get tickNo(): number { return this.world.tick; }
@@ -392,7 +399,7 @@ export class RaceRoom {
       const st = this.slots[s]!, kind = this.config.slots[s]?.kind;
       if (kind === 'human' && !st.aiActive && N - st.lastRealTick >= NET.TAKEOVER_TICKS) {
         // a silent human (disconnected, or still loading) is driven by a Racer-profile AI with its personality
-        st.takeover ??= this.makeDriver(s, 'racer');
+        st.takeover ??= this.makeDriver(s, 'racer', 'takeover');
         st.aiActive = true;
         this.log(`slot ${s}: AI takeover at ${N}`);
       }
@@ -454,7 +461,9 @@ export class RaceRoom {
 
   private writeRelays(entries: ReadonlyArray<{ slot: number; tick: Tick; frame: InputFrame }>, exclude: number, out: Uint8Array[]): void {
     let i = 0;
-    const list = entries.filter((e) => e.slot !== exclude);
+    const list = this.relayScratch;
+    list.length = 0;
+    for (const e of entries) if (e.slot !== exclude) list.push(e);
     while (i < list.length) {
       let lo = list[i]!.tick, hi = lo, j = i;
       while (j < list.length && j - i < RELAY_MAX) {
@@ -494,11 +503,15 @@ export class RaceRoom {
   private flush(N: Tick): void {
     const snapTick = N % this.snapEvery === 0;
     if (this.peers.size === 0) { this.recycleRelay(); return; }
-    const evCache = new Map<number, { bytes: Uint8Array; last: number }>();
-    const relayCache = new Map<number, Uint8Array[]>();
+    const evCache = this.evCache, relayCache = this.relayCache;
+    evCache.clear(); relayCache.clear();
     let captured = false;
     const now = this.clock?.nowMs() ?? 0;
-    for (const p of [...this.peers.values()]) {
+    // a kick inside the loop removes from `peers`; iterate a reused snapshot of it
+    const list = this.peerList;
+    list.length = 0;
+    for (const p of this.peers.values()) list.push(p);
+    for (const p of list) {
       // backpressure (§9): skip SNAPSHOT/RELAY above 32 KB until below 16 KB; EVENTS always go out
       const buffered = p.transport.bufferedAmount();
       if (p.skipping ? buffered < NET.BP_LOW : buffered > NET.BP_HIGH) p.skipping = !p.skipping;
@@ -552,23 +565,28 @@ export class RaceRoom {
 
   // ------------------------------------------------------------ result
 
-  result(): RaceResult {
-    const w = this.world, cfg = this.config;
-    const pts = [10, 8, 6, 5, 4, 3, 2, 1];
-    const rows: RaceResultRow[] = w.karts.filter((k) => k.active).map((k) => ({
-      slot: k.slot, rank: k.race.rank, name: cfg.slots[k.slot]!.name, team: k.team, finished: k.race.finishTick >= 0,
-      raceTicks: k.race.finishTick >= 0 ? k.race.finishTick - 1 + k.race.finishFrac - w.goTick : -1,
-      bestLapTicks: k.race.bestLapTicks, kind: cfg.slots[k.slot]!.kind, points: k.race.finishTick >= 0 ? (pts[k.race.rank - 1] ?? 0) : 0,
-    })).sort((a, b) => a.rank - b.rank);
-    let winnerTeam = rows[0]?.team ?? 0;
-    if (cfg.teams !== 'solo') {
-      const sums = new Map<number, { p: number; best: number }>();
-      for (const r of rows) { const s = sums.get(r.team) ?? { p: 0, best: 99 }; s.p += r.points; s.best = Math.min(s.best, r.rank); sums.set(r.team, s); }
-      if (cfg.mode === 'item') winnerTeam = rows.find((r) => r.finished)?.team ?? winnerTeam;
-      else winnerTeam = [...sums.entries()].sort((a, b) => b[1].p - a[1].p || a[1].best - b[1].best)[0]?.[0] ?? 0;
-    }
-    return { trackId: cfg.trackId, mode: cfg.mode, rows, winnerTeam, endTick: w.endTick };
+  result(): RaceResult { return raceResult(this.world, this.config); }
+}
+
+/**
+ * The result table of a finished world (pure; the same on the authority and on a client holding the authoritative
+ * world, which is how a client recovers the result if the raceEnd message is lost).
+ */
+export function raceResult(w: Readonly<WorldState>, cfg: Readonly<RaceConfig>): RaceResult {
+  const pts = [10, 8, 6, 5, 4, 3, 2, 1];
+  const rows: RaceResultRow[] = w.karts.filter((k) => k.active).map((k) => ({
+    slot: k.slot, rank: k.race.rank, name: cfg.slots[k.slot]!.name, team: k.team, finished: k.race.finishTick >= 0,
+    raceTicks: k.race.finishTick >= 0 ? k.race.finishTick - 1 + k.race.finishFrac - w.goTick : -1,
+    bestLapTicks: k.race.bestLapTicks, kind: cfg.slots[k.slot]!.kind, points: k.race.finishTick >= 0 ? (pts[k.race.rank - 1] ?? 0) : 0,
+  })).sort((a, b) => a.rank - b.rank);
+  let winnerTeam = rows[0]?.team ?? 0;
+  if (cfg.teams !== 'solo') {
+    const sums = new Map<number, { p: number; best: number }>();
+    for (const r of rows) { const s = sums.get(r.team) ?? { p: 0, best: 99 }; s.p += r.points; s.best = Math.min(s.best, r.rank); sums.set(r.team, s); }
+    if (cfg.mode === 'item') winnerTeam = rows.find((r) => r.finished)?.team ?? winnerTeam;
+    else winnerTeam = [...sums.entries()].sort((a, b) => b[1].p - a[1].p || a[1].best - b[1].best)[0]?.[0] ?? 0;
   }
+  return { trackId: cfg.trackId, mode: cfg.mode, rows, winnerTeam, endTick: w.endTick };
 }
 
 /** Per-room secret for keyed item rolls (4 words). Uses Web Crypto (Node ≥ 19 and browsers). */

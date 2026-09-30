@@ -6,11 +6,11 @@
 import type * as THREE from 'three/webgpu';
 import { loadContent, type CharacterId, type KartBodyId, type ModeId, type TrackId, type AiTier, CHARACTER_IDS, KART_BODY_IDS } from '@cr/content';
 import {
-  loadCtrk, toArrayBuffer, AI_TIERS, createAiDriver, makeInput, cloneWorld, copyWorld, Held,
+  loadCtrk, toArrayBuffer, AI_TIERS, createAiDriver, makeInput, cloneWorld, copyWorld, Held, Phase,
   type RaceConfig, type SimEvent, type InputFrame, type AiDriver, type WorldState, type BakedTrack,
 } from '@cr/sim';
 import { NetClient, loopbackPair, type Transport, type RaceResultWire } from '@cr/net';
-import type { RaceRoom, RaceResult } from '@cr/room';
+import { raceResult, type RaceRoom, type RaceResult } from '@cr/room';
 import { RaceRenderer, type KartSlotVisual } from '../render/RaceRenderer.ts';
 import type { QualityTier } from '../render/quality.ts';
 import { sampleInput } from '../input/keyboard.ts';
@@ -20,6 +20,7 @@ import { save } from '../meta/save.ts';
 import { t } from '../i18n/index.ts';
 import { LocalAuthority } from '../net/localAuthority.ts';
 import { portTransport } from '../net/transports.ts';
+import { lobby } from '../net/lobby.ts';
 import { conn, registerActiveRace, takePendingRace, takeRaceChannel, latestStartTick, type OnlineRaceInfo } from '../net/online.ts';
 
 export interface SessionOptions {
@@ -58,6 +59,9 @@ export class Session {
   private viewCur: WorldState | null = null;
   private readonly off = { x: 0, y: 0, z: 0 };
   private lastInput: InputFrame = makeInput();
+  private watchMsgs = -1;
+  private watchAt = 0;
+  private doneAt = 0;
   slotNames: string[] = [];
   config!: RaceConfig;
   /** Where the authority runs ('worker' | 'main' | 'server'). */
@@ -100,7 +104,7 @@ export class Session {
       this.config = this.offlineConfig(track);
       this.simRate = Math.max(1, Math.min(16, this.opts.simRate ?? 1));
     }
-    if (this.opts.autopilot) this.autopilot = createAiDriver(track, this.content, this.localSlot, AI_TIERS.pro, {}, 4242);
+    if (this.opts.autopilot) this.autopilot = createAiDriver(track, this.content, this.localSlot, AI_TIERS.pro, {}, 4242, this.config);
     progress(0.5, t('common.loading'));
     const lv = save.get().profile.livery;
     const visuals: KartSlotVisual[] = this.config.slots.map((s, i) => ({
@@ -228,6 +232,7 @@ export class Session {
     inp.edges = 0;
     this.net.update(now * (this.isOnline ? 1 : this.simRate));
     this.net.drainEvents(this.events);
+    if (this.isOnline) this.watchOnline(now);
     return this.autopilot ? this.lastInput : inp;
   }
 
@@ -257,6 +262,30 @@ export class Session {
     this.renderer.render();
     this.hud.update(now, this.net.alpha);
     raceAudioFrame(this.net.world, this.localSlot, inp);
+  }
+
+  /**
+   * Online self-healing: if race frames stop while the socket looks alive (a peer the server dropped, a stalled
+   * stream) reconnect, which re-attaches and resumes the race; and if the authoritative world shows the race
+   * finished but no raceEnd arrived, take the result from that world (the same pure function the server uses).
+   */
+  private watchOnline(now: number): void {
+    if (this.ended) return;
+    const s = this.net.stats;
+    if (s.msgsIn !== this.watchMsgs) { this.watchMsgs = s.msgsIn; this.watchAt = now; }
+    else if (s.serverTickEst > 60 && conn.connected && now - this.watchAt > 4000) {
+      console.warn('[net] race stream stalled; reconnecting');
+      this.watchAt = now;
+      conn.forceReconnect();
+    }
+    if (this.net.auth.phase === Phase.DONE) {
+      if (!this.doneAt) this.doneAt = now;
+      else if (now - this.doneAt > 3000) {
+        const r = raceResult(this.net.auth, this.config);
+        if (!lobby.lastResult.value) lobby.lastResult.value = r;
+        this.finishSoon(r);
+      }
+    }
   }
 
   private finishSoon(r: RaceResultWire | RaceResult): void {
