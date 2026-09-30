@@ -6,10 +6,10 @@ import { t } from '../../../i18n/index.ts';
 import { Audio } from '../../../audio/engine.ts';
 import { Stage } from '../../../game/Stage.ts';
 import { useBack } from '../../hooks.ts';
-import { raceSetup, setRaceSetup, saveState } from '../../store/profile.ts';
+import { raceSetup, setRaceSetup, saveState, raceTeams, teamParams } from '../../store/profile.ts';
 import { bakedIndex, loadTrackIndex, playableTracks, resolveTrack, trackInfos } from '../../store/tracks.ts';
 import { ScreenHead, NavHints } from '../../components/common.tsx';
-import { Seg, Stars } from '../../components/controls.tsx';
+import { Seg, Stars, lapsText } from '../../components/controls.tsx';
 import { TrackArt } from '../../components/TrackArt.tsx';
 import { Icon } from '../../icons/Icon.tsx';
 import './modeSelect.css';
@@ -36,7 +36,7 @@ export function ModeSelectScreen() {
   const start = (): void => {
     void Audio.unlock(); Audio.sfx('uiOk');
     const track = resolveTrack(setup.track, setup.mode);
-    navigate('loading', { track, mode: setup.mode, tier: setup.tier, ...(setup.laps !== 'auto' ? { laps: String(setup.laps) } : {}) });
+    navigate('loading', { track, mode: setup.mode, tier: setup.tier, ...(setup.laps !== 'auto' ? { laps: String(setup.laps) } : {}), ...teamParams() });
   };
   const focus = hover ?? (setup.mode as Card);
   return (
@@ -48,7 +48,7 @@ export function ModeSelectScreen() {
           {CARDS.map((c) => {
             const sel = c === setup.mode;
             return (
-              <button key={c} type="button" role="radio" aria-checked={sel ? 'true' : 'false'} class={`mode-card mc-${c} ${sel ? 'sel' : ''} ${focus === c ? 'focus' : 'unfocus'}`}
+              <button key={c} type="button" role="radio" data-testid={`mode-card-${c}`} aria-checked={sel ? 'true' : 'false'} class={`mode-card mc-${c} ${sel ? 'sel' : ''} ${focus === c ? 'focus' : 'unfocus'}`}
                 onClick={() => pick(c)} onMouseEnter={() => setHover(c)} onMouseLeave={() => setHover(null)} onFocus={() => setHover(c)} onBlur={() => setHover(null)}>
                 <span class="mc-art" aria-hidden="true"><i /><i /><i /><Icon name={CARD_ICON[c]} size={72} class="mc-glyph" /></span>
                 <span class="mc-text">
@@ -65,9 +65,8 @@ export function ModeSelectScreen() {
           <section class="card ms-rules">
             <div class="opt">
               <h3 class="eyebrow">{t('lobby.modeSelect.format')}</h3>
-              <Seg label={t('lobby.modeSelect.format')} value="solo" onChange={() => undefined}
-                options={[{ value: 'solo', label: t('common.format.solo') }, { value: 'duo', label: t('common.format.duo'), disabled: true, title: t('lobby.modeSelect.teamOffline') }, { value: 'squad', label: t('common.format.squad'), disabled: true, title: t('lobby.modeSelect.teamOffline') }]} />
-              <p class="opt-note">{t('lobby.modeSelect.teamOffline')}</p>
+              <Seg label={t('lobby.modeSelect.format')} value={raceTeams.value} onChange={(v) => { Audio.sfx('uiMove'); raceTeams.value = v as 'solo' | 'duo' | 'squad'; }}
+                options={[{ value: 'solo', label: t('common.format.solo') }, { value: 'duo', label: t('common.format.duo') }, { value: 'squad', label: t('common.format.squad') }]} />
             </div>
             <div class="opt">
               <h3 class="eyebrow">{t('lobby.modeSelect.tier')}</h3>
@@ -101,7 +100,7 @@ export function ModeSelectScreen() {
                   <button key={x.id} type="button" disabled={!ok} class={`track-tile ${setup.track === x.id ? 'on' : ''} ${ok ? '' : 'soon'}`} onClick={() => { Audio.sfx('uiMove'); setRaceSetup({ track: x.id as TrackId }); }}>
                     <TrackArt id={x.id} class="tt-art" />
                     <span class="tt-name">{t(`tracks.${x.id}.name`)}</span>
-                    <span class="tt-meta">{ok ? <><Stars n={x.difficulty} /> · {t('common.laps', { n: x.laps })}</> : <span class="badge lock"><Icon name="lock" size={11} />{t('common.soon')}</span>}</span>
+                    <span class="tt-meta">{ok ? <><Stars n={x.difficulty} /> · {lapsText(x.laps)}</> : <span class="badge lock"><Icon name="lock" size={11} />{t('common.soon')}</span>}</span>
                   </button>
                 );
               })}
@@ -111,7 +110,7 @@ export function ModeSelectScreen() {
       </div>
       <footer class="ms-foot">
         <NavHints items={[{ key: 'Esc', pad: 'B', label: t('common.back') }, { key: 'Enter', pad: 'A', label: t('common.select') }]} />
-        <button class="btn primary big ms-start" type="button" data-autofocus onClick={start}><Icon name="play" size={20} /><span class="display">{t('lobby.start')}</span></button>
+        <button class="btn primary big ms-start" type="button" data-testid="ms-start" data-autofocus onClick={start}><Icon name="play" size={20} /><span class="display">{t('lobby.start')}</span></button>
       </footer>
     </div>
   );

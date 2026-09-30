@@ -18,7 +18,7 @@ export default defineKart({
   archetype: 'balance',
   dims: { length: 1.8, width: 1.2, height: 0.7, wheelR: 0.25 },
   livery: { primary: '#E8A87C', secondary: '#FAF9F5', pattern: 4, number: 3 },
-  seat: [0, 0.67, -0.12],
+  seat: [0, 0.74, -0.12],
   build(k) {
     // hull (paint, split two-tone) + belt line
     k.add(hull(k, 0.5, 1.02).translate(0, 0.38, 0), { color: 'paint' });
@@ -26,13 +26,15 @@ export default defineKart({
     if (k.lod < 2) k.add(k.tb([[-0.535, 0.37, 0.4], [-0.54, 0.37, -0.1], [-0.51, 0.37, -0.5], [-0.35, 0.37, -0.8]], 0.018), { color: 'chrome', surf: 'chrome' });
     // cockpit rim + seat
     k.add(k.rb(0.66, 0.06, 0.56, 0.03).translate(0, 0.625, -0.12), { color: 'trim', surf: 'plastic' });
-    k.add(k.rb(0.56, 0.3, 0.1, 0.04).rotateX(-0.2).translate(0, 0.72, -0.42), { color: 'seat', surf: 'matte' });
+    k.add(k.rb(0.56, 0.1, 0.1, 0.04).rotateX(-0.2).translate(0, 0.64, -0.4), { color: 'seat', surf: 'matte' });
+    k.add(k.rb(0.5, 0.06, 0.42, 0.03).translate(0, 0.56, -0.12), { color: 'seat', surf: 'matte' });
     // canopy frame: one chrome hoop arching over the driver
-    k.add(k.tb([[0.5, 0.5, 0.2], [0.46, 0.8, 0.12], [0.3, 1.0, 0.0], [0, 1.05, -0.06], [-0.3, 1.0, 0.0], [-0.46, 0.8, 0.12], [-0.5, 0.5, 0.2]], 0.026, true), { color: 'chrome', surf: 'chrome' });
+    k.add(k.tb([[0.5, 0.5, 0.22], [0.47, 0.84, 0.16], [0.32, 1.06, 0.08], [0, 1.12, 0.04], [-0.32, 1.06, 0.08], [-0.47, 0.84, 0.16], [-0.5, 0.5, 0.22]], 0.026, true), { color: 'chrome', surf: 'chrome' });
     // sparkle tail fin
-    k.add(sideProfile(k, [[-0.45, 0.6], [-0.72, 1.05], [-0.9, 1.08], [-0.86, 0.55]], 0.06, 0.015), { color: 'secondary' });
-    k.decal([0.034, 0.86, -0.78], 'x+', 0.18, 0.18, { color: 'primary', cell: 'sparkle' });
-    k.decal([-0.034, 0.86, -0.78], 'x-', 0.18, 0.18, { color: 'primary', cell: 'sparkle' });
+    // sparkle tail fin, kept under the chase camera's line of sight to the driver
+    k.add(sideProfile(k, [[-0.55, 0.56], [-0.78, 0.8], [-0.94, 0.82], [-0.9, 0.5]], 0.06, 0.015), { color: 'secondary' });
+    k.decal([0.034, 0.7, -0.84], 'x+', 0.16, 0.16, { color: 'primary', cell: 'sparkle' });
+    k.decal([-0.034, 0.7, -0.84], 'x-', 0.16, 0.16, { color: 'primary', cell: 'sparkle' });
     // nose: headlights + number roundels on the flanks
     for (const s of [1, -1]) {
       k.decal([s * 0.2, 0.43, 0.85], 'z+', 0.13, 0.13, { color: '#FFF6D8', cell: 'headlight', glow: 1.6 });

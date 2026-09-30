@@ -3,6 +3,7 @@ import type { ComponentChildren } from 'preact';
 import { Audio } from '../../audio/engine.ts';
 import { inputDevice } from '../../input/keyboard.ts';
 import { useTabs } from '../hooks.ts';
+import { t } from '../../i18n/index.ts';
 
 const tick = (): void => { Audio.sfx('uiMove'); };
 
@@ -51,3 +52,6 @@ export function Stars({ n, of = 5 }: { n: number; of?: number }) {
 export function Bar({ frac, done, class: cls }: { frac: number; done?: boolean; class?: string }) {
   return <div class={`bar ${done ? 'done' : ''} ${cls ?? ''}`}><i style={{ transform: `scaleX(${Math.max(0, Math.min(1, frac))})` }} /></div>;
 }
+
+/** "3 laps" / "1 lap" (i18n has no plural rules; English needs the singular). */
+export function lapsText(n: number | string): string { return Number(n) === 1 ? t('common.lapsOne', { n }) : t('common.laps', { n }); }

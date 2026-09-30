@@ -1,0 +1,79 @@
+# ClaudeRider · 클로드라이더
+
+An original, non-commercial browser kart racer in the spirit of *KartRider: Drift*: drift to charge the boost gauge, fire boosters, battle with items. The racers are **Clawd**, Claude Code's orange block mascot, in 12 costume variations.
+
+카트라이더: 드리프트의 손맛을 웹에서 재현한 비상업 팬 게임입니다. 드리프트로 게이지를 모으고 부스터를 터뜨리고, 아이템으로 경쟁합니다. 레이서는 Claude Code의 주황색 블록 마스코트 **클로드(Clawd)**이며, 12가지 의상 변형이 있습니다.
+
+> **Disclaimer / 고지.** Unofficial fan project. Not affiliated with, endorsed or sponsored by Nexon or Anthropic. No Nexon assets, names or fonts are used.
+> 비공식·비상업 팬 프로젝트입니다. 넥슨 및 Anthropic과 제휴·후원 관계가 없으며, 넥슨의 에셋·명칭·폰트를 사용하지 않습니다.
+
+## Features · 특징
+- **Modes:**
+  - Speed race and Item race (18 original items).
+  - Time Attack with your best-run ghost.
+  - Duo and Squad teams.
+- **Play:**
+  - Quick Race against AI in four tiers (Rookie / Racer / Pro / Legend).
+  - Online Quick Match (AI fills empty slots).
+  - Custom Rooms with 6-character codes.
+- **Content:**
+  - 20 tracks in 10 themes, with branches, jumps, halfpipes, plazas, grind rails, warps, moving hazards, helices and loops.
+  - 12 Clawd characters and 8 karts, with liveries.
+- **Tech:**
+  - three.js r186 `WebGPURenderer` with TSL node materials; falls back to WebGL2 automatically.
+  - A deterministic 60 Hz simulation shared by the browser and the server.
+  - Authoritative Node WebSocket server with client prediction and rollback.
+  - Korean UI by default, English toggle.
+- **Codex art pack:** 110 image slots, each with an English and Korean prompt. Drop generated images in and they replace the procedural art. See [`art/codex/README.md`](art/codex/README.md).
+
+## Run · 실행
+Requires Node ≥ 22.18 and pnpm 10. / Node 22.18 이상, pnpm 10이 필요합니다.
+
+```bash
+pnpm install
+pnpm bake          # compile tracks/**/*.ctd → apps/client/public/tracks   트랙 컴파일
+pnpm build         # production client → apps/client/dist                  클라이언트 빌드
+pnpm start         # http://127.0.0.1:8787  (static client + /ws game server) 게임 서버 + 정적 파일
+```
+
+- **Development:** `pnpm dev` runs Vite on :5173 (hot reload) and the game server on :8787.
+- **Hosting:** `node apps/server/src/main.ts --host 0.0.0.0 --port 8787` serves the built client, `/health` and the WebSocket on `/ws`. Put it behind a TLS proxy for `wss://`.
+- **Offline play:** solo races run the authority in a Web Worker, so no server is needed.
+
+개발 중에는 `pnpm dev`, 배포할 때는 위 명령으로 서버를 띄우면 됩니다. 오프라인 싱글 플레이는 서버 없이 브라우저에서 동작합니다.
+
+## Controls · 조작
+| Action · 동작 | Keyboard · 키보드 | Gamepad · 게임패드 |
+|---|---|---|
+| Steer · 조향 | ← → / A D | D-pad / stick |
+| Accelerate · 가속 | ↑ / W | RT |
+| Brake / reverse · 브레이크 | ↓ / S | LT |
+| **Drift · 드리프트** | Shift / C | X, RB |
+| Use item / booster · 아이템·부스터 | Ctrl / Space | A |
+| Swap item · 아이템 교체 | Alt / E | B |
+| Look back · 뒤 보기 | X | LB |
+| Reset to track · 복귀 | R | Y |
+| Pause · 일시정지 | Esc | Start |
+
+Every key can be rebound in Settings → Controls. / 모든 키는 설정 → 조작에서 바꿀 수 있습니다.
+
+**Tips · 팁**
+- Drift through corners to fill the gauge. Each full gauge stores a booster; you can hold 2.
+- Tap accelerate again right as a drift ends for an **instant boost**.
+- Press accelerate the moment the countdown hits GO for a **perfect start**.
+
+코너에서 드리프트하면 게이지가 차고, 가득 찰 때마다 부스터가 1개씩 저장됩니다(최대 2개). 드리프트가 끝나는 순간 가속을 다시 누르면 **순간 부스터**, GO와 동시에 가속하면 **퍼펙트 스타트**입니다.
+
+## Repository · 구조
+| Path | What |
+|---|---|
+| `packages/sim` | Deterministic simulation: kart physics, track runtime, race rules, items, AI |
+| `packages/trackc` | Track compiler: DSL `tracks/**/*.ctd` → `.ctrk` (physics) + `.vis` (render) |
+| `packages/net`, `packages/room` | Binary protocol, NetClient (prediction and rollback), authoritative RaceRoom |
+| `packages/content` | Data only: ids, items, effects, karts, characters, themes, challenges |
+| `apps/client` | Vite + Preact client: renderer, HUD, screens, audio |
+| `apps/server` | Node WebSocket server: lobby, matchmaking, rooms, static files |
+| `docs/design` | Design specs (ADRs, sim, tracks, items, netcode, art bible, UI, audio, tests) |
+| `art/codex` | Codex image prompt pack |
+
+Contributor and agent rules: [`CLAUDE.md`](CLAUDE.md). Tests: `pnpm test` (unit), `pnpm e2e` (Playwright; never run `playwright install` in this environment).

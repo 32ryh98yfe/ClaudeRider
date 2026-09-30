@@ -159,7 +159,7 @@ export function GarageScreen() {
   }
 
   return (
-    <div class="screen garage fade-in">
+    <div class="screen garage fade-in" data-testid="garage">
       <div class="scrim-top" /><div class="scrim-left" />
       <ScreenHead title={t('garage.title')} sub={t('garage.sub')} onBack={() => navigate('lobby')} right={<SparksChip />} />
       <section class="gar-left card" aria-label={t('garage.title')}>
@@ -264,7 +264,7 @@ export function GarageScreen() {
               <p class="gd-note">{t('garage.emoteNote')}</p>
               <div class="emote-grid">
                 {EMOTES.map((e, i) => (
-                  <button key={e} type="button" class="etile" onClick={click(() => Stage.showcase?.emote())}>
+                  <button key={e} type="button" class="etile" onClick={click(() => Stage.showcase?.emote(e))}>
                     <span class="kbd">{i < 4 ? i + 1 : '·'}</span><span>{t(`garage.emote.${e}`)}</span><Icon name="play" size={14} />
                   </button>
                 ))}

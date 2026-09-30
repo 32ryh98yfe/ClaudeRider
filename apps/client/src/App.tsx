@@ -56,6 +56,8 @@ export function App() {
   useEffect(() => { document.body.dataset.screen = r.screen; }, [r.screen]);
   useEffect(() => { applySettings(s); }, [s.settings]);
   useEffect(() => { document.documentElement.classList.toggle('pad-nav', inputDevice.value === 'pad'); }, [inputDevice.value]);
+  // Low tier: no backdrop blur (it re-blurs the 3D frame behind every glass panel, costly on weak GPUs and SwiftShader)
+  useEffect(() => { document.documentElement.classList.toggle('q-low', stageInfo.value.tier === 'low'); }, [stageInfo.value.tier]);
   if (hudDemo) return <><HudDemo />{debug && <div class="debug-chip">{stageInfo.value.backend}</div>}</>;
   return (
     <>

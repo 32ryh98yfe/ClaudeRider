@@ -7,7 +7,7 @@
 import type { ContentTables } from '@cr/content';
 import {
   applyDecision, copyInput, copyWorld, createWorld, cloneWorld, makeContext, makeInput, step, ArraySink, MAX_KARTS,
-  type BakedTrack, type DecisionLog, type InputFrame, type RaceConfig, type SimEvent, type StepContext, type Tick, type WorldState,
+  type BakedTrack, type Decision, type DecisionLog, type InputFrame, type RaceConfig, type SimEvent, type StepContext, type Tick, type WorldState,
 } from '@cr/sim';
 import { ByteReader, ByteWriter, ProtocolError, hexU32 } from '../protocol/bytes.ts';
 import { C2S, NET, NetFlag, S2C } from '../protocol/ids.ts';
@@ -50,6 +50,8 @@ export interface NetClientOptions {
   resumeToken?: string;
   /** Per-tick input source (autopilot, scripted tests); otherwise frames passed to submit() are used. */
   inputProvider?: (w: Readonly<WorldState>, out: InputFrame) => void;
+  /** Called once per newly predicted tick with the local frame used for it (Time Attack ghost recording). */
+  onOwnInput?: (tick: Tick, f: Readonly<InputFrame>) => void;
   /** Steps per update() call (default 5). */
   maxSteps?: number;
   smoothing?: { remoteMs?: number; localMs?: number; snapM?: number };
@@ -57,6 +59,8 @@ export interface NetClientOptions {
   onLobby?: (msg: unknown) => void;
   /** Called after each decoded snapshot (metrics, tests). */
   onSnapshot?: (meta: Readonly<SnapshotMeta>, auth: Readonly<WorldState>) => void;
+  /** Called for every authority decision as it arrives, with the tick the client had predicted to (metrics). */
+  onDecision?: (d: Decision, predTick: Tick) => void;
   /** Called after each reconciliation with the drawn-pose correction per kart (m, 0 = none) and whether it replayed. */
   onReconcile?: (corrections: Readonly<Float64Array>, replayed: boolean) => void;
 }
@@ -76,9 +80,11 @@ export class NetClient {
   private startTick: Tick;
   private readonly maxSteps: number;
   private readonly inputProvider: NetClientOptions['inputProvider'];
+  private readonly onOwnInput: NetClientOptions['onOwnInput'];
   private readonly onLobby: NetClientOptions['onLobby'];
   private readonly onSnap: NetClientOptions['onSnapshot'];
   private readonly onRec: NetClientOptions['onReconcile'];
+  private readonly onDec: NetClientOptions['onDecision'];
   private readonly corr = new Float64Array(MAX_KARTS);
   private readonly token: Uint32Array | null;
 
@@ -104,7 +110,10 @@ export class NetClient {
   private readonly flat = new FlatWorld();
   private readonly w = new ByteWriter(64);
   private readonly r = new ByteReader();
-  private readonly inMsg: InputMsgT = { firstTick: 0, ackEventSeq: 0, frames: [makeInput()] };
+  private readonly inMsg: InputMsgT = { firstTick: 0, ackEventSeq: 0, frames: [] };
+  private readonly outFrames: InputFrame[] = [makeInput(), makeInput(), makeInput(), makeInput()];
+  private outN = 0;
+  private outFirst = 0;
   private readonly relay: RelayT = { baseTick: 0, entries: [] };
   private readonly events: EventsT = { firstSeq: 0, decisions: [] };
   private readonly pong: PongT = { pingId: 0, clientMsEcho: 0, serverTick: 0, tickPhase: 0 };
@@ -134,9 +143,11 @@ export class NetClient {
     this.startTick = o.startTick ?? 0;
     this.maxSteps = o.maxSteps ?? 5;
     this.inputProvider = o.inputProvider;
+    this.onOwnInput = o.onOwnInput;
     this.onLobby = o.onLobby;
     this.onSnap = o.onSnapshot;
     this.onRec = o.onReconcile;
+    this.onDec = o.onDecision;
     this.ownClock = !o.clock;
     this.clock = o.clock ?? new ClockSync();
     this.token = o.resumeToken ? hexU32(o.resumeToken) : null;
@@ -172,6 +183,8 @@ export class NetClient {
   /** Latest authoritative world (decoded snapshot). */
   get auth(): Readonly<WorldState> { return this.dec.world; }
   get rate(): number { return this.rateV; }
+  /** Every authority decision received so far, in seq order (the log the predictor reads). */
+  get decisions(): readonly Decision[] { return this.log.items; }
 
   /** Latest sampled input; analog values persist, edges are latched until the next predicted tick consumes them. */
   submit(f: Readonly<InputFrame>): void {
@@ -187,7 +200,7 @@ export class NetClient {
     if (this.ownClock && this.mode === 'synced' && !this.closed && this.clock.due(nowMs, !this.started)) this.sendPing(nowMs);
     this.processIncoming(nowMs);
 
-    let budget = this.maxSteps;
+    const budget = this.maxSteps;
     let freeze = false;
     if (this.mode === 'synced') {
       if (!this.clock.ready) return 0;
@@ -198,20 +211,18 @@ export class NetClient {
       if (!this.started) {
         if (target < 1) { this.reconcile(); this.smoother.update(dtMs / 1000); return 0; }
         this.started = true;
-        // joining a race in progress: start from the authoritative world instead of simulating from tick 0
-        if (this.haveSnap && this.dec.world.tick > this.pred.tick) this.newSnap = true;
         this.reconcile();
-        // run ahead to the target lead at once (every skipped tick still sends its input)
-        this.acc = Math.max(0, target - this.pred.tick);
-        budget = Math.min(240, Math.ceil(this.acc));
+        // start at the target lead at once: a jump, like a hard resync (no inputs are sent for the ticks before now;
+        // the server applies the missing-input rule to them, and so does the replay)
+        this.jump(target);
       } else this.reconcile();
       const err = this.pred.tick + this.acc - target;
       if (err < -NET.RESYNC_TICKS || this.resyncWanted) {
-        // hard resync forward: catch up now (inputs for the skipped ticks are still sent, stamped as they are simulated)
+        // hard resync (§2): jump P to the target, dropping the prediction in between; a flood of catch-up inputs
+        // would only arrive late (and trip the server's rate limit)
         this.resyncWanted = false;
         this.stats.hardResyncs++;
-        budget = Math.min(180, Math.max(budget, Math.ceil(-err)));
-        this.acc = Math.max(this.acc, -err);
+        this.jump(target);
       } else if (err > NET.RESYNC_TICKS) {
         // too far ahead: hold until the server's clock catches up (rewinding would duplicate already-sent frames)
         this.stats.hardResyncs++;
@@ -238,6 +249,7 @@ export class NetClient {
       steps++;
     }
     if (this.mode === 'free' && steps === budget && this.acc > 1) this.acc = 0; // slow down like a local game would
+    this.flushInputs();
     this.alphaV = Math.max(0, Math.min(1, this.acc));
     this.smoother.update(dtMs / 1000);
     this.stats.predTick = this.pred.tick;
@@ -278,7 +290,14 @@ export class NetClient {
     this.transport = t;
     this.closed = false;
     this.stats.connected = true;
-    t.onMessage = (b) => { this.queue.push(b); };
+    t.onMessage = (b) => {
+      // PONGs are timed on arrival (queueing them until the next update would add a frame of RTT)
+      if (b[0] === S2C.PONG && this.ownClock) {
+        try { PongMsg.decode(this.r.reset(b), this.pong); this.clock.onPong(this.pong, this.nowMs()); } catch { this.stats.decodeErrors++; }
+        return;
+      }
+      this.queue.push(b);
+    };
     t.onClose = () => { this.stats.connected = false; };
   }
 
@@ -311,7 +330,6 @@ export class NetClient {
           case S2C.SNAPSHOT: this.onSnapshot(b); break;
           case S2C.EVENTS: this.onEvents(b); break;
           case S2C.INPUT_RELAY: this.onRelay(b); break;
-          case S2C.PONG: if (this.ownClock) { PongMsg.decode(this.r.reset(b), this.pong); this.clock.onPong(this.pong, now); } break;
           case S2C.LOBBY_JSON: this.onLobby?.(decodeLobby(b)); break;
           default: break;
         }
@@ -354,6 +372,7 @@ export class NetClient {
       case 'resync': this.resyncWanted = true; return;
       case 'timeAdjust': case 'mash': case 'unknown': return;
       default: {
+        this.onDec?.(e, this.pred.tick);
         const t = applyDecision(this.pred, e);
         if (t !== null) this.markDirty(t);
       }
@@ -403,10 +422,20 @@ export class NetClient {
     if (hadSnap || need) this.onRec?.(this.corr, need);
   }
 
-  private resimulate(): void {
+  /** Moves P to ⌊target⌋ by replaying from the authoritative world (bounded), keeping the fractional part. */
+  private jump(target: number): void {
+    const T = Math.floor(target);
+    const N = this.dec.world.tick;
+    this.flushInputs();
+    if (T > this.pred.tick || T > N) this.resimulate(Math.min(T, N + 240));
+    this.acc = Math.max(0, target - this.pred.tick);
+    if (this.acc >= 1) this.acc = target - Math.floor(target);
+  }
+
+  private resimulate(to?: number): void {
     const t0 = this.nowMs();
     const N = this.dec.world.tick, P0 = this.pred.tick;
-    const target = Math.max(N, P0);
+    const target = Math.max(N, to ?? P0);
     this.capturePoses();
     copyWorld(this.pred, this.dec.world);
     if (target === N) copyWorld(this.prevW, this.dec.world);
@@ -465,12 +494,23 @@ export class NetClient {
     if (this.inputProvider) this.inputProvider(this.pred, f);
     else { copyInput(f, this.pending); this.pending.edges = 0; }
     this.own.set(T, f);
-    this.inMsg.firstTick = T;
-    this.inMsg.ackEventSeq = this.lastSeq & 0xffff;
-    copyInput(this.inMsg.frames[0]!, f);
-    this.w.reset(); InputMsg.encode(this.w, this.inMsg); this.send(this.w.finish());
+    this.onOwnInput?.(T, f);
+    // frames produced in one update go out together, up to 4 per INPUT message (§3.2)
+    if (this.outN === 4 || (this.outN > 0 && this.outFirst + this.outN !== T)) this.flushInputs();
+    if (this.outN === 0) this.outFirst = T;
+    copyInput(this.outFrames[this.outN++]!, f);
     copyWorld(this.prevW, this.pred);
     this.simulate(T, false);
+  }
+
+  private flushInputs(): void {
+    if (this.outN === 0) return;
+    this.inMsg.firstTick = this.outFirst;
+    this.inMsg.ackEventSeq = this.lastSeq & 0xffff;
+    this.inMsg.frames.length = this.outN;
+    for (let i = 0; i < this.outN; i++) this.inMsg.frames[i] = this.outFrames[i]!;
+    this.w.reset(); InputMsg.encode(this.w, this.inMsg); this.send(this.w.finish());
+    this.outN = 0;
   }
 
   /** Steps pred from T−1 to T with the best known inputs (`seek` re-derives the running inputs after a restore). */

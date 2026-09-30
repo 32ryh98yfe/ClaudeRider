@@ -30,7 +30,7 @@ const def: CharacterDef = {
   ],
   emotes: {
     // smoke-puff vanish and reappear
-    win: (b) => ({ duration: 2.4, keys: { s: [0, 0, 0.3, 0, 0.45, -1, 1.2, -1, 1.4, 0.1, 1.55, 0], y: [0, 0, 1.2, 0.3, 1.5, 0, 2.4, 0], ry: [0, 0, 1.2, 0, 1.6, Math.PI * 2, 2.4, Math.PI * 2] }, eyes: [[0, 'open'], [1.4, 'happy'], [2.2, 'open']], fx: [[0.35, 'smoke'], [1.25, 'smoke']] }),
+    win: () => ({ duration: 2.4, keys: { s: [0, 0, 0.3, 0, 0.45, -1, 1.2, -1, 1.4, 0.1, 1.55, 0], y: [0, 0, 1.2, 0.3, 1.5, 0, 2.4, 0], ry: [0, 0, 1.2, 0, 1.6, Math.PI * 2, 2.4, Math.PI * 2] }, eyes: [[0, 'open'], [1.4, 'happy'], [2.2, 'open']], fx: [[0.35, 'smoke'], [1.25, 'smoke']] }),
     podium: (b) => ({ ...b, keys: { ...b.keys, ry: [0, 0, 0.3, 0, 1.2, Math.PI * 4, 2.2, Math.PI * 4] } }),
     attackLanded: () => ({ duration: 1.5, keys: { rx: [0, 0, 0.3, 0.5, 0.9, 0.5, 1.5, 0], aLf: [0, 0, 0.3, 1.2, 0.9, 1.2, 1.5, 0], aRf: [0, 0, 0.3, 1.2, 0.9, 1.2, 1.5, 0] }, eyes: [[0, 'blink'], [1.1, 'open']] }),
     gotHit: (b) => ({ ...b, fx: [[0.05, 'smoke']] }),
