@@ -16,7 +16,7 @@ export default {
   format: { solo: 'Solo', duo: 'Duo', squad: 'Squad' },
   tier: { rookie: 'Rookie', racer: 'Racer', pro: 'Pro', legend: 'Legend' },
   tierDesc: { rookie: 'For your very first races', racer: 'Steady, fair competition', pro: 'Sharp drifts and smart boosts', legend: 'Near-perfect racing lines' },
-  difficulty: 'Difficulty', laps: '{n} laps', lapsAuto: 'Auto ({n} laps)', level: 'Lv.{n}', sparks: 'Sparks', ai: 'AI', xp: 'XP',
+  difficulty: 'Difficulty', laps: '{n} laps', lapsOne: '{n} lap', lapsAuto: 'Auto ({n} laps)', level: 'Lv.{n}', sparks: 'Sparks', ai: 'AI', xp: 'XP',
   key: { space: 'Space' },
   modes: { speed: 'Speed', item: 'Item', infinite: 'Infinite Boost', timeAttack: 'Time Attack' },
   teams: { solo: 'Solo', duo: 'Duo', squad: 'Squad' },

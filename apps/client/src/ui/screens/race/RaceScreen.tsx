@@ -19,7 +19,7 @@ import { setLastResult } from '../results/lastResult.ts';
 import { trackInfo, loadTrackIndex } from '../../store/tracks.ts';
 import { useBack } from '../../hooks.ts';
 import { Confirm } from '../../components/common.tsx';
-import { Stars, Bar } from '../../components/controls.tsx';
+import { Stars, Bar, lapsText } from '../../components/controls.tsx';
 import { TrackArt } from '../../components/TrackArt.tsx';
 import { Portrait } from '../../components/Portrait.tsx';
 import { Icon } from '../../icons/Icon.tsx';
@@ -49,7 +49,7 @@ function Loading({ params, progress, slots }: { params: Record<string, string>; 
         <div class="load-eyebrow"><span class="badge coral">{t(`common.mode.${mode}`)}</span>{params['tier'] && mode !== 'timeAttack' ? <span class="badge ai">AI · {t(`common.tier.${params['tier']}`)}</span> : null}</div>
         <h1 class="display load-title">{t(`tracks.${track}.name`)}</h1>
         <div class="load-meta">
-          {info ? <><span>{t(`themes.${info.themeId}.name`)}</span><Stars n={info.difficulty} /><span>{t('common.laps', { n: params['laps'] ?? info.laps })}</span></> : null}
+          {info ? <><span>{t(`themes.${info.themeId}.name`)}</span><Stars n={info.difficulty} /><span>{lapsText(params['laps'] ?? info.laps)}</span></> : null}
         </div>
       </div>
       <div class="load-players">
