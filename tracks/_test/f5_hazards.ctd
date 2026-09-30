@@ -1,0 +1,27 @@
+# F5 fixture (L4): every analytic hazard kind on one stadium circuit. A staggered geyser field, a piston press over
+# the right half, a pendulum swinger, a train level crossing, two-lane traffic that keeps the centre lane clear and a
+# flat rotating sweeper in the far turn. Poses are pure functions of the tick (BakedTrack.hazardPose).
+TRACK f5_hazards name="F5 Hazard Fixture" theme=ember_mine diff=3 laps=3 topo=circuit
+DEFAULTS w=16 surf=asphalt wall=barrier:1.0 blend=15
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=6 stagger=3 d=4
+S ?a                                              @home
+C R45 180 L                                       @t1
+S ?a w=22                                         @city
+C R45 180 L w=16                                  @t2
+CLOSE solve=[?a] length=1400
+LINE start at=@home+40
+
+HAZ geyser vent1 at=@home+150 d=+3 r=3 period=3.6 on=0-1.0 tele=0.8 offset=0.0
+HAZ geyser vent2 at=@home+200 d=-3 r=3 period=3.6 on=0-1.0 tele=0.8 offset=1.2
+HAZ geyser vent3 at=@home+250 d=+3 r=3 period=3.6 on=0-1.0 tele=0.8 offset=2.4
+HAZ press stamp at=@home+350 d=+4 box=(5,7,3) period=4 on=0-1.5 tele=0.8 offset=0 rise=4 ramp=0.2
+HAZ swinger pendulum at=@home+450 d=0 capsule=(0.9,2.5) arm=6 amp=60 plane=across period=3 on=0-3 tele=0 offset=0
+HAZ train freight at=@city+80 d=0 box=(24,3.4,4) period=12 on=0-3 tele=1.5 offset=4 span=25
+HAZ traffic cars at=@city+150 to=@city+450 lanes=[(d -6, speed 14, count 3, spacing 45),(d 6, speed 11, count 2, spacing 60)] offset=0
+HAZ swinger sweeper at=@t2+70 d=0 capsule=(0.6,1.0) motion=rotate plane=flat arm=6 pivot=1.0 period=4 on=0-4 tele=0 offset=0
+
+PAD at=@home+60,@city+40 d=0 len=6 w=4
+ITEMS at=@home+100,@home+520,@city+20,@city+500 n=5
+KEYS @home+120,@home+300,@t1+70,@city+100,@city+300,@t2+70
+PROPS kind=lamp along=main side=both every=30 offset=3

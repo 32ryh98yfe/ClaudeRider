@@ -3,6 +3,8 @@ import { Boost, Phase, type KartState, type WorldState } from '../core/state.ts'
 import type { InputFrame } from '../core/input.ts';
 import type { StepContext } from '../api.ts';
 import { evKey } from '../kart/evkey.ts';
+import { addGauge, GaugeSrc, teamSizeOf } from '../kart/gauge.ts';
+import { SHARED } from '../kart/params.ts';
 
 /** stats.startTier codes */
 export const StartTier = { UNSET: 0, NONE: 1, FALSE: 2, GOOD: 3, GREAT: 4, PERFECT: 5 } as const;
@@ -21,6 +23,10 @@ export function updatePhase(w: WorldState, ctx: StepContext): void {
   }
 }
 
+/**
+ * Start tier from the press offset (ticks from GO, ADR-004). A press more than 60 ticks before GO counts as
+ * "holding the throttle through the countdown": no boost and no false-start penalty [P].
+ */
 function tierFor(dT: number): number {
   if (dT >= 0 && dT <= 6) return StartTier.PERFECT;
   if ((dT >= -6 && dT < 0) || (dT > 6 && dT <= 12)) return StartTier.GREAT;
@@ -29,13 +35,20 @@ function tierFor(dT: number): number {
   return StartTier.NONE;
 }
 
+/** Start-boost durations (speed mode; item mode ×0.67 → 60/40/24) and the false-start wheelspin. */
+export const START_TICKS = { PERFECT: 90, GREAT: 60, GOOD: 36, WHEELSPIN: 18 } as const;
+
 function applyTier(w: WorldState, k: KartState, tier: number, ctx: StepContext): void {
   const d = k.drive;
   k.stats.startTier = tier;
-  const item = ctx.cfg.mode === 'item';
-  const dur = tier === StartTier.PERFECT ? 90 : tier === StartTier.GREAT ? 60 : tier === StartTier.GOOD ? 36 : 0;
-  if (dur > 0) { d.startTicks = item ? Math.round(dur * 0.67) : dur; d.boostKind = Boost.START; }
-  if (tier === StartTier.FALSE) d.wheelspinTicks = 18;
+  const mode = ctx.cfg.mode, item = mode === 'item';
+  const dur = tier === StartTier.PERFECT ? START_TICKS.PERFECT : tier === StartTier.GREAT ? START_TICKS.GREAT : tier === StartTier.GOOD ? START_TICKS.GOOD : 0;
+  // set before this tick's phase-3 decrement, so written +1 (10-sim-spec §1.3)
+  if (dur > 0) {
+    d.startTicks = (item ? Math.round(dur * 0.67) : dur) + 1; d.boostKind = Boost.START;
+    if (!item) addGauge(w, k, SHARED.startGaugeBonus * (mode === 'infinite' ? 2 : 1), GaugeSrc.BONUS, teamSizeOf(ctx.cfg.teams), ctx);
+  }
+  if (tier === StartTier.FALSE) d.wheelspinTicks = START_TICKS.WHEELSPIN + 1;
   ctx.events.push({ t: 'startBoost', kart: k.slot, tier: TIER_NAME[tier] ?? 'none', tick: w.tick, key: evKey(w.tick, 61, k.slot) });
 }
 
@@ -59,7 +72,12 @@ export function updateStartBoost(w: WorldState, k: KartState, inp: Readonly<Inpu
     return;
   }
   if (edge || (w.tick === w.goTick && held)) { applyTier(w, k, tierFor(w.tick - w.goTick), ctx); return; }
-  if (w.tick > w.goTick + 21 || (held && !edge && w.tick > w.goTick)) k.stats.startTier = StartTier.NONE;
+  if (held && !edge && w.tick > w.goTick) { k.stats.startTier = StartTier.NONE; return; }
+  if (w.tick > w.goTick + 21) {
+    // never pressed inside the window
+    k.stats.startTier = StartTier.NONE;
+    ctx.events.push({ t: 'startBoost', kart: k.slot, tier: 'none', tick: w.tick, key: evKey(w.tick, 61, k.slot) });
+  }
 }
 
 const ORDER: number[] = [];

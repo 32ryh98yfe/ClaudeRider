@@ -1,0 +1,21 @@
+export default {
+  create: 'Create room', join: 'Join with code', code: 'Room code', copyCode: 'Copy code', hideCode: 'Hide code', showCode: 'Show code',
+  ready: 'Ready', notReady: 'Unready', start: 'Start race', autoStart: 'Auto-start in {s} s', host: 'Host', kick: 'Kick',
+  openSlot: 'Open slot', closeSlot: 'Close slot', addBot: 'Add AI',
+  team: { red: 'Red team', blue: 'Blue team', green: 'Green team', yellow: 'Yellow team' },
+  settings: {
+    track: 'Track', roulette: 'Track Roulette', laps: 'Laps', lapsAuto: 'Auto', retire: 'Retire timer', itemSet: 'Item set',
+    'itemSet.standard': 'Standard', 'itemSet.light': 'Attack-light', 'itemSet.chaos': 'Chaos', friendlyFire: 'Friendly fire', rubberBand: 'AI catch-up',
+    more: 'More rules', secN: '{n} s', 'ff.off': 'Off', 'ff.area': 'Area only', 'ff.all': 'All', instantBoost: 'Instant boost (Item)',
+  },
+  rouletteVote: 'Nominate a track ({s} s)', chatPlaceholder: 'Type a message',
+  title: 'Custom Room', landingSub: 'Open a room and invite friends, or join with a code', codeInput: '6-character room code', joinBtn: 'Join',
+  createDesc: 'Pick the mode and track, then invite friends', joinDesc: 'Enter the code a friend sent you', codeInvalid: 'Room codes are 6 letters or digits (no 0, O, 1 or I)',
+  copied: 'Room code copied', open: 'Open slot', closed: 'Closed', you: 'You', waiting: 'Waiting for ready', allReady: 'Everyone is ready!',
+  needReady: 'Everyone must be ready before the race can start', chat: 'Chat', send: 'Send', leave: 'Leave room', settingsTitle: 'Room settings',
+  hostOnly: 'Only the host can change this', mode: 'Mode', format: 'Format', fillBots: 'Fill empty slots with AI', botTier: 'AI difficulty', private: 'Private room (code only)',
+  maxHumans: 'Max players', slotMenu: 'Manage slot', assignTeam: 'Change team', ping: '{ms} ms', rouletteTitle: 'Track Roulette', voted: 'Voted', votes: '{n} votes',
+  racers: 'Racers {n}/8', noChat: 'No messages yet. Say hi!', hidden: 'Hidden',
+  phase: { waiting: 'Waiting', countdown: 'Starting soon', roulette: 'Track Roulette', loading: 'Loading', racing: 'Racing', results: 'Results' },
+  inProgress: 'A race is in progress. You will join the next one', nowTrack: 'Track: {name}',
+};
