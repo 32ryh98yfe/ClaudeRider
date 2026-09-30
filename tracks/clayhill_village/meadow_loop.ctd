@@ -13,11 +13,11 @@ C R40 110 L bank=6                        @first_drift  # T1 "first drift" (V19)
 S 71                                      @windmill_run # item row
 WIGGLE R60 45/75/40 L bank=3              @meadow_s     # sheep-field S-bends
 S ?b=56 dy=2                              @bridge_up    # stone-bridge approach
-J ramp=8@6 gap=6 drop=0.5 land=40 vmin=25 vmax=46 @bridge  # tutorial hop over the creek (kicker, 6 m gap, landing)
+J ramp=8@6 gap=4 drop=1.5 land=50 vmin=15 vmax=46 @bridge  # tutorial hop over the creek (kicker, 6 m gap, landing)
 C R50 40 R bank=-4 w=18 wall=fence:1.0    @bridge_exit
 C R40 175 L bank=7                        @green        # village-green hairpin round the bandstand (V19)
 C R70 45 R bank=-3                        @market_kink
-S ?c=118 dy=-1.5                            @market_lane  # item row, stalls and bunting
+S ?c=118 dy=-0.5                            @market_lane  # item row, stalls and bunting
 C R60 80 L bank=5                         @windmill_corner
 WIGGLE R60 25/70/25 L bank=3 wall=fence:1.0:soft @hay_s  # hay-bale S (soft bales)
 S 72 wall=fence:1.0:soft                 @hay_straight
@@ -25,6 +25,40 @@ C R45 90 L bank=6 wall=fence:1.0          @last_corner  # onto the home straight
 S ?a=93                                   @run_in
 CLOSE solve=[?a,?b,?c] length=1400
 LINE start at=0
-ITEMS at=160,320,545,870,1040,1200 n=5
+ITEMS at=160,320,480,870,1040,1200 n=5
 PAD at=55,105 d=0 len=6 w=4
 KEYS 240,460,660,860,1070,1280
+
+# ---- look & dressing (Clayhill Village kit; art bible: late-morning meadow) ----
+THEME clayhill_village sky=day time=10:00 scatter=orchard_tree,cypress,hay_bale,sheep,cottage density=5 hills=7
+PROPS kind=cottage from=8 to=190 side=R every=30 offset=7 jitter=3 seed=3
+PROPS kind=flower_box from=5 to=195 side=L every=20 offset=1 seed=4
+PROPS kind=cafe_table from=20 to=180 side=L every=26 offset=5 jitter=2 seed=5
+PROPS kind=orchard_tree from=200 to=277 side=L every=14 offset=6 jitter=4 seed=6
+PROPS kind=cypress from=277 to=348 side=L every=12 offset=4 seed=7
+PROPS kind=sheep from=350 to=510 side=both every=16 offset=8 jitter=14 scale=0.9-1.2 seed=8
+PROPS kind=hay_bale from=380 to=500 side=R every=40 offset=18 jitter=8 seed=9
+PROPS kind=cypress from=662 to=780 side=R every=15 offset=5 seed=10
+PROPS kind=cafe_table from=665 to=775 side=L every=20 offset=4 seed=11
+PROPS kind=market_stall from=840 to=950 side=both every=15 offset=2 seed=12
+PROPS kind=townhouse from=785 to=955 side=both every=13 offset=10 seed=13
+PROPS kind=orchard_tree from=955 to=1039 side=R every=16 offset=6 jitter=6 seed=14
+PROPS kind=hay_bale from=1040 to=1236 side=both every=10 offset=0.8 seed=15
+PROPS kind=sheep from=1170 to=1236 side=R every=14 offset=10 jitter=10 seed=16
+PROPS kind=cottage from=1240 to=1395 side=R every=28 offset=7 jitter=3 seed=17
+PROPS kind=flower_box from=1310 to=1395 side=L every=18 offset=1 seed=18
+# landmarks (poses from the baked centreline): start bunting, T1 tutorial board, windmills, creek, bandstand green,
+# market bunting, the stone arch on the run-in
+PROP kind=bunting at=(30.0,-0.3,0.0) yaw=-90 scale=1
+PROP kind=bunting at=(185.0,-0.3,0.0) yaw=-90 scale=1
+PROP kind=signboard at=(172.0,-0.3,14.0) yaw=90 scale=1
+PROP kind=windmill at=(256.5,-0.3,-101.2) yaw=-160 scale=1.1
+PROP kind=creek at=(112.6,4.2,-309.4) yaw=30 scale=1
+PROP kind=canal_boat at=(133.4,0.1,-321.4) yaw=30 scale=1
+PROP kind=bandstand at=(41.1,0.2,-395.7) yaw=77 scale=1
+PROP kind=weathervane at=(50.8,0.2,-405.8) yaw=47 scale=1
+PROP kind=bunting at=(-67.0,0.0,-342.0) yaw=120 scale=1
+PROP kind=bunting at=(-110.3,-0.2,-317.0) yaw=120 scale=1
+PROP kind=windmill at=(-120.9,-0.3,-259.4) yaw=160 scale=1.2
+PROP kind=stone_arch at=(-60.0,-0.3,-0.0) yaw=-90 scale=1
+PROP kind=fountain at=(-95.3,-0.3,-30.0) yaw=-99 scale=1
