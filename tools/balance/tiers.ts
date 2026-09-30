@@ -9,8 +9,7 @@ import { loadContent, CHARACTER_IDS, type AiTier, type CharacterId } from '@cr/c
 import { loadCtrk, toArrayBuffer, type BakedTrack } from '@cr/sim';
 import { runRace, ghostRaceSec, soloPace, PACE_BANDS } from '@cr/sim/ai/balance.ts';
 import { AI_TIERS } from '@cr/sim';
-import { AI_EXECUTION } from '@cr/sim';
-import { AI_TUNING } from '@cr/sim/ai/driver.ts';
+import { AI_EXECUTION, AI_TUNING } from '@cr/sim';
 import { buildTrack } from '@cr/trackc/build.ts';
 
 export const PACE_TARGETS = PACE_BANDS;

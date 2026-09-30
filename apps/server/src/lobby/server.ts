@@ -4,7 +4,7 @@
 // rooms (6-char codes, host controls, slots/bots/teams, 20 s track roulette, 10 s all-ready auto-start, host migration)
 // and hands races to RaceHost.
 import { CHARACTER_IDS, KART_BODY_IDS, type AiTier, type ContentTables, type ModeId, type TeamFormat, type TrackId } from '@cr/content';
-import { AI_TIERS, SIM_VERSION, type RaceConfig, type SlotConfig } from '@cr/sim';
+import { AI_TIERS, SIM_VERSION, fillBotSlots, type RaceConfig, type SlotConfig } from '@cr/sim';
 import {
   ByteReader, ByteWriter, C2S, FrameMux, LOBBY_JSON_MAX, LOBBY_PROTOCOL_VERSION, NET, PingMsg, PongMsg, ProtocolError, decodeLobby, encodeS2CLobby, u32Hex,
   defaultRoomSettings, type C2SLobby, type Loadout, type RaceResultWire, type RoomSettings, type RoomSlotView, type RoomView, type S2CLobby, type Transport,
@@ -90,7 +90,6 @@ export class LobbyRoom {
   occupied(): number { return this.slots.filter((s) => s.state === 'human' || s.state === 'bot').length; }
 }
 
-const BOT_NAMES = ['Spark', 'Token', 'Prompt', 'Context', 'Vector', 'Embed', 'Attention', 'Gradient', 'Logit', 'Seed', 'Tensor', 'Kernel'];
 
 export class GameServer {
   private readonly o: GameServerOptions;
@@ -523,12 +522,15 @@ export class GameServer {
       const kartBodyId = KART_BODY_IDS[(rb[i + 8]! + i) % KART_BODY_IDS.length]!;
       if (!bot) return { kind: 'empty', team: x.team, name: '', characterId, kartBodyId, vMul: 1 };
       const tier = x.state === 'bot' ? x.tier : st.botTier;
-      return { kind: 'bot', team: x.team, name: `${BOT_NAMES[(rb[i]! + i) % BOT_NAMES.length]}-${10 + (rb[i + 8]! % 90)}`, characterId, kartBodyId, ai: tier, vMul: AI_TIERS[tier].vMul };
+      return { kind: 'bot', team: x.team, name: '', characterId, kartBodyId, ai: tier, vMul: AI_TIERS[tier].vMul };
     });
     const seedB = this.rand(4);
+    const seed = (seedB[0]! | (seedB[1]! << 8) | (seedB[2]! << 16) | (seedB[3]! << 24)) >>> 0;
+    // one bot identity scheme with offline races (14-ai §9): names, characters and karts from the room seed
+    const filled = fillBotSlots(this.o.content, slots, { roomSeed: seed, tier: slots.map((s) => s.ai ?? st.botTier) });
     return {
-      simVersion: SIM_VERSION, mode: st.mode, teams: st.teams, trackId, trackHash, laps: st.laps === 'default' ? trackLaps : st.laps, slots,
-      seed: ((seedB[0]! | (seedB[1]! << 8) | (seedB[2]! << 16) | (seedB[3]! << 24)) >>> 0),
+      simVersion: SIM_VERSION, mode: st.mode, teams: st.teams, trackId, trackHash, laps: st.laps === 'default' ? trackLaps : st.laps, slots: filled,
+      seed,
       rules: {
         retireTicks: (st.retireSec ?? 10) * 60, friendlyFire: st.friendlyFire ?? 'area', itemSet: st.itemSet ?? 'standard',
         rubberBand: st.rubberBand ?? true, instantBoostInItem: st.instantBoostInItem ?? true,
