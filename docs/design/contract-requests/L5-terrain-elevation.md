@@ -39,6 +39,26 @@ still blends to the far-field hills.
 I tried the diff locally and reverted it. On sandglass_canyon it changes the placed counts as follows: `pillar` 115 → 0,
 `canyon_wall` 11 → 45, `cactus` 45 → 58, `clay_pots` 0 → 3. The validator still reports 0 errors.
 
+## Second bug in the same function: NaN terrain vertices on every track
+For a grid vertex whose nearest road sample is 60–85 m away, `best` is finite, because the 5×5 lookup covers
+about 85 m. `near` only collects samples closer than 60 m, so it stays empty. That leaves `yRef = Infinity` and
+`target = Infinity`, and once `sm = 1` the blend evaluates `Infinity * 0`, which is NaN.
+
+In the baked `.vis` files, about 2% of terrain vertices are NaN on all six L5 tracks:
+- meadow: 607 values
+- aurora: 1298 values
+
+The same band applies to every other lane's tracks. Scatter props that land in that band get `y = NaN`, for example
+15 seracs on aurora. In the client these show as holes in the ground: black-rimmed gaps some 60–70 m out from the road.
+
+```diff
+-    if (Number.isFinite(best)) {
++    if (Number.isFinite(best) && best < 60) {
+```
+Beyond 60 m the blend already gives `natural`, since `sm = 1` whenever `best ≥ edge + 30`. The guard therefore
+changes nothing except the NaN band. I tried it locally and reverted it: meadow_loop and aurora_summit then bake with
+0 NaN values.
+
 ## Fallback shipped meanwhile
 - The L5 tracks keep their rows as designed. Rows on raised sections place fewer instances until this lands.
 - Landmarks (`PROP at=`) are posed from the centreline and are not affected.
