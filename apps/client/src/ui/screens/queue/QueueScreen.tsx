@@ -14,7 +14,7 @@ import { saveState, raceSetup } from '../../store/profile.ts';
 import { trackInfo, loadTrackIndex } from '../../store/tracks.ts';
 import { mockLobby } from '../../dev/demo.ts';
 import { ScreenHead } from '../../components/common.tsx';
-import { Seg, Stars } from '../../components/controls.tsx';
+import { Seg, Stars, lapsText } from '../../components/controls.tsx';
 import { TrackArt } from '../../components/TrackArt.tsx';
 import { Portrait } from '../../components/Portrait.tsx';
 import { Icon } from '../../icons/Icon.tsx';
@@ -117,7 +117,7 @@ export function QueueScreen() {
         <div class="q-track">
           <TrackArt id={q.trackId ?? 'random'} random={!q.trackId} class="q-track-art" />
           <div><div class="q-track-name display">{q.trackId ? t(`tracks.${q.trackId}.name`) : t('lobby.randomTrack')}</div>
-            <div class="q-track-meta">{tr ? <><Stars n={tr.difficulty} /><span class="badge">{t('common.laps', { n: tr.laps })}</span></> : null}<span class="badge coral">{t(`common.mode.${mode}`)}</span></div></div>
+            <div class="q-track-meta">{tr ? <><Stars n={tr.difficulty} /><span class="badge">{lapsText(tr.laps)}</span></> : null}<span class="badge coral">{t(`common.mode.${mode}`)}</span></div></div>
         </div>
         <div class="q-loadout">
           <span class="eyebrow">{t('lobby.queue.loadout')}</span>

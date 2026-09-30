@@ -10,6 +10,7 @@ export class Ticker {
   readonly epochWallMs = Date.now();
   tick = 0;
   dropped = 0;
+  errors = 0;
   onTick: ((tick: number) => void) | null = null;
   private running = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
@@ -49,7 +50,8 @@ export class Ticker {
       while (this.tick < target) {
         this.tick++;
         const t0 = performance.now();
-        this.onTick?.(this.tick);
+        // one failing tick must not stop the clock for every room (errors are logged, the loop keeps its schedule)
+        try { this.onTick?.(this.tick); } catch (e) { this.errors++; console.error('[ticker] tick failed', e); }
         this.costMs.push(performance.now() - t0);
         if (this.costMs.length > 3600) this.costMs.splice(0, this.costMs.length - 3600);
       }

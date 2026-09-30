@@ -5,7 +5,7 @@ export default defineKart({
   archetype: 'balance',
   vGrip: 34.0,
   vBoost: 44.4,
-  a0: 18.2,
+  a0: 18.15,
   tBoostTicks: 180,
   g0: 0.7,
   kLatIn: 3.0,

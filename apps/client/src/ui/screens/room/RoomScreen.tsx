@@ -110,6 +110,7 @@ function RoomView({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
   const [showCode, setShowCode] = useState(!room.settings.isPrivate);
   const [menu, setMenu] = useState<number | null>(null);
   const [msg, setMsg] = useState('');
+  const [more, setMore] = useState(false);
   const me = room.slots.find((x) => x.you);
   const isHost = !!me?.host || (lobby.session.value !== null && room.hostSession === lobby.session.value);
   const st = room.settings;
@@ -120,7 +121,11 @@ function RoomView({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
   const setS = (p: Partial<RoomSettings>): void => { Audio.sfx('uiMove'); if (mockLobby.value) lobby.room.value = { ...room, settings: { ...room.settings, ...p } }; else lobbyActions.settings(p); };
   const copy = (): void => { void navigator.clipboard?.writeText(room.code).then(() => toast(t('room.copied'), 'good')).catch(() => toast(room.code)); };
   const send = (): void => { const v = msg.trim(); if (!v) return; if (!mockLobby.value) lobbyActions.chat(v); else lobby.chat.value = [...lobby.chat.value, { from: me?.name ?? '', text: v, at: Date.now() }]; setMsg(''); };
-  const trackLabel = st.track === 'roulette' ? t('room.settings.roulette') : t(`tracks.${st.track}.name`);
+  // once the server has picked the track (after a roulette or a random pick) show that, not the setting
+  const busy = room.phase === 'loading' || room.phase === 'racing' || room.phase === 'results';
+  const trackLabel = busy && room.trackId ? t(`tracks.${room.trackId}.name`) : st.track === 'roulette' ? t('room.settings.roulette') : t(`tracks.${st.track}.name`);
+  // server defaults (13-modes-rules §7.2) for the optional rules
+  const retireSec = st.retireSec ?? 10, itemSet = st.itemSet ?? 'standard', ff = st.friendlyFire ?? 'area';
   const teamsN = st.teams === 'duo' ? 4 : st.teams === 'squad' ? 2 : 0;
   const autoLeft = room.phase === 'countdown' ? secondsLeft(room.endsAt, now) : 0;
   return (
@@ -156,6 +161,19 @@ function RoomView({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
               <div class="rs-row"><span>{t('room.botTier')}</span><Seg label={t('room.botTier')} value={st.botTier} onChange={(v) => setS({ botTier: v })} options={(['rookie', 'racer', 'pro', 'legend'] as AiTier[]).map((x) => ({ value: x, label: t(`common.tier.${x}`) }))} /></div>
               <div class="rs-row"><span>{t('room.fillBots')}</span><Toggle label={t('room.fillBots')} on={st.fillBots} onChange={(v) => setS({ fillBots: v })} /></div>
               <div class="rs-row"><span>{t('room.private')}</span><Toggle label={t('room.private')} on={st.isPrivate} onChange={(v) => setS({ isPrivate: v })} /></div>
+              <button class="btn small rs-more" type="button" aria-expanded={more} onClick={() => setMore(!more)}><Icon name={more ? 'minus' : 'plus'} size={14} />{t('room.settings.more')}</button>
+              {more ? (
+                <div class="rs-more-body">
+                  <div class="rs-row"><span>{t('room.settings.retire')}</span><Seg label={t('room.settings.retire')} value={retireSec} onChange={(v) => setS({ retireSec: v })}
+                    options={([5, 10, 15, 20] as const).map((n) => ({ value: n, label: t('room.settings.secN', { n }) }))} /></div>
+                  {st.mode === 'item' ? <div class="rs-row"><span>{t('room.settings.itemSet')}</span><Seg label={t('room.settings.itemSet')} value={itemSet} onChange={(v) => setS({ itemSet: v })}
+                    options={(['standard', 'light', 'chaos'] as const).map((x) => ({ value: x, label: t(`room.settings.itemSet.${x}`) }))} /></div> : null}
+                  {st.mode === 'item' && st.teams !== 'solo' ? <div class="rs-row"><span>{t('room.settings.friendlyFire')}</span><Seg label={t('room.settings.friendlyFire')} value={ff} onChange={(v) => setS({ friendlyFire: v })}
+                    options={(['off', 'area', 'all'] as const).map((x) => ({ value: x, label: t(`room.settings.ff.${x}`) }))} /></div> : null}
+                  <div class="rs-row"><span>{t('room.settings.rubberBand')}</span><Toggle label={t('room.settings.rubberBand')} on={st.rubberBand ?? true} onChange={(v) => setS({ rubberBand: v })} /></div>
+                  {st.mode === 'item' ? <div class="rs-row"><span>{t('room.settings.instantBoost')}</span><Toggle label={t('room.settings.instantBoost')} on={st.instantBoostInItem ?? true} onChange={(v) => setS({ instantBoostInItem: v })} /></div> : null}
+                </div>
+              ) : null}
             </fieldset>
           </section>
           <section class="card room-chat" aria-label={t('room.chat')}>
@@ -172,11 +190,12 @@ function RoomView({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
       <footer class="room-foot">
         <button class="btn quiet leave-btn" type="button" onClick={onLeave}><Icon name="door" size={18} />{t('room.leave')}</button>
         <div class="grow" />
-        {room.phase === 'countdown' ? <span class="auto-start num" aria-live="polite">{t('room.autoStart', { s: autoLeft })}</span> : !allReady ? <span class="room-wait">{t('room.needReady')}</span> : <span class="room-wait ok">{t('room.allReady')}</span>}
+        {busy ? <span class="room-wait" aria-live="polite">{t('room.inProgress')}</span>
+          : room.phase === 'countdown' ? <span class="auto-start num" aria-live="polite">{t('room.autoStart', { s: autoLeft })}</span> : !allReady ? <span class="room-wait">{t('room.needReady')}</span> : <span class="room-wait ok">{t('room.allReady')}</span>}
         {isHost ? (
-          <button class="btn primary big" type="button" data-autofocus disabled={!allReady} onClick={() => { Audio.sfx('uiOk'); lobbyActions.start(); }}><Icon name="flag" size={20} /><span class="display">{t('room.start')}</span></button>
+          <button class="btn primary big" type="button" data-autofocus disabled={!allReady || busy} onClick={() => { Audio.sfx('uiOk'); lobbyActions.start(); }}><Icon name="flag" size={20} /><span class="display">{t('room.start')}</span></button>
         ) : (
-          <button class={`btn big ${me?.ready ? 'dark' : 'primary'}`} type="button" data-autofocus onClick={() => { Audio.sfx('uiOk'); lobbyActions.ready(!me?.ready); }}><Icon name={me?.ready ? 'x' : 'check'} size={20} /><span class="display">{me?.ready ? t('room.notReady') : t('room.ready')}</span></button>
+          <button class={`btn big ${me?.ready ? 'dark' : 'primary'}`} type="button" data-autofocus disabled={busy} onClick={() => { Audio.sfx('uiOk'); lobbyActions.ready(!me?.ready); }}><Icon name={me?.ready ? 'x' : 'check'} size={20} /><span class="display">{me?.ready ? t('room.notReady') : t('room.ready')}</span></button>
         )}
       </footer>
       {room.phase === 'roulette' ? <Roulette room={room} now={now} /> : null}
