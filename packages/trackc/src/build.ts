@@ -23,6 +23,7 @@ import { validate, type Finding } from './validate.ts';
 import { previewSvg } from './preview.ts';
 import { respawnTables } from './respawn.ts';
 import { assertFinite } from './finite.ts';
+import { bakeAo } from './ao.ts';
 
 export const COMPILER_VERSION = 'trackc/2.0';
 
@@ -48,7 +49,7 @@ export interface VisMeta {
   hazards?: { id: number; kind: string; name: string; prop: string; size: [number, number, number]; shape: string; group?: number }[];
 }
 
-export interface BuildOptions { refLapTicks?: number; seed?: number; strict?: boolean; mesh?: Partial<MeshOptions>; terrain?: boolean; props?: boolean }
+export interface BuildOptions { refLapTicks?: number; seed?: number; strict?: boolean; mesh?: Partial<MeshOptions>; terrain?: boolean; props?: boolean; /** baked vertex AO into the .vis colours (the CLI turns it on; off by default so sim/test bakes stay fast) */ ao?: boolean }
 
 export interface BuildResult {
   id: string;
@@ -317,6 +318,8 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   if (tf) terrainToRender(rb, tf, nf, ao);
   const slots = rb.finalise();
   tick('render');
+  const aoReport = opts.ao ? bakeAo(slots) : null;
+  tick('ao');
   const gi = new GroundIndex(ground);
   const props: PropSet[] = opts.props === false ? [] : placeProps(m, c, seed, gi, tf, exclusions(m, c, junctions, c.hazards.filter((h) => h.motion?.type !== 'lane')), junctions);
   tick('props');
@@ -367,6 +370,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     boxes: c.boxes.length, ctrkBytes: ctrk.length, visBytes: vis.length, renderTris: slots.reduce((a, s) => a + s.idx.length / 3, 0),
     props: props.reduce((a, p) => a + p.xf.length / 6, 0), minR: minRadius(m, 0), minW: Math.min(...main.samples.map((s) => s.w)),
     slots: slots.length, chunks: visMeta.chunks!.length, clippedTris: jr.touched, killTris: feat.kills, jumpFaces: feat.faces,
+    aoVertices: aoReport?.vertices ?? 0, aoRays: aoReport?.rays ?? 0, aoMean: aoReport ? Math.round(aoReport.mean * 1000) / 1000 : 1,
   };
   const result: BuildResult = {
     id: ast.id, ctrk, vis, meta, visMeta, findings: [], stats, previewSvg: '', track, model: m, content: c, junctions, slots, areas, areaReports: ar.reports, warps,
