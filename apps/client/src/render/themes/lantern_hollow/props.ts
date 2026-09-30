@@ -129,6 +129,17 @@ function bridgeRail(): THREE.BufferGeometry {
   return merge(parts);
 }
 
+/** Creek under the bridge hop: a glossy water ribbon across the gap (local X runs across the road), stones, reeds. */
+function creek(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  const rnd = prng(221);
+  parts.push(part(new THREE.PlaneGeometry(80, 9), '#27406e', 0, 0, 0, -Math.PI / 2, 0, 0));
+  parts.push(part(new THREE.PlaneGeometry(80, 1.2), '#5d7fb8', 0, 0.02, 4.2, -Math.PI / 2, 0, 0), part(new THREE.PlaneGeometry(80, 1.2), '#5d7fb8', 0, 0.02, -4.2, -Math.PI / 2, 0, 0));
+  for (let i = 0; i < 14; i++) parts.push(part(blob(0.6 + rnd() * 0.7, 0, 0.3, 223 + i, 1.2, 0.5, 1), i % 2 ? C.stone : C.stoneDark, (rnd() - 0.5) * 70, 0.1, (rnd() > 0.5 ? 1 : -1) * (4.5 + rnd())));
+  for (let i = 0; i < 16; i++) { const x = (rnd() - 0.5) * 70, z = (rnd() > 0.5 ? 1 : -1) * (5 + rnd() * 1.5); parts.push(part(cyl(0.04, 0.05, 1.8, 4), C.leaf, x, 0.8, z), part(cyl(0.1, 0.1, 0.4, 5), C.woodDark, x, 1.7, z)); }
+  return merge(parts);
+}
+
 // ------------------------------------------------------------------------------------------------ graveyard
 /** Three smiling tombstones (rounded, cross, square) with sleepy slot eyes, blush and grass tufts. */
 function gravestones(): THREE.BufferGeometry {
@@ -468,6 +479,56 @@ function giantTable(): THREE.BufferGeometry {
   return merge(parts);
 }
 
+/** Gore cushion at a branch split: hay bales, a smiling pumpkin and a chevron board facing traffic (−Z). */
+function goreCushion(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  for (const [x, y, z] of [[-0.8, 0.4, 0], [0.8, 0.4, 0], [0, 1.4, 0.1]] as const) parts.push(part(rbox(1.5, 1.0, 1.9, 0.12, 2), C.straw, x, y, z, 0, 0, 0, 1, 1, 1, 0.08, 211));
+  pumpkin(parts, 0, 1.9, 0.2, 0.5, 213); jackFace(parts, 0, 1.9, 0.2, 0.5);
+  parts.push(part(box(2.4, 1.0, 0.12), '#1c1f26', 0, 3.4, -1.1), part(box(0.12, 1.6, 0.12), C.woodDark, 0, 2.4, -1.0));
+  for (const sx of [-1, 1]) for (const dy of [-0.16, 0.16]) parts.push(part(box(0.5, 0.14, 0.05), '#ffd23f', sx * 0.55, 3.4 + dy, -1.18, 0, 0, sx * (dy > 0 ? -0.7 : 0.7)));
+  return merge(parts);
+}
+/** Support under elevated decks: a short stone column with a lantern niche (kept under the 4 m minimum clearance). */
+function stonePillar(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [part(facet(cyl(1.2, 1.5, 6, 8)), C.stoneDark, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0.06, 217), part(cyl(1.6, 1.6, 0.4, 8), C.stone, 0, 3.8, 0)];
+  paperLantern(parts, 1.35, 3.4, 0, 0.22, 2.2);
+  return merge(parts);
+}
+
+/** Swinging parade lantern (HAZ swinger, capsule 0.8 × 2.0): a giant glowing pumpkin lantern on a rope, centred, +Y up. */
+function hazardLantern(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  parts.push(part(new THREE.CapsuleGeometry(0.8, 2.0, 3, 10), GLOW(2.0), 0, 0, 0));
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; parts.push(part(box(0.08, 3.4, 0.08), C.pumpkinDeep, Math.cos(a) * 0.8, 0, Math.sin(a) * 0.8)); }
+  parts.push(part(cyl(0.55, 0.7, 0.4, 10), C.red, 0, 1.75, 0), part(cyl(0.7, 0.55, 0.4, 10), C.red, 0, -1.75, 0));
+  parts.push(part(box(0.06, 0.5, 0.2), C.eye, 0.82, 0.35, -0.25), part(box(0.06, 0.5, 0.2), C.eye, 0.82, 0.35, 0.25));
+  parts.push(part(cyl(0.05, 0.05, 5, 4), C.iron, 0, 4.4, 0), part(cyl(0.04, 0.04, 0.8, 4), C.gold, 0, -2.3, 0));
+  return merge(parts);
+}
+/** Swinging chandelier (HAZ swinger, capsule 1.2 × 1.0): gold rings, candles and crystal drops, chain up +Y. */
+function hazardChandelier(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  parts.push(part(torus(1.6, 0.12, 5, 16), C.gold, 0, 0, 0, Math.PI / 2, 0, 0), part(torus(0.9, 0.1, 5, 12), C.gold, 0, 0.6, 0, Math.PI / 2, 0, 0));
+  parts.push(part(cone(0.5, 1.2, 8), C.gold, 0, -0.7, 0, Math.PI, 0, 0));
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * 6.28;
+    parts.push(part(cyl(0.07, 0.07, 0.35, 5), C.ivory, Math.cos(a) * 1.6, 0.25, Math.sin(a) * 1.6), part(cone(0.06, 0.2, 5), FLAME(3), Math.cos(a) * 1.6, 0.55, Math.sin(a) * 1.6));
+    parts.push(part(ico(0.13, 0), hdr('#e6e0ff', 1.5), Math.cos(a + 0.4) * 1.3, -0.4, Math.sin(a + 0.4) * 1.3));
+  }
+  parts.push(part(cyl(0.06, 0.06, 7, 4), C.iron, 0, 4.2, 0));
+  return merge(parts);
+}
+/** Bookcase press (HAZ press, box 4 along × 6 across × 3 up): a toppling shelf of giant books, standing on +Y. */
+function hazardBookcase(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  const rnd = prng(257);
+  parts.push(part(box(6, 3, 4), C.woodDark, 0, 1.5, 0), part(box(6.2, 0.25, 4.2), C.wood, 0, 3.05, 0));
+  let x = -2.9;
+  while (x < 2.8) { const w = 0.35 + rnd() * 0.4, h = 1.6 + rnd() * 1.1; parts.push(part(box(w, h, 0.3), [C.red, C.cloth, C.leaf, C.plum, C.gold][Math.floor(rnd() * 5)]!, x + w / 2, 0.2 + h / 2, -2.1)); x += w + 0.05; }
+  parts.push(part(box(6.1, 0.18, 0.2), '#ffc857', 0, 0.1, -2.15));
+  return merge(parts);
+}
+
 // ------------------------------------------------------------------------------------------------ factory table
 const kind = (build: () => THREE.BufferGeometry, material: () => THREE.Material, castShadow = true): PropFactory => {
   let cache: THREE.BufferGeometry | null = null;
@@ -481,6 +542,14 @@ export const LANTERN_PROPS: Record<string, PropFactory> = {
   lantern_arch: kind(lanternArch, matte),
   lantern_string: kind(lanternString, matte, false),
   bridge_rail: kind(bridgeRail, matte, false),
+  hazard_swinger: kind(hazardLantern, matte),
+  hazard_lantern: kind(hazardLantern, matte),
+  hazard_chandelier: kind(hazardChandelier, matte),
+  hazard_press: kind(hazardBookcase, matte),
+  hazard_bookcase: kind(hazardBookcase, matte),
+  creek: kind(creek, () => MaterialLibrary.vertexLit(0.12, 0), false),
+  gore_cushion: kind(goreCushion, matte),
+  pillar: kind(stonePillar, matte, false),
   bridge_deck: CANOPY_PROPS.bridge_deck!,
   gravestone: kind(gravestones, matte, false),
   iron_fence: kind(ironFence, matte, false),
