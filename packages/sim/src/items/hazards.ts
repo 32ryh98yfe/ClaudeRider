@@ -10,7 +10,7 @@ import { evKey } from '../kart/evkey.ts';
 import { KART_CY, KART_R } from '../kart/motion.ts';
 import { EF, EFlag, itemDef } from './codes.ts';
 import { authorityOf } from './decisions.ts';
-import { resolveEffect, scheduleEffect } from './effects.ts';
+import { activeEffect, resolveEffect, scheduleEffect } from './effects.ts';
 import { objectId, mix4 } from './ids.ts';
 import { trapHeight } from './kinematics.ts';
 import { packNormal } from './pack.ts';
@@ -203,9 +203,10 @@ function firewallContacts(w: WorldState, ctx: StepContext, def: Readonly<ItemDef
     const dx = b.px + b.nx * KART_CY - h.px, dz = b.pz + b.nz * KART_CY - h.pz, dy = b.py + b.ny * KART_CY - cy;
     const d2 = dx * dx + dz * dz;
     if (d2 > reach * reach || dy > hh / 2 + KART_R || dy < -hh / 2 - KART_R) continue;
-    // no effect on a kart riding a rail or on a boost pad; the block still shatters (§2.2.10)
+    // no effect on a kart riding a rail or on a boost pad; the block still shatters (§2.2.10). A kart already slowed
+    // by a block (threading two adjacent ones) only shatters the second: the ×0.35 cut never compounds [P]
     const surf = ctx.content.surfaceByCode[b.surf];
-    if (b.attachKind !== Attach.RAIL && surf?.id !== 'boost_pad') {
+    if (b.attachKind !== Attach.RAIL && surf?.id !== 'boost_pad' && !activeEffect(w, k.slot, EF.firewall_hit, w.tick)) {
       const d = Math.sqrt(d2);
       const nx = d > 1e-6 ? dx / d : -b.fx, nz = d > 1e-6 ? dz / d : -b.fz;
       hitNow(w, ctx, def, h.owner, k.slot, h.id, packNormal(nx, nz));
