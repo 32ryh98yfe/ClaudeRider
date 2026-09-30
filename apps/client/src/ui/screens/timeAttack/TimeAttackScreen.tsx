@@ -12,7 +12,7 @@ import { useBack } from '../../hooks.ts';
 import { saveState } from '../../store/profile.ts';
 import { bakedIndex, loadTrackIndex, refLapTicks, trackInfos, type TrackInfo } from '../../store/tracks.ts';
 import { ScreenHead, keyText, NavHints } from '../../components/common.tsx';
-import { Toggle, Stars } from '../../components/controls.tsx';
+import { Toggle, Stars, lapsText } from '../../components/controls.tsx';
 import { TrackArt } from '../../components/TrackArt.tsx';
 import { Icon } from '../../icons/Icon.tsx';
 import './timeAttack.css';
@@ -54,7 +54,7 @@ export function TimeAttackScreen() {
                 <TrackArt id={x.id} class="ta-thumb" />
                 <span class="ta-row-main">
                   <span class="ta-row-name">{t(`tracks.${x.id}.name`)}</span>
-                  <span class="ta-row-meta">{x.baked ? <><Stars n={x.difficulty} /><span>{t('common.laps', { n: x.laps })}</span></> : <span class="badge lock"><Icon name="lock" size={11} />{t('lobby.ta.unavailable')}</span>}</span>
+                  <span class="ta-row-meta">{x.baked ? <><Stars n={x.difficulty} /><span>{lapsText(x.laps)}</span></> : <span class="badge lock"><Icon name="lock" size={11} />{t('lobby.ta.unavailable')}</span>}</span>
                 </span>
                 <span class="ta-row-pb num">{x.baked ? fmtTicks(pb) : ''}</span>
                 <MedalBadge m={medal} />
@@ -67,7 +67,7 @@ export function TimeAttackScreen() {
             <TrackArt id={cur.id} class="ta-hero" />
             <div class="ta-detail-head">
               <h2 class="display">{t(`tracks.${cur.id}.name`)}</h2>
-              <div class="ta-tags"><span class="badge">{t(`themes.${cur.themeId}.name`)}</span><Stars n={cur.difficulty} /><span class="badge">{t('common.laps', { n: cur.laps })}</span></div>
+              <div class="ta-tags"><span class="badge">{t(`themes.${cur.themeId}.name`)}</span><Stars n={cur.difficulty} /><span class="badge">{lapsText(cur.laps)}</span></div>
             </div>
             <div class="ta-records">
               <div><span class="eyebrow">{t('lobby.ta.pbRace')}</span><b class="num">{fmtTicks(pbRace)}</b><MedalBadge m={medalFor(pbRace, refRace)} size={20} /></div>

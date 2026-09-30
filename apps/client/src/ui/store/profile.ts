@@ -1,6 +1,6 @@
 // Reactive mirror of the save for components (re-render on save.update), plus the Quick Race setup.
 import { signal } from '@preact/signals';
-import type { AiTier, ModeId, TrackId } from '@cr/content';
+import type { AiTier, ModeId, TeamFormat, TrackId } from '@cr/content';
 import { save, type SaveV1 } from '../../meta/save.ts';
 import { ensureRotation } from '../../meta/challenges.ts';
 
@@ -19,6 +19,11 @@ export function raceSetup(): RaceSetup {
   const tier = (['rookie', 'racer', 'pro', 'legend'] as const).find((x) => x === l?.tier) ?? 'racer';
   return { mode: l?.mode === 'item' ? 'item' : 'speed', track: (l?.track ?? 'meadow_loop') as TrackId | 'random', tier, laps: l?.laps ?? 'auto' };
 }
+/** Offline team format for the next race (session-only; the save's lastRace has no team field). */
+export const raceTeams = signal<TeamFormat>('solo');
+/** Extra `navigate('loading')` params for the chosen team format. */
+export function teamParams(): Record<string, string> { return raceTeams.value === 'solo' ? {} : { teams: raceTeams.value }; }
+
 export function setRaceSetup(p: Partial<RaceSetup>): void {
   save.update((s) => { s.profile.lastRace = { ...raceSetup(), ...p }; });
 }
