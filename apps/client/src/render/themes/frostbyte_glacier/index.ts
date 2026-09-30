@@ -7,15 +7,18 @@ import { makeKit, type ThemeKit, type ThemeLook } from '../kit.ts';
 import { FROSTBYTE_PROPS } from './props.ts';
 
 export const FROSTBYTE_LOOK: Partial<ThemeLook> = {
-  road: { style: 'asphalt', a: '#6f7d8c', b: '#8391a0', line: '#bee9f7' },
-  shoulder: { a: '#e6eff6', b: '#f4f9fc' },
-  terrain: { a: '#f2f7fb', b: '#dfeaf3', rock: '#8e9aa8' },
-  wall: { kind: 'stone', a: '#dfe8f0', b: '#a9b8c6' },
+  // snow is near-white, so the light rig runs lower than the other kits to keep the road and props readable
+  road: { style: 'asphalt', a: '#56616f', b: '#667282', line: '#bee9f7' },
+  shoulder: { a: '#d9e4ed', b: '#e7eef4' },
+  terrain: { a: '#e4ecf3', b: '#d2dee9', rock: '#7f8b99' },
+  wall: { kind: 'stone', a: '#d2dde7', b: '#97a7b6' },
   kerb: ['#2f6fa6', '#f7fbff'],
-  sky: { turbidity: 6, rayleigh: 0.9, elevationDeg: 28, azimuthDeg: 200, exposure: 0.95 },
-  sun: { color: '#eef6ff', intensity: 1.9 },
-  hemi: { sky: '#e4f2ff', ground: '#c9d9e6', intensity: 1.45 },
-  fogColor: '#dff2fb',
+  sky: { turbidity: 6, rayleigh: 0.9, elevationDeg: 28, azimuthDeg: 200, exposure: 0.85 },
+  sun: { color: '#eef6ff', intensity: 1.6 },
+  hemi: { sky: '#dcecff', ground: '#b9cad8', intensity: 1.05 },
+  fogColor: '#d3e6f2',
+  exposure: 0.85,
+  bloom: 0.25,
   hour: 13,
   clouds: 0.75,
   // stars/moon/aurora are left to the sky kind, so only Aurora Summit's `sky=aurora` night gets them
@@ -23,7 +26,7 @@ export const FROSTBYTE_LOOK: Partial<ThemeLook> = {
   shadowStrength: 0.55,
   rimBoost: 1.3,
   grade: { tint: '#eef7ff', saturation: 1.05, highlights: '#f4fbff' },
-  water: { level: -0.5, shallow: '#bfeaf5', deep: '#2f6fa6', foam: '#ffffff' },
+  // no global water plane: the frozen lake and the rink are ice road surfaces
 };
 
 export default (c: ContentTables): ThemeKit => {

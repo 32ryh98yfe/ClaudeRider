@@ -19,7 +19,7 @@ export const SUNSTONE_LOOK: Partial<ThemeLook> = {
   hour: 16,
   ambient: 'dust',
   grade: { tint: '#ffe9c2', saturation: 1.08 },
-  water: { level: -0.4, shallow: '#7fe3d6', deep: '#1fb5c9', foam: '#f6e7c1' },
+  // no global water plane: the only water is the oasis_pond prop (a sea level would flood the dune-top dip)
 };
 
 export default (c: ContentTables): ThemeKit => {
