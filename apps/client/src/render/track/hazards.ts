@@ -6,7 +6,7 @@
 // - box: centred along f and across, standing on the origin along u;
 // - cyl: standing on the origin (a swinger capsule is centred on it along the arm);
 // - sphere: centred.
-// A kit prop `visMeta.hazards[i].prop` replaces the default body. The telegraph (≥ 0.6 s) shows a pulsing ground ring,
+// A kit model (the HAZ `prop=` key, else the theme's `hazard_<kind>`) replaces the default body at real size. The telegraph (≥ 0.6 s) shows a pulsing ground ring,
 // geyser wisps, a press shake and train lights.
 import * as THREE from 'three/webgpu';
 import type { BakedTrack, HazardPose } from '@cr/sim';
@@ -19,7 +19,7 @@ export interface HazardVisMeta { id: number; kind: string; name: string; prop: s
 
 interface Haz {
   meta: HazardVisMeta; root: THREE.Group; body: THREE.Object3D; glow: THREE.Mesh | null; ring: THREE.Mesh;
-  arm: THREE.Mesh | null; armLen: number; flat: boolean; capsule: boolean; wasActive: boolean;
+  arm: THREE.Mesh | null; armLen: number; flat: boolean; capsule: boolean; wasActive: boolean; wasTele: boolean; lastPhase: number; hornT: number;
 }
 
 const STEAM: SpawnOpts = { shape: 5, additive: false, size0: 0.8, size1: 2.6, gravity: 2.5, drag: 1.2, alpha: 0.5 };
@@ -74,6 +74,8 @@ export class TrackHazards {
   private f = new THREE.Vector3(); private u = new THREE.Vector3(); private s = new THREE.Vector3(); private p = new THREE.Vector3();
   private m = new THREE.Matrix4();
   private t = 0;
+  /** Audio cue hook: (sfx id, world position). RaceRenderer forwards it to the spatial mixer. */
+  onCue: ((id: string, at: THREE.Vector3) => void) | null = null;
 
   constructor(metas: readonly HazardVisMeta[], track: BakedTrack, kit: ThemeKit) {
     this.track = track;
@@ -85,8 +87,10 @@ export class TrackHazards {
       const def = track.hazards[meta.id];
       const root = new THREE.Group();
       root.matrixAutoUpdate = false;
-      const kitProp = kit.props[meta.prop];
-      const isDefault = meta.prop === `hazard_${meta.kind === 'traffic' ? 'car' : meta.kind}`;
+      // the HAZ `prop=` key first, then the theme's generic hazard_<kind> model, then the built-in look
+      const generic = `hazard_${meta.kind === 'traffic' ? 'car' : meta.kind}`;
+      const kitProp = kit.props[meta.prop] ?? kit.props[generic];
+      const isDefault = meta.prop === generic;
       let body: THREE.Object3D, glow: THREE.Mesh | null = null;
       if (kitProp) {
         const built = kitProp.build(kit.data.palette);
@@ -110,11 +114,12 @@ export class TrackHazards {
         const bands = body as THREE.Mesh; bands.scale.set(s0, s0, s0); grp.add(bands);
         body = grp;
       }
-      // unit → hazard size, in the hazard frame (x across, y up, z along f)
-      if (meta.shape === 'box') body.scale.set(s1, s2, s0);
+      // built-in looks are unit-sized → scale to the hazard size in its frame (x across, y up, z along f);
+      // kit models (L12-hazard-models.md) are authored at real size in the same frame and are used as they are
+      if (kitProp) { /* real size */ }
+      else if (meta.shape === 'box') body.scale.set(s1, s2, s0);
       else if (meta.shape === 'sphere') body.scale.setScalar(s0);
-      else if (capsule) { if (kitProp) body.scale.set(s0, s1, s0); }
-      else body.scale.set(s0, meta.kind === 'geyser' ? 1 : s1, s0);
+      else if (!capsule) body.scale.set(s0, meta.kind === 'geyser' ? 1 : s1, s0);
       (body as THREE.Mesh).castShadow = meta.kind !== 'geyser';
       root.add(body);
       if (glow) {
@@ -127,19 +132,19 @@ export class TrackHazards {
       const rr = meta.shape === 'box' ? Math.max(s0, s1) * 0.6 : s0 * 1.25;
       ring.scale.setScalar(rr); ring.position.y = 0.05; ring.visible = false;
       root.add(ring);
-      // swinger arm: a rod from the bob back to the pivot (−u for vertical swings, −f for a flat sweep)
+      // swinger arm: a rod from the bob to the pivot (+u for vertical swings: u is up at rest; −f for a flat sweep)
       const mo = def?.motion;
       const flat = mo?.plane === 'flat';
       let arm: THREE.Mesh | null = null, armLen = 0;
-      if (capsule && mo) {
+      if (capsule && mo && !kitProp) { // kit models carry their own rope / limb
         armLen = mo.arm ?? 5;
         arm = new THREE.Mesh(cylUnit(), MaterialLibrary.vertexLit(0.4, 0.6));
         if (flat) { arm.rotation.x = Math.PI / 2; arm.position.z = -armLen / 2; arm.scale.set(0.12, armLen, 0.12); }
-        else { arm.position.y = -armLen / 2; arm.scale.set(0.12, armLen, 0.12); }
+        else { arm.position.y = armLen / 2; arm.scale.set(0.12, armLen, 0.12); } // u points from the bob to the pivot
         root.add(arm);
       }
       this.root.add(root);
-      this.list.push({ meta, root, body, glow, ring, arm, armLen, flat, capsule, wasActive: false });
+      this.list.push({ meta, root, body, glow, ring, arm, armLen, flat, capsule, wasActive: false, wasTele: false, lastPhase: -1, hornT: 2 + meta.id * 1.7 });
     }
   }
 
@@ -193,8 +198,25 @@ export class TrackHazards {
         const m = sparks.burst(22, 6);
         for (let q = 0; q < m; q++) sparks.spawn(p.x + s.x * (Math.random() - 0.5) * h.meta.size[1], p.y + 0.2, p.z + s.z * (Math.random() - 0.5) * h.meta.size[1], (Math.random() - 0.5) * 6, 2 + Math.random() * 3, (Math.random() - 0.5) * 6, 0.35, 1, 0.75, 0.4, SPARK);
       }
-      h.wasActive = active;
+      this.cues(h, tele, active, A.phase ?? 0, dt, p);
+      h.wasActive = active; h.wasTele = tele;
     }
+  }
+
+  /** Sound cues on state edges: telegraph pings, geyser roar, press slam, train horn, swinger whoosh, traffic horns. */
+  private cues(h: Haz, tele: boolean, active: boolean, phase: number, dt: number, at: THREE.Vector3): void {
+    const cue = this.onCue;
+    if (!cue) { h.lastPhase = phase; return; }
+    const k = h.meta.kind;
+    if (tele && !h.wasTele) cue(k === 'train' ? 'haz.train' : 'haz.telegraph', at);
+    if (active && !h.wasActive && (k === 'geyser' || k === 'press')) cue(k === 'geyser' ? 'haz.geyser' : 'haz.press', at);
+    if (k === 'swinger' && h.lastPhase >= 0) {
+      // fastest at phase 0 and 0.5 for a pendulum (once per turn for a flat sweeper)
+      const wrapped = phase < h.lastPhase;
+      if (wrapped || (!h.flat && h.lastPhase < 0.5 && phase >= 0.5)) cue('haz.swinger', at);
+    }
+    if (k === 'traffic') { h.hornT -= dt; if (h.hornT <= 0) { h.hornT = 6 + ((h.meta.id * 7919) % 50) / 10; cue('haz.traffic_horn', at); } }
+    h.lastPhase = phase;
   }
 
   dispose(): void { this.root.removeFromParent(); }

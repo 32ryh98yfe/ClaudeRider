@@ -62,6 +62,21 @@ export function buildBubble(c: string, bands: boolean): THREE.MeshBasicNodeMater
   return m;
 }
 
+/**
+ * Time Attack ghost: a cool hologram (translucent body, bright Fresnel rim, faint scanlines) so it reads as a
+ * record rather than a rival. Unlit and fog-free: one draw per ghost mesh, no shadows.
+ */
+export function buildGhost(): THREE.MeshBasicNodeMaterial {
+  const m = new THREE.MeshBasicNodeMaterial({ transparent: true, depthWrite: false, side: THREE.FrontSide, fog: false });
+  const f = fresnel(2.0);
+  const scan = smoothstep(0.35, 0.5, abs(sin(positionLocal.y.mul(26).sub(time.mul(2.2))))).mul(0.12);
+  const body = color('#9fd3f5'), rim = color('#eaf8ff');
+  m.colorNode = mix(body, rim, f).mul(float(0.55).add(scan));
+  m.opacityNode = f.mul(0.55).add(0.16).add(scan).clamp(0, 0.85);
+  setEmissive(m, rim.mul(f.mul(0.6)));
+  return m;
+}
+
 /** Ground decal ring (landing circles, hazard telegraphs): additive, uv radial ring, pulsing; colour per object. */
 export function buildRingDecal(c: string): THREE.MeshBasicNodeMaterial {
   const m = new THREE.MeshBasicNodeMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false, polygonOffset: true, polygonOffsetFactor: -2 });

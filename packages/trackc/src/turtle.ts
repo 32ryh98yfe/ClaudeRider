@@ -58,6 +58,7 @@ export function parseWall(spec: string | undefined, def: WallDef, file: string, 
   let h = WALL_H[type];
   let soft = type === 'planter', ledgeKill = false;
   for (const p of parts.slice(1)) {
+    if (p === '') continue; // `none::ledgeKill` (cookbook form): empty height = the type's default
     if (p === 'soft') soft = true;
     else if (p === 'ledgeKill') ledgeKill = true;
     else if (p !== '' && Number.isFinite(Number(p))) h = Number(p);
