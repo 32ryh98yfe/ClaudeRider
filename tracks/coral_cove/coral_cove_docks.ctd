@@ -4,11 +4,11 @@
 # round the crane corner, down the palm S and the dune-grass S, then the lighthouse corner and the beach sweepers home
 # with the striped lighthouse on its islet across the bay. No baked terrain: the sea is open water right up to the
 # road, and every beach, dune and headland is a prop.
-# @signature surfaces, jump
-# @fallback jump -> "continuous gangplank ramp (S 50, -3 m) off the galleon deck" when=F2
-# @fallback hazard:traffic -> "cosmetic cargo stacks on the pier S (no rolling barrels)" when=F5
-# @fallback hazard:swinger -> "static dock crane with a hanging net at the market lane" when=F5
-# @fallback branch -> "net-shed shortcut omitted; net sheds line the S" when=F1
+@signature surfaces, jump
+@fallback jump -> "continuous gangplank ramp (S 50, -3 m) off the galleon deck" when=F2
+@fallback hazard:traffic -> "cosmetic cargo stacks on the pier S (no rolling barrels)" when=F5
+@fallback hazard:swinger -> "static dock crane with a hanging net at the market lane" when=F5
+@fallback branch -> "net-shed shortcut omitted; net sheds line the S" when=F1
 TRACK coral_cove_docks name="Coral Cove Docks" theme=coral_cove diff=2 laps=3 topo=circuit
 DEFAULTS w=17 surf=asphalt wall=barrier:1.0 shoulder=2 shoulderSurf=sand blend=16
 START pos=(0,0,0) hdg=0

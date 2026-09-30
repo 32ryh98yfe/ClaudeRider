@@ -275,6 +275,30 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
     }),
     maxInstances: 16,
   },
+  /** Compiler-placed support under an elevated deck (origin on the terrain, only where the deck is > 4 m up).
+   *  The instance carries no deck height yet (docs/design/contract-requests/L12-pillar-height.md), so one geometry must
+   *  fit every deck: 3.4 m keeps it under the lowest possible road surface. */
+  pillar: {
+    build: () => ({
+      geometry: merge([
+        paint(place(rbox(2.2, 3.1, 2.2, 0.3, 2), 0, 1.55, 0), C.concrete),
+        paint(place(box(3.0, 0.4, 3.6), 0, 3.2, 0), C.concreteDark),
+        paint(place(box(2.3, 0.35, 2.3), 0, 0.7, 0), C.kerbRed),
+      ]), material: gloss(), castShadow: true,
+    }),
+    maxInstances: 120,
+  },
+  /** Crash cushion at a branch split: stacked water barrels in hazard yellow with a chevron board. */
+  gore_cushion: {
+    build: () => {
+      const parts: THREE.BufferGeometry[] = [];
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 3 - (r === 2 ? 1 : 0); c++) parts.push(paint(place(cyl(0.45, 0.45, 1.0, 10), (c - 1) * 0.95 + (r === 2 ? 0.47 : 0), 0.5, -r * 0.95), r % 2 ? '#f2c14e' : '#1d1e22'));
+      parts.push(paint(place(box(2.4, 0.9, 0.12), 0, 1.5, 0.6), '#f2c14e'));
+      for (let k = 0; k < 3; k++) parts.push(paint(place(box(0.16, 0.7, 0.05), -0.7 + k * 0.7, 1.5, 0.68, 0, 0, 0.6), '#1d1e22'));
+      return { geometry: merge(parts), material: gloss() };
+    },
+    maxInstances: 8,
+  },
   /** Round hay bales (rally barriers), two down one up. */
   hay_bale: {
     build: () => ({

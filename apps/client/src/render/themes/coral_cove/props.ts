@@ -375,6 +375,28 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
     },
     maxInstances: 6,
   },
+  /** Compiler-placed support under an elevated deck (only on tracks with terrain): a wooden pier trestle, 3.4 m so it
+   *  stays under the lowest possible deck (the instance carries no deck height yet). */
+  pillar: {
+    build: () => ({
+      geometry: merge([
+        paint(place(cyl(0.35, 0.4, 3.3, 8), -1.6, 1.65, 0), C.woodLight), paint(place(cyl(0.35, 0.4, 3.3, 8), 1.6, 1.65, 0), C.woodLight),
+        paint(place(box(4.2, 0.45, 0.8), 0, 3.15, 0), C.wood), paint(place(box(3.4, 0.2, 0.2), 0, 1.6, 0, 0, 0, 0.6), C.wood),
+      ]), material: matte(), castShadow: true,
+    }),
+    maxInstances: 120,
+  },
+  /** Crash cushion at a branch split: a pile of lifebuoys and fenders. */
+  gore_cushion: {
+    build: () => {
+      const parts: THREE.BufferGeometry[] = [];
+      for (let k = 0; k < 5; k++) parts.push(paint(place(new THREE.TorusGeometry(0.55, 0.22, 8, 16), (k % 3 - 1) * 0.9, 0.3 + Math.floor(k / 3) * 0.45, -0.3 * Math.floor(k / 3), Math.PI / 2, 0, 0), k % 2 ? C.white : C.red));
+      parts.push(paint(place(box(2.4, 0.9, 0.12), 0, 1.45, 0.5), C.sea));
+      for (let k = 0; k < 3; k++) parts.push(paint(place(box(0.16, 0.7, 0.05), -0.7 + k * 0.7, 1.45, 0.58, 0, 0, 0.6), C.white));
+      return { geometry: merge(parts), material: vinyl() };
+    },
+    maxInstances: 8,
+  },
   /** Red-and-white harbour buoy with a lamp. */
   buoy: {
     build: () => ({

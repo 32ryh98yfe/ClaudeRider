@@ -2,8 +2,7 @@
 # A pro GP layout: the 390 m pit/start straight, a left Turn 1, climbing esses up the east side, the R30 hairpin with a
 # huge gravel run-off, the back straight down past the stadium, a west-bound run of kinks and the sponsor S, then the
 # tower and final corners onto the straight. Everything is wide (17 m) and forgiving; rideable kerbs on every corner.
-# @signature branch, pads
-# @fallback branch -> "pit lane shown as a cosmetic pit row (garages, pit wall, gantry) along a widened pit straight" when=F1
+@signature branch, pads
 TRACK spark_grand_circuit name="Spark Grand Circuit" theme=spark_circuit diff=1 laps=3 topo=circuit
 DEFAULTS w=17 surf=asphalt wall=barrier:1.0 shoulder=3 shoulderSurf=grass blend=16
 START pos=(0,0,0) hdg=0
@@ -25,15 +24,21 @@ C R45 90 L bank=6                                 @final_corner
 S ?a w=19                                         @to_the_line
 CLOSE solve=[?a,?b,?c] length=1500
 LINE start at=0
-ITEMS at=80,350,590,760,1000,1200 n=5
-PAD at=150,220 d=0 len=6 w=4
-KEYS 200,450,700,900,1100,1300
+# the pit lane: an alternative line alongside the pit straight (9 m, its own two pads), behind the pit wall
+BRANCH pit_lane from=@pit_straight+14 to=@pit_straight+236 kind=alt aiMin=0.2 w=9 wall=barrier:1.0 shoulder=0 {
+  C R25 30 L ; S ?x ; C R25 30 R ; S ?y ; C R25 30 R ; S 30 ; C R25 30 L
+}
+PAD at=66 d=-2.2 len=6 w=4 path=pit_lane
+PAD at=66 d=2.2 len=6 w=4 path=pit_lane
+ITEMS at=80,350,572,760,950,1165 n=5
+PAD at=60,130 d=0 len=6 w=4
+KEYS 250,450,700,900,1100,1300
 # segment map (s from the line): pit 0-258 | T1 258-321 | run 321-385 | esses 385-553 | exit 553-586 | hairpin 586-680
 #   back 680-809 | stadium 809-888 | kinks 888-1000 | sponsor S 1000-1134 | sponsor straight 1134-1196 | tower 1196-1266
 #   tower run 1266-1326 | final 1326-1397 | to the line 1397-1500
 # pit row (fallback for the pit-lane branch): pit wall, garages and race control on the infield side
-PROPS kind=pit_wall along=12-248 side=L every=20 offset=3
-PROPS kind=pit_garage along=14-246 side=L every=21 offset=13
+PROPS kind=pit_wall along=36-214 side=L every=20 offset=2.3
+PROPS kind=pit_garage along=pit_lane side=L every=21 offset=1.5 from=40 to=190
 PROPS kind=pit_wall along=1405-1495 side=L every=20 offset=3
 PROPS kind=pit_garage along=1407-1492 side=L every=21 offset=13
 PROPS kind=control_tower along=252-252 side=L every=10 offset=16
