@@ -61,3 +61,38 @@ ITEMS at=@garden_straight+70,@catacomb_entry+19,@bat_cave+16,@garden_terrace+14,
 PAD at=@home+3 d=-3 len=6 w=4
 PAD at=@home+3 d=3 len=6 w=4
 KEYS @garden_straight+50,@ballroom_table+18,@corridor+13,@catacomb_entry+10,@ossuary_s+30,@garden_terrace+20,@rose_s+60,@orangery_s+40,@gazebo_exit+20
+
+# --- dressing: lantern-lit hedge gardens above, candle-lit crypt vaults below
+PROPS kind=hedge from=@garden_straight to=@fountain_corner side=both every=8 offset=0.4
+PROPS kind=lantern_post from=@garden_straight+5 to=@fountain_corner side=both every=24 offset=2
+PROPS kind=hedge from=@home to=@home+40 side=both every=8 offset=0.4
+PROPS kind=rose_bush from=@fountain_corner to=@manor_gate side=L every=16 offset=3
+PROPS kind=iron_fence from=@manor_gate to=@ballroom_entry side=both every=8 offset=0.4
+PROPS kind=jack_o_lantern from=@manor_gate to=@ballroom_entry side=both every=12 offset=1.2
+PROPS kind=candelabra from=@ballroom_entry to=@corridor side=both every=14 offset=1.5
+PROPS kind=portrait from=@ballroom_entry+10 to=@corridor side=both every=18 offset=3
+PROPS kind=giant_cutlery from=@ballroom_table+8 to=@ballroom_table+44 side=both every=18 offset=2
+PROPS kind=candelabra from=@corridor to=@spiral_stair side=both every=10 offset=1
+PROPS kind=portrait from=@corridor to=@spiral_stair side=both every=12 offset=2
+PROPS kind=candles from=@spiral_stair to=@catacomb_entry side=R every=14 offset=1
+PROPS kind=coffin from=@catacomb_entry to=@ossuary_hairpin side=both every=11 offset=1
+PROPS kind=candles from=@crypt_1 to=@bat_cave side=both every=9 offset=0.8
+PROPS kind=gravestone from=@ossuary_hairpin to=@bat_cave side=both every=12 offset=1.5
+PROPS kind=bat from=@bat_cave to=@bat_cave_exit side=both every=10 offset=2
+PROPS kind=bookcase from=@crypt_b to=@crypt_c+23 side=L every=9 offset=0.5
+PROPS kind=hedge from=@garden_terrace to=@orangery_sweeper side=both every=8 offset=0.4
+PROPS kind=rose_bush from=@rose_corner to=@hedge_maze_s side=both every=14 offset=3
+PROPS kind=lantern_post from=@hedge_corner to=@orangery_sweeper side=both every=30 offset=2
+PROPS kind=crooked_tree from=@orangery_sweeper to=@greenhouse_walk side=both every=20 offset=5 jitter=4
+PROPS kind=lantern_string from=@orangery_sweeper to=@greenhouse_walk side=both every=14 offset=1.5
+PROPS kind=hedge from=@greenhouse_walk to=@home side=both every=8 offset=0.4
+PROPS kind=jack_o_lantern from=@gazebo_kink to=@home side=both every=11 offset=1
+PROP kind=crypt_vault at=(224.4,-10.2,-233.7) yaw=-145.0
+PROP kind=crypt_vault at=(176.0,-10.2,-260.3) yaw=180.0
+PROP kind=crypt_vault at=(176.0,-10.2,-275.3) yaw=180.0
+PROP kind=giant_table at=(192.3,-0.2,-109.0) yaw=102.0
+PROP kind=chandelier at=(187.9,-11.0,-197.4) yaw=0 scale=1.4
+PROP kind=fountain at=(98.1,-0.3,-29.9) yaw=0 scale=1.2
+PROP kind=gazebo at=(-49.6,-0.3,-37.1) yaw=0
+PROP kind=manor at=(45.0,-0.3,60.0) yaw=-90
+THEME lantern_hollow sky=night headlights=on scatter=crooked_tree,crooked_tree,rose_bush,gravestone,pumpkin_patch,wisp density=6 hills=3
