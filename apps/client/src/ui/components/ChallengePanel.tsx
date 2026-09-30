@@ -20,7 +20,7 @@ export function ChallengePanel({ compact }: { compact?: boolean }) {
   return (
     <section class={`challenges card ${compact ? 'compact' : ''}`} aria-label={t('lobby.challenges')}>
       <header class="ch-head">
-        <Seg label={t('lobby.challenges')} value={scope} onChange={setScope} options={[{ value: 'daily', label: t('lobby.daily') }, { value: 'weekly', label: t('lobby.weekly') }]} />
+        <Seg label={t('lobby.challenges')} value={scope} onChange={setScope} options={[{ value: 'daily', label: t('lobby.dailyTab') }, { value: 'weekly', label: t('lobby.weeklyTab') }]} />
         <span class="ch-reset"><Icon name="clock" size={14} />{t('lobby.resetsIn', { time: fmtDuration(left) })}</span>
       </header>
       {allDone ? <p class="ch-done">{t('lobby.allDone')}</p> : null}

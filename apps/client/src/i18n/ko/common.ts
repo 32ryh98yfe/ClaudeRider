@@ -16,7 +16,7 @@ export default {
   format: { solo: '개인전', duo: '팀전 2인', squad: '팀전 4인' },
   tier: { rookie: '루키', racer: '레이서', pro: '프로', legend: '레전드' },
   tierDesc: { rookie: '처음 달려 보는 레이서에게', racer: '실수가 적은 평범한 경쟁자', pro: '드리프트와 부스터를 능숙하게', legend: '빈틈 없는 최상위 라인' },
-  difficulty: '난이도', laps: '{n}바퀴', lapsAuto: '자동 ({n}바퀴)', level: 'Lv.{n}', sparks: '스파크', ai: 'AI', xp: '경험치',
+  difficulty: '난이도', laps: '{n}바퀴', lapsOne: '{n}바퀴', lapsAuto: '자동 ({n}바퀴)', level: 'Lv.{n}', sparks: '스파크', ai: 'AI', xp: '경험치',
   key: { space: 'Space' },
   modes: { speed: '스피드전', item: '아이템전', infinite: '무한 부스터', timeAttack: '타임어택' },
   teams: { solo: '개인전', duo: '듀오', squad: '팀전' },

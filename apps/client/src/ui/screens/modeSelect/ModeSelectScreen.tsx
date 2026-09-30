@@ -9,7 +9,7 @@ import { useBack } from '../../hooks.ts';
 import { raceSetup, setRaceSetup, saveState } from '../../store/profile.ts';
 import { bakedIndex, loadTrackIndex, playableTracks, resolveTrack, trackInfos } from '../../store/tracks.ts';
 import { ScreenHead, NavHints } from '../../components/common.tsx';
-import { Seg, Stars } from '../../components/controls.tsx';
+import { Seg, Stars, lapsText } from '../../components/controls.tsx';
 import { TrackArt } from '../../components/TrackArt.tsx';
 import { Icon } from '../../icons/Icon.tsx';
 import './modeSelect.css';
@@ -101,7 +101,7 @@ export function ModeSelectScreen() {
                   <button key={x.id} type="button" disabled={!ok} class={`track-tile ${setup.track === x.id ? 'on' : ''} ${ok ? '' : 'soon'}`} onClick={() => { Audio.sfx('uiMove'); setRaceSetup({ track: x.id as TrackId }); }}>
                     <TrackArt id={x.id} class="tt-art" />
                     <span class="tt-name">{t(`tracks.${x.id}.name`)}</span>
-                    <span class="tt-meta">{ok ? <><Stars n={x.difficulty} /> · {t('common.laps', { n: x.laps })}</> : <span class="badge lock"><Icon name="lock" size={11} />{t('common.soon')}</span>}</span>
+                    <span class="tt-meta">{ok ? <><Stars n={x.difficulty} /> · {lapsText(x.laps)}</> : <span class="badge lock"><Icon name="lock" size={11} />{t('common.soon')}</span>}</span>
                   </button>
                 );
               })}

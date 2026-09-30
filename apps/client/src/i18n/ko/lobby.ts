@@ -1,6 +1,6 @@
 export default {
   quickMatch: '빠른 매칭', quickRace: '빠른 레이스', timeAttack: '타임어택', customRoom: '커스텀 룸', garage: '차고', settings: '설정',
-  daily: '일일 도전', weekly: '주간 도전', resetsIn: '{time} 후 초기화', searching: '레이서 찾는 중… {n}/8', matchingStage: '매칭 완료! 곧 출발합니다',
+  daily: '일일 도전', weekly: '주간 도전', dailyTab: '일일 도전', weeklyTab: '주간 도전', resetsIn: '{time} 후 초기화', searching: '레이서 찾는 중… {n}/8', matchingStage: '매칭 완료! 곧 출발합니다',
   cancelSearch: '매칭 취소', aiFill: '빈 자리는 AI가 채웁니다', vsAi: 'AI와 대결', selectTier: 'AI 난이도', selectTrack: '트랙 선택', randomTrack: '랜덤 트랙',
   start: '출발', levelUp: '레벨 업!',
   quickRaceDesc: 'AI 레이서 7명과 바로 출발', quickMatchDesc: '온라인 레이서와 겨루기', changeSetup: '설정 변경', heroEyebrow: '이번 레이스',

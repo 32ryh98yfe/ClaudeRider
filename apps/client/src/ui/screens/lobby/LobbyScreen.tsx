@@ -15,7 +15,7 @@ import { loadTrackIndex, resolveTrack, trackInfo, bakedIndex } from '../../store
 import { Logo } from '../../components/Logo.tsx';
 import { Icon } from '../../icons/Icon.tsx';
 import { ProfileChip, SparksChip, ItemIcon } from '../../components/common.tsx';
-import { Seg, Stars, Bar } from '../../components/controls.tsx';
+import { Seg, Stars, Bar, lapsText } from '../../components/controls.tsx';
 import { TrackArt } from '../../components/TrackArt.tsx';
 import { ChallengePanel } from '../../components/ChallengePanel.tsx';
 import { Portrait } from '../../components/Portrait.tsx';
@@ -105,7 +105,7 @@ export function LobbyScreen() {
               <div class="hero-track">{trackId ? t(`tracks.${trackId}.name`) : t('lobby.randomTrack')}</div>
               <div class="hero-tags">
                 {ti ? <Stars n={ti.difficulty} /> : null}
-                <span class="badge">{t('common.laps', { n: laps })}</span>
+                <span class="badge">{lapsText(laps)}</span>
                 <span class="badge ai">AI · {t(`common.tier.${setup.tier}`)}</span>
               </div>
             </div>

@@ -1,6 +1,6 @@
 export default {
   quickMatch: 'Quick Match', quickRace: 'Quick Race', timeAttack: 'Time Attack', customRoom: 'Custom Room', garage: 'Garage', settings: 'Settings',
-  daily: 'Daily challenges', weekly: 'Weekly challenges', resetsIn: 'Resets in {time}', searching: 'Searching for racers… {n}/8', matchingStage: 'Match found! Starting soon',
+  daily: 'Daily challenges', weekly: 'Weekly challenges', dailyTab: 'Daily', weeklyTab: 'Weekly', resetsIn: 'Resets in {time}', searching: 'Searching for racers… {n}/8', matchingStage: 'Match found! Starting soon',
   cancelSearch: 'Cancel', aiFill: 'Empty slots will be filled by AI', vsAi: 'Race vs AI', selectTier: 'AI difficulty', selectTrack: 'Choose a track', randomTrack: 'Random track',
   start: 'Start', levelUp: 'Level up!',
   quickRaceDesc: 'Start now against 7 AI racers', quickMatchDesc: 'Race players online', changeSetup: 'Change setup', heroEyebrow: 'Next race',
