@@ -5,7 +5,7 @@ export default defineKart({
   archetype: 'speed',
   vGrip: 34.4,
   vBoost: 45.2,
-  a0: 16.3,
+  a0: 16.35,
   tBoostTicks: 186,
   g0: 0.64,
   kLatIn: 2.8,
