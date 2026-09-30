@@ -13,7 +13,7 @@ export interface PortraitOptions {
   bodyColor?: string;
   /** Eye expression for the portrait (default 'open'; results screens may want 'happy'). */
   eyes?: 'open' | 'happy' | 'star' | 'angry' | 'dizzy' | 'sleepy' | 'wink';
-  /** Yaw of the head in degrees (default −24: a friendly three-quarter view). */
+  /** Yaw of the head in degrees (default −20: a friendly three-quarter view). */
   yawDeg?: number;
 }
 
@@ -54,7 +54,7 @@ function portraitScene(characterId: string, o: PortraitOptions): { scene: THREE.
   m.setStance('stand');
   if (o.bodyColor) m.setBodyColor(o.bodyColor);
   m.setEyes(o.eyes ?? 'open');
-  const yaw = THREE.MathUtils.degToRad(o.yawDeg ?? -24);
+  const yaw = THREE.MathUtils.degToRad(o.yawDeg ?? -20);
   m.root.rotation.y = yaw;
   scene.add(m.root);
   for (let i = 0; i < 20; i++) { m.root.updateMatrixWorld(true); m.setPose({ steer: 0, lean: 0, speed01: 0, drifting: false, boosting: false, airborne: false, hit: 0 }, 1 / 30); }
@@ -66,11 +66,12 @@ function portraitScene(characterId: string, o: PortraitOptions): { scene: THREE.
   scene.add(key, rim, rim2, new THREE.HemisphereLight('#fff4ea', '#6b4a3a', 1.2));
   // frame the head (body + head accessory): fit the vinyl bounds above the arms
   const box = new THREE.Box3().setFromObject(m.root, true);
-  const top = Math.min(box.max.y, 1.35), bottom = -0.3;
-  const cy = (top + bottom) / 2, h = top - bottom;
+  // head-and-shoulders crop: from just under the arms to the accessory top, so the eyes stay big at 48–64 px
+  const top = Math.min(box.max.y, 1.2), bottom = -0.2;
+  const cy = (top + bottom) / 2, h = Math.max(0.95, top - bottom);
   const cam = new THREE.PerspectiveCamera(22, 1, 0.1, 50);
-  const dist = (h * 0.62) / Math.tan(THREE.MathUtils.degToRad(11)) + 0.4;
-  cam.position.set(0, cy + 0.18, dist);
+  const dist = (h * 0.56) / Math.tan(THREE.MathUtils.degToRad(11)) + 0.3;
+  cam.position.set(0, cy + 0.14, dist);
   cam.lookAt(0, cy, 0);
   return { scene, cam, dispose: () => m.dispose() };
 }
