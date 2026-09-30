@@ -37,6 +37,7 @@ async function boot(page: Page, query: string): Promise<void> {
 }
 
 test('two contexts join a custom room by code, race 1 lap online and both see results', async ({ browser }) => {
+  test.setTimeout(480_000); // two software-rendered pages on a shared CPU
   const ctxA = await browser.newContext(), ctxB = await browser.newContext();
   const a = await ctxA.newPage(), b = await ctxB.newPage();
   const errA = collectErrors(a), errB = collectErrors(b);
