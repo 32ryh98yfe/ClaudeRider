@@ -8,8 +8,11 @@ Owner: L3 (AI). Affects: ADR-009 (orchestrator), `packages/trackc/src/ghost.ts` 
 lookahead and averaged over all 12 characters. The full table covers all 16 baked tracks. `packages/sim/test/ai-pace.test.ts`
 holds meadow_loop (all four tiers) and proving_ring (Pro and Legend) inside their bands.
 
-- The reference tracks meadow_loop and bal_switchback, plus aurora, coral, fernwood, manor, sandglass, spark, sunset
-  and sunstone, pass all four tiers, apart from the odd ±0.3-point edge case.
+- **51 of 64 track × tier rows are inside their band.** All four tiers pass on the reference tracks meadow_loop
+  (86.7 / 94.3 / 99.3 / 99.9) and bal_switchback (87.4 / 93.8 / 98.5 / 100.3), and also on aurora, coral, manor,
+  sandglass, spark and sunset.
+- Near misses of ≤ 0.6 points: Racer and Pro run slightly fast on geode, magma and pumpkin (Racer 96.1, Pro 99.5–99.9).
+  Legend is at 99.3–99.4 on fernwood and sunstone.
 - **proving_ring** (a 700 m oval, 5 laps): Rookie is about 80% and Racer about 89%, with Pro and Legend in band.
 - **belltower_piazza** (plaza) and **snowglobe_halfpipe** (halfpipe) have every tier 1–3 points fast. The *ghost* is
   the weak driver there: on belltower it hits the walls 11–14 times per race, and its time varies by 1.5 s across start
