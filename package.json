@@ -25,7 +25,8 @@
     "e2e": "playwright test",
     "size": "node tools/size.mjs",
     "verify": "pnpm gen && pnpm check:frozen && pnpm check:deps && pnpm typecheck && pnpm lint && pnpm test && pnpm bake && pnpm build && pnpm e2e",
-    "art:pack": "node tools/art/codex-pack.ts"
+    "art:pack": "node tools/art/codex-pack.ts",
+    "art:refs": "node tools/art/refs.ts"
   },
   "devDependencies": {
     "@babel/core": "7.29.7",
