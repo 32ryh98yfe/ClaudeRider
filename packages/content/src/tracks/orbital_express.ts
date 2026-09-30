@@ -7,8 +7,8 @@ export default defineTrack({
   laps: 1,
   modes: ['speed', 'item'],
   topology: 'p2p',
-  lapLengthM: 3800,
-  refLapTicks: 0,
+  lapLengthM: 3896,
+  refLapTicks: 6893,
   nameKey: 'tracks.orbital_express.name',
   onRoster: true,
 });

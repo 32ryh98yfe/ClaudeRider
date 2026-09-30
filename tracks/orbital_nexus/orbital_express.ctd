@@ -2,11 +2,11 @@
 # vertical loop and the zero-g tube, across the station's train line, down the docking-ring helix, past the laser gates
 # and through the warp gate into the city of towers for the finale.
 @signature loop, zeroG, helix, warp, rail, hazard:train, hazard:press, jump, kill
-TRACK orbital_express name="Orbital Express" theme=orbital_nexus diff=5 laps=1 topo=p2p
+TRACK orbital_express name="Orbital Express" theme=orbital_nexus diff=5 laps=1 topo=p2p finishBefore=266
 DEFAULTS w=12 surf=metal wall=barrier:1.1 shoulder=0 blend=18
 START pos=(0,0,0) hdg=0
 GRID rows=4 cols=2 pitch=6.5 stagger=3.2 d=3
-S 130                                       @launch_tube
+S 140                                       @launch_tube
 C R30 90 L bank=5                           @tube_exit
 S 100                                       @sky_rail
 WIGGLE R60 30/60/30 L                       @sky_sweep
@@ -20,7 +20,7 @@ S 20                                        @zerog_in
 WIGGLE R140 20/40/20 L gravity=low:0.35     @zerog_tube
 S 20                                        @zerog_out
 C R20 180 R bank=-6                         @tube_hairpin
-WIGGLE R30 30/60/30 R                       @glass_s
+WIGGLE R30 30/60/30 R wall=barrier:1.1:soft  @glass_s
 WIGGLE R30 30/60/30 R                       @glass_s2
 S 70                                        @train_straight
 C R25 90 L                                  @station_corner
@@ -30,8 +30,11 @@ WIGGLE R60 30/60/30 R                       @ring_s
 C R100 90 R dy=-8 bank=-4                   @station_sweeper
 C R14 180 R dy=-4 bank=-6                   @laser_hairpin
 S 40 dy=-4                                  @laser_run
-WIGGLE R30 40/80/40 L dy=-2                 @laser_s
-S 40                                        @warp_approach
+WIGGLE R35 35/70/35 L dy=-2 wall=barrier:1.1:soft @laser_s
+S 30                                        @warp_approach
+# the rail gap: a jump across the void between two sky-rail decks (kill floor below the gap)
+J ramp=10@8 gap=10 drop=2 land=45 wland=14 vmin=24 vmax=46 w=12 @rail_gap
+S 20                                        @gate_run
 S 60 warp=gate                              @warp_gate
 S 70                                        @city_1
 WIGGLE R60 30/60/30 L                       @tower_canyon
@@ -39,23 +42,26 @@ C R120 90 R bank=4                          @tower_sweeper
 WIGGLE R60 30/60/30 R                       @bridge_s
 WIGGLE R30 40/80/40 L                       @skyscraper_s
 S 70                                        @city_2
-WIGGLE R60 30/60/30 L                       @holo_s
+WIGGLE R80 25/50/25 L wall=barrier:1.1:soft  @holo_s
 C R100 90 L bank=4                          @holo_sweeper
 WIGGLE R80 30/60/30 L                       @neon_s
 WIGGLE R60 30/60/30 R                       @final_s
 C R16 150 R bank=-6                         @plaza_hairpin
-WIGGLE R30 40/80/40 L                       @plaza_s
+WIGGLE R40 30/60/30 L wall=barrier:1.1:soft  @plaza_s
 S 40                                        @avenue
-WIGGLE R40 30/60/30 R                       @arch_s
+WIGGLE R60 25/50/25 R wall=barrier:1.1:soft  @arch_s
 C R35 90 L bank=5                           @final_corner
 S 40                                        @finish_straight
-LINE start at=@launch_tube+25
+S 40                                        @finish_gate
+# run-off after the finish (finishBefore=266): cruising finishers keep rolling instead of dropping off the path end
+C R60 60 L wall=barrier:1.4                 @runoff
+S 60
+C R60 60 R wall=barrier:1.4
+S 60
+LINE start at=@launch_tube+40
 WARP gate transit=0.8 keep
-BRANCH rail_gap from=@laser_s to=@laser_s+83.78 kind=risk aiMin=0.8 w=8 wall=barrier:1.0 {
-  S 17 ; J ramp=8@10 gap=10 drop=1 land=42 wland=10 vmin=24 vmax=46 ; S 0.13
-}
-PAD at=@launch_tube+30 d=-3 len=6 w=4
-PAD at=@launch_tube+30 d=3 len=6 w=4
+PAD at=@launch_tube+45 d=-3 len=6 w=4
+PAD at=@launch_tube+45 d=3 len=6 w=4
 PAD at=@sky_rail+2 d=-3 len=6 w=4
 # the sky rail: a grind lane along the left of the sky-rail straight (boost-rail, 38 → 44 m/s)
 RAIL skyrail host=main from=@sky_rail+8 to=@sky_rail+96 d=[@sky_rail+8:3,@sky_rail+22:4.5,@sky_rail+80:4.5,@sky_rail+96:3] h=1.0
@@ -63,7 +69,7 @@ RAIL skyrail host=main from=@sky_rail+8 to=@sky_rail+96 d=[@sky_rail+8:3,@sky_ra
 # freight trains cross the station straight every 8 s (lights and horn 1 s ahead)
 HAZ train freight at=@train_straight+35 d=0 box=(24,3.4,4) period=8 on=0-2.4 tele=1.0 offset=0 span=20
 # laser gates on the hairpin exit: each closes half the road for 1.5 s of every 4 s, never both at once
-HAZ press laser1 at=@laser_run+12 d=-3 box=(1.5,6,3) period=4 on=0-1.5 tele=0.6 offset=0 effect=block rise=3 prop=hazard_laser
-HAZ press laser2 at=@laser_run+30 d=3 box=(1.5,6,3) period=4 on=0-1.5 tele=0.6 offset=2 effect=block rise=3 prop=hazard_laser
-ITEMS at=@launch_tube+100,@sky_sweep+23,@loop_in+16,@zerog_tube+4,@zerog_tube+159,@ring_s+20,@station_sweeper+64,@city_1+19,@tower_canyon+109,@tower_sweeper+139,@bridge_s+105,@city_2+56,@holo_sweeper+20,@neon_s+23,@avenue+19 n=5
+HAZ press laser1 at=@laser_run+8 d=-3 box=(1.5,6,3) period=4 on=0-1.5 tele=0.6 offset=0 effect=block rise=3 prop=hazard_laser
+HAZ press laser2 at=@laser_run+22 d=3 box=(1.5,6,3) period=4 on=0-1.5 tele=0.6 offset=2 effect=block rise=3 prop=hazard_laser
+ITEMS at=@launch_tube+110,@sky_sweep+23,@loop_in+16,@zerog_tube+4,@zerog_tube+159,@ring_s+20,@station_sweeper+64,@city_1+19,@tower_canyon+109,@tower_sweeper+139,@bridge_s+105,@city_2+56,@holo_sweeper+20,@neon_s+23,@avenue+19 n=5
 THEME scatter=station_pylon density=4 hills=0 sky=space
