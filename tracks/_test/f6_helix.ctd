@@ -1,0 +1,27 @@
+# F6 fixture (L4): a 540° descending helix with stacked decks (10.7 m per turn), a lateral-shift LOOP with
+# RMF frames and track gravity, and a low-gravity span. Rectangle-ish circuit; the helix drop is climbed back on the
+# far straight.
+TRACK f6_helix name="F6 Helix Fixture" theme=ember_mine diff=4 laps=3 topo=circuit
+DEFAULTS w=14 surf=asphalt wall=barrier:1.0 blend=15
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=6 stagger=3 d=4
+S ?a                                              @home
+C R40 90 L                                        @t1
+S 280                                             @helixIn
+HELIX R30 540 L dy=-16 bank=10 wallOut=barrier:1.5 @helix
+S 60 dy=-1                                        @out
+C R40 90 R                                        @t2
+S ?b                                              @loopIn
+LOOP R12 shift=18 ease=15                         @loop
+S 40                                              @moon
+S 120 gravity=low:0.5                             @lowg
+S 40
+C R40 90 L                                        @t3
+S ?c dy=+17                                       @climb
+C R40 90 L                                        @t4
+CLOSE solve=[?a,?b,?c] length=2000
+LINE start at=@home+40
+
+PAD at=@home+80,@moon+10 d=0 len=6 w=4
+ITEMS at=@home+140,@helixIn+10,@out+30,@lowg+60,@climb+40 n=5
+KEYS @home+200,@t1+30,@helix+120,@helix+400,@t2+30,@lowg+60,@t3+30,@t4+30

@@ -248,6 +248,47 @@ HAZ traffic cars at=@blvd+50 to=@blvd+350 lanes=[(d -6, speed 14, count 3, spaci
   always live and must be dodged by line). No item row within ±15 m, and no jump lip within ±20 m.
 - Respawn slots keep ≥ 8 m (plus the hazard's reach) clear of every fixed hazard, and props keep ±8 m.
 
+## 8b. F6 recipes
+### Helix with stacked decks
+```
+S 280                                          @helixIn   # approach: leave room, the lower turn passes under it
+HELIX R30 540 L dy=-16 bank=10 wallOut=barrier:1.5        # 1.5 turns, 10.7 m per turn
+S 60 dy=-1                                                # exit runs under the first turn
+```
+- `HELIX R<r> <deg> L|R dy=<m>` is an arc with a climb or drop spread along it. From 360° up it stacks on itself.
+  The track's turning number becomes 2, which V1 accepts only when every crossing is stacked.
+- **V2:** where two decks overlap in plan, their centrelines must be ≥ 8 m apart vertically. That separation is
+  measured at the same plan point; bank is not counted.
+  - Per turn: `|dy|·360/deg`. Leave a margin, because the vertical blend at the helix ends flattens the first and last
+    few metres.
+  - Also check the approach and the exit: they cross the helix's other turns. The f6 fixture needed 10.7 m per turn
+    because of this.
+- Locate keeps each kart on its own deck through the stacked-deck height window (h ∈ [−2, 6] m); decks ≥ 8 m apart
+  never alias.
+
+### Loop (RMF frames, track gravity)
+```
+LOOP R12 shift=18 ease=15          # vertical loop; the exit is shifted 18 m sideways so it passes beside the entry
+```
+- The loop gets `frame=rmf` and `gravity=track` automatically: gravity pulls into the road, so a loop has no minimum
+  entry speed.
+- Use `shift ≥ w + 4`. V2 exempts the loop's own RMF span, but the entry and exit roads are checked against it.
+- **V7:** `frame=worldUp` is an error wherever |T·Y| > 0.9. Leave `frame` on auto, or use `rmf`.
+
+### Gravity
+`S 120 gravity=low:0.5` scales gravity to 50% on that segment (zeroG, moon hops). `gravity=track` pulls along
+−up, and `gravity=world` is the default. `ZONE gravity from=… to=… mode=low|track|world scale=…` does the same over
+any span (`path=` for branches). Low gravity lengthens jumps: V11 still uses world G, so keep low-g spans off jump landings.
+
+### Cloverleaf
+```
+CLOVERLEAF levels=0/9/18 R=35 [side=L] [link=41/33] [Rc=20]
+```
+- It expands to 270° helix ramps between consecutive levels, joined by deck legs (`S link1 ; C Rc 90 <other side> ;
+  S link2`).
+- Each ramp crosses its own entry one level up, so every level step must be ≥ 8 m (V2).
+- It turns the track by +90° net, plus one full turn; close it with ordinary corners.
+
 ## 9. Validators and common errors
 Severity: structural rules are always errors. **V5 V6 V9 V10 V13 V14 V19 V20 are errors only in strict mode** (tracks
 with `@signature`, or `--strict`); M1-era tracks see them as warnings.
@@ -258,7 +299,8 @@ with `@signature`, or `--strict`); M1-era tracks see them as warnings.
 | V1 `elevation does not close (Σdy = …)` | Balance the `dy` values (a J segment contributes −drop). |
 | V1 `turning number 2` | Only allowed with stacked crossings (helix); otherwise fix the turns. |
 | V0 `@signature X is missing` | Build the feature or add `@fallback X -> "…" when=Fn`. |
-| V2 `footprints overlap with only … m vertical separation` | Separate crossing decks by ≥ 8 m (dy on the approach) or move them apart in plan. |
+| V2 `footprints overlap with only … m vertical separation` | Separate crossing decks by ≥ 8 m (dy on the approach, more dy per helix turn) or move them apart in plan. |
+| V7 `frame=worldUp where \|T·Y\| > 0.9` | Loops and near-vertical spans need `frame=rmf` (the default for LOOP). |
 | V3 `radius … below the D… minimum` | Rmin D1–D5 = 30/22/16/12/9 m (branches −20%). |
 | V3 `inner edge radius … < 3 m` | Radius − w/2 must stay ≥ 3 m; widen R or narrow w. |
 | V4 `corner width … < 11 m` | Corners need ≥ 11 m and the D band minimum (15/14/12/12/11). 9–10 m only on straights < 60 m. |
