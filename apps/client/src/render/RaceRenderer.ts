@@ -56,6 +56,7 @@ export class RaceRenderer {
   private tmpM = new THREE.Matrix4(); private tmpX = new THREE.Vector3(); private tmpF = new THREE.Vector3(); private tmpP = new THREE.Vector3();
   private camFwd = new THREE.Vector3(); private camPrev = new THREE.Vector3(); private camVel = new THREE.Vector3();
   private lineAt = new THREE.Vector3();
+  private fxAt = new THREE.Vector3();
   private boostK = 0; private flashK = 0; private hitK = 0; private flickerT = 0;
   private resScale = 1; private dynT = 0; private goodT = 0;
   private reducedMotion: boolean;
@@ -106,6 +107,7 @@ export class RaceRenderer {
       root.add(kart.root);
       const mascot = buildMascot(getCharacter(s.characterId));
       mascot.root.scale.setScalar(0.62);
+      mascot.onFx = (name, at) => { at.getWorldPosition(this.fxAt); this.driving.emoteFx(name, this.fxAt); };
       kart.seat.add(mascot.root);
       this.scene.add(root);
       const pose: KartPose = { pos: new THREE.Vector3(), fwd: new THREE.Vector3(0, 0, 1), up: new THREE.Vector3(0, 1, 0), left: new THREE.Vector3(1, 0, 0), speed: 0, lat: 0, visible: false };
