@@ -1,33 +1,37 @@
 # L10 → L9 (lobby protocol, server art index, race routing)
 
-The queue and room screens are bound to `apps/client/src/net/lobby.ts` and work against the offline stub.
-With `?mock=queue|stage|room|roulette` they render with fixture data.
+The queue and room screens are bound to `apps/client/src/net/lobby.ts` (the real `net/online.ts` store after the L9
+merge). With `?mock=queue|stage|room|roulette` they render with fixture data.
 
-## 1. `RoomSettings` is missing host settings from 13-modes-rules §7.2 (additive request)
-```ts
-retireTicks?: 300 | 600 | 900 | 1200;   // retire timer
-itemSet?: 'standard' | 'light' | 'chaos';
-friendlyFire?: 'off' | 'area' | 'all';
-rubberBand?: boolean;
-instantBoostInItem?: boolean;
+## 1. `RoomSettings` host settings (13-modes-rules §7.2): done by L9, wired by L10
+L9 added `retireSec`, `itemSet`, `friendlyFire`, `rubberBand` and `instantBoostInItem`. The room settings panel now has a
+"More rules" section with these rows, falling back to the server defaults when a field is absent (10 s, standard, area,
+on, on). The item-only rows show only in Item mode, and friendly fire only in team formats.
+
+**Still open:** `C2SLobby.slot` accepts `tier`, but `lobbyActions.slot(slot, action)` cannot pass it. Please add an
+optional `tier` parameter so that "add AI" can choose one:
+```diff
+-  slot: (slot: number, action: 'open' | 'close' | 'bot' | 'kick'): void => send({ t: 'slot', slot, action }),
++  slot: (slot: number, action: 'open' | 'close' | 'bot' | 'kick', tier?: AiTier): void => send({ t: 'slot', slot, action, ...(tier ? { tier } : {}) }),
 ```
-The room settings panel will show these rows once the fields exist. Today it shows mode, format, track or roulette,
-laps, bot tier, fill bots and private.
-`C2SLobby.slot` already accepts `tier`, but `lobbyActions.slot(slot, action)` cannot pass it. Please add an optional
-`tier` parameter so "add AI" can choose one.
 
-## 2. Race routing
-On `raceStart`, call `navigate('loading', { online: '1', track, mode, tier })`. Then register an online session factory
-with `setSessionFactory` (`ui/screens/race/sessionFactory.ts`).
-On race end, the results screen reads `lobby.room.value` to choose between "back to room" and "search again". It
-auto-returns after 12 s when online. Pass `online: true` via `setLastResult` (`ui/screens/results/lastResult.ts`) or set
-`lobby.lastResult`.
+## 2. Race routing: done
+- `raceStart` navigates to `loading` with `online: '1'`.
+- `RaceScreen` takes the pending race (`takePendingRace`) and builds `Session.online(...)`. The loading card shows the
+  server line-up at once and marks only `yourSlot` as "You".
+- Results use the local slot (`LastResult.me`). A custom room follows the server: it navigates to `room` when the room
+  returns to `waiting`, or when the 12 s timer runs out. A quick match offers "Search again", which leaves the dissolved
+  room and re-queues with the same mode and format; on timeout it goes to the lobby.
+- The loading, racing and results room phases disable Ready and Start and show "race in progress". The subtitle shows
+  `RoomView.trackId` once the server has picked the track.
 
-## 3. HUD net indicator
-`ui/store/hudExtra.ts` `hudX.net` = `{ pingMs, late }` (late = ms of the last late signal, 0 = none). The HUD draws
-ping bars and "늦은 신호" at the top right. Set it to `null` offline.
+## 3. HUD net indicator: done on the client side
+While an online Session runs, `RaceScreen` writes `hudX.net = { pingMs: stats.rttMs, late }` twice a second and clears
+it when the race ends. `late` stays 0 until an ITEM_USE_REJECTED (reason 6) → "late signal (+N ms)" event reaches the
+client. When it does, HudPresenter can set it, and L10 will wire it. Per-kart ping pills in the standings wait on
+PLAYER_RTT from the server (L9 gap).
 
-## 4. Art override index (ADR-013)
+## 4. Art override index (ADR-013): still open
 Please serve `/art/overrides/index.json` from the Node server and a Vite dev plugin. When the folder is empty, return
 `{}` rather than 404, because a 404 logs a console error that the e2e suite counts. Once that ships, set
 `ART_INDEX_READY = true` in `apps/client/src/art/loader.ts`, or tell L10 to. Until then the loader requests the index
