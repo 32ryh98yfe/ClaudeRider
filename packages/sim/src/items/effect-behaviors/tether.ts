@@ -1,7 +1,7 @@
 // tether_pull (§2.2.2): the user is pulled toward the target — steering replaced by pursuit, throttle forced on, boost
 // law toward vT = max(1.2·V_REF, min(1.25·u_target, V_BOOST)). Ends early with a slingshot when the user is within 4 m
-// behind the target; without one when wall-blocked for > 18 ticks, or the target warps, finishes or retires, or a
-// pulse from the target side clears it. Param: target slot (bits 0–3) | 16 | wall-blocked ticks << 5.
+// behind the target; without one when wall-blocked for > 18 ticks, the target warps, finishes or retires, the user
+// respawns [P], or a pulse from the target side clears it. Param: target slot (bits 0–3) | 16 | wall-blocked ticks << 5.
 import type { EffectInstance } from '../../core/state.ts';
 import { DT, V_BOOST, V_REF } from '../../core/units.ts';
 import type { EffectBehavior } from '../behavior.ts';
@@ -24,7 +24,8 @@ const behavior: EffectBehavior = {
   },
   onTick(w, e, k, ctx) {
     const t = w.karts[tetherTarget(e)];
-    if (!t || !inRace(t) || inWarp(t) || !inRace(k)) { e.flags |= EFlag.ENDED; return; }
+    // the user respawning (teleported) or the target warping/finishing breaks the tether without a slingshot
+    if (!t || !inRace(t) || inWarp(t) || !inRace(k) || k.race.respawnPhase !== 0) { e.flags |= EFlag.ENDED; return; }
     const a = k.body, b = t.body;
     const dx = b.px - a.px, dy = b.py - a.py, dz = b.pz - a.pz;
     const along = dx * b.fx + dy * b.fy + dz * b.fz;          // > 0: the user is behind the target

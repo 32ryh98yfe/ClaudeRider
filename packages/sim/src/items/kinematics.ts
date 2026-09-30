@@ -118,6 +118,6 @@ export function applyKinematics(w: WorldState, ctx: StepContext): void {
     if ((e.flags & (EFlag.RESOLVED | EFlag.DEAD | EFlag.ENDED | EFlag.DRIVER)) !== EFlag.RESOLVED || e.start > tick || tick >= e.end) continue;
     const beh = effectBehavior(effectDef(ctx.content, e.code));
     const k = w.karts[e.victim];
-    if (beh?.onTick && k && k.active && k.race.respawnPhase === 0) beh.onTick(w, e, k, ctx);
+    if (beh?.onTick && k && k.active) beh.onTick(w, e, k, ctx); // behaviours see respawns too (the tether ends on one)
   }
 }

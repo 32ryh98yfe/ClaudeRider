@@ -13,7 +13,7 @@ import { EF, NO_TARGET, Reject, itemDef, warnOnce } from './codes.ts';
 import { authorityOf } from './decisions.ts';
 import { activeEffect } from './effects.ts';
 import { landRoulette, pickupBoxes } from './boxes.ts';
-import { friendlyAllowed, inRace, inWarp, sameTeam } from './team.ts';
+import { friendlyAllowed, inRace, inWarp, sameTeam, type CfgCtx } from './team.ts';
 
 /** Minimum ticks between two uses (§1). */
 export const USE_COOLDOWN = 6;
@@ -41,12 +41,15 @@ export function cosDeg(deg: number): number {
 export const lockNeed = (lockTicks: number): number => Math.floor((lockTicks * 4 + 4) / 5);
 
 /** Is `cand` a valid lock for `k` holding `def` (range + cone with ADR-007 margins, racing, team rule)? */
-export function aimCandidateValid(w: Readonly<WorldState>, ctx: StepContext, k: Readonly<KartState>, def: Readonly<ItemDef>, cand: number, lookBack: boolean): boolean {
+export function aimCandidateValid(w: Readonly<WorldState>, ctx: CfgCtx, k: Readonly<KartState>, def: Readonly<ItemDef>, cand: number, lookBack: boolean): boolean {
   const aim = def.aim;
   if (!aim || cand < 0 || cand >= w.karts.length || cand === k.slot) return false;
   const t = w.karts[cand]!;
   if (!inRace(t) || inWarp(t)) return false;
   if (sameTeam(ctx, k, t) && !aim.allowTeam && !friendlyAllowed(ctx, def)) return false;
+  // "aim (ahead)": a front-only item needs a target ahead on the track too, not just in front of the nose (a kart
+  // turned around must not tether itself backwards)
+  if (!aim.allowRear && t.race.raceDist <= k.race.raceDist) return false;
   const dx = t.body.px - k.body.px, dy = t.body.py - k.body.py, dz = t.body.pz - k.body.pz;
   const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
   if (d < aim.rangeMin || d > aim.rangeMax + AIM_RANGE_MARGIN) return false;

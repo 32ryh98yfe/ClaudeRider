@@ -102,7 +102,7 @@ export function pickupBoxes(w: WorldState, ctx: StepContext, k: KartState): void
     it.rouletteSlot = free as 0 | 1; it.rouletteEnd = tick + ROULETTE_TICKS; it.rouletteBox = bx.id;
     const bucket = bucketFor(w, ctx, k);
     const auth = authorityOf(w, ctx);
-    let code = 0;
+    let code: number;
     if (bucket === 'turbo') code = IT.turbo_token;  // public rule: every peer knows it without the key
     else if (auth) code = grantRoll(auth, w, ctx, k, bx.id, bucket);
     else code = knownGrant(w, tick, k.slot)?.item ?? 0;

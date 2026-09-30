@@ -2,7 +2,8 @@
 // world position for rendering. Terminal guidance: when ETA ≤ 21 ticks the projectile commits (authority emits
 // `commit`), the victim effect is scheduled at S = Tc + 21 and the drawn position blends onto the victim, so the impact
 // tick is exact. The drone flies a fixed 72-tick route (commit at T + 51, impact T + 72).
-import type { ItemDef } from '@cr/content';
+import type { ContentTables, ItemDef } from '@cr/content';
+import type { BakedTrack } from '../track/BakedTrack.ts';
 import type { ProjectileState, WorldState } from '../core/state.ts';
 import { DT, V_REF } from '../core/units.ts';
 import type { StepContext } from '../api.ts';
@@ -42,8 +43,11 @@ export function spawnProjectile(w: WorldState, ctx: StepContext, def: Readonly<I
   return p;
 }
 
+/** What projectileEta needs from a StepContext (the AI passes its own environment). */
+export interface TrackEnv { readonly track: BakedTrack; readonly content: ContentTables }
+
 /** Target speed along its own track tangent (m/s, ≥ 0). */
-function trackSpeed(ctx: StepContext, slot: number, w: Readonly<WorldState>): number {
+function trackSpeed(ctx: TrackEnv, slot: number, w: Readonly<WorldState>): number {
   const t = w.karts[slot]!;
   ctx.track.frameAt(t.race.loc.path, t.race.loc.s, F2);
   const u = t.body.vx * F2.tx + t.body.vy * F2.ty + t.body.vz * F2.tz;
@@ -58,7 +62,7 @@ function cruiseSpeed(def: Readonly<ItemDef>, ut: number): number {
 }
 
 /** Time to impact in ticks from projectile state (HUD warning / bot threat perception; cosmetic). */
-export function projectileEta(w: Readonly<WorldState>, ctx: StepContext, p: Readonly<ProjectileState>): number {
+export function projectileEta(w: Readonly<WorldState>, ctx: TrackEnv, p: Readonly<ProjectileState>): number {
   if (p.phase === PPhase.TERMINAL || p.impact > 0) return Math.max(0, p.impact - w.tick);
   const def = itemDef(ctx.content, p.code);
   const t = w.karts[p.target];

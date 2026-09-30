@@ -18,7 +18,8 @@ export function pathCovers(T: BakedTrack, path: number, sm: number): boolean {
   const map = T.path(path).map;
   if (!map) return false;
   const L0 = T.path(0).length;
-  let from = map.fromS, to = map.toS, s = sm;
+  const from = map.fromS;
+  let to = map.toS, s = sm;
   if (to < from) { to += L0; if (s < from) s += L0; }
   return s >= from && s <= to;
 }
@@ -30,7 +31,8 @@ export function pathS(T: BakedTrack, path: number, sm: number): number {
   const map = pm.map;
   if (!map) return 0;
   const L0 = T.path(0).length;
-  let from = map.fromS, to = map.toS, s = sm;
+  const from = map.fromS;
+  let to = map.toS, s = sm;
   if (to < from) { to += L0; if (s < from) s += L0; }
   const span = to - from;
   return span > 1e-9 ? ((s - from) / span) * pm.length : 0;
