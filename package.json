@@ -2,7 +2,7 @@
   "name": "clauderider",
   "private": true,
   "version": "0.1.0",
-  "description": "ClaudeRider \u2014 an unofficial, non-commercial fan kart racer inspired by KartRider: Drift, starring Clawd.",
+  "description": "ClaudeRider — an unofficial, non-commercial fan kart racer inspired by KartRider: Drift, starring Clawd.",
   "type": "module",
   "packageManager": "pnpm@10.33.0",
   "engines": {
@@ -24,7 +24,8 @@
     "start:test": "node apps/server/src/main.ts --port 8787 --static apps/client/dist",
     "e2e": "playwright test",
     "size": "node tools/size.mjs",
-    "verify": "pnpm gen && pnpm check:frozen && pnpm check:deps && pnpm typecheck && pnpm lint && pnpm test && pnpm bake && pnpm build && pnpm e2e"
+    "verify": "pnpm gen && pnpm check:frozen && pnpm check:deps && pnpm typecheck && pnpm lint && pnpm test && pnpm bake && pnpm build && pnpm e2e",
+    "art:pack": "node tools/art/codex-pack.ts"
   },
   "devDependencies": {
     "@babel/core": "7.29.7",

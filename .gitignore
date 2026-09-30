@@ -15,3 +15,7 @@ coverage/
 shots/
 tools/scratch/
 .claude/worktrees/
+art/codex/refs/
+apps/client/public/art/overrides/*
+!apps/client/public/art/overrides/README.md
+!apps/client/public/art/overrides/.gitkeep
