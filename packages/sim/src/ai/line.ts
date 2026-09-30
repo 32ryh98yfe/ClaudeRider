@@ -37,27 +37,35 @@ export function relaxRacingLine(X: ArrayLike<number>, Y: ArrayLike<number>, RX: 
     }
     const iters = h >= 16 ? 1500 : h >= 4 ? 600 : 250;
     const omega = 1.6 / 6;
-    const px = (j: number): number => cx[j]! + rx[j]! * a[j]!;
-    const py = (j: number): number => cy[j]! + ry[j]! * a[j]!;
-    const w = (j: number): number => (closed ? ((j % nc) + nc) % nc : j);
+    // positions kept in step with the offsets, and neighbour indices resolved once per level (the modulo in the
+    // inner loop dominated the plan build)
+    const PX = new Float64Array(nc), PY = new Float64Array(nc);
+    for (let j = 0; j < nc; j++) { PX[j] = cx[j]! + rx[j]! * a[j]!; PY[j] = cy[j]! + ry[j]! * a[j]!; }
+    const j0 = closed ? 0 : 2, j1 = closed ? nc : nc - 2;
+    const nb = new Int32Array(nc * 4);
+    for (let j = j0; j < j1; j++) {
+      const w = (q: number): number => (closed ? ((q % nc) + nc) % nc : q);
+      nb[j * 4] = w(j - 2); nb[j * 4 + 1] = w(j - 1); nb[j * 4 + 2] = w(j + 1); nb[j * 4 + 3] = w(j + 2);
+    }
     for (let it = 0; it < iters; it++) {
-      for (let j = closed ? 0 : 2; j < (closed ? nc : nc - 2); j++) {
-        const jm2 = w(j - 2), jm1 = w(j - 1), jp1 = w(j + 1), jp2 = w(j + 2);
-        const d4x = px(jm2) - 4 * px(jm1) + 6 * px(j) - 4 * px(jp1) + px(jp2);
-        const d4y = py(jm2) - 4 * py(jm1) + 6 * py(j) - 4 * py(jp1) + py(jp2);
+      for (let j = j0; j < j1; j++) {
+        const jm2 = nb[j * 4]!, jm1 = nb[j * 4 + 1]!, jp1 = nb[j * 4 + 2]!, jp2 = nb[j * 4 + 3]!;
+        const d4x = PX[jm2]! - 4 * PX[jm1]! + 6 * PX[j]! - 4 * PX[jp1]! + PX[jp2]!;
+        const d4y = PY[jm2]! - 4 * PY[jm1]! + 6 * PY[j]! - 4 * PY[jp1]! + PY[jp2]!;
         let v = a[j]! - omega * (d4x * rx[j]! + d4y * ry[j]!);
         const L = lm[j]!;
         if (v > L) v = L; else if (v < -L) v = -L;
-        a[j] = v;
+        a[j] = v; PX[j] = cx[j]! + rx[j]! * v; PY[j] = cy[j]! + ry[j]! * v;
       }
       if (!closed) {
         // second points: plain Laplacian (ends stay on the centre)
-        for (const j of [1, nc - 2]) {
-          const mx = 0.5 * (px(j - 1) + px(j + 1)), my = 0.5 * (py(j - 1) + py(j + 1));
-          let v = a[j]! + ((mx - px(j)) * rx[j]! + (my - py(j)) * ry[j]!);
+        for (let e = 0; e < 2; e++) {
+          const j = e === 0 ? 1 : nc - 2;
+          const mx = 0.5 * (PX[j - 1]! + PX[j + 1]!), my = 0.5 * (PY[j - 1]! + PY[j + 1]!);
+          let v = a[j]! + ((mx - PX[j]!) * rx[j]! + (my - PY[j]!) * ry[j]!);
           const L = lm[j]!;
           if (v > L) v = L; else if (v < -L) v = -L;
-          a[j] = v;
+          a[j] = v; PX[j] = cx[j]! + rx[j]! * v; PY[j] = cy[j]! + ry[j]! * v;
         }
       }
     }
