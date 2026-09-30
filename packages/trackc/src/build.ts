@@ -14,7 +14,7 @@ import { TriSoup, weld, type WallQuad } from './soup.ts';
 import { clipJunctions, findJunctions, inFootprint, type Junction } from './clip.ts';
 import { RenderBuilder, groundToRender, startLineToRender, undersideToRender, wallsToRender, type RenderSlot, type ChunkInfo } from './render.ts';
 import { buildTerrainField, terrainToRender, type TerrainField } from './terrain.ts';
-import { GroundIndex, exclusions, placeProps, type PropSet } from './props.ts';
+import { DROPS, GroundIndex, exclusions, placeProps, type PropSet } from './props.ts';
 import { bakeAi } from './aibake.ts';
 import { buildFeatures, jumpFacesToRender, killPlanesToRender } from './features.ts';
 import { areaFootprint, buildAreas, resolveAreas, type AreaReport, type AreaModel } from './area.ts';
@@ -398,6 +398,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     boxes: c.boxes.length, ctrkBytes: ctrk.length, visBytes: vis.length, renderTris: slots.reduce((a, s) => a + s.idx.length / 3, 0),
     props: props.reduce((a, p) => a + p.xf.length / 6, 0), minR: minRadius(m, 0), minW: Math.min(...main.samples.map((s) => s.w)),
     slots: slots.length, chunks: visMeta.chunks!.length, clippedTris: jr.touched, killTris: feat.kills, jumpFaces: feat.faces,
+    propsDroppedOnRoad: opts.props === false ? 0 : DROPS.onRoad, propsDroppedFloating: opts.props === false ? 0 : DROPS.floating, propsExcluded: opts.props === false ? 0 : DROPS.excluded,
     lod1Ratio: Math.round((lod1.reduce((a, l) => a + l.idx1.length, 0) / Math.max(1, slots.reduce((a, sl) => a + sl.idx.length, 0))) * 1000) / 1000,
     pvsMeanVisible: pvs ? Math.round(pvs.meanVisible * 10) / 10 : 0, pvsWorstDraws: pvs?.worst.draws ?? 0, pvsWorstTris: pvs?.worst.tris ?? 0,
     aoVertices: aoReport?.vertices ?? 0, aoRays: aoReport?.rays ?? 0, aoMean: aoReport ? Math.round(aoReport.mean * 1000) / 1000 : 1,
