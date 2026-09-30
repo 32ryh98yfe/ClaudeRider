@@ -8,7 +8,8 @@ TRACK snowglobe_halfpipe name="Snowglobe Halfpipe" theme=frostbyte_glacier diff=
 DEFAULTS w=17 surf=asphalt wall=barrier:1.1 shoulder=2 shoulderSurf=snow blend=22
 START pos=(0,0,0) hdg=0
 GRID rows=4 cols=2 pitch=7 stagger=3.5 d=4
-S 174                                     @village       # penguin-village straight; pads +90/+130
+S 110                                     @village       # penguin-village straight; pads +90/+130
+C R140 12 R ; C R140 12 L                 @village_s     # gentle S between the igloos
 C R30 80 L bank=8                         @igloo         # igloo corner (V19)
 S 38                                      @hp_entry
 S 120 prof=hp60 wall=rock:1.6             @halfpipe      # hp60 halfpipe: 22.1 m footprint, 60° walls, free line choice
@@ -16,7 +17,7 @@ S 14 wall=barrier:1.1                     @hp_runout
 C R45 50 L bank=4 w=17                    @hp_exit
 S ?b=52 wall=rock:2.5                     @crystal_cave  # crystal-cave tunnel (arches)
 WIGGLE R40 40/95/30 R bank=5 wall=barrier:1.1 @cave_s    # cave S-bends
-S 76 dy=2                                 @glacier       # item row
+C R140 15 R dy=1 ; C R140 15 L dy=1       @glacier       # item row
 C R25 150 L bank=10 surf=ice w=18         @rink          # ice-rink sweeper, ice 0.75 (V19)
 C R60 20 R bank=-4 surf=asphalt w=17      @rink_exit
 C R60 55 R bank=-4 dy=-2                  @sled_bend

@@ -13,7 +13,7 @@ C R40 45 R ; C R40 45 L                   @canal_kink
 S 40 dy=2 w=14 wall=parapet:1.2           @bridge       # canal bridge (key gate)
 C R22 90 R bank=-4 w=18 wall=building:3   @veer_in      # veer into the piazza (V19)
 C R27 270 L w=30 area=piazza             @piazza        # 270° lap of the piazza round the 38 m bell tower (guide arc)
-C R22 90 R bank=-4 w=18 wallL=building:3 @veer_out    # veer out (V19)
+C R22 90 R bank=-6 w=20 wallL=building:3 @veer_out    # veer out (V19)
 S 40 dy=-2 w=16 wall=parapet:1.0
 C R55 60 R bank=-3 ; C R55 60 L bank=3    @basilica_s
 S ?a=129 shoulder=1.5 shoulderSurf=grass  @market_st    # market street
@@ -36,6 +36,6 @@ KEYS 243,445,600,764,975,1264
 AREA piazza annulus rIn=12 rOut=42 surf=stone wallIn=curb:0.4 wallOut=planter:0.8 tower=cyl(r=10,h=38)
 
 # the alley: leaves after the chicane, cuts behind the riverside houses, rejoins after the riverside corner
-BRANCH alley from=@alley_split+1 to=@riverside+96 kind=shortcut aiMin=0.45 w=8 wall=building:4 surf=cobble {
-  C R25 45 L ; S ?x surf=gravel@12+30 bump=40:0.5x6 ; C R25 45 L ; S ?y
+BRANCH alley from=@alley_split+1 to=@riverside+96 kind=shortcut aiMin=0.45 w=9 wall=building:4 surf=cobble {
+  C R30 45 L ; S ?x surf=gravel@12+30 bump=40:0.5x6 ; C R30 45 L ; S ?y
 }

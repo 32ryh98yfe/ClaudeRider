@@ -21,9 +21,9 @@ C R140 12 R dy=-3
 WIGGLE R60 30/60/30 L dy=-6 bank=4        @upper_s
 C R120 95 L dy=-8                         @upper_sweeper
 S 25 w=13                                 @shelf_brake
-WIGGLE R15 35/70/35 L dy=-3 w=13 wallL=barrier:0.8 wallR=none:0:ledgeKill @ice_shelf_s  # ice shelf: open valley edge (V19 ×2)
+WIGGLE R15 35/70/35 L dy=-3 w=13 wallL=barrier:0.8 wallR=none:0:ledgeKill kill=cornice @ice_shelf_s  # ice shelf: open valley edge (V19 ×2)
 S 22 w=13 wallR=barrier:0.8                @shelf_link
-WIGGLE R16 30/60/30 R dy=-3 w=13 wallL=none:0:ledgeKill @cornice_s  # cornice: open edge (V19 ×2)
+WIGGLE R16 30/60/30 R dy=-3 w=13 wallL=none:0:ledgeKill kill=cornice @cornice_s  # cornice: open edge (V19 ×2)
 S 45 w=13 wall=barrier:1.1                @shelf_run
 S 50 dy=-5 w=12                           @spiral_a      # spiral descent fallback: switchback 1
 C R16 170 R dy=-5 bank=-6 w=14            @spiral_1      # (V19)
@@ -39,8 +39,8 @@ C R140 12 R dy=-2.5
 WIGGLE R18 35/70/35 R dy=-2 w=13 wall=barrier:1.1 @gully_s   # (V19 ×2)
 WIGGLE R16 30/60/30 L dy=-2              @serac_s       # (V19 ×2)
 S 68 dy=-4 w=13                           @ski_runup     # pads before the lip
-J ramp=14@10 gap=30 drop=10 land=60 vmin=30 vmax=46 @ski_jump  # the ski jump (~70 ticks of air)
-S 6
+J ramp=12@8 gap=10 drop=3 land=60 vmin=20 vmax=46 @ski_jump  # ski jump: ~0.8 s of air (longer flights trip the no-ground respawn, see L5 request)
+S 26 dy=-2
 C R40 90 L bank=5 w=12                    @landing_bend
 WIGGLE R80 30/60/30 L dy=-2               @landing_s
 S 20 w=13                                 @slalom_brake
@@ -74,6 +74,7 @@ S 132 w=13                                @finish        # finish gate; long run
 C R80 60 L w=14 wall=barrier:1.4          @runoff
 S 12
 LINE start at=46
-ITEMS at=250,480,745,900,1080,1240,1390,1610,1800,2075,2290,2440,2725,3000,3170,3450 n=4
-PAD at=60,1500,1525,1575 d=0 len=6 w=4
+KILL cornice belowY=-40 aabb=(491,-162 .. 611,4) surf=void
+ITEMS at=250,480,745,900,1080,1240,1390,1800,2075,2290,2440,2725,3000,3170,3450 n=4
+PAD at=60,1500,1522 d=0 len=6 w=4
 KEYS 200,500,800,1100,1400,1700,2000,2300,2600,2900,3200,3500
