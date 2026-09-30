@@ -1,13 +1,10 @@
-# L12 → L4 (or L11): tell the `pillar` prop how tall the deck is
+# L12 → L4: give `pillar` the exact deck clearance (optional refinement)
 
-**What.** Compiler-placed `pillar` props (every 15 m under decks > 4 m above the terrain) carry only a height class in
-`variant` (0–3), and TrackView ignores `variant` for everything except chevrons. A kit cannot size one geometry to fit.
+**Status.** TrackView (L11) now stretches pillars in Y by `(1 + variant)`, where variant is the 6 m height class. Both L12
+kits build a 2.7 m base, the tallest height that is safe for every class (class v covers decks from 6v m for v ≥ 1, and
+4–6 m for v = 0). As a result, pillars end 0.3–3.3 m under the deck.
 
-**Why.** Kits must stay under the lowest possible deck, so the Spark and Coral pillars are 3.4 m stubs. Under the
-9–10 m decks of `sunset_arena_rally` they look unfinished.
-
-**Diff (either).**
-- L4 `trackc/src/props.ts` pillar placement: pass the clearance in `scale`, e.g.
-  `add('pillar', s.x, g, s.z, yaw, (s.y - g - 0.6) / 6, 0)`. Kits then build a unit pillar 6 m tall.
-- or L11 `TrackView`: for `pillar`, scale Y only by `(variant + 1) * 6 / H0`.
-The first is simpler, and kits can adopt it without further coordination.
+**Ask (small).** In `trackc/src/props.ts`, place the pillar with the exact clearance in `scale`:
+`add('pillar', s.x, g, s.z, yaw, 1, (s.y - g - 0.6) / 2.7 - 1)`. TrackView then keeps `(1 + variant)` working
+unchanged, and it becomes exact once `variant` is allowed to be fractional. Alternatively, add a new optional field; any
+exact height works for the kits.
