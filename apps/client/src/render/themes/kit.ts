@@ -1,14 +1,16 @@
 // ThemeKit contract + default kit built from ThemeDataDef (content). Theme lanes add render/themes/<id>/index.ts overrides.
 import * as THREE from 'three/webgpu';
 import type { ThemeDataDef } from '@cr/content';
-import { MaterialLibrary, type RoadStyle } from '../materials/library.ts';
+import { MaterialLibrary, type RoadStyle, type WallStyle } from '../materials/library.ts';
+import type { ThemeLookFx } from '../env/look.ts';
 import { DEFAULT_PROPS, type PropFactory } from '../props/defaults.ts';
 
-export interface ThemeLook {
-  road: { style: RoadStyle; a: string; b: string; line: string };
+/** Colour/look data per theme. Optional FX fields (sky details, grade, weather, water…) come from ThemeLookFx (L11). */
+export interface ThemeLook extends ThemeLookFx {
+  road: { style: RoadStyle; a: string; b: string; line: string; wet?: boolean; glow?: string };
   shoulder: { a: string; b: string };
   terrain: { a: string; b: string; rock: string };
-  wall: { kind: 'panel' | 'stone'; a: string; b: string };
+  wall: { kind: WallStyle; a: string; b: string };
   kerb: [string, string];
   sky: { turbidity: number; rayleigh: number; elevationDeg: number; azimuthDeg: number; exposure: number; night?: boolean; top?: string; bottom?: string };
   sun: { color: string; intensity: number };

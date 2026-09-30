@@ -1,0 +1,42 @@
+/* loading poster */
+.loading { background: var(--ink); overflow: hidden; }
+.load-bg { position: absolute; inset: -4%; width: 108%; height: 108%; animation: loadPan 12s ease-in-out infinite alternate; }
+.load-bg svg { opacity: 0.9; }
+@keyframes loadPan { from { transform: scale(1.02) translateX(0); } to { transform: scale(1.08) translateX(-2%); } }
+.load-shade { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(20, 20, 19, 0.92) 0%, rgba(20, 20, 19, 0.55) 45%, rgba(20, 20, 19, 0.25) 75%, rgba(20, 20, 19, 0.6) 100%); }
+.load-tip { position: absolute; right: 2.4rem; top: 2rem; width: min(26rem, 40vw); padding: 1rem 1.2rem; animation: screenIn 300ms var(--ease-out) both; }
+.load-tip .eyebrow { color: var(--terracotta); opacity: 1; }
+.load-tip p { margin-top: 0.4rem; font-size: 0.95rem; color: var(--ink-2); line-height: 1.5; font-weight: 600; }
+.load-main { position: absolute; left: 2.6rem; bottom: 12.5rem; right: 2.6rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.load-eyebrow { display: flex; gap: 0.5rem; }
+.load-title { font-size: clamp(3rem, 9vh, 6.5rem); text-shadow: 0 4px 30px rgba(0, 0, 0, 0.5); animation: titleSlide 600ms var(--ease-out) both; }
+@keyframes titleSlide { from { opacity: 0; transform: translateX(-2rem); } to { opacity: 1; transform: none; } }
+.load-meta { display: flex; align-items: center; gap: 0.9rem; font-weight: 700; font-size: 1.05rem; opacity: 0.9; }
+.load-meta .stars { font-size: 1.1rem; }
+.load-players { position: absolute; left: 2.6rem; right: 2.6rem; bottom: 4.8rem; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 0.6rem; }
+.lp-card { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding: 0.7rem 0.4rem 0.6rem; border-radius: 16px; background: rgba(250, 249, 245, 0.1); box-shadow: 0 0 0 1px var(--glass-line); backdrop-filter: blur(8px); animation: screenIn 320ms var(--ease-out) both; min-width: 0; }
+.lp-card.me { background: linear-gradient(160deg, rgba(217, 119, 87, 0.9), rgba(242, 166, 90, 0.75)); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4); }
+.lp-card .portrait { border-radius: 12px; background: radial-gradient(circle at 50% 40%, #fff, #e8d9cb); }
+.lp-card.pending { opacity: 0.6; }
+.lp-q { width: 44px; height: 44px; border-radius: 12px; background: rgba(250, 249, 245, 0.12); display: flex; align-items: center; justify-content: center; animation: pulse 1.2s infinite; }
+.lp-name { font-size: 0.8rem; font-weight: 800; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.load-bar { position: absolute; left: 2.6rem; right: 2.6rem; bottom: 2rem; display: flex; align-items: center; gap: 1rem; }
+.load-bar .bar { flex: 1; height: 0.45rem; background: rgba(250, 249, 245, 0.16); }
+.load-bar .bar > i { transition: transform 240ms var(--ease-out); }
+.load-label { font-size: 0.85rem; font-weight: 700; opacity: 0.75; min-width: 8rem; text-align: right; }
+
+/* load error */
+.loading-error { display: flex; align-items: center; justify-content: center; background: rgba(20, 20, 19, 0.85); }
+.err-card { padding: 2rem; display: flex; flex-direction: column; align-items: center; gap: 0.8rem; text-align: center; max-width: 30rem; }
+.err-card .ico { color: var(--error); }
+.err-card h2 { font-size: 1.3rem; }
+.err-card p { color: var(--ink-3); font-size: 0.9rem; }
+
+/* pause */
+.pause-scrim { position: fixed; inset: 0; z-index: 30; background: rgba(12, 11, 10, 0.55); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; animation: fadeIn 150ms ease-out both; }
+.pause { width: min(24rem, 90vw); padding: 1.6rem; display: flex; flex-direction: column; gap: 0.6rem; animation: screenIn 220ms var(--ease-out) both; }
+.pause h2 { font-size: 2.2rem; color: var(--ink); margin-bottom: 0.4rem; text-align: center; }
+.pause .btn { justify-content: flex-start; width: 100%; }
+.pause-note { font-size: 0.82rem; color: var(--ink-3); text-align: center; }
+.race-settings { position: fixed; inset: 0; z-index: 31; }
+.settings.overlay { background: rgba(12, 11, 10, 0.5); }

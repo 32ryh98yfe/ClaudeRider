@@ -10,7 +10,7 @@ export default defineKart({
   g0: 0.64,
   kLatIn: 2.8,
   kLatNeutral: 5.2,
-  yGrip: 1.52,
+  yGrip: 1.51,
   cBeta: 0.85,
   weight: 1.15,
   nameKey: 'karts.crown_cruiser.name',

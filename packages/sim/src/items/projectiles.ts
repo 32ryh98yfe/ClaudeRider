@@ -96,10 +96,9 @@ export function compactProjectiles(w: WorldState): void {
   L.length = j;
 }
 
-/** Removes (fizzles) every drone in flight toward a slot in `mask` (Interrupt Pulse). */
-export function clearDrones(w: WorldState, ctx: StepContext, mask: number): void {
-  const drone = ctx.content.items.byId.get('throttle_drone')?.code ?? 0;
-  for (const p of w.projectiles) if (p.code === drone && p.phase !== DEAD && (mask & (1 << p.target)) !== 0) fizzle(w, ctx, p);
+/** Removes (fizzles) every projectile of an item in `codes` flying toward a slot in `mask` (Interrupt Pulse: drones). */
+export function clearProjectiles(w: WorldState, ctx: StepContext, mask: number, codes: readonly number[]): void {
+  for (const p of w.projectiles) if (p.phase !== DEAD && codes.includes(p.code) && (mask & (1 << p.target)) !== 0) fizzle(w, ctx, p);
   compactProjectiles(w);
 }
 

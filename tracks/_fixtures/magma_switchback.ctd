@@ -1,0 +1,31 @@
+# gap-3 §8 Example B, verbatim (docs/research/10-gap-3-…md). Compiler regression fixture, not the roster track:
+# the roster magma_switchback lives in tracks/ember_mine/ (world lane). Exercises HELIX 540° stacked (F6), a lava
+# ledge BRANCH with kill, a RAIL over the lava pool (F4), a J (F2), geysers (F5), conveyors and a 3-straight CLOSE.
+TRACK magma_switchback name="Magma Switchback" theme=mine diff=5 laps=2 topo=circuit
+DEFAULTS w=11 prof=flat surf=basalt wall=rock:1.2 blend=12
+START pos=(0,30,0) hdg=0   LINE start at=40
+S 70 w=14 ; C R30 60 R w=12 bank=-6 ; S 20 ; C R22 120 L w=11 bank=8     # plateau deck, s 0–167.5
+S 30 dy=-1.5                               @helixIn   # 167.5–197.5
+HELIX R28 540 L dy=-14 bank=12 wallOut=rock:1.5 wallIn=pillar          # 197.5–461.4, 9.33 m/turn
+S 30 dy=-2 w=12 ; C R45 60 R bank=-5 ; S ?a=8.2                        # 461.4–546.7 (passes under the plateau)
+WIGGLE R26 55/110/55 L ; S 20 w=10                                    # 546.7–666.5 (under north run)
+@ledgeSplit WIGGLE R30 50/100/50 R ; S 20 ; WIGGLE R30 50/100/50 R @ledgeMerge  # 666.5–896.0
+S 15 ; C R35 120 L bank=6 wallIn=curb:0.5  @railCorner                  # 896–984.3
+J ramp=30@8 gap=14 drop=4 land=40 wland=14 vmin=25 vmax=46              # 984.3–1068.3
+C R40 60 L w=12 bank=5 ; S ?b=81.64 dy=+1                              # 1068.3–1191.8
+CHICANE R18 70/140/70 L w=10 bank=6 dy=+1 ; S 20                       # 1191.8–1299.8
+C R12 180 R w=9 bank=-10 ; WIGGLE R60 25/50/25 R dy=+6                 # 1299.8–1442.2
+C R12 180 L w=9 bank=10  ; WIGGLE R60 25/50/25 L dy=+6                 # 1442.2–1584.6
+C R30 90 L bank=6 ; S ?c=1.51(merged) ; WIGGLE R50 40/80/40 L dy=+6 ; S 30 dy=+1.5 w=12
+C R30 90 R w=13 bank=-6                                                 # → (0,30,0)
+CLOSE solve=[?a,?b,?c] length=1850
+BRANCH ledge from=666.5 to=896.0 kind=risk aiMin=0.75 w=7 wall=none kill=lava { S 203.8 surf=obsidian }
+RAIL oreRail host=main from=902 to=990 d=[902:-4.5,911:-8,918:-11,977:-11,984:-8,990:-4.5] h=+1.0
+     capture=(dMax 2.0, hdg 25, vMin 15) speed=(min 38, accel 3, max 42) gauge=0.30/s
+HAZ geyser at=600 d=+2 r=3 period=3.6 on=0-1.0 tele=0.8 offset=0.0
+HAZ geyser at=720 d=-2 r=3 period=3.6 on=0-1.0 tele=0.8 offset=1.2
+HAZ geyser at=845 d=+2 r=3 period=3.6 on=0-1.0 tele=0.8 offset=2.4
+ZONE conveyor from=1120 to=1185 d=[0,5.5] mul=1.15 ; ZONE conveyor from=1120 to=1185 d=[-5.5,0] mul=0.85
+KILL lava belowY=6 aabb=(-330,-60 .. 180,240)
+ITEMS at=480,656,1140,1295,1788 n=4     PAD at=468,1072,1790
+KEYS 40,197.5,461.4,646.5,899,1110,1480,1631

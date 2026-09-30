@@ -21,3 +21,4 @@ export { rollItem } from './items/roll.ts';
 export { rubberBandMul } from './race/rubberband.ts';
 export * from './ai/api.ts';
 export { createAiDriver } from './ai/driver.ts';
+export { AI_EXECUTION } from './ai/profiles.ts';
