@@ -1,0 +1,33 @@
+# Token Foundry — Orbital Nexus D3 (item-built). A clean orbital factory: the assembly hall's split conveyors, a press
+# gauntlet, the server-rack canyon, the coolant-pipe gutter, an elevator ramp up to the gantry deck that crosses over
+# the hall, the token-stream S, the crucible U-turn and the cooling line home.
+@signature hazard:press, conveyor
+TRACK token_foundry name="Token Foundry" theme=orbital_nexus diff=3 laps=3 topo=circuit
+DEFAULTS w=16 surf=metal wall=barrier:1.2 shoulder=0 blend=18
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=7 stagger=3.5 d=4
+S ?a                                        @assembly_hall
+C R20 90 L bank=5                           @hall_corner
+S 43                                        @press_gauntlet
+C R30 90 R bank=-5                          @press_exit
+WIGGLE R20 40/80/40 L                       @rack_canyon
+S 43                                        @coolant_pipe
+C R16 150 R bank=-6 w=15                    @pipe_hairpin
+S 43 dy=8 w=16                              @elevator_ramp
+C R35 90 L bank=5                           @gantry_corner
+S ?b                                        @gantry_deck
+C R25 90 L dy=-8 bank=5                     @gantry_drop
+WIGGLE R25 40/80/40 R                       @token_s
+S 54                                        @token_straight
+C R30 120 L bank=6                          @kiln_corner
+C R40 60 L                                  @hall_return
+C R35 90 R bank=-5                          @loading_bay
+C R30 60 L                                  @loading_exit
+C R50 180 L bank=6                          @crucible
+WIGGLE R60 30/60/30 R                       @cooling_s
+C R90 40 L                                  @belt_in
+C R90 40 R                                  @belt_out
+S ?c                                        @to_line
+CLOSE solve=[?a,?b,?c] length=1350
+LINE start at=@assembly_hall+10
+THEME scatter=station_pylon density=4 hills=0 sky=space
