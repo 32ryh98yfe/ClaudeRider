@@ -7,8 +7,8 @@ export default defineTrack({
   laps: 3,
   modes: ['speed', 'item'],
   topology: 'circuit',
-  lapLengthM: 1400,
-  refLapTicks: 0,
+  lapLengthM: 1375,
+  refLapTicks: 2495,
   nameKey: 'tracks.geode_rail_quarry.name',
   onRoster: true,
 });

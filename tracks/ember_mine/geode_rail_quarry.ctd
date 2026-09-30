@@ -1,5 +1,6 @@
 # Geode Rail Quarry — Ember Mine D3 (both modes). A crystal cavern quarry: timber trestles over the pit, two ore-rail
-# lines, a 300° geode spiral down into the amethyst chamber and a conveyor lift back up to the headframe yard.
+# lines climbing to the tunnel level, a 300° geode spiral down into the amethyst chamber and a conveyor run past the
+# headframe yard.
 @signature rail, conveyor, hazard:traffic
 @fallback rail -> "banked trestle ribbon with a conveyor_fwd x1.15 lane at the rail line" when=F4
 @fallback hazard:traffic -> "cart tunnel always open" when=F5
@@ -9,26 +10,26 @@ DEFAULTS w=15 surf=stone wall=rock:1.4 shoulder=0 shoulderSurf=gravel blend=16
 START pos=(0,0,0) hdg=0
 GRID rows=4 cols=2 pitch=7 stagger=3.5 d=3.5
 S ?a=75                                    @cavern_straight
-C R20 90 L bank=6                          @cavern_corner
-S 12
-WIGGLE R20 40/80/40 R w=15 wall=fence:1.2  @trestle_s
-WIGGLE R144 9/18/9 L surf=wood w=14 bank=3                             @ore_rail_1
+C R20 90 L bank=6 dy=1.5                   @cavern_corner
+S 12 dy=1
+WIGGLE R20 40/80/40 R w=15 wall=fence:1.2 dy=5.5  @trestle_s
+WIGGLE R144 9/18/9 L surf=wood w=14 bank=3 dy=1                             @ore_rail_1
 C R26 120 L surf=stone w=14 wall=rock:1.4 bank=5 @rail_exit
 S ?b=60                                    @tunnel_split
-C R24 300 R dy=-10 bank=-6 w=16                @geode_spiral
+C R24 300 R dy=-9 bank=-6 w=16                @geode_spiral
 S 70 w=15                                  @geode_chamber
 C R16 150 L w=15 bank=6                    @amethyst_hairpin
 WIGGLE R22 40/80/40 L w=16                 @crystal_s
 C R35 95 L bank=5                   @lantern_corner
 S 20                                       @cart_crossing
-S 58 dy=5 surf=conveyor_fwd                @conveyor_lift
-S 80 dy=5 surf=wood wall=fence:1.2         @ore_rail_2
+S 58 surf=conveyor_fwd                @conveyor_lift
+S 80 surf=wood wall=fence:1.2         @ore_rail_2
 C R30 120 L surf=stone w=14 wall=rock:1.4 bank=6 @headframe_hairpin
-C R40 45 R bank=-4 w=15 adj=25                  @headframe_kink
+C R40 45 R bank=-4 w=15                  @headframe_kink
 WIGGLE R60 30/60/30 R                      @ore_yard_s
-C R90 80 L bank=4 adj=30                  @winch_corner
+C R90 80 L bank=4                  @winch_corner
 S ?c=240                                   @winch_run
-C R80 50 L bank=3 adj=30                   @headframe_exit
+C R80 50 L bank=3                   @headframe_exit
 S 87                                       @to_line
 CLOSE solve=[?a,?b,?c] length=1375
 LINE start at=0
