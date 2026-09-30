@@ -1,7 +1,7 @@
 {
  "compiler": "trackc/2.0",
  "note": "default buildTrack() bakes (no AO/PVS); regenerate with node packages/trackc/src/golden.ts --update",
- "external": "d86ce8bf32e4f550",
+ "external": "8f7d6546e76e99db",
  "tracks": {
   "_fixtures/belltower_piazza": {
    "src": "626b70e2f210308e",
@@ -53,10 +53,15 @@
    "ctrk": "842a7d57",
    "vis": "a9abb779"
   },
+  "canopy_forest/cascade_slalom": {
+   "src": "2f90c787732779d7",
+   "ctrk": "921ea469",
+   "vis": "eb43f53d"
+  },
   "canopy_forest/fernwood_hollow": {
-   "src": "bb3ce417d4da255d",
-   "ctrk": "d1a23e7f",
-   "vis": "c7c81e6b"
+   "src": "c74bdf84ca83addf",
+   "ctrk": "7c41bfdb",
+   "vis": "cd1ff826"
   },
   "clayhill_village/belltower_piazza": {
    "src": "8b9f3be6820461ec",
@@ -69,39 +74,64 @@
    "vis": "5dadc388"
   },
   "coral_cove/coral_cove_docks": {
-   "src": "695f8b7b92449499",
-   "ctrk": "145eb431",
-   "vis": "651c4d48"
+   "src": "bc4d1a3dfc968fe9",
+   "ctrk": "638c79e0",
+   "vis": "9d1cced4"
+  },
+  "coral_cove/kraken_lighthouse": {
+   "src": "b37f161c73e3f37d",
+   "ctrk": "a9e57084",
+   "vis": "cf964e32"
   },
   "ember_mine/geode_rail_quarry": {
-   "src": "278817c2fd3c6caa",
-   "ctrk": "686f3204",
-   "vis": "856a6d25"
+   "src": "ef5a1ad9c2b68a4c",
+   "ctrk": "09acaa78",
+   "vis": "c9373229"
   },
   "ember_mine/magma_switchback": {
-   "src": "c3f3118ee7072baa",
-   "ctrk": "077d1552",
-   "vis": "9b8e0de9"
+   "src": "03c1a2ccb6ce0b2e",
+   "ctrk": "47496e95",
+   "vis": "74c7804a"
   },
   "frostbyte_glacier/aurora_summit": {
-   "src": "75dd9daa1d695e54",
-   "ctrk": "9de3996f",
-   "vis": "d0f1bd6e"
+   "src": "5281be4e045d19ac",
+   "ctrk": "80b69f17",
+   "vis": "fa1ba09b"
   },
   "frostbyte_glacier/snowglobe_halfpipe": {
-   "src": "e5aea9971918a450",
-   "ctrk": "83e11bcf",
-   "vis": "ffaf93af"
+   "src": "4bbc2d65abc870be",
+   "ctrk": "e0de232a",
+   "vis": "6f18b188"
   },
   "lantern_hollow/manor_catacombs": {
-   "src": "55cb71f1d02b92a5",
-   "ctrk": "5c224fbd",
-   "vis": "550b35e6"
+   "src": "1c10d28c5191d47b",
+   "ctrk": "bb91858f",
+   "vis": "52eef786"
   },
   "lantern_hollow/pumpkin_lane": {
-   "src": "096887c18dcfecc9",
-   "ctrk": "5fc06cb5",
-   "vis": "d99f2125"
+   "src": "9abdb0366e4a98ae",
+   "ctrk": "ff00fbfa",
+   "vis": "752cba4a"
+  },
+  "neon_harbor/rainline_blvd": {
+   "src": "c0b0dcff79863941",
+   "ctrk": "c6a1469d",
+   "vis": "9c19870e"
+  },
+  "neon_harbor/skyway_interchange": {
+   "src": "21802038d1977260",
+   "ctrk": "dbad722c",
+   "vis": "1d462944"
+  },
+  "orbital_nexus/orbital_express": {
+   "src": "ec8d2b102a27acd7",
+   "ctrk": "e842b956",
+   "vis": "c35bdba7"
+  },
+  "orbital_nexus/token_foundry": {
+   "src": "3a99eaf9902318e9",
+   "ctrk": "c9c69c0e",
+   "vis": "f8f8e512"
   },
   "spark_circuit/proving_ring": {
    "src": "567d041c2710cbba",
@@ -109,14 +139,14 @@
    "vis": "24c7474e"
   },
   "spark_circuit/spark_grand_circuit": {
-   "src": "639386d52c38f220",
-   "ctrk": "588927f0",
-   "vis": "d27a31b1"
+   "src": "6ce79f9511094b38",
+   "ctrk": "2e3aafc8",
+   "vis": "9c66d63c"
   },
   "spark_circuit/sunset_arena_rally": {
-   "src": "bed64362aebd2ccf",
-   "ctrk": "3b66d10e",
-   "vis": "053e62f7"
+   "src": "bbeaeea5c8c91826",
+   "ctrk": "0cfbe76f",
+   "vis": "e34d61c3"
   },
   "sunstone_desert/sandglass_canyon": {
    "src": "e2ba99d1ed618787",
@@ -124,9 +154,9 @@
    "vis": "25815b01"
   },
   "sunstone_desert/sunstone_bazaar": {
-   "src": "0a3c78128edd7337",
-   "ctrk": "202de28a",
-   "vis": "d08b933a"
+   "src": "897f28dcfe72ef1f",
+   "ctrk": "24331e90",
+   "vis": "6f27ed31"
   }
  }
 }
