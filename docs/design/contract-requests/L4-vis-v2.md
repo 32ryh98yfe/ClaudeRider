@@ -58,4 +58,21 @@ Obstacles (a tower, pillars) are collision walls and render as `wall:building` p
 (`PROP kind=clock_tower at=…`). Plaza curbs render in the `kerb` slot. Halfpipe slopes are ordinary `road:<surf>`
 triangles with steep normals.
 
-Later ladder steps append to this file (portals, rails, hazard visuals, LOD1, PVS).
+## 8. F5: hazard visuals
+`visMeta.hazards = [{ id, kind, name, prop, size, shape, group? }]`, one per `CtrkMeta.hazards` entry, same index.
+- Every frame, the renderer (L11) poses each hazard from `track.hazardPose(id, tick, out)`:
+  - `x y z`: the shape origin.
+  - `f`: the long / forward axis (the right vector for a crossing train, the arm direction for a flat sweeper).
+  - `u`: up. For a swinger this is the arm axis.
+  - `active`, `telegraph` and `phase`.
+  - No hazard state lives in the world; the pose is a pure function of the tick, so the client may render any tick.
+- `prop` is a theme-kit key (defaults `hazard_geyser`, `hazard_press`, `hazard_train`, `hazard_car`, `hazard_swinger`;
+  `HAZ … prop=` overrides it). A kit without it renders a placeholder primitive of `shape`/`size` and logs a dev warning.
+- Sizes are in the hazard frame:
+  - `cyl`: [radius, height, 0], standing on `u`. A swinger capsule is [r, len, 0] along the arm.
+  - `box`: [along f, across, up u].
+  - `sphere`: [r, r, r].
+- Telegraph cue (≥ 0.6 s): geyser steam and ground glow, press shake, crossing bells and lights.
+- Traffic vehicles of one HAZ line share `group` (one car model, varied by id).
+
+Later ladder steps append to this file (portals, rails, LOD1, PVS).

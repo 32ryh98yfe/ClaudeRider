@@ -32,7 +32,7 @@ export interface VisMeta {
   minimapPaths?: { id: string; kind: string; array: string }[];
   materials?: string[];
   portals?: { id: string; kind: 'entry' | 'exit'; x: number; y: number; z: number; fx: number; fy: number; fz: number; w: number; h: number }[];
-  hazards?: { id: number; kind: string; name: string; prop: string; size: [number, number, number]; shape: string }[];
+  hazards?: { id: number; kind: string; name: string; prop: string; size: [number, number, number]; shape: string; group?: number }[];
   killPlanes?: { id: string; y: number; surf: string; aabb: [number, number, number, number] }[];
   /** PVS: `pvs` Uint8 array, one bitset of `pvsBytes` bytes per main-line sample every `pvsStep` metres */
   pvsStep?: number; pvsBytes?: number;
