@@ -33,6 +33,6 @@ async function boot(): Promise<void> {
   window.__cr = { ...window.__cr, booting: false, ready: true };
   // Dev deep link: ?go=1&track=<id>&mode=speed|item&tier=<ai tier> jumps straight into a race (screenshots, track review).
   const q = new URLSearchParams(location.search);
-  if (q.get('go') === '1') navigate('loading', { track: q.get('track') ?? 'meadow_loop', mode: q.get('mode') ?? 'speed', tier: q.get('tier') ?? 'racer' });
+  if (q.get('go') === '1') navigate('loading', { track: q.get('track') ?? 'meadow_loop', mode: q.get('mode') ?? 'speed', tier: q.get('tier') ?? 'racer', ...(q.get('teams') ? { teams: q.get('teams')! } : {}) });
 }
 void boot();

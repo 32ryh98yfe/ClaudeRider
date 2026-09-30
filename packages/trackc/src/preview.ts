@@ -63,8 +63,22 @@ export function previewSvg(r: BuildResult): string {
   for (const b of meta.boxes) parts.push(`<circle cx="${X(b.x)}" cy="${Z(b.z)}" r="1.4" fill="#f5c542"/>`);
   for (const p of meta.grid) parts.push(`<circle cx="${X(p.x)}" cy="${Z(p.z)}" r="1.2" fill="#d97757"/>`);
   for (const j of meta.junctions ?? []) if (j.gore) parts.push(`<circle cx="${X(j.gore.x)}" cy="${Z(j.gore.z)}" r="2.2" fill="none" stroke="#ff3030" stroke-width="1"/>`);
+  // hazards: kind-coloured markers at their base pose; lane traffic draws its whole run
+  const HZC: Record<string, string> = { geyser: '#ff9d2e', press: '#9aa4b1', train: '#7a5cff', traffic: '#2ec4ff', swinger: '#3ddc84' };
+  const lanesDrawn = new Set<string>();
+  for (const h of meta.hazards) {
+    const p = m.paths[h.path]!, q = sampleAt(p, h.s), col = HZC[h.kind] ?? '#fff';
+    const x = q.x + q.rx * h.u, z = q.z + q.rz * h.u;
+    if (h.motion?.type === 'lane') {
+      const key = `${h.group ?? h.id}:${h.u}`;
+      if (lanesDrawn.has(key)) continue;
+      lanesDrawn.add(key);
+      const pts: string[] = [];
+      for (let s = h.motion.s0 ?? h.s; s <= (h.motion.s1 ?? h.s); s += 5) { const a = sampleAt(p, s); pts.push(`${X(a.x + a.rx * h.u)},${Z(a.z + a.rz * h.u)}`); }
+      parts.push(`<polyline points="${pts.join(' ')}" fill="none" stroke="${col}" stroke-width="1.6" stroke-dasharray="3 2"/>`);
+    } else parts.push(`<rect x="${X(x - 2)}" y="${Z(z - 2)}" width="4" height="4" fill="${col}" transform="rotate(45 ${X(x)} ${Z(z)})"/>`);
+  }
   for (const j of r.content.jumps) { const p = m.paths[j.path]!; const a = sampleAt(p, j.lipS), b = sampleAt(p, j.landS0); parts.push(`<line x1="${X(a.x)}" y1="${Z(a.z)}" x2="${X(b.x)}" y2="${Z(b.z)}" stroke="#ff7a8a" stroke-width="3" stroke-dasharray="1 1"/>`); }
-  for (const h of meta.hazards) { const p = m.paths[h.path]!; const q = sampleAt(p, h.s); parts.push(`<rect x="${(Number(X(q.x + q.rx * h.u)) - 2).toFixed(1)}" y="${(Number(Z(q.z + q.rz * h.u)) - 2).toFixed(1)}" width="4" height="4" fill="#ff3b3b"/>`); }
   for (const w of meta.warps) { const a = sampleAt(m.paths[w.path]!, w.s), b = sampleAt(m.paths[w.exitPath]!, w.exitS); parts.push(`<line x1="${X(a.x)}" y1="${Z(a.z)}" x2="${X(b.x)}" y2="${Z(b.z)}" stroke="#b36bff" stroke-width="1.2" stroke-dasharray="6 3"/>`); }
 
   // elevation strip (main + branches)

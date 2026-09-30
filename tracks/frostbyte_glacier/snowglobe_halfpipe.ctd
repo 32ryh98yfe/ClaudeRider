@@ -1,0 +1,81 @@
+# Snowglobe Halfpipe / 스노글로브 하프파이프 — Frostbyte Glacier, D2, 3 × 1300 m, item★ (11-track-spec §12.5).
+# Bright overcast under the snow-globe dome: the penguin-village straight, the igloo corner, the halfpipe run,
+# the crystal-cave tunnel and its S-bends, the ice-rink sweeper (ice 0.75), the sled run, the snowman S and the
+# snow-fort corner home. Snow shoulders (0.90 grip / ×0.95) mark the off-road.
+@signature halfpipe, surfaces
+@fallback hazard:traffic -> "cosmetic penguin sleds beside the snowman lane" when=F5
+TRACK snowglobe_halfpipe name="Snowglobe Halfpipe" theme=frostbyte_glacier diff=2 laps=3 topo=circuit
+DEFAULTS w=17 surf=asphalt wall=barrier:1.1 shoulder=2 shoulderSurf=snow blend=22
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=7 stagger=3.5 d=4
+S 110                                     @village       # penguin-village straight; pads +90/+130
+C R140 12 R ; C R140 12 L                 @village_s     # gentle S between the igloos
+C R30 80 L bank=8                         @igloo         # igloo corner (V19)
+S 38                                      @hp_entry
+S 120 prof=hp60 wall=rock:1.6             @halfpipe      # hp60 halfpipe: 22.1 m footprint, 60° walls, free line choice
+S 14 wall=barrier:1.1                     @hp_runout
+C R45 50 L bank=4 w=17                    @hp_exit
+S ?b=52 wall=rock:2.5                     @crystal_cave  # crystal-cave tunnel (arches)
+WIGGLE R40 40/95/30 R bank=5 wall=barrier:1.1:soft @cave_s    # cave S-bends (snow-padded barriers)
+C R140 15 R dy=1 wall=barrier:1.1 ; C R140 15 L dy=1       @glacier       # item row
+C R25 150 L bank=10 surf=ice w=18         @rink          # ice-rink sweeper, ice 0.75 (V19)
+C R60 20 R bank=-4 surf=asphalt w=17      @rink_exit
+C R60 55 R bank=-4 dy=-2                  @sled_bend
+WIGGLE R60 40/60/30 L bank=3              @sled_s
+WIGGLE R35 30/70/25 L bank=6 wall=barrier:1.1:soft @snowman_s     # (V19) snow-padded
+S ?c=44 wall=barrier:1.1                  @snowman_lane  # penguin sleds (cosmetic)
+C R35 90 L bank=7                         @snow_fort     # (V19)
+C R50 45 L bank=4                         @final_bend
+S ?a=129                                  @run_in
+CLOSE solve=[?a,?b,?c] length=1300
+LINE start at=0
+ITEMS at=140,290,460,640,880,1060 n=5
+PAD at=50,100 d=0 len=6 w=4
+KEYS 200,390,560,780,1000,1180
+# ice on the inside of each cave S-bend, and the whole rink sweeper is ice (0.75)
+ZONE surface from=@cave_s+4 to=@cave_s+26 d=[1,8] surf=ice
+ZONE surface from=@cave_s+34 to=@cave_s+88 d=[-8,-1] surf=ice
+ZONE surface from=@cave_s+96 to=@cave_s+114 d=[1,8] surf=ice
+
+# ---- look & dressing (Frostbyte Glacier kit; art bible: soft overcast over the penguin village) ----
+THEME frostbyte_glacier sky=overcast time=13:00 scatter=pine_snow,snowbank,birch,serac density=5 hills=8
+PROPS kind=igloo from=5 to=108 side=R every=18 offset=6 jitter=3 seed=81
+PROPS kind=penguin from=5 to=108 side=both every=9 offset=2 jitter=2 scale=0.9-1.3 seed=82
+PROPS kind=snow_cabin from=112 to=166 side=L every=16 offset=6 seed=83
+PROPS kind=pine_snow from=112 to=210 side=R every=11 offset=5 jitter=4 seed=84
+PROPS kind=snowbank from=212 to=368 side=both every=14 offset=6 seed=85
+PROPS kind=serac from=250 to=368 side=both every=24 offset=12 jitter=6 seed=86
+PROPS kind=pine_snow from=370 to=422 side=both every=10 offset=4 jitter=3 seed=87
+PROPS kind=ice_spire from=424 to=606 side=both every=8 offset=1 jitter=1 scale=0.8-1.3 seed=88
+PROPS kind=serac from=608 to=680 side=both every=14 offset=6 jitter=4 seed=89
+PROPS kind=rink_boards from=682 to=745 side=R every=5.5 offset=0.4 scale=1-1 seed=90
+PROPS kind=penguin from=684 to=744 side=L every=8 offset=3 jitter=3 seed=91
+PROPS kind=pine_snow from=747 to=825 side=both every=11 offset=5 jitter=4 seed=92
+PROPS kind=birch from=826 to=960 side=both every=12 offset=5 jitter=4 seed=93
+PROPS kind=snowman from=962 to=1036 side=R every=22 offset=5 seed=94
+PROPS kind=snowbank from=1097 to=1150 side=L every=10 offset=2 seed=95
+PROPS kind=snow_cabin from=1152 to=1298 side=R every=18 offset=6 jitter=2 seed=96
+PROPS kind=pine_snow from=1152 to=1298 side=L every=12 offset=5 jitter=4 seed=97
+# landmarks: fairy lights over the village, the giant snow globe with its igloos, the igloo corner, the crystal-cave
+# arches, the rink snowman, penguin sleds on the snowman lane (F5 traffic fallback), the chapel
+PROP kind=fairy_lights at=(20.0,-0.3,0.0) yaw=-90 scale=1
+PROP kind=fairy_lights at=(75.0,-0.3,0.0) yaw=-90 scale=1
+PROP kind=snowglobe_frame at=(55.0,-0.3,-44.0) yaw=-90 scale=0.8
+PROP kind=igloo at=(45.0,-0.3,-40.0) yaw=-90 scale=1.3
+PROP kind=igloo at=(65.0,-0.3,-48.0) yaw=-90 scale=1
+PROP kind=penguin at=(52.0,-0.3,-36.0) yaw=-90 scale=2
+PROP kind=igloo at=(169.7,-0.3,-22.2) yaw=-49 scale=2
+PROP kind=crystal_arch at=(213.8,-0.3,-229.5) yaw=40 scale=1
+PROP kind=crystal_arch at=(207.4,-0.3,-237.2) yaw=40 scale=1
+PROP kind=crystal_arch at=(200.9,-0.3,-244.9) yaw=40 scale=1
+PROP kind=crystal_arch at=(194.5,-0.3,-252.5) yaw=40 scale=1
+PROP kind=crystal_arch at=(188.1,-0.3,-260.2) yaw=40 scale=1
+PROP kind=snowman at=(26.9,1.7,-364.6) yaw=142 scale=1.6
+PROP kind=sled at=(-121.3,-0.3,-106.0) yaw=-45 scale=1
+PROP kind=sled at=(-114.3,-0.3,-76.3) yaw=-45 scale=1
+PROP kind=sled at=(-144.0,-0.3,-83.4) yaw=-45 scale=1
+PROP kind=penguin at=(-107.2,-0.3,-80.6) yaw=135 scale=1.2
+PROP kind=penguin at=(-139.7,-0.3,-90.5) yaw=-45 scale=1.2
+PROP kind=snowman at=(-131.3,-0.3,-39.3) yaw=-180 scale=1.3
+PROP kind=chapel at=(-70.0,-0.3,42.0) yaw=90 scale=1
+PROP kind=fairy_lights at=(-25.0,-0.3,0.0) yaw=-90 scale=1

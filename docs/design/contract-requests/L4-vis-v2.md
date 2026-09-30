@@ -46,4 +46,55 @@ rail, so the HUD can draw shortcuts.
 | `pillar` | support under elevated decks (variant 0–3 = height class, ≈ 6 m each); y is the terrain height |
 | `chevron`, `gantry` | as in M1 (chevrons only where the outside of the corner has a wall) |
 
-Later ladder steps append to this file (kill planes, portals, rails, hazard visuals, LOD1, PVS).
+## 6. F2: kill planes
+`visMeta.killPlanes = [{ id, y, surf: 'lava' | 'water' | 'void', aabb: [x0, z0, x1, z1] }]`; their geometry is already in
+slot `underside:kill_<surf>` (40 m tiles, vertex colour lava-orange / water-blue / void-dark). Jump landings have a
+`wall:cliff` face; ramp ends have an `underside` face.
+
+## 7. F3: plazas and profiles
+`visMeta.areas = [{ id, kind: 'annulus' | 'polygon', y, surf, center, rIn, rOut, from, sweep, obstacles: [{kind, x, z, r, w, d, h, yaw}] }]`.
+Plaza triangles are in `road:<surf>` slots with world-space uv (x/12, z/4) and sit in their own chunk (`kind: 'area'`).
+Obstacles (a tower, pillars) are collision walls and render as `wall:building` panels; dress them with a landmark prop
+(`PROP kind=clock_tower at=…`). Plaza curbs render in the `kerb` slot. Halfpipe slopes are ordinary `road:<surf>`
+triangles with steep normals.
+
+## 8. F5: hazard visuals
+`visMeta.hazards = [{ id, kind, name, prop, size, shape, group? }]`, one per `CtrkMeta.hazards` entry, same index.
+- Every frame, the renderer (L11) poses each hazard from `track.hazardPose(id, tick, out)`:
+  - `x y z`: the shape origin.
+  - `f`: the long / forward axis (the right vector for a crossing train, the arm direction for a flat sweeper).
+  - `u`: up. For a swinger this is the arm axis.
+  - `active`, `telegraph` and `phase`.
+  - No hazard state lives in the world; the pose is a pure function of the tick, so the client may render any tick.
+- `prop` is a theme-kit key (defaults `hazard_geyser`, `hazard_press`, `hazard_train`, `hazard_car`, `hazard_swinger`;
+  `HAZ … prop=` overrides it). A kit without it renders a placeholder primitive of `shape`/`size` and logs a dev warning.
+- Sizes are in the hazard frame:
+  - `cyl`: [radius, height, 0], standing on `u`. A swinger capsule is [r, len, 0] along the arm.
+  - `box`: [along f, across, up u].
+  - `sphere`: [r, r, r].
+- Telegraph cue (≥ 0.6 s): geyser steam and ground glow, press shake, crossing bells and lights.
+- Traffic vehicles of one HAZ line share `group` (one car model, varied by id).
+
+## 9. LOD1, PVS, baked AO (CLI bakes)
+- **LOD1.**
+  - Each slot's `s{j}.idx1` (Uint32) is an index-only LOD over the same vertex buffer, and `slots[j].lod1` gives one
+    `{ i0, n, chunk }` range per LOD0 chunk range.
+  - It is at most 40% of the LOD0 triangles (0.30–0.37 on real tracks). Kerbs, the start line, boost pads and portals
+    have `n = 0` (not drawn at LOD1).
+  - Vertices on chunk seams are kept, so a LOD1 chunk meets a LOD0 neighbour without a crack.
+  - Suggested switch: beyond 150 m (V20 counts it that way).
+- **PVS.**
+  - `visMeta.pvsStep = 10` and `pvsBytes`. The `pvs` Uint8 array holds one bitset per `pvsStep` metres of sMain;
+    bit k is chunk id k. `TrackVis.visibleChunks(sMain, out)` decodes it.
+  - It is omnidirectional (look-back works) and conservative, with no frustum test. A chunk counts as visible when:
+    - it is within 120 m of the chase camera (5 m back, 2.5 m up, on every path covering that progress), or
+    - it is within 1000 m and one of its bbox test points is unblocked by terrain, road or walls.
+  - Readers without PVS draw everything, as before.
+- **Terrain tiles** are now 24 × 24 cells (≈ 190 m). One draw each; terrain is not merged.
+- **Baked AO.** The CLI multiplies vertex AO into `s{j}.col` (12 rays, 16 m). The renderer needs nothing new, though
+  it may lower its own SSAO strength where the bake already darkens.
+- **V20 worst visible static set, Low tier.** Per 10 m sample, V20 counts the chunks that are both in the PVS and in a
+  120° forward cone within 600 m. Draws are per slot, as runs of 3 contiguous chunks (TrackView's `mergeChunks`);
+  terrain is one draw per tile. Triangles are LOD0 within 150 m and LOD1 beyond. The finding lists the heaviest slots.
+
+Later ladder steps append to this file.

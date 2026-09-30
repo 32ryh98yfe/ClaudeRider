@@ -6,6 +6,8 @@ import { merge, paint, place, rbox, box, cyl, cone, ico, sph } from '../util/geo
 export interface PropFactory { build(pal: readonly string[]): { geometry: THREE.BufferGeometry; material: THREE.Material; castShadow?: boolean }; maxInstances?: number }
 
 const lit = (): THREE.Material => MaterialLibrary.vertexLit(0.8, 0);
+/** Trees and bushes sway in the wind (positionNode, masked by height so trunks stay planted). */
+const leafy = (): THREE.Material => MaterialLibrary.foliageLit();
 
 export const DEFAULT_PROPS: Record<string, PropFactory> = {
   tree_round: {
@@ -14,7 +16,7 @@ export const DEFAULT_PROPS: Record<string, PropFactory> = {
         paint(place(cyl(0.25, 0.35, 2.4, 7), 0, 1.2, 0), '#6b4a33'),
         paint(place(ico(1.9, 1), 0, 3.6, 0, 0, 0, 0, 1, 0.9, 1), pal[2] ?? '#6fae4b', 0.12, 3),
         paint(place(ico(1.3, 1), 0.9, 4.4, 0.4), pal[2] ?? '#7cbd55', 0.12, 5),
-      ]), material: lit(), castShadow: true,
+      ]), material: leafy(), castShadow: true,
     }),
   },
   tree_pine: {
@@ -24,10 +26,10 @@ export const DEFAULT_PROPS: Record<string, PropFactory> = {
         paint(place(cone(1.7, 2.6, 7), 0, 2.4, 0), '#3f7d45', 0.1, 7),
         paint(place(cone(1.3, 2.2, 7), 0, 3.6, 0), '#4a8f4f', 0.1, 9),
         paint(place(cone(0.8, 1.6, 7), 0, 4.7, 0), '#56a05a', 0.1, 11),
-      ]), material: lit(), castShadow: true,
+      ]), material: leafy(), castShadow: true,
     }),
   },
-  bush: { build: (pal) => ({ geometry: merge([paint(place(ico(0.9, 1), 0, 0.5, 0, 0, 0, 0, 1.3, 0.8, 1.1), pal[2] ?? '#5d9a42', 0.15, 13)]), material: lit() }) },
+  bush: { build: (pal) => ({ geometry: merge([paint(place(ico(0.9, 1), 0, 0.5, 0, 0, 0, 0, 1.3, 0.8, 1.1), pal[2] ?? '#5d9a42', 0.15, 13)]), material: leafy() }) },
   house: {
     build: (pal) => ({
       geometry: merge([
@@ -92,7 +94,26 @@ export const DEFAULT_PROPS: Record<string, PropFactory> = {
     }),
   },
   rock: { build: () => ({ geometry: merge([paint(place(ico(1.2, 0), 0, 0.5, 0, 0.3, 0.5, 0.2, 1.4, 0.8, 1.1), '#8b8680', 0.1, 17)]), material: lit() }) },
+  // .vis v2 compiler props (L4-vis-v2 §5)
+  gore_cushion: {
+    build: () => {
+      // crash cushion at a split gore: stacked impact drums with an arrow board facing the oncoming traffic (−Z)
+      const parts: THREE.BufferGeometry[] = [];
+      for (let i = 0; i < 3; i++) for (let j = 0; j <= i; j++) parts.push(paint(place(cyl(0.42, 0.42, 0.9, 10), (j - i / 2) * 0.85, 0.45, -i * 0.8), i % 2 ? '#1c1f26' : '#ffd23f'));
+      parts.push(paint(place(rbox(1.6, 0.8, 0.1, 0.04, 2), 0, 1.35, 0.4), '#1c1f26'));
+      for (const x of [-0.45, 0.45]) { parts.push(paint(place(box(0.12, 0.44, 0.04), x - 0.08, 1.46, 0.46, 0, 0, -0.7), '#ffd23f'), paint(place(box(0.12, 0.44, 0.04), x - 0.08, 1.2, 0.46, 0, 0, 0.7), '#ffd23f')); }
+      return { geometry: merge(parts), material: MaterialLibrary.vertexLit(0.5, 0), castShadow: true };
+    },
+  },
+  pillar: {
+    // support column under elevated decks, 6 m per height class (TrackView scales y by the prop variant)
+    build: (pal) => ({ geometry: merge([paint(place(rbox(1.1, 6, 1.1, 0.12, 2), 0, 3, 0), '#9a968f', 0.05, 23), paint(place(box(1.5, 0.3, 1.5), 0, 5.85, 0), pal[1] ?? '#b8b2a8')]), material: lit(), castShadow: true }),
+  },
 };
 
 /** Visible placeholder for unknown prop kinds (never crash). */
+// generic kinds the track DSL emits when a theme has no named variant
+DEFAULT_PROPS['tree'] ??= DEFAULT_PROPS['tree_round']!;
+DEFAULT_PROPS['pine'] ??= DEFAULT_PROPS['tree_pine']!;
+
 export const PLACEHOLDER_PROP: PropFactory = { build: () => ({ geometry: paint(place(box(1, 1, 1), 0, 0.5, 0), '#ff00ff'), material: lit() }) };

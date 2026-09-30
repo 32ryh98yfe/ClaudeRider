@@ -1,0 +1,28 @@
+# F4 fixture (L4): an ore rail that leaves the road on the inside of a corner and rejoins it tangent, a portal
+# warp from a side window on one straight to another straight, and a 40 m warp span with no geometry (a "gate").
+TRACK f4_rails name="F4 Rail Fixture" theme=ember_mine diff=3 laps=3 topo=circuit
+DEFAULTS w=15 surf=basalt wall=rock:1.2 shoulders=1:gravel blend=15
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=6 stagger=3 d=4
+S ?a                          @home
+C R40 90 L                    @t1
+S ?b                          @back
+C R40 90 L                    @t2
+S 120                         @far
+S 40 warp=gate                @gateSpan
+S 160                         @far2
+C R40 90 L                    @t3
+S 180                         @west
+C R40 90 L                    @t4
+CLOSE solve=[?a,?b] length=1250
+LINE start at=@home+60
+
+RAIL ore host=main from=@t2-12 to=@t2+75 d=[@t2-12:-3,@t2+6:-13,@t2+50:-13,@t2+75:-2] h=1.0
+     capture=(dMax 2.0, hdg 25, vMin 15) speed=(min 38, accel 3, max 42) gauge=0.30/s
+WARP portal at=@far2+40 to=@west+50 d=[3.5,7] transit=0.8 keep
+WARP gate transit=0.5 keep
+
+PAD at=@home+90,@home+150 d=0 len=6 w=4
+ITEMS at=@home+230,@back+130,@far2+40,@west+120 n=5
+KEYS @home+210,@t1+30,@back+60,@far+30,@far2+20,@west+100,@t4+30
+THEME scatter=rock density=3 hills=3 sky=underground

@@ -3,7 +3,7 @@
 import { createNoise2D } from 'simplex-noise';
 import {
   CTRK_MAGIC, CTRK_VERSION, CVIS_MAGIC, CVIS_VERSION, SFLAG, SMP, buildTriHash, writeContainer, loadCtrk, toArrayBuffer,
-  type CtrkMeta, type CtrkPathMeta, type BakedTrack, type TypedArray, type PathLink, type GroundHit, type Contact,
+  type CtrkMeta, type CtrkPathMeta, type BakedTrack, type TypedArray, type PathLink,
 } from '@cr/sim';
 import type { TrackId } from '@cr/content';
 import { parse, type TrackAst } from './dsl.ts';
@@ -11,18 +11,29 @@ import { buildModel, sampleAt, type PathModel, type Sample, type TrackModel } fr
 import { resolveContent, zoneFlags, inS, type Content } from './content.ts';
 import { DEFAULT_MESH, buildRibbon, wallTriangles, type MeshOptions } from './mesh.ts';
 import { TriSoup, weld, type WallQuad } from './soup.ts';
-import { clipJunctions, findJunctions, type Junction } from './clip.ts';
+import { clipJunctions, findJunctions, inFootprint, type Junction } from './clip.ts';
 import { RenderBuilder, groundToRender, startLineToRender, undersideToRender, wallsToRender, type RenderSlot, type ChunkInfo } from './render.ts';
 import { buildTerrainField, terrainToRender, type TerrainField } from './terrain.ts';
 import { GroundIndex, exclusions, placeProps, type PropSet } from './props.ts';
 import { bakeAi } from './aibake.ts';
 import { buildFeatures, jumpFacesToRender, killPlanesToRender } from './features.ts';
+import { areaFootprint, buildAreas, resolveAreas, type AreaReport, type AreaModel } from './area.ts';
+import { portalsToRender, railsMeta, railsToRender, resolveWarps, type WarpModel } from './railwarp.ts';
 import { validate, type Finding } from './validate.ts';
 import { previewSvg } from './preview.ts';
+import { respawnTables } from './respawn.ts';
+import { assertFinite } from './finite.ts';
+import { DEFAULT_AO, bakeAo, sceneBvh } from './ao.ts';
+import { buildLod1 } from './lod.ts';
+import { buildPvs } from './pvs.ts';
 
 export const COMPILER_VERSION = 'trackc/2.0';
 
-export interface VisSlotMeta { name: string; material: string; variant: string; chunks: { i0: number; n: number; bbox: number[]; chunk: number }[] }
+export interface VisSlotMeta {
+  name: string; material: string; variant: string; chunks: { i0: number; n: number; bbox: number[]; chunk: number }[];
+  /** v2: ranges into `s{j}.idx1` (LOD1, same vertices, ≤ 40% of the LOD0 triangles; n = 0 = not drawn at LOD1) */
+  lod1?: { i0: number; n: number; chunk: number }[];
+}
 export interface VisMeta {
   id: string; themeId: string; name: string;
   slots: VisSlotMeta[];
@@ -36,11 +47,18 @@ export interface VisMeta {
   chunks?: (ChunkInfo & { groups: { slot: number; i0: number; n: number }[]; tris: number })[];
   junctions?: { kind: string; gore: { x: number; y: number; z: number; fx: number; fy: number; fz: number } | null }[];
   killPlanes?: { id: string; y: number; surf: string; aabb: number[] }[];
+  portals?: { id: string; kind: 'entry' | 'exit'; x: number; y: number; z: number; fx: number; fy: number; fz: number; w: number; h: number }[];
+  areas?: { id: string; kind: string; y: number; surf: number; center: [number, number] | null; rIn: number; rOut: number; from: number; sweep: number; obstacles: unknown[] }[];
   minimapPaths?: { id: string; kind: string; array: string }[];
   materials?: string[];
+  /** F5: one record per baked hazard (same index as CtrkMeta.hazards); the pose comes from BakedTrack.hazardPose */
+  hazards?: { id: number; kind: string; name: string; prop: string; size: [number, number, number]; shape: string; group?: number }[];
+  /** PVS: `pvs` Uint8 array, one bitset (bit = chunk id) of `pvsBytes` bytes per `pvsStep` metres of sMain */
+  pvsStep?: number; pvsBytes?: number;
 }
 
-export interface BuildOptions { refLapTicks?: number; seed?: number; strict?: boolean; mesh?: Partial<MeshOptions>; terrain?: boolean; props?: boolean }
+export interface BuildOptions { refLapTicks?: number; seed?: number; strict?: boolean; mesh?: Partial<MeshOptions>; terrain?: boolean; props?: boolean; /** baked vertex AO into the .vis colours (the CLI turns it on; off by default so sim/test bakes stay fast) */ ao?: boolean;
+  /** PVS bitsets + V20 worst visible set (CLI on, off by default for the same reason) */ pvs?: boolean }
 
 export interface BuildResult {
   id: string;
@@ -58,7 +76,10 @@ export interface BuildResult {
   slots: RenderSlot[];
   /** @deprecated M1 name: the main path's geometry summary */
   geometry: { closed: boolean; length: number; samples: Sample[]; closure: TrackModel['closure']; prims: PathModel['prims'] };
+  areas: AreaModel[]; areaReports: AreaReport[]; warps: WarpModel[];
   timings: Record<string, number>;
+  /** V20: worst visible static set over the PVS samples (present when the PVS was baked) */
+  pvsWorst?: { draws: number; tris: number; s: number; bySlot: Record<string, number> };
 }
 
 const fnv = (bytes: Uint8Array): string => {
@@ -79,8 +100,10 @@ function forbiddenSpans(m: TrackModel, js: Junction[]): [number, number][] {
   for (const p of m.paths) if (p.map && p.map.host === 0) { const a = p.hostFrom; let b = p.hostTo; if (m.closed && b < a) b += L; out.push([a - 3, b + 3]); }
   for (const j of js) if (j.host === 0) out.push([j.hostS0, j.hostS1]);
   for (const s of m.paths[0]!.samples) if (s.warp) out.push([s.s - 1, s.s + 1]);
+  for (const w of warpsFor.get(m) ?? []) if (w.path === 0 && w.exitPath === 0) { const a = w.s; let b = w.exitS; if (m.closed && b < a) b += m.paths[0]!.length; out.push([a - 3, b + 3]); }
   return out;
 }
+const warpsFor = new WeakMap<TrackModel, WarpModel[]>();
 export function inSpans(m: TrackModel, s: number, spans: [number, number][]): boolean {
   return spans.some(([a, b]) => inS(m, 0, s, a, b));
 }
@@ -113,12 +136,20 @@ function pathArrays(p: PathModel, k: number, m: TrackModel): [string, TypedArray
     smp[o + SMP.TX] = s.tx; smp[o + SMP.TY] = s.ty; smp[o + SMP.TZ] = s.tz;
     smp[o + SMP.RX] = s.rx; smp[o + SMP.RY] = s.ry; smp[o + SMP.RZ] = s.rz;
     smp[o + SMP.UX] = s.ux; smp[o + SMP.UY] = s.uy; smp[o + SMP.UZ] = s.uz;
-    smp[o + SMP.S] = s.s; smp[o + SMP.WL] = s.w / 2 + s.shL; smp[o + SMP.WR] = s.w / 2 + s.shR;
+    smp[o + SMP.S] = s.s; smp[o + SMP.WL] = s.reachL ?? s.w / 2 + s.shL; smp[o + SMP.WR] = s.reachR ?? s.w / 2 + s.shR;
     smp[o + SMP.SMAIN] = s.sMain;
     flg[i] = s.flags;
     if (s.grav !== 1) anyGrav = true;
   });
-  const ai = bakeAi(S, p.closed, p.length / (n - 1));
+  // The AI bake reads plan headings from the tangent. On RMF spans (loops) the tangent goes vertical, its plan part
+  // vanishes and flips, and the bake saw a 4 m "hairpin" (vLim 9 m/s, drift, spin-out). There the road still leads
+  // along the plan direction perpendicular to the (horizontal) loop axis, so hand the bake that instead.
+  const aiS = S.map((s) => {
+    if (!s.rmf) return s;
+    const px = s.rz, pz = -s.rx, pl = Math.hypot(px, pz) || 1;
+    return { ...s, tx: px / pl, ty: 0, tz: pz / pl };
+  });
+  const ai = bakeAi(aiS, p.closed, p.length / (n - 1));
   const out: [string, TypedArray][] = [[`p${k}.smp`, smp], [`p${k}.flg`, flg], [`p${k}.ai`, Float32Array.from(ai)]];
   if (anyGrav) out.push([`p${k}.grav`, Float32Array.from(S.map((s) => s.grav))]);
   void m;
@@ -149,24 +180,25 @@ function pathMeta(m: TrackModel, p: PathModel): CtrkPathMeta {
   return meta;
 }
 
-function f32(a: ArrayLike<number>): TypedArray {
-  return Float32Array.from(a);
+/** u32 → u16 when every value fits (indices, triangle ids): the loader indexes either type the same way. */
+function narrow(a: Uint32Array, count: number): Uint32Array | Uint16Array { return count <= 65535 ? Uint16Array.from(a) : a; }
+
+/** Octahedral unit-normal encoding, 2 × i16 per normal (y is the pole, so upward normals stay most precise).
+ *  Stored as u16 = (c + 1)·32767.5 (the container has no i16). BakedTrack decodes with + − × ÷ and sqrt only, so every engine reads identical normals. */
+function octNormals(n: Float64Array): Uint16Array {
+  const out = new Uint16Array((n.length / 3) * 2);
+  for (let i = 0, j = 0; i < n.length; i += 3, j += 2) {
+    const x = n[i]!, y = n[i + 1]!, z = n[i + 2]!;
+    const l1 = Math.abs(x) + Math.abs(y) + Math.abs(z) || 1;
+    let u = x / l1, v = z / l1;
+    if (y < 0) { const u2 = (1 - Math.abs(v)) * (u >= 0 ? 1 : -1), v2 = (1 - Math.abs(u)) * (v >= 0 ? 1 : -1); u = u2; v = v2; }
+    out[j] = Math.round((Math.max(-1, Math.min(1, u)) + 1) * 32767.5); out[j + 1] = Math.round((Math.max(-1, Math.min(1, v)) + 1) * 32767.5);
+  }
+  return out;
 }
 
-function respawnTable(m: TrackModel, track: BakedTrack, p: PathModel): Uint8Array {
-  const out = new Uint8Array(p.samples.length);
-  const hit: GroundHit = { t: 0, x: 0, y: 0, z: 0, nx: 0, ny: 1, nz: 0, surf: 0, tri: 0, flags: 0 };
-  const cs: Contact[] = Array.from({ length: 4 }, () => ({ x: 0, y: 0, z: 0, nx: 0, ny: 0, nz: 0, depth: 0, flags: 0, tri: 0 }));
-  p.samples.forEach((s, i) => {
-    if (s.flags & (SFLAG.NO_GROUND | SFLAG.KILL | SFLAG.WARP | SFLAG.RAIL)) return;
-    if (!track.groundRay(s.x + s.ux, s.y + s.uy, s.z + s.uz, -s.ux, -s.uy, -s.uz, 2, hit)) return;
-    if (hit.flags & 4) return;
-    const r = Math.max(0.9, Math.min(3, s.w / 2 - 0.5));
-    if (track.sphereWalls(hit.x + s.ux * 0.6, hit.y + s.uy * 0.6, hit.z + s.uz * 0.6, r, cs, 4) > 0) return;
-    out[i] = 1;
-  });
-  void m;
-  return out;
+function f32(a: ArrayLike<number>): TypedArray {
+  return Float32Array.from(a);
 }
 
 // ------------------------------------------------------------------------------------------------ build
@@ -194,6 +226,11 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     for (const s of h.samples) if (inS(m, h.index, s.s, j.hostS0, j.hostS1)) s.flags |= SFLAG.BLEND;
     for (const s of b.samples) if (s.s >= j.branchS0 && s.s <= j.branchS1) s.flags |= SFLAG.BLEND;
   }
+  const warps = resolveWarps(m);
+  warpsFor.set(m, warps);
+  const areas = resolveAreas(m);
+  const ar = buildAreas(m, areas, ground, kerbs, walls);
+  walls = ar.walls;
   const feat = buildFeatures(m, c, rows, ground, walls);
   const wallSoup = new TriSoup();
   wallTriangles(walls, wallSoup);
@@ -244,9 +281,9 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
       if (z.camera !== undefined) o.camera = z.camera;
       return o;
     }).concat(c.killPlanes.map((k) => ({ kind: 'kill' as const, path: 0, s0: 0, s1: 0, u0: -1e3, u1: 1e3, belowY: k.y, ...(k.aabb ? { aabb: k.aabb } : {}) }))),
-    rails: [], warps: [],
+    rails: railsMeta(m), warps: warps.map(({ entryPose: _e, exitPose: _x, span: _s, line: _l, ...w }) => w),
     jumps: c.jumps.map((j) => ({ path: j.path, lipS: j.lipS, landS0: j.landS0, landS1: j.landS1, vMin: j.vMin, vMax: j.vMax, rampS: j.s0, lipDeg: j.lipDeg, gapLen: j.gapLen, drop: j.drop, lipH: j.lipH, landW: j.landW })),
-    hazards: [],
+    hazards: c.hazards,
     keyGates,
     refLapTicks: opts.refLapTicks ?? 0,
     hashCells: { cs: gh.cs, cy: gh.cy },
@@ -259,16 +296,18 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   const arrays: [string, TypedArray][] = [];
   m.paths.forEach((p, k) => arrays.push(...pathArrays(p, k, m)));
   arrays.push(
-    ['g.pos', f32(gPos)], ['g.nrm', f32(gW.nrm)], ['g.idx', gIdx], ['g.surf', gW.triSurf], ['g.flg', gW.triFlg],
-    ['g.hd', Float64Array.from([gh.ox, gh.oy, gh.oz, gh.nx, gh.ny, gh.nz])], ['g.hk', gh.keys], ['g.hs', gh.starts], ['g.ht', gh.tris],
-    ['w.pos', f32(wPos)], ['w.idx', wIdx], ['w.flg', wFlg],
-    ['w.hd', Float64Array.from([wh.ox, wh.oy, wh.oz, wh.nx, wh.ny, wh.nz])], ['w.hk', wh.keys], ['w.hs', wh.starts], ['w.ht', wh.tris],
+    ['g.pos', f32(gPos)], ['g.noct', octNormals(gW.nrm)], ['g.idx', narrow(gIdx, gPos.length / 3)], ['g.surf', gW.triSurf], ['g.flg', gW.triFlg],
+    ['g.hd', Float64Array.from([gh.ox, gh.oy, gh.oz, gh.nx, gh.ny, gh.nz])], ['g.hk', gh.keys], ['g.hs', gh.starts], ['g.ht', narrow(gh.tris, gIdx.length / 3)],
+    ['w.pos', f32(wPos)], ['w.idx', narrow(wIdx, wPos.length / 3)], ['w.flg', wFlg],
+    ['w.hd', Float64Array.from([wh.ox, wh.oy, wh.oz, wh.nx, wh.ny, wh.nz])], ['w.hk', wh.keys], ['w.hs', wh.starts], ['w.ht', narrow(wh.tris, wIdx.length / 3)],
   );
   // pass 1 → load → respawn tables → final bytes (the hash covers everything but itself)
   const pass1 = loadCtrk(toArrayBuffer(writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays)));
-  m.paths.forEach((p, k) => arrays.push([`p${k}.rok`, respawnTable(m, pass1, p)]));
+  const rc = { closed: m.closed, lapLength: m.lapLength, keyGates, jumps: meta.jumps, hazards: c.hazards };
+  m.paths.forEach((p, k) => { const t = respawnTables(pass1, p, rc); arrays.push([`p${k}.rok`, t.ok], [`p${k}.rto`, t.to]); });
   const pre = writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays);
   meta.hash = fnv(pre);
+  assertFinite('.ctrk', meta, arrays);
   const ctrk = writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays);
   const track = loadCtrk(toArrayBuffer(ctrk));
   tick('ctrk');
@@ -279,7 +318,12 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   const amp = Number(c.theme.hills ?? 6);
   const nf = (x: number, z: number): number => noise(x / 180, z / 180) * 0.7 + noise(x / 60, z / 60) * 0.3;
   const wantTerrain = opts.terrain !== false && c.theme.terrain !== 'none';
-  const tf: TerrainField | null = wantTerrain ? buildTerrainField(m, c, meta.bounds, nf, amp) : null;
+  const areaPts: { x: number; z: number; y: number }[] = [];
+  for (const a of areas) {
+    const [x0, z0, x1, z1] = [Math.min(...a.outer.map((q) => q[0])), Math.min(...a.outer.map((q) => q[1])), Math.max(...a.outer.map((q) => q[0])), Math.max(...a.outer.map((q) => q[1]))];
+    for (let x = x0; x <= x1; x += 4) for (let z = z0; z <= z1; z += 4) if (inFootprint(x, z, areaFootprint(a))) areaPts.push({ x, z, y: a.y });
+  }
+  const tf: TerrainField | null = wantTerrain ? buildTerrainField(m, c, meta.bounds, nf, amp, areaPts) : null;
   const ao = (): number => 1;
   const rb = new RenderBuilder();
   groundToRender(rb, m, c, ground, kerbs, ao);
@@ -287,36 +331,54 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   for (const p of m.paths) undersideToRender(rb, m, p, rows.get(p.index)!, (x, y, z) => (tf ? y - tf.height(x, z) : 0.6));
   startLineToRender(rb, m);
   jumpFacesToRender(rb, m, c);
+  railsToRender(rb, m, tf);
+  portalsToRender(rb, m, warps);
   killPlanesToRender(rb, c, meta.bounds);
   if (tf) terrainToRender(rb, tf, nf, ao);
   const slots = rb.finalise();
   tick('render');
+  const scene = opts.ao || opts.pvs ? sceneBvh(slots) : null;
+  const aoReport = opts.ao ? bakeAo(slots, DEFAULT_AO, scene!) : null;
+  tick('ao');
+  const lod1 = slots.map((sl) => buildLod1(sl));
+  tick('lod');
   const gi = new GroundIndex(ground);
-  const props: PropSet[] = opts.props === false ? [] : placeProps(m, c, seed, gi, tf, exclusions(m, c, junctions, []), junctions);
+  const props: PropSet[] = opts.props === false ? [] : placeProps(m, c, seed, gi, tf, exclusions(m, c, junctions, c.hazards.filter((h) => h.motion?.type !== 'lane')), junctions);
   tick('props');
 
   const lineSample = sampleAt(main, m.lineS);
-  const chunkGroups = rb.chunks.map((ch) => ({ ...ch, groups: [] as { slot: number; i0: number; n: number }[], tris: 0 }));
+  const chunkGroups = rb.chunks.map((ch) => ({ ...ch, groups: [] as { slot: number; i0: number; n: number }[], tris: 0, lod1Tris: 0 }));
   slots.forEach((sl, si) => { for (const cr of sl.chunks) { const g = chunkGroups[cr.chunk]!; g.groups.push({ slot: si, i0: cr.i0, n: cr.n }); g.tris += cr.n / 3; } });
+  lod1.forEach((l) => { for (const r of l.ranges) chunkGroups[r.chunk]!.lod1Tris += r.n / 3; });
+  const pvs = opts.pvs ? buildPvs(m, chunkGroups.filter((g) => g.groups.length), slots, scene!.bvh) : null;
+  tick('pvs');
   const visMeta: VisMeta = {
     id: ast.id, themeId: m.theme, name: m.name,
-    slots: slots.map((s) => ({ name: s.name, material: s.material, variant: s.variant, chunks: s.chunks.map((ch) => ({ i0: ch.i0, n: ch.n, bbox: ch.bbox, chunk: ch.chunk })) })),
+    slots: slots.map((s, j) => ({ name: s.name, material: s.material, variant: s.variant, chunks: s.chunks.map((ch) => ({ i0: ch.i0, n: ch.n, bbox: ch.bbox, chunk: ch.chunk })), lod1: lod1[j]!.ranges })),
     props: props.map((p) => ({ kind: p.kind, n: p.xf.length / 6 })),
     bounds: meta.bounds,
     line: { x: lineSample.x, y: lineSample.y, z: lineSample.z, fx: lineSample.tx, fy: lineSample.ty, fz: lineSample.tz, w: lineSample.w },
     theme: c.theme,
     lapLength: m.lapLength,
     visVersion: 2,
-    chunks: chunkGroups.filter((g) => g.groups.length),
+    chunks: chunkGroups.filter((g) => g.groups.length).map(({ lod1Tris: _l, ...g }) => g),
+    ...(pvs ? { pvsStep: pvs.step, pvsBytes: pvs.bytes } : {}),
     junctions: junctions.map((j) => ({ kind: j.kind, gore: j.gore })),
     minimapPaths: m.paths.filter((p) => p.kind !== 'main').map((p) => ({ id: p.id, kind: p.kind, array: `minimap.${p.id}` })),
+    portals: warps.flatMap((w) => [
+      { id: w.id, kind: 'entry' as const, x: w.entryPose[0], y: w.entryPose[1], z: w.entryPose[2], fx: w.entryPose[3], fy: w.entryPose[4], fz: w.entryPose[5], w: w.u1 - w.u0, h: 5 },
+      { id: w.id, kind: 'exit' as const, x: w.exitPose[0], y: w.exitPose[1], z: w.exitPose[2], fx: w.exitPose[3], fy: w.exitPose[4], fz: w.exitPose[5], w: 6, h: 5 }]),
+    areas: areas.map((a) => ({ id: a.id, kind: a.kind, y: a.y, surf: a.surf, center: a.center, rIn: a.rIn, rOut: a.rOut, from: a.from, sweep: a.sweep, obstacles: a.obstacles })),
+    hazards: c.hazards.map((h, k) => ({ id: h.id, kind: h.kind, name: h.name ?? `${h.kind}${h.id}`, prop: c.hazardProps[k]!, size: h.size, shape: h.shape, ...(h.group !== undefined ? { group: h.group } : {}) })),
     killPlanes: c.killPlanes.map((k) => ({ id: k.id, y: k.y, surf: k.surf, aabb: k.aabb ?? [meta.bounds[0]! - 120, meta.bounds[2]! - 120, meta.bounds[3]! + 120, meta.bounds[5]! + 120] })),
     materials: [...new Set(slots.map((s) => s.material))],
   };
   const visArrays: [string, TypedArray][] = [];
   slots.forEach((s, j) => {
     visArrays.push([`s${j}.pos`, f32(s.pos)], [`s${j}.nrm`, f32(s.nrm)], [`s${j}.uv`, f32(s.uv)], [`s${j}.col`, f32(s.col)], [`s${j}.idx`, Uint32Array.from(s.idx)]);
+    visArrays.push([`s${j}.idx1`, Uint32Array.from(lod1[j]!.idx1)]);
   });
+  if (pvs) visArrays.push(['pvs', pvs.bits]);
   props.forEach((p, j) => visArrays.push([`p${j}.xf`, f32(p.xf)]));
   const mm: number[] = [];
   for (let i = 0; i < main.samples.length; i += 4) mm.push(main.samples[i]!.x, main.samples[i]!.z);
@@ -327,6 +389,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     const l = p.samples[p.samples.length - 1]!; q.push(l.x, l.z);
     visArrays.push([`minimap.${p.id}`, f32(q)]);
   }
+  assertFinite('.vis', visMeta, visArrays);
   const vis = writeContainer(CVIS_MAGIC, CVIS_VERSION, visMeta, visArrays);
   tick('vis');
 
@@ -335,10 +398,14 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     boxes: c.boxes.length, ctrkBytes: ctrk.length, visBytes: vis.length, renderTris: slots.reduce((a, s) => a + s.idx.length / 3, 0),
     props: props.reduce((a, p) => a + p.xf.length / 6, 0), minR: minRadius(m, 0), minW: Math.min(...main.samples.map((s) => s.w)),
     slots: slots.length, chunks: visMeta.chunks!.length, clippedTris: jr.touched, killTris: feat.kills, jumpFaces: feat.faces,
+    lod1Ratio: Math.round((lod1.reduce((a, l) => a + l.idx1.length, 0) / Math.max(1, slots.reduce((a, sl) => a + sl.idx.length, 0))) * 1000) / 1000,
+    pvsMeanVisible: pvs ? Math.round(pvs.meanVisible * 10) / 10 : 0, pvsWorstDraws: pvs?.worst.draws ?? 0, pvsWorstTris: pvs?.worst.tris ?? 0,
+    aoVertices: aoReport?.vertices ?? 0, aoRays: aoReport?.rays ?? 0, aoMean: aoReport ? Math.round(aoReport.mean * 1000) / 1000 : 1,
   };
   const result: BuildResult = {
-    id: ast.id, ctrk, vis, meta, visMeta, findings: [], stats, previewSvg: '', track, model: m, content: c, junctions, slots,
+    id: ast.id, ctrk, vis, meta, visMeta, findings: [], stats, previewSvg: '', track, model: m, content: c, junctions, slots, areas, areaReports: ar.reports, warps,
     geometry: { closed: m.closed, length: main.length, samples: main.samples, closure: m.closure, prims: main.prims }, timings: T,
+    ...(pvs ? { pvsWorst: { ...pvs.worst, bySlot: pvs.worstBySlot } } : {}),
   };
   result.findings = validate(result, { strict: opts.strict ?? ast.signature.length > 0 });
   tick('validate');

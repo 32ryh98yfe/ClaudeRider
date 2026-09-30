@@ -9,8 +9,8 @@ export interface TerrainField { height(x: number, z: number): number; cell: numb
 
 interface Pt { x: number; z: number; y: number; half: number; drop: boolean }
 
-export function buildTerrainField(m: TrackModel, c: Content, bounds: number[], noise: (x: number, z: number) => number, amp: number, cell = 8, margin = 180): TerrainField {
-  const pts: Pt[] = [];
+export function buildTerrainField(m: TrackModel, c: Content, bounds: number[], noise: (x: number, z: number) => number, amp: number, extra: { x: number; z: number; y: number }[] = [], cell = 8, margin = 180): TerrainField {
+  const pts: Pt[] = extra.map((e) => ({ x: e.x, z: e.z, y: e.y, half: 3, drop: false }));
   const addPath = (p: PathModel): void => {
     for (let i = 0; i < p.samples.length; i += 1) {
       const s = p.samples[i]!;
@@ -47,7 +47,9 @@ export function buildTerrainField(m: TrackModel, c: Content, bounds: number[], n
     }
     const natural = baseY - 1.5 + noise(x, z) * amp * Math.min(1, Math.max(0, (best - bestHalf - 10) / 60));
     let y = natural;
-    if (Number.isFinite(best)) {
+    // only near-track points blend towards the decks: beyond 60 m `near` is empty, yRef would stay Infinity and
+    // Infinity·0 made the vertex NaN
+    if (Number.isFinite(best) && best < 60) {
       // reference height: the lowest deck about as near as the nearest one (stacked decks → the lower one)
       let yRef = Infinity, drop = false;
       for (let k = 0; k < near.length; k += 2) {
@@ -71,7 +73,8 @@ export function buildTerrainField(m: TrackModel, c: Content, bounds: number[], n
   return { height, cell, x0, z0, nx, nz, H };
 }
 
-/** Emits terrain triangles into 12×12-cell tiles (one chunk each). */
+/** Emits terrain triangles into 24×24-cell tiles (≈ 190 m, one chunk and one draw each; smaller tiles blew the Low
+ *  tier draw budget on open vistas, V20). */
 export function terrainToRender(rb: RenderBuilder, tf: TerrainField, noise: (x: number, z: number) => number, ao: (x: number, y: number, z: number) => number): void {
   const { nx, nz, cell, x0, z0, H } = tf;
   const sl = rb.slot('terrain', 'terrain');
@@ -83,7 +86,7 @@ export function terrainToRender(rb: RenderBuilder, tf: TerrainField, noise: (x: 
     const shade = (0.85 + 0.15 * noise(x * 3.1, z * 3.1)) * ao(x, y, z);
     return [x, y, z, n[0]! / l, n[1]! / l, n[2]! / l, x / 16, z / 16, shade, shade, shade];
   };
-  const T = 12;
+  const T = 24;
   for (let cz = 0; cz < nz; cz += T) for (let cx = 0; cx < nx; cx += T) {
     const chunk = rb.tileChunk(cx / T, cz / T);
     for (let iz = cz; iz < Math.min(nz, cz + T); iz++) for (let ix = cx; ix < Math.min(nx, cx + T); ix++) {

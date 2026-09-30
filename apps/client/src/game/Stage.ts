@@ -1,9 +1,15 @@
 // Owns the single WebGPURenderer + canvas; switches between the lobby Showcase and a race Session.
+// Also: renderer output settings (Neutral tone mapping, soft PCF shadows), the tier → audio panning choice,
+// and the ?debug overlay with live budget counters.
 import * as THREE from 'three/webgpu';
 import { signal } from '@preact/signals';
 import { createRenderer, type Backend } from '../render/engine/createRenderer.ts';
 import { Showcase } from '../render/showcase/Showcase.ts';
-import { pickTier, tierSettings, type QualityTier } from '../render/quality.ts';
+import { navigate } from '../ui/store/route.ts';
+import { isWarming, MaterialReveal } from '../render/engine/warm.ts';
+import { pickTier, tierSettings, withUserPrefs, pixelRatioFor, FrameCap, type QualityTier, type TierSettings } from '../render/quality.ts';
+import { MaterialLibrary } from '../render/materials/library.ts';
+import { Audio } from '../audio/engine.ts';
 import { save } from '../meta/save.ts';
 
 export const stageInfo = signal<{ backend: Backend | '…'; tier: QualityTier; reason: string; fps: number }>({ backend: '…', tier: 'medium', reason: '', fps: 0 });
@@ -12,6 +18,10 @@ class StageImpl {
   renderer: THREE.WebGPURenderer | null = null;
   tier: QualityTier = 'medium';
   showcase: Showcase | null = null;
+  private reveal: MaterialReveal | null = null;
+  private ts: TierSettings | null = null;
+  /** Settings → frame cap, shared by the lobby loop and the race renderer. */
+  readonly cap = new FrameCap();
   private mode: 'none' | 'showcase' | 'race' = 'none';
   private raf = 0;
   private last = 0;
@@ -23,17 +33,33 @@ class StageImpl {
     const info = await createRenderer(canvas);
     const r = info.renderer;
     this.tier = pickTier(save.get().settings.quality, info.backend);
-    const ts = tierSettings(this.tier);
-    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, ts.dprCap));
+    const st = save.get().settings;
+    const ts = withUserPrefs(tierSettings(this.tier), st);
+    this.ts = ts;
+    r.setPixelRatio(pixelRatioFor(ts, st));
+    this.cap.cap = st.fpsCap ?? 60;
     r.setSize(window.innerWidth, window.innerHeight, false);
     r.toneMapping = THREE.NeutralToneMapping;
     r.toneMappingExposure = 1.0;
     r.shadowMap.enabled = ts.shadowSize > 0;
-    r.shadowMap.type = THREE.PCFShadowMap;
+    r.shadowMap.type = this.tier === 'low' || this.tier === 'medium' ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
     this.renderer = r;
+    MaterialLibrary.configure(this.tier);
+    Audio.hrtf = this.tier !== 'low';
     stageInfo.value = { backend: info.backend, tier: this.tier, reason: info.reason, fps: 0 };
     (window as unknown as { __cr: Record<string, unknown> }).__cr = { ...(window as unknown as { __cr?: Record<string, unknown> }).__cr, backend: info.backend, tier: this.tier };
     window.addEventListener('resize', () => this.resize());
+    // live Settings: render scale and frame cap apply at once; shadows / bloom / particles on the next scene build
+    save.subscribe((sv) => {
+      if (!this.renderer || !this.ts) return;
+      const pr = pixelRatioFor(this.ts, sv.settings);
+      if (Math.abs(pr - this.renderer.getPixelRatio()) > 1e-3) { this.renderer.setPixelRatio(pr); this.resize(); }
+      this.cap.cap = sv.settings.fpsCap ?? 60;
+    });
+    const q = new URLSearchParams(location.search);
+    if (q.has('debug')) void import('../dev/overlay.ts').then((m) => m.installOverlay());
+    // dev shortcut for visual checks: ?race=<trackId>[&mode=item&tier=pro] jumps straight into a race
+    if (q.has('race')) setTimeout(() => { navigate('loading', { track: q.get('race')!, mode: q.get('mode') ?? 'speed', tier: q.get('tier') ?? 'racer' }); }, 300);
   }
 
   resize(): void {
@@ -45,9 +71,13 @@ class StageImpl {
 
   showShowcase(characterId: string, kartBodyId: string): void {
     if (!this.renderer) return;
-    if (!this.showcase) this.showcase = new Showcase(this.renderer);
+    const first = !this.showcase;
+    if (!this.showcase) this.showcase = new Showcase(this.renderer, { env: this.tier !== 'low' });
     const lv = save.get().profile.livery;
     this.showcase.setLoadout(characterId, kartBodyId, lv);
+    // Low (software GL in CI): every program link blocks for up to seconds, and the first showcase frame needs ~30 of
+    // them. Reveal the scene one material per frame so the title and menus keep handling input while it fills in.
+    if (first && this.tier === 'low') this.reveal = new MaterialReveal(this.showcase.scene);
     if (this.mode !== 'showcase') {
       this.mode = 'showcase';
       cancelAnimationFrame(this.raf);
@@ -55,15 +85,19 @@ class StageImpl {
       const loop = (now: number): void => {
         if (this.mode !== 'showcase') return;
         this.raf = requestAnimationFrame(loop);
+        if (isWarming()) { this.last = now; return; }
+        if (!this.cap.ready(now)) return;
         const dt = Math.min(0.1, (now - this.last) / 1000); this.last = now;
         this.fps(dt);
+        this.renderer!.info.reset();
         this.showcase!.frame(dt);
+        if (this.reveal && this.reveal.step(1)) this.reveal = null;
       };
       this.raf = requestAnimationFrame(loop);
     }
   }
 
-  enterRace(): void { this.mode = 'race'; cancelAnimationFrame(this.raf); }
+  enterRace(): void { this.reveal?.finish(); this.reveal = null; this.mode = 'race'; cancelAnimationFrame(this.raf); }
   leaveRace(): void { this.mode = 'none'; }
 
   fps(dt: number): void {
