@@ -48,22 +48,26 @@ const recMs = performance.now() - tr0, ticks = log.length / 8, ref = hashWorld(w
 // 2. replay step() only
 const reps = Number(repsArg);
 const frames: InputFrame[] = cfg.slots.map(() => makeInput());
-let best = Infinity;
+let best = Infinity, bestCpu = Infinity;
 for (let r = 0; r < reps; r++) {
   const w = createWorld(cfg, T, content);
   const ctx = makeContext({ track: T, cfg, content, role: 'authority', events: NULL_SINK });
+  const c0 = process.cpuUsage();
   const t0 = performance.now();
   for (let t = 0; t < ticks; t++) {
     for (let i = 0; i < 8; i++) unpackInput(log[t * 8 + i]!, frames[i]!);
     step(w, frames, ctx);
   }
   const ms = performance.now() - t0;
+  const cu = process.cpuUsage(c0);
   best = Math.min(best, ms);
+  // CPU time of this process: less sensitive than wall time when other jobs share the cores
+  bestCpu = Math.min(bestCpu, (cu.user + cu.system) / 1000);
   if (hashWorld(w) !== ref) throw new Error('replay diverged from the recorded race');
 }
 const perKartTick = (best * 1000) / (ticks * 8);
 console.log(`${id} ${mode}: ${ticks} ticks, 8 karts`);
-console.log(`  step():      ${perKartTick.toFixed(2)} µs per kart-tick (best of ${reps}; budget 6.00)`);
+console.log(`  step():      ${perKartTick.toFixed(2)} µs per kart-tick (best of ${reps}; budget 6.00); CPU time ${((bestCpu * 1000) / (ticks * 8)).toFixed(2)} µs`);
 console.log(`  AI decide(): ${((tAi * 1000) / (ticks * 8)).toFixed(2)} µs per kart-tick (budget 5.00)`);
 console.log(`  record run:  ${recMs.toFixed(0)} ms incl. AI; replay hash ${ref.toString(16)} ✓`);
 if (process.env.BENCH_ASSERT && perKartTick > 6) { console.error('step() over budget'); process.exit(1); }
