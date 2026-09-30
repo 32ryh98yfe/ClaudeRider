@@ -121,6 +121,44 @@ BRANCH alley from=@riverside to=@riverside+113.4 kind=shortcut aiMin=0.45 w=8 wa
 2–4 per lap (V10 warns otherwise), ≥ 15 m from the apex of an R < 30 corner, not in landing zones, and ≥ 89 m of clear
 road straight ahead (2 s at 44.4 m/s) — put them early on long straights.
 
+## 6. F2 recipes
+### Jump with a real gap
+```
+S 40                                                   # flat run-up (≥ 30 m, no bank)
+J ramp=10@8 gap=10 drop=2 land=45 wland=18 vmin=22 vmax=46
+S 30                                                   # the landing continues straight
+```
+- The J is one straight primitive of `ramp + gap + land` metres. The ramp is a smooth kicker from the approach level
+  up to the lip: lip height = `ramp·tan(lip)/2`, surface angle at the lip = `lip`°.
+- **`drop` is the landing's height below the approach road**; the J's net elevation change is `−drop` (count it in
+  your Σdy = 0 balance). A kart therefore falls `lipH + drop` from the lip to the landing.
+- The gap has no ground and no walls. By default a kill floor sits 5 m below the lower of lip and landing
+  (`floor=none` removes it — only for gaps over other track). The landing's front edge is a solid face (a kart that
+  falls short hits a wall, not the road top). `wland=` widens the landing.
+- **V11** checks every speed in [vmin, vmax] (G = 28 m/s²): the landing point must fall in
+  `[gap + 2, gap + land − 5]` past the lip; landing ≥ 40 m, straight, ±10% grade. Tune `vmin` to the slowest
+  realistic approach (after the preceding corner) and lengthen `land` for fast approaches.
+  Worked numbers: lip 8°, lipH 0.70, drop 2 → 12.2 m at 22 m/s, 33 m at 46 m/s.
+- Tutorial hop / mushroom bounce without a gap: `PAD at=… kind=jump` (the sim launches karts on `jump_pad`).
+
+### Open ledges and kill planes
+```
+S 200 wallR=none shoulderR=0 kill=lava      # open right edge; falling off = respawn
+C R40 90 L wallR=barrier:1.0 shoulderR=2    # put the wall back where the ledge ends
+KILL lava belowY=-6 aabb=(-200,-400 .. 500,120)
+```
+- `wall=none` (per side: `wallL=none`) leaves the edge open. Add `kill=<id>` on the segment (one-shot) or
+  `:ledgeKill` on the wall spec (`wallR=none::ledgeKill`) so karts that fall off land on a kill strip 28 m wide below
+  the edge (at the KILL plane `<id>` if one is declared lower, else 4 m below the edge).
+- `KILL <id> belowY=<y> [aabb=(x0,z0 .. x1,z1)] [surf=lava|water|void]` is a global kill plane: collision strips run
+  under every path that stands > 2 m above it, and the renderer draws the lava/water/void plane over the aabb.
+- BRANCH lines accept `kill=<id>` for the whole branch (risky ledge shortcuts).
+- The terrain drops away beside open kill ledges and under jump gaps automatically.
+
+### Shoulders
+`shoulders=3:grass` (both), `shoulderL=4:sand`, `shoulderR=0`. Shoulders are drivable (grass ×0.60 top speed, sand
+×0.92 …, `10-sim-spec.md` §13.1), blend over `blend`, and the wall stands at their outer edge.
+
 ## 9. Validators and common errors
 Severity: structural rules are always errors. **V5 V6 V9 V10 V13 V14 V19 V20 are errors only in strict mode** (tracks
 with `@signature`, or `--strict`); M1-era tracks see them as warnings.
@@ -143,6 +181,8 @@ with `@signature`, or `--strict`); M1-era tracks see them as warnings.
 | V9 `item rows only … apart` / `first item row …` | Rows ≥ 150 m apart, first ≥ 60 m after the line, ≈ L/250 ± 1 per lap. |
 | V9 `local radius … within ±10 m` | Move rows onto straights or radii ≥ 60 m (plazas ≥ 24 m wide are exempt). |
 | V10 `wall … straight ahead of the boost pad` | Move the pad earlier on the straight. |
+| V11 `at N m/s the kart lands … past the lip` | Shorten the gap, raise `lip`, add `drop`, lengthen `land`, or narrow [vmin, vmax]. |
+| V11 `landing zone … < 40 m` | `land=` ≥ 40. |
 | V14 `straight ratio …` | Adjust straights vs corners toward the D band (R ≥ 150 counts as straight). |
 | V15 `samples have no ground` | Something removed the road: check `warp=`, jump spans, area clipping. |
 | V18 `rejoin tangent error` | The branch's turns must match the host heading change between from and to. |
