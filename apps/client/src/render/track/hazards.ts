@@ -19,7 +19,7 @@ export interface HazardVisMeta { id: number; kind: string; name: string; prop: s
 
 interface Haz {
   meta: HazardVisMeta; root: THREE.Group; body: THREE.Object3D; glow: THREE.Mesh | null; ring: THREE.Mesh;
-  arm: THREE.Mesh | null; armLen: number; flat: boolean; capsule: boolean; wasActive: boolean;
+  arm: THREE.Mesh | null; armLen: number; flat: boolean; capsule: boolean; wasActive: boolean; wasTele: boolean; lastPhase: number; hornT: number;
 }
 
 const STEAM: SpawnOpts = { shape: 5, additive: false, size0: 0.8, size1: 2.6, gravity: 2.5, drag: 1.2, alpha: 0.5 };
@@ -74,6 +74,8 @@ export class TrackHazards {
   private f = new THREE.Vector3(); private u = new THREE.Vector3(); private s = new THREE.Vector3(); private p = new THREE.Vector3();
   private m = new THREE.Matrix4();
   private t = 0;
+  /** Audio cue hook: (sfx id, world position). RaceRenderer forwards it to the spatial mixer. */
+  onCue: ((id: string, at: THREE.Vector3) => void) | null = null;
 
   constructor(metas: readonly HazardVisMeta[], track: BakedTrack, kit: ThemeKit) {
     this.track = track;
@@ -139,7 +141,7 @@ export class TrackHazards {
         root.add(arm);
       }
       this.root.add(root);
-      this.list.push({ meta, root, body, glow, ring, arm, armLen, flat, capsule, wasActive: false });
+      this.list.push({ meta, root, body, glow, ring, arm, armLen, flat, capsule, wasActive: false, wasTele: false, lastPhase: -1, hornT: 2 + meta.id * 1.7 });
     }
   }
 
@@ -193,8 +195,25 @@ export class TrackHazards {
         const m = sparks.burst(22, 6);
         for (let q = 0; q < m; q++) sparks.spawn(p.x + s.x * (Math.random() - 0.5) * h.meta.size[1], p.y + 0.2, p.z + s.z * (Math.random() - 0.5) * h.meta.size[1], (Math.random() - 0.5) * 6, 2 + Math.random() * 3, (Math.random() - 0.5) * 6, 0.35, 1, 0.75, 0.4, SPARK);
       }
-      h.wasActive = active;
+      this.cues(h, tele, active, A.phase ?? 0, dt, p);
+      h.wasActive = active; h.wasTele = tele;
     }
+  }
+
+  /** Sound cues on state edges: telegraph pings, geyser roar, press slam, train horn, swinger whoosh, traffic horns. */
+  private cues(h: Haz, tele: boolean, active: boolean, phase: number, dt: number, at: THREE.Vector3): void {
+    const cue = this.onCue;
+    if (!cue) { h.lastPhase = phase; return; }
+    const k = h.meta.kind;
+    if (tele && !h.wasTele) cue(k === 'train' ? 'haz.train' : 'haz.telegraph', at);
+    if (active && !h.wasActive && (k === 'geyser' || k === 'press')) cue(k === 'geyser' ? 'haz.geyser' : 'haz.press', at);
+    if (k === 'swinger' && h.lastPhase >= 0) {
+      // fastest at phase 0 and 0.5 for a pendulum (once per turn for a flat sweeper)
+      const wrapped = phase < h.lastPhase;
+      if (wrapped || (!h.flat && h.lastPhase < 0.5 && phase >= 0.5)) cue('haz.swinger', at);
+    }
+    if (k === 'traffic') { h.hornT -= dt; if (h.hornT <= 0) { h.hornT = 6 + ((h.meta.id * 7919) % 50) / 10; cue('haz.traffic_horn', at); } }
+    h.lastPhase = phase;
   }
 
   dispose(): void { this.root.removeFromParent(); }

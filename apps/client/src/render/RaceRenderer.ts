@@ -28,7 +28,8 @@ import { AmbientFx } from './vfx/ambient.ts';
 import { Headlights } from './vfx/headlights.ts';
 import { setParticleClock, particleClock, setParticleFog } from './vfx/gpuParticles.ts';
 import { airborneLift } from '@cr/sim/items/public.ts';
-import { setListener } from '../audio/listener.ts';
+import { setListener, listenerDist } from '../audio/listener.ts';
+import { Audio } from '../audio/engine.ts';
 import { raceAudioPrepare } from '../audio/race.ts';
 import { save, type SettingsV1 } from '../meta/save.ts';
 
@@ -111,6 +112,8 @@ export class RaceRenderer {
     this.scene.add(this.view.root);
     if (meta.hazards?.length && this.track.hazards.length) {
       this.hazards = new TrackHazards(meta.hazards, this.track, this.kit);
+      // hazard sounds only near the listener (the mixer pans and attenuates; far cues would waste voices)
+      this.hazards.onCue = (id, at) => { if (listenerDist(at) < 90) Audio.sfx(id, { pos: at }); };
       this.scene.add(this.hazards.root);
     }
     const line = this.view.meta.line;
