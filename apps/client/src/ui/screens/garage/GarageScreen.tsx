@@ -159,7 +159,7 @@ export function GarageScreen() {
   }
 
   return (
-    <div class="screen garage fade-in">
+    <div class="screen garage fade-in" data-testid="garage">
       <div class="scrim-top" /><div class="scrim-left" />
       <ScreenHead title={t('garage.title')} sub={t('garage.sub')} onBack={() => navigate('lobby')} right={<SparksChip />} />
       <section class="gar-left card" aria-label={t('garage.title')}>

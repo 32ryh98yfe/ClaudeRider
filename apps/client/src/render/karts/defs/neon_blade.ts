@@ -10,7 +10,7 @@ export default defineKart({
   archetype: 'speed',
   dims: { length: 2.0, width: 1.2, height: 0.5, wheelR: 0.25 },
   livery: { primary: '#1C1F26', secondary: '#FF3EA5', pattern: 6, number: 0 },
-  seat: [0, 0.56, -0.12],
+  seat: [0, 0.66, -0.12],
   build(k) {
     const glowPaint = { rough: 0.25, metal: 0.3, glow: 1.4, coat: 1 };
     // faceted wedge body (the livery pattern glows via surf.glow; the dark base stays dark)
@@ -26,7 +26,8 @@ export default defineKart({
     for (const s of [1, -1]) k.add(sideProfile(k, [[-0.45, 0.46], [-0.8, 0.88], [-0.94, 0.9], [-0.9, 0.46]], 0.04, 0.01).rotateZ(s * 0.18).translate(s * 0.28, 0, 0), { color: 'paint', surf: glowPaint });
     // cockpit + seat
     k.add(k.rb(0.5, 0.05, 0.5, 0.02).translate(0, 0.44, -0.1), { color: 'dark', surf: 'plastic' });
-    k.add(k.rb(0.46, 0.3, 0.1, 0.03).rotateX(-0.25).translate(0, 0.66, -0.42), { color: 'dark', surf: 'matte' });
+    k.add(k.rb(0.46, 0.1, 0.4, 0.03).translate(0, 0.5, -0.12), { color: 'dark', surf: 'matte' });
+    k.add(k.rb(0.46, 0.14, 0.1, 0.03).rotateX(-0.25).translate(0, 0.55, -0.4), { color: 'dark', surf: 'matte' });
     // splitter + diffuser
     k.add(planPlate(k, [[-0.56, 0.86], [0.56, 0.86], [0.46, 1.02], [-0.46, 1.02]], 0.08, 0.11), { color: 'dark', surf: 'plastic' });
     // underglow (emissive decal quad, blooms)

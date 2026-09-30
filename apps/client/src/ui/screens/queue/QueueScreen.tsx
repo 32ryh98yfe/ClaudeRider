@@ -45,7 +45,7 @@ export function QueueScreen() {
   const [mode, setMode] = useState<ModeId>((params['mode'] as ModeId) || raceSetup().mode);
   const [teams, setTeams] = useState<TeamFormat>((params['teams'] as TeamFormat) || 'solo');
   const conn = lobby.conn.value, q = lobby.queue.value, err = lobby.error.value;
-  const leave = (): void => { if (lobby.queue.value && !mockLobby.value) lobbyActions.cancelQuick(); navigate('lobby'); };
+  const leave = (): void => { if (lobby.queue.value && !mockLobby.value) lobbyActions.cancelQuick(); lobby.queue.value = null; navigate('lobby'); };
   useBack(leave);
   const start = (): void => {
     if (mockLobby.value) return;
@@ -58,13 +58,14 @@ export function QueueScreen() {
     void loadTrackIndex();
     if (Stage.showcase) Stage.showcase.offsetX = 0;
     start();
-    return () => { if (lobby.queue.value && !mockLobby.value) lobbyActions.cancelQuick(); };
+    // leaving for the race keeps the queue (raceStart clears it); leaving anywhere else cancels the search
+    return () => { if (lobby.queue.value && !mockLobby.value && route.value.screen !== 'loading') { lobbyActions.cancelQuick(); lobby.queue.value = null; } };
   }, []);
 
   let body: preact.JSX.Element;
   if (conn === 'offline' || (err && err !== 'offline' && !q) || (err === 'offline' && !mockLobby.value)) {
     body = (
-      <section class="q-card card q-offline" aria-live="polite">
+      <section class="q-card card q-offline" aria-live="polite" data-testid="queue-offline">
         <div class="q-offline-ico"><Icon name="signal" size={34} /><i /></div>
         <h2>{t('lobby.queue.offlineTitle')}</h2>
         <p>{err && err !== 'offline' ? t(errorKey(err)) : t('lobby.queue.offlineBody')}</p>

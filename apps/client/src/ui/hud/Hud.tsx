@@ -41,10 +41,11 @@ function Standings() {
   const item = hud.itemMode.value;
   return (
     <ol class={`hud-standings ${full ? 'full' : ''}`} aria-label={t('hud.standings')}>
-      {rows.map((r) => {
+      {rows.map((r, i) => {
         const info = slotInfo[r.slot];
+        // position by list order, not by rank value: shared or stale ranks must never leave a gap or stack two rows
         return (
-          <li key={r.slot} class={`${r.me ? 'me' : ''} ${r.retired ? 'retired' : ''} ${r.finished ? 'fin' : ''}`} style={{ transform: `translateY(calc(${r.rank - 1} * (100% + 2px)))` }}>
+          <li key={r.slot} class={`${r.me ? 'me' : ''} ${r.retired ? 'retired' : ''} ${r.finished ? 'fin' : ''}`} style={{ transform: `translateY(calc(${i} * (100% + 2px)))` }}>
             <span class="num st-pos">{r.rank}</span>
             {info ? <Portrait id={info.characterId} size={22} class="st-ico" /> : null}
             {hud.teamMode.value ? <i class={`st-team t${r.team % 4}`} /> : null}

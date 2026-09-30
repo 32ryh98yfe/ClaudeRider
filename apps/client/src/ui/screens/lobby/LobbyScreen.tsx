@@ -52,7 +52,7 @@ export function LobbyScreen() {
   const next = nextUnlock(lp.level);
   const online = lobby.conn.value === 'online';
   return (
-    <div class="screen lobby fade-in">
+    <div class="screen lobby fade-in" data-testid="lobby">
       <div class="scrim-top" /><div class="scrim-bottom" /><div class="scrim-right" />
       <header class="lobby-top">
         <Logo size={0.42} />
@@ -61,8 +61,8 @@ export function LobbyScreen() {
         <div class="grow" />
         <span class={`conn-pill ${online ? 'on' : ''}`}><i />{online ? t('lobby.online') : t('lobby.offline')}</span>
         <button class="btn ghost icon" type="button" aria-label={t('lobby.fullscreen')} aria-pressed={fullscreen.value} onClick={go(toggleFullscreen)}><Icon name="fullscreen" /></button>
-        <button class="btn ghost small lang-btn" type="button" aria-label={t('lobby.language')} onClick={go(() => setLocale(locale.value === 'ko' ? 'en' : 'ko'))}><Icon name="globe" size={16} />{locale.value === 'ko' ? 'EN' : '한국어'}</button>
-        <button class="btn ghost icon" type="button" aria-label={t('lobby.settings')} onClick={go(() => navigate('settings', { from: 'lobby' }))}><Icon name="gear" /></button>
+        <button class="btn ghost small lang-btn" type="button" data-testid="lang-toggle" aria-label={t('lobby.language')} onClick={go(() => setLocale(locale.value === 'ko' ? 'en' : 'ko'))}><Icon name="globe" size={16} />{locale.value === 'ko' ? 'EN' : '한국어'}</button>
+        <button class="btn ghost icon" type="button" data-testid="open-settings" aria-label={t('lobby.settings')} onClick={go(() => navigate('settings', { from: 'lobby' }))}><Icon name="gear" /></button>
       </header>
 
       <aside class="lobby-left stagger">
@@ -109,7 +109,7 @@ export function LobbyScreen() {
                 <span class="badge ai">AI · {t(`common.tier.${setup.tier}`)}</span>
               </div>
             </div>
-            <button class="btn small hero-change" type="button" onClick={go(() => navigate('modeSelect'))}>{t('lobby.changeSetup')}<Icon name="next" size={16} /></button>
+            <button class="btn small hero-change" type="button" data-testid="change-setup" onClick={go(() => navigate('modeSelect'))}>{t('lobby.changeSetup')}<Icon name="next" size={16} /></button>
           </div>
         </section>
 
@@ -118,16 +118,16 @@ export function LobbyScreen() {
             <Icon name="play" size={22} />
             <span class="cta-text"><span class="display cta-title">{t('lobby.quickRace')}</span><small>{t('lobby.quickRaceDesc')}</small></span>
           </button>
-          <button class="btn dark big cta-match" type="button" onClick={go(() => navigate('queue', { mode: setup.mode, teams: 'solo' }))}>
+          <button class="btn dark big cta-match" type="button" data-testid="quick-match" onClick={go(() => navigate('queue', { mode: setup.mode, teams: 'solo' }))}>
             <Icon name="users" size={22} />
             <span class="cta-text"><span class="display cta-title">{t('lobby.quickMatch')}</span><small>{t('lobby.quickMatchDesc')}</small></span>
           </button>
         </div>
 
         <nav class="lobby-tiles" aria-label={t('lobby.vsAi')}>
-          <button class="tile" type="button" onClick={go(() => navigate('timeAttack'))}><Icon name="timer" size={22} /><span>{t('lobby.timeAttack')}</span></button>
-          <button class="tile" type="button" onClick={go(() => navigate('room'))}><Icon name="hash" size={22} /><span>{t('lobby.customRoom')}</span></button>
-          <button class="tile" type="button" onClick={go(() => navigate('garage'))}><Icon name="kart" size={22} /><span>{t('lobby.garage')}</span></button>
+          <button class="tile" type="button" data-testid="open-timeattack" onClick={go(() => navigate('timeAttack'))}><Icon name="timer" size={22} /><span>{t('lobby.timeAttack')}</span></button>
+          <button class="tile" type="button" data-testid="open-room" onClick={go(() => navigate('room'))}><Icon name="hash" size={22} /><span>{t('lobby.customRoom')}</span></button>
+          <button class="tile" type="button" data-testid="open-garage" onClick={go(() => navigate('garage'))}><Icon name="kart" size={22} /><span>{t('lobby.garage')}</span></button>
         </nav>
       </main>
 

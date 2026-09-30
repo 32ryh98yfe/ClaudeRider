@@ -53,7 +53,10 @@ async function main(): Promise<void> {
   else if (SHEET === 'race') await raceSheet(renderer);
   else if (SHEET === 'portraits') await portraitSheet();
   else await oneSheet(renderer);
-  status.textContent = `${SHEET} · ${((performance.now() - t0) / 1000).toFixed(1)} s · L8 materials ${localMaterialCount()}`;
+  window.__sheetInfo = { sheet: SHEET, seconds: (performance.now() - t0) / 1000, l8Materials: localMaterialCount() };
+  // keep the exported PNG clean; ?status=1 keeps the timing line on screen
+  if (q.get('status') === '1') status.textContent = `${SHEET} · ${((performance.now() - t0) / 1000).toFixed(1)} s · L8 materials ${localMaterialCount()}`;
+  else status.style.display = 'none';
   window.__sheetDone = true;
 }
 
@@ -103,7 +106,7 @@ async function charsSheet(r: THREE.WebGPURenderer): Promise<void> {
     }
     const st = m.stats();
     label(`${def.id}`, bx + 8, by + angles.length * CH + 19, 15);
-    label(`LOD ${st.tris[0]} / ${st.tris[1]} / ${st.tris[2]} tris · ${st.draws.join('/')} draws`, bx + 8, by + angles.length * CH + 37, 11, '#b8aea4');
+    label(`tris ${st.tris.join('/')} · draws ${st.draws.join('/')}`, bx + 8, by + angles.length * CH + 37, 11, '#b8aea4');
     scene.remove(m.root);
     m.dispose();
     status.textContent = `chars ${i + 1}/${chars.length}`;
@@ -134,7 +137,7 @@ async function kartsSheet(r: THREE.WebGPURenderer): Promise<void> {
   const karts = allKartBodies();
   const CW = 330, CH = 220, LW = 150;
   const views: Array<[string, number, number, 0 | 1]> = [['¾ front · livery A', -0.75, 0.3, 0], ['¾ rear · livery B', 2.45, 0.34, 1], ['side · livery A', -Math.PI / 2, 0.08, 0]];
-  size(LW + views.length * CW, 40 + karts.length * CH);
+  size(LW + views.length * CW, 58 + karts.length * CH);
   label('L8 · karts — two liveries each (driver: Clay)', 12, 26, 18);
   const scene = new THREE.Scene();
   createStudio(r, scene, { shadowSize: 1024 });
@@ -151,19 +154,19 @@ async function kartsSheet(r: THREE.WebGPURenderer): Promise<void> {
       const dist = 4.5;
       cam.position.set(Math.sin(yaw) * Math.cos(pitch) * dist, 0.52 + Math.sin(pitch) * dist, Math.cos(yaw) * Math.cos(pitch) * dist);
       cam.lookAt(0, 0.52, 0);
-      await shoot(r, scene, cam, CW, CH, LW + v * CW, 40 + i * CH);
+      await shoot(r, scene, cam, CW, CH, LW + v * CW, 58 + i * CH);
       scene.remove(k.group);
       k.kart.dispose(); k.mascot.dispose();
     }
     const st = getKartBody(def.id).build(liveryFor(def.id, 0));
     const s = st.stats?.();
     st.dispose();
-    label(def.id, 12, 40 + i * CH + 28, 16);
-    label(`${def.dims.length}×${def.dims.width}×${def.dims.height} m`, 12, 40 + i * CH + 48, 11, '#b8aea4');
-    if (s) { label(`tris ${s.tris.join(' / ')}`, 12, 40 + i * CH + 66, 11, '#b8aea4'); label(`draws ${s.draws.join(' / ')}`, 12, 40 + i * CH + 82, 11, '#b8aea4'); }
+    label(def.id, 12, 58 + i * CH + 28, 16);
+    label(`${def.dims.length}×${def.dims.width}×${def.dims.height} m`, 12, 58 + i * CH + 48, 11, '#b8aea4');
+    if (s) { label(`tris ${s.tris.join(' / ')}`, 12, 58 + i * CH + 66, 11, '#b8aea4'); label(`draws ${s.draws.join(' / ')}`, 12, 58 + i * CH + 82, 11, '#b8aea4'); }
     status.textContent = `karts ${i + 1}/${karts.length}`;
   }
-  for (let v = 0; v < views.length; v++) label(views[v]![0], LW + v * CW + 8, 36, 12, '#b8aea4');
+  for (let v = 0; v < views.length; v++) label(views[v]![0], LW + v * CW + 8, 50, 12, '#b8aea4');
 }
 
 // --------------------------------------------------------------------------------------------------------------

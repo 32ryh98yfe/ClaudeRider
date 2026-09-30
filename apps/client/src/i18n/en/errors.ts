@@ -6,5 +6,6 @@ export default {
   slow_consumer: 'Your connection is too slow.', connection_lost: 'Connection to the server was lost.', webgl_unavailable: '3D graphics are not available in this browser.',
   save_corrupt: 'The save data could not be read.', ghost_outdated: 'Your ghost was from an older version and was removed.', audio_blocked: 'Click to enable sound.',
   offline: 'Not connected to the online server.', timeout: 'The server is slow to respond. Please try again.', internal: 'Something went wrong on the server.', unknown: 'Something went wrong.',
+  bad_message: 'The server rejected a malformed request. Please reload.',
   load_failed: "The track couldn't be loaded.", save_version: 'This save is from a newer version and cannot be read.',
 };

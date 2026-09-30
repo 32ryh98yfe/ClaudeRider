@@ -8,11 +8,11 @@ export default defineKart({
   archetype: 'balance',
   dims: { length: 1.7, width: 1.3, height: 0.8, wheelR: 0.32 },
   livery: { primary: '#F2C14E', secondary: '#30302E', pattern: 5, number: 9 },
-  seat: [0, 0.72, -0.1],
+  seat: [0, 0.755, -0.1],
   build(k) {
     // tub body on a high skid plate
     k.add(k.rb(0.92, 0.1, 1.44, 0.04).translate(0, 0.3, 0), { color: 'trim', surf: 'plastic' });
-    k.add(sideProfile(k, [[0.78, 0.36], [0.72, 0.66], [0.4, 0.7], [0.18, 0.62], [-0.36, 0.62], [-0.5, 0.74], [-0.78, 0.72], [-0.82, 0.36]], 0.96, 0.05), { color: 'paint' });
+    k.add(sideProfile(k, [[0.78, 0.36], [0.72, 0.66], [0.4, 0.7], [0.18, 0.62], [-0.36, 0.62], [-0.5, 0.66], [-0.78, 0.64], [-0.82, 0.36]], 0.96, 0.05), { color: 'paint' });
     // fenders over the balloon tyres
     for (const s of [1, -1]) for (const z of [0.55, -0.55]) k.add(k.rb(0.36, 0.08, 0.62, 0.04).translate(s * 0.6, 0.68, z), { color: 'secondary' });
     // safety stripes on the nose
@@ -27,12 +27,12 @@ export default defineKart({
     k.add(k.rb(0.5, 0.08, 0.08, 0.03).translate(0, 1.21, 0.1), { color: 'dark', surf: 'metal' });
     for (const x of [-0.16, 0, 0.16]) k.decal([x, 1.21, 0.141], 'z+', 0.09, 0.09, { color: '#FFF3C4', cell: 'headlight', glow: 2.2 });
     // seat
-    k.add(k.rb(0.52, 0.36, 0.1, 0.04).rotateX(-0.15).translate(0, 0.84, -0.42), { color: 'seat', surf: 'matte' });
+    k.add(k.rb(0.52, 0.16, 0.1, 0.04).rotateX(-0.15).translate(0, 0.66, -0.4), { color: 'seat', surf: 'matte' });
     // spare wheel on the tail + big stack
     const spare = lathe([[0.12, -0.1], [0.24, -0.1], [0.26, 0], [0.24, 0.1], [0.12, 0.1]], k.q(16, 10, 6));
-    spare.rotateX(Math.PI / 2).translate(0.16, 0.6, -0.92);
+    spare.rotateX(Math.PI / 2).translate(0.3, 0.46, -0.92);
     k.add(spare, { color: 'rubber', surf: 'rubber' });
-    if (k.lod < 2) k.add(cyl(0.13, 0.13, 0.18, k.q(14, 8, 5)).rotateX(Math.PI / 2).translate(0.16, 0.6, -0.92), { color: 'secondary' });
+    if (k.lod < 2) k.add(cyl(0.13, 0.13, 0.18, k.q(14, 8, 5)).rotateX(Math.PI / 2).translate(0.3, 0.46, -0.92), { color: 'secondary' });
     k.add(cyl(0.07, 0.08, 0.62, k.q(14, 8, 5)).translate(-0.36, 0.95, -0.66), { color: 'chrome', surf: 'chrome' });
     if (k.lod < 2) k.add(torus(0.075, 0.018, 5, 14).rotateX(Math.PI / 2).translate(-0.36, 1.26, -0.66), { color: 'chrome', surf: 'chrome' });
     k.exhaust([-0.36, 1.26, -0.66], { r: 0.07, style: 'none' });

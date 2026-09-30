@@ -153,6 +153,8 @@ export function buildRibbon(m: TrackModel, c: Content, p: PathModel, ground: Tri
   if (p.kind === 'rail') return { rows, sections: [], kerbRows: 0 };
   const smps = rows.map((s) => sampleAt(p, s));
   const secs = smps.map((smp) => crossSection(m, c, p, smp, o));
+  // closed paths: the closing row must be bit-identical to the first row (no crack at s = 0); keep s = L for uv
+  if (p.closed && secs.length > 1) secs[secs.length - 1] = secs[0]!.map((v) => ({ ...v, s: rows[rows.length - 1]! }));
   let kerbRows = 0;
   for (let r = 0; r + 1 < rows.length; r++) {
     const sa = rows[r]!, sb = rows[r + 1]!;
