@@ -40,12 +40,24 @@ export interface PathPlan {
   readonly STRAIGHT: Float64Array; // metres of boost-speed road ahead (R_eff ≥ 90 m)
   readonly CORNER: Int16Array; // corner that sample lies in, or the next one ahead (−1 none)
   readonly corners: readonly Corner[];
-  /** Successor for open paths: where s beyond the end continues (branch → host main line). */
-  readonly next: { path: number; s: number } | null;
+  /** Mandatory continuation of an open path past its end (branch merge → host), or null. */
+  readonly next: { path: number; s: number; at: number } | null;
+  /** Optional route choices starting on this path (branch splits), sorted by `at`. */
+  readonly forks: readonly Fork[];
+}
+
+/** A branch split: at path-s `at` the bot may continue on path `to` at `toS` (14-ai §4.1). */
+export interface Fork {
+  id: number;          // index into TrackPlan.forks (per-bot decisions are kept by id)
+  path: number; at: number; to: number; toS: number;
+  aiMinSkill: number;
+  kind: 'shortcut' | 'risk' | 'alt';
 }
 
 export interface TrackPlan {
   readonly paths: readonly PathPlan[];
+  /** Every branch split on the track (id = index). */
+  readonly forks: readonly Fork[];
   /** Drift-worthy corners per lap on the main line (mistake rolls use mistakeRate / zonesPerLap). */
   readonly zonesPerLap: number;
   /** True when the baked track carried a racing line (else the plan relaxed one itself). */
@@ -101,7 +113,7 @@ function buildPlan(track: BakedTrack): TrackPlan {
     paths.push({
       index: pi, n, ds, length: L, closed, X, Y, H, TX, TY, HW, WALL, LINE, KAP, VLIM, T40,
       LK: new Float64Array(n), LINEW: new Float64Array(n).fill(1), KEFF: new Float64Array(n), STRAIGHT: new Float64Array(n), CORNER: new Int16Array(n).fill(-1), corners: [],
-      next: null,
+      next: null, forks: [],
     });
   }
   // old bakes carry lineU = 0 everywhere: relax a line here with the same algorithm the bake uses
@@ -109,7 +121,8 @@ function buildPlan(track: BakedTrack): TrackPlan {
   for (const pp of paths) derive(pp, track);
   let zones = 0;
   if (paths[0]) for (const c of paths[0].corners) if (c.needsDrift) zones++;
-  return { paths, zonesPerLap: zones, bakedLine: anyLine, gripCache: new Map() };
+  const forks = linkRoutes(track, paths);
+  return { paths, forks, zonesPerLap: zones, bakedLine: anyLine, gripCache: new Map() };
 }
 
 function relaxInto(pp: PathPlan): void {
@@ -248,9 +261,34 @@ function derive(pp: PathPlan, track: BakedTrack): void {
       if (wgt < LINEW[i]!) LINEW[i] = wgt;
     }
   }
-  // open non-main paths continue on their host at map.toS
-  const meta = track.path(pp.index);
-  if (!pp.closed && meta.map) (pp as { next: { path: number; s: number } | null }).next = { path: meta.map.host, s: meta.map.toS };
+}
+
+/**
+ * Route graph from the v2 path links: a 'split' on a host path whose target branch starts there is a fork
+ * (optional), a 'merge' at the end of an open path is its exit (mandatory). v1 tracks without links fall back
+ * to the branch map (host, toS).
+ */
+function linkRoutes(track: BakedTrack, paths: PathPlan[]): Fork[] {
+  const forks: Fork[] = [];
+  for (const pp of paths) {
+    const meta = track.path(pp.index);
+    const links = meta.links ?? [];
+    const pf: Fork[] = [];
+    for (const ln of links) {
+      const to = paths[ln.to];
+      if (!to || ln.to === pp.index) continue;
+      const tm = track.path(ln.to);
+      if (ln.kind === 'split' && tm.kind !== 'rail' && ln.toS < 1 && (tm.hostFrom === undefined || Math.abs(tm.hostFrom - ln.at) < 2)) {
+        const f: Fork = { id: forks.length, path: pp.index, at: ln.at, to: ln.to, toS: ln.toS, aiMinSkill: tm.aiMinSkill ?? 0, kind: tm.branchKind ?? 'shortcut' };
+        forks.push(f); pf.push(f);
+      }
+      if (ln.kind === 'merge' && !pp.closed && ln.at >= pp.length - 2) (pp as { next: PathPlan['next'] }).next = { path: ln.to, s: ln.toS, at: ln.at };
+    }
+    if (!pp.closed && !pp.next && meta.map) (pp as { next: PathPlan['next'] }).next = { path: meta.map.host, s: meta.hostTo ?? meta.map.toS, at: pp.length };
+    pf.sort((a, b) => a.at - b.at);
+    (pp as { forks: readonly Fork[] }).forks = pf;
+  }
+  return forks;
 }
 
 const mod = (x: number, L: number): number => x - L * Math.floor(x / L);
