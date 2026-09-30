@@ -382,10 +382,31 @@ class BotDriver implements AiDriverEx {
     let dCorner = 1e9, cornerDir = 0, cornerR = 1e9;
     {
       const thr = A.gripFrac * gripKap;
-      for (let q = 0; q <= A.trigLook; q++) {
-        this.qs = s + q; this.at(path);
-        const ke = this.rp.KEFF[this.ri]!;
-        if ((ke > 0 ? ke : -ke) > thr) { dCorner = q; cornerDir = ke > 0 ? 1 : -1; const kk = this.rp.KAP[this.ri]!; cornerR = 1 / Math.max(1e-6, kk > 0 ? kk : -kk); break; }
+      // the scan usually stays on one path: resolve both ends, and when the far end is the same path exactly
+      // trigLook metres on, index the samples directly instead of resolving the route 41 times
+      this.qs = s; this.at(path);
+      const pp0 = this.rp, rs0 = this.rs;
+      this.qs = s + A.trigLook; this.at(path);
+      let span = this.rs - rs0;
+      if (pp0.closed && span < 0) span += pp0.length;
+      if (this.rp === pp0 && Math.abs(span - A.trigLook) < 1e-6) {
+        const n0 = pp0.n, KE = pp0.KEFF;
+        for (let q = 0; q <= A.trigLook; q++) {
+          let ss = rs0 + q;
+          if (pp0.closed) { if (ss >= pp0.length) ss -= pp0.length; } else if (ss > pp0.length) ss = pp0.length;
+          let i = Math.floor(ss / pp0.ds);
+          if (i >= n0) i = pp0.closed ? i - n0 : n0 - 1;
+          const ke = KE[i]!;
+          if ((ke > 0 ? ke : -ke) > thr) { dCorner = q; cornerDir = ke > 0 ? 1 : -1; const kk = pp0.KAP[i]!; cornerR = 1 / Math.max(1e-6, kk > 0 ? kk : -kk); break; }
+        }
+        // leave the sample state where the per-metre scan left it (the ledge check below reads it)
+        if (dCorner < 1e9) { this.qs = s + dCorner; this.at(path); }
+      } else {
+        for (let q = 0; q <= A.trigLook; q++) {
+          this.qs = s + q; this.at(path);
+          const ke = this.rp.KEFF[this.ri]!;
+          if ((ke > 0 ? ke : -ke) > thr) { dCorner = q; cornerDir = ke > 0 ? 1 : -1; const kk = this.rp.KAP[this.ri]!; cornerR = 1 / Math.max(1e-6, kk > 0 ? kk : -kk); break; }
+        }
       }
     }
     const planDrift = this.cPlan !== DriftPlan.GRIP;
