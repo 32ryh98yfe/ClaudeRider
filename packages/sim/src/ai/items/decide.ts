@@ -206,10 +206,11 @@ export function decideItem(b: ItemBrain, w: Readonly<WorldState>, env: ItemEnv, 
   if (!k || !k.active || w.phase < Phase.RACING || !inRace(k) || b.profile.itemSkill === 0) return;
   const tick = w.tick, st = k.status;
   // ---- Mirror Mode: the reversal is telegraphed 30 ticks ahead (public), so a tactical bot counter-steers from the
-  // start (itemSkill 3) or after half its reaction time (2); a random-timing bot needs its full reaction time (1)
+  // start (itemSkill 3) or after half its reaction time (2); a random-timing bot needs its reaction time, at most 45
+  // ticks of the 150 (1)
   const mirror = activeEffect(w, k.slot, EF.mirror, tick);
   if (mirror) {
-    const s = b.profile.itemSkill, adapt = s >= 3 ? 0 : s === 2 ? b.profile.reactionTicks >> 1 : b.profile.reactionTicks;
+    const s = b.profile.itemSkill, adapt = s >= 3 ? 0 : s === 2 ? b.profile.reactionTicks >> 1 : Math.min(b.profile.reactionTicks, 45);
     if (tick - mirror.start >= adapt) out.steer = -out.steer;
   }
   // ---- mash-out: alternating taps at the tier's rate with ±1 tick jitter
