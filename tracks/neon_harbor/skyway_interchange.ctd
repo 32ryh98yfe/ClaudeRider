@@ -32,4 +32,14 @@ PAD at=@toll_plaza+50 d=3.5 len=6 w=4
 ITEMS at=@toll_plaza+110,@cloverleaf+184,@skyway+41,@billboard_s+65,@subway_descent+53,@strobe_tunnel+21,@frontage_s+89,@frontage_s2+78 n=5
 # the metro crosses the subway platform every 10 s: lights and horn 1.5 s ahead, the crossing is closed for 2.5 s
 HAZ train metro at=@subway_platform+25 d=0 box=(24,3.4,4) period=10 on=0-2.5 tele=1.5 offset=0 span=25
+# ---- dressing (Neon Harbor kit): toll booths, billboards, the subway station, tunnel strobes, frontage lamps ----
+PROPS kind=toll_booth from=@toll_plaza+68 to=@toll_plaza+68 side=both every=100 offset=1.5
+PROPS kind=street_lamp from=@toll_plaza to=@toll_plaza+140 side=both every=35 offset=0.6
+PROPS kind=street_lamp from=@service_s to=@frontage_s2+160 side=both every=40 offset=0.6
+PROPS kind=billboard from=@subway_descent to=@subway_approach side=R every=45 offset=5
+PROPS kind=neon_sign from=@frontage_s to=@frontage_s2+150 side=both every=45 offset=3
+PROPS kind=station_canopy from=@subway_platform+6 to=@subway_platform+6 side=L every=100 offset=2
+PROPS kind=strobe_bar from=@strobe_tunnel to=@strobe_tunnel+40 side=both every=8 offset=0.3
+PROPS kind=container_stack from=@frontage_s2 to=@frontage_s2+150 side=R every=30 offset=6
+PROPS kind=harbor_crane from=@frontage_s+20 to=@frontage_s+170 side=R every=150 offset=26
 THEME scatter=tower_a,tower_b density=6 hills=0 sky=sunset

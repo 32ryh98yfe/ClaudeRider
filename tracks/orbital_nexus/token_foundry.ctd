@@ -41,4 +41,12 @@ HAZ press p1 at=@press_gauntlet+8 d=-4.5 box=(5,7,3) period=4 on=0-1.6 tele=0.8 
 HAZ press p2 at=@press_gauntlet+21 d=4.5 box=(5,7,3) period=4 on=0-1.6 tele=0.8 offset=1.33 rise=4
 HAZ press p3 at=@press_gauntlet+34 d=-4.5 box=(5,7,3) period=4 on=0-1.6 tele=0.8 offset=2.67 rise=4
 ITEMS at=@elevator_ramp+34,@gantry_deck+120,@token_straight+40,@cooling_s+76 n=5
+# ---- dressing (Orbital Nexus kit): hall holograms, rack canyon, coolant pipes, token stacks, light bollards ----
+PROPS kind=light_strip along=main side=both every=18 offset=0.4
+PROPS kind=holo_panel from=@assembly_hall+20 to=@assembly_hall+90 side=L every=35 offset=3
+PROPS kind=server_rack from=@rack_canyon to=@coolant_pipe side=both every=8 offset=1.5
+PROPS kind=coolant_pipe from=@coolant_pipe to=@pipe_hairpin side=both every=12 offset=1.2
+PROPS kind=token_stack from=@token_s to=@token_straight+70 side=both every=28 offset=3
+PROPS kind=holo_panel from=@token_straight+20 to=@token_straight+100 side=R every=40 offset=4
+PROPS kind=server_rack from=@cooling_s to=@belt_out+40 side=L every=24 offset=3
 THEME scatter=station_pylon density=4 hills=0 sky=space

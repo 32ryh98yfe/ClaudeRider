@@ -36,4 +36,13 @@ HAZ traffic cars at=@boulevard+62 to=@boulevard+128 lanes=[(d -5, speed 16, coun
 BRANCH alley from=@alley_split+4 to=@container_row+48 kind=shortcut aiMin=0.5 w=8 wall=building:3.5 surf=cobble {
   C R20 45 L ; S ?x ; C R20 45 L ; S ?y
 }
+# ---- dressing (Neon Harbor kit): sodium lamps, arcade signs, harbour cranes and containers, the tram stop ----
+PROPS kind=street_lamp along=main side=both every=38 offset=0.6
+PROPS kind=neon_sign from=@arcade_corner to=@alley_split side=both every=21 offset=2.5
+PROPS kind=neon_sign from=@market_street to=@sodium_straight+40 side=both every=24 offset=2.5
+PROPS kind=billboard from=@boulevard+30 to=@boulevard+130 side=L every=50 offset=4
+PROPS kind=billboard from=@canal+10 to=@canal+110 side=R every=55 offset=5
+PROPS kind=container_stack from=@container_row to=@container_row+90 side=R every=17 offset=4
+PROPS kind=harbor_crane from=@crane_corner to=@crane_corner+60 side=L every=60 offset=20
+PROPS kind=station_canopy from=@tram_s+12 to=@tram_s+12 side=R every=100 offset=2.5
 THEME scatter=tower_a,tower_b density=6 hills=0 sky=night

@@ -72,4 +72,10 @@ HAZ train freight at=@train_straight+35 d=0 box=(24,3.4,4) period=8 on=0-2.4 tel
 HAZ press laser1 at=@laser_run+8 d=-3 box=(1.5,6,3) period=4 on=0-1.5 tele=0.6 offset=0 effect=block rise=3 prop=hazard_laser
 HAZ press laser2 at=@laser_run+22 d=3 box=(1.5,6,3) period=4 on=0-1.5 tele=0.6 offset=2 effect=block rise=3 prop=hazard_laser
 ITEMS at=@launch_tube+110,@sky_sweep+23,@loop_in+16,@zerog_tube+4,@zerog_tube+159,@ring_s+20,@station_sweeper+64,@city_1+19,@tower_canyon+109,@tower_sweeper+139,@bridge_s+105,@city_2+56,@holo_sweeper+20,@neon_s+23,@avenue+19 n=5
-THEME scatter=station_pylon density=4 hills=0 sky=space
+# ---- dressing (Orbital Nexus kit): launch-tube holograms, light bollards, the city of towers ----
+PROPS kind=light_strip along=main side=both every=24 offset=0.4
+PROPS kind=holo_panel from=@launch_tube+50 to=@launch_tube+130 side=L every=40 offset=3
+PROPS kind=city_tower from=@city_1 to=@finish_gate side=both every=70 offset=16
+PROPS kind=holo_panel from=@city_1 to=@avenue side=L every=110 offset=4
+PROPS kind=token_stack from=@city_2 to=@holo_sweeper+150 side=R every=60 offset=5
+THEME scatter=station_pylon,city_tower density=4 hills=0 sky=space
