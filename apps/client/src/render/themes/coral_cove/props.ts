@@ -397,6 +397,44 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
     },
     maxInstances: 8,
   },
+  // ---- hazard models (HAZ … prop=<key>), posed each frame by the renderer from track.hazardPose (vis v2 §8):
+  // cylinders stand on the pose's up axis, capsules lie along it, boxes use (along f, across, up).
+  /** Kraken Lighthouse cannonball impact (geyser, r 2.6): the ball, a foam column, a target ring on the road. */
+  hazard_cannonball: {
+    build: () => ({
+      geometry: merge([
+        paint(place(new THREE.TorusGeometry(2.4, 0.18, 6, 24), 0, 0.08, 0, Math.PI / 2, 0, 0), '#e5484d'),
+        paint(place(cyl(1.1, 2.0, 3.2, 12), 0, 1.6, 0), C.white, 0.08, 3),
+        paint(place(sph(1.6, 10, 6), 0, 3.4, 0, 0, 0, 0, 1, 0.6, 1), C.lagoon, 0.08, 5),
+        paint(place(sph(0.85, 12, 8), 0, 4.6, 0), C.iron),
+      ]), material: gloss(),
+    }),
+    maxInstances: 8,
+  },
+  /** Kraken tentacle segment swept across the sea-cave road (swinger capsule r 0.9, len 2.5, along the arm). */
+  hazard_tentacle: { build: () => ({ geometry: merge(tentacle(5.5, 0.6, 1.0, 21).map((g) => place(g, 0, -2.2, 0))), material: vinyl(), castShadow: true }), maxInstances: 8 },
+  /** Rolling cargo barrel for the pier traffic (axis across the road, rolls along it). */
+  hazard_barrel: {
+    build: () => ({
+      geometry: merge([
+        paint(place(cyl(0.75, 0.75, 1.5, 12), 0, 0.75, 0, 0, 0, Math.PI / 2), C.woodLight, 0.06, 3),
+        paint(place(cyl(0.78, 0.78, 0.14, 12), -0.45, 0.75, 0, 0, 0, Math.PI / 2), C.iron),
+        paint(place(cyl(0.78, 0.78, 0.14, 12), 0.45, 0.75, 0, 0, 0, Math.PI / 2), C.iron),
+      ]), material: matte(), castShadow: true,
+    }),
+    maxInstances: 8,
+  },
+  /** The dock crane's swinging cargo net (swinger capsule r 1.3, len 1.6). */
+  hazard_net: {
+    build: () => ({
+      geometry: merge([
+        paint(place(ico(1.5, 1), 0, 0, 0, 0, 0, 0, 1, 1.15, 1), C.net, 0.1, 3),
+        paint(place(box(1.0, 1.0, 1.0), 0.2, -0.3, 0.2), C.woodPale), paint(place(cyl(0.4, 0.4, 0.9, 8), -0.4, -0.2, -0.3), C.red),
+        paint(place(cyl(0.05, 0.05, 6, 4), 0, 3.6, 0), C.iron),
+      ]), material: gloss(), castShadow: true,
+    }),
+    maxInstances: 4,
+  },
   /** Red-and-white harbour buoy with a lamp. */
   buoy: {
     build: () => ({
