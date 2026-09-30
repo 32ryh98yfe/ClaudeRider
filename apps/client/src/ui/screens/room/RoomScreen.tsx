@@ -62,7 +62,7 @@ function Landing({ conn, onLeave, retry }: { conn: string; onLeave: () => void; 
   return (
     <>
       <ScreenHead title={t('room.title')} sub={t('room.landingSub')} onBack={onLeave} />
-      <div class="room-landing">
+      <div class="room-landing" data-testid="room-landing">
         {offline ? (
           <div class="room-offline card" role="status">
             <Icon name="signal" size={22} />

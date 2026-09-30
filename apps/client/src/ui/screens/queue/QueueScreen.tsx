@@ -64,7 +64,7 @@ export function QueueScreen() {
   let body: preact.JSX.Element;
   if (conn === 'offline' || (err && err !== 'offline' && !q) || (err === 'offline' && !mockLobby.value)) {
     body = (
-      <section class="q-card card q-offline" aria-live="polite">
+      <section class="q-card card q-offline" aria-live="polite" data-testid="queue-offline">
         <div class="q-offline-ico"><Icon name="signal" size={34} /><i /></div>
         <h2>{t('lobby.queue.offlineTitle')}</h2>
         <p>{err && err !== 'offline' ? t(errorKey(err)) : t('lobby.queue.offlineBody')}</p>

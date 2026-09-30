@@ -48,13 +48,13 @@ export function SettingsScreen({ onClose }: { onClose?: () => void } = {}) {
   useBack(back);
   useTabs(TABS.map((x) => x.id), tab, setTab);
   return (
-    <div class={`screen settings fade-in ${onClose ? 'overlay' : ''}`} {...(onClose ? { 'data-focus-scope': true } : {})}>
+    <div data-testid="settings" class={`screen settings fade-in ${onClose ? 'overlay' : ''}`} {...(onClose ? { 'data-focus-scope': true } : {})}>
       <div class="set-scrim" />
       <ScreenHead title={t('settings.title')} onBack={back} />
       <div class="set-body">
         <nav class="set-nav" aria-label={t('settings.title')} role="tablist" aria-orientation="vertical">
           {TABS.map((x) => (
-            <button key={x.id} type="button" role="tab" aria-selected={tab === x.id ? 'true' : 'false'} class={tab === x.id ? 'on' : ''} onClick={() => { Audio.sfx('uiMove'); setTab(x.id); }}>
+            <button key={x.id} type="button" role="tab" data-testid={`tab-${x.id}`} aria-selected={tab === x.id ? 'true' : 'false'} class={tab === x.id ? 'on' : ''} onClick={() => { Audio.sfx('uiMove'); setTab(x.id); }}>
               <Icon name={x.icon} size={18} /><span>{t(`settings.${x.id}`)}</span>
             </button>
           ))}
@@ -179,7 +179,7 @@ function Controls({ s }: { s: Readonly<SettingsV1> }) {
                     <span class="bind-keys">
                       {codes.map((c, i) => (
                         <span class="bind-chip" key={c}>
-                          <button type="button" class={`kbd-btn ${capture?.action === a.id && capture.index === i && !capture.pad ? 'capturing' : ''}`} aria-label={`${t('settings.rebind')} ${t(`settings.action.${a.id}`)} ${keyLabel(c, space)}`} onClick={() => setCapture({ action: a.id, index: i })}>{keyLabel(c, space)}</button>
+                          <button type="button" data-testid={`bind-${a.id}-${i}`} class={`kbd-btn ${capture?.action === a.id && capture.index === i && !capture.pad ? 'capturing' : ''}`} aria-label={`${t('settings.rebind')} ${t(`settings.action.${a.id}`)} ${keyLabel(c, space)}`} onClick={() => setCapture({ action: a.id, index: i })}>{keyLabel(c, space)}</button>
                           <button type="button" class="bind-x" aria-label={t('settings.removeKey')} onClick={() => set((x) => { x.keys = unbindKey(x.keys, a.id, i); })}><Icon name="x" size={12} /></button>
                         </span>
                       ))}

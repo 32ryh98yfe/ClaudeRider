@@ -7,7 +7,8 @@ import type { SlotConfig } from '@cr/sim';
 import { route, navigate } from '../../store/route.ts';
 import { t } from '../../../i18n/index.ts';
 import { Stage } from '../../../game/Stage.ts';
-import { Session, type SessionOptions } from '../../../game/Session.ts';
+import type { Session, SessionOptions } from '../../../game/Session.ts';
+import { createSession } from './sessionFactory.ts';
 import { save } from '../../../meta/save.ts';
 import { applyRace } from '../../../meta/rewards.ts';
 import { currentRace, setCurrentRace } from '../../../meta/raceStats.ts';
@@ -124,7 +125,7 @@ export function RaceScreen() {
       ...(q.get('seed') ? { seed: Number(q.get('seed')) } : {}),
       ...(ta ? { solo: true } : {}),
     };
-    const s = new Session(Stage.renderer!, Stage.tier, opts);
+    const s = createSession(Stage.renderer!, Stage.tier, opts, params);
     sessionRef.current = s;
     endedRef.current = false;
     Stage.onResize = (w, h) => s.renderer?.resize(w, h);

@@ -88,7 +88,7 @@ export function TimeAttackScreen() {
             </div>
             <div class="grow" />
             <p class="ta-hint"><Icon name="refresh" size={14} />{t('lobby.ta.restartHint', { key: keyText('restart') })}</p>
-            <button class="btn primary big ta-start" type="button" data-autofocus onClick={start}><Icon name="timer" size={20} /><span class="display">{t('lobby.ta.start')}</span></button>
+            <button class="btn primary big ta-start" type="button" data-testid="ta-start" data-autofocus onClick={start}><Icon name="timer" size={20} /><span class="display">{t('lobby.ta.start')}</span></button>
           </section>
         ) : null}
       </div>
