@@ -64,6 +64,13 @@ export class RenderBuilder {
     sl.idx.push(base, base + 1, base + 2);
     sl.triChunk.push(chunk);
   }
+  /** Like tri(), but picks the winding whose geometric normal agrees with the vertices' shading normals. */
+  triAuto(sl: RenderSlot, chunk: number, a: number[], b: number[], c: number[]): void {
+    const e1x = b[0]! - a[0]!, e1y = b[1]! - a[1]!, e1z = b[2]! - a[2]!, e2x = c[0]! - a[0]!, e2y = c[1]! - a[1]!, e2z = c[2]! - a[2]!;
+    const gx = e1y * e2z - e1z * e2y, gy = e1z * e2x - e1x * e2z, gz = e1x * e2y - e1y * e2x;
+    const nx = a[3]! + b[3]! + c[3]!, ny = a[4]! + b[4]! + c[4]!, nz = a[5]! + b[5]! + c[5]!;
+    if (gx * nx + gy * ny + gz * nz >= 0) this.tri(sl, chunk, a, b, c); else this.tri(sl, chunk, a, c, b);
+  }
   /** Sorts each slot's triangles by chunk, welds exact duplicates, and fills the chunk ranges. */
   finalise(): RenderSlot[] {
     const out: RenderSlot[] = [];

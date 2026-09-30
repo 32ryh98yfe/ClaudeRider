@@ -20,7 +20,8 @@ const ctx = makeContext({ track, cfg, content, role: 'authority', events: sink }
 const drivers = cfg.slots.map((_, i) => createAiDriver(track, content, i, AI_TIERS[tier as 'pro'], {}, 99 + i));
 const inputs: InputFrame[] = cfg.slots.map(() => makeInput());
 const t0 = performance.now();
-let maxTicks = 60 * 60 * 8, walls = 0, hard = 0;
+const maxTicks = 60 * 60 * 8;
+let walls = 0, hard = 0;
 const evs: SimEvent[] = [];
 while (w.phase !== Phase.DONE && w.tick < maxTicks) {
   for (let i = 0; i < 8; i++) drivers[i]!.decide(w, inputs[i]!);

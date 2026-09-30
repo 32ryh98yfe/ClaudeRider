@@ -1,29 +1,30 @@
-# Meadow Loop — Clayhill Village D1 (item-focused starter). Wide loop: windmill turn, a gentle S through the meadow,
-# a hump bridge over the creek, the long "village road" west, a flowing S past the market and a last sweeper home.
-# Teaches: drift → gauge → boost.
+# Meadow Loop / 초원 순환로 — Clayhill Village, D1, 3 × 1400 m, item★ / tutorial (11-track-spec §12.1).
+# Wide loop with grass shoulders (the off-road lesson): windmill run, meadow S past the sheep, the stone hump bridge
+# over the creek, the village-green hairpin round the bandstand, the market lane and the hay-bale S home.
+# Tutorial signboards: drift → boost → instant boost. Block-out angles re-balanced for exact closure (T1 110°,
+# hairpin 175°, kinks 40/45°); every named section keeps its order, radius and role.
+@signature pads, surfaces, jump
 TRACK meadow_loop name="Meadow Loop" theme=clayhill_village diff=1 laps=3 topo=circuit
-DEFAULTS w=17 surf=asphalt wall=barrier:1.0 shoulder=3 shoulderSurf=grass blend=16
+DEFAULTS w=18 surf=asphalt wall=fence:1.0 shoulder=3 shoulderSurf=grass blend=16
 START pos=(0,0,0) hdg=0
 GRID rows=4 cols=2 pitch=7 stagger=3.5 d=4
-S ?a                                      @home
-C R40 90 L bank=6                         @windmill_turn
-S 60
-C R60 45 R bank=-3 ; C R60 45 L bank=3    @meadow_s
-S ?b dy=4                                 @bridge_up
-S 50 w=16 wall=parapet:1.0                @bridge
-S 40 dy=-4 w=17 wall=barrier:1.0
-C R35 90 L bank=6                         @church_turn
-S 150                                     @village_road
-C R35 90 L bank=6                         @well_turn
-S ?c
-C R50 60 R bank=-4 ; C R50 60 L bank=4    @market_s
-S 50
-C R45 90 L bank=5                         @last_corner
+S 200                                     @home         # home straight; pads +110/+160; tutorial arch "드리프트!"
+C R40 110 L bank=6                        @first_drift  # T1 "first drift" (V19)
+S 71                                      @windmill_run # item row
+WIGGLE R60 45/75/40 L bank=3              @meadow_s     # sheep-field S-bends
+S ?b=56 dy=2                              @bridge_up    # stone-bridge approach
+J ramp=8@6 gap=6 drop=0.5 land=40 vmin=25 vmax=46 @bridge  # tutorial hop over the creek (kicker, 6 m gap, landing)
+C R50 40 R bank=-4 w=18 wall=fence:1.0    @bridge_exit
+C R40 175 L bank=7                        @green        # village-green hairpin round the bandstand (V19)
+C R70 45 R bank=-3                        @market_kink
+S ?c=118 dy=-1.5                            @market_lane  # item row, stalls and bunting
+C R60 80 L bank=5                         @windmill_corner
+WIGGLE R60 25/70/25 L bank=3 wall=fence:1.0:soft @hay_s  # hay-bale S (soft bales)
+S 72 wall=fence:1.0:soft                 @hay_straight
+C R45 90 L bank=6 wall=fence:1.0          @last_corner  # onto the home straight (V19)
+S ?a=93                                   @run_in
 CLOSE solve=[?a,?b,?c] length=1400
-LINE start at=100
-ITEMS at=260,480,800,1050,1300 n=5
-PAD at=130,780 d=0 len=6 w=4
-KEYS 220,470,700,900,1100,1300
-PROPS kind=fence along=all side=both every=12 offset=2.5
-PROPS kind=lamp along=0-150 side=both every=30 offset=3
-THEME scatter=tree_round,tree_pine,bush,windmill_small,house density=7 hills=8 sky=goldenHour
+LINE start at=0
+ITEMS at=160,320,545,870,1040,1200 n=5
+PAD at=55,105 d=0 len=6 w=4
+KEYS 240,460,660,860,1070,1280

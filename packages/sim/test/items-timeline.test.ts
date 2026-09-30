@@ -302,6 +302,22 @@ describe('self and team items', () => {
     void T;
   });
 
+  it('Interrupt Pulse from the target ends an opponent tether without a slingshot', () => {
+    const sc = pair(60);
+    sc.give(2, 'attention_tether');
+    sc.aim[2] = 0;
+    sc.until(() => sc.w.karts[2]!.items.aimLockTicks >= 17, 60);
+    const T = use(sc, 2);
+    sc.until(() => sc.w.tick >= T + 20);
+    expect(hits(sc, 2, EF.tether_pull)).toHaveLength(1);
+    sc.give(0, 'interrupt_pulse');
+    const P = use(sc, 0);
+    expect(evs(sc, 'effectEnd').filter((e) => e.victim === 2 && e.effect === EF.tether_pull).map((e) => e.tick)).toEqual([P]);
+    sc.advance(40);
+    expect(hits(sc, 2, EF.slingshot)).toEqual([]);
+    expect(sc.ctx.scratch.mods[2]!.kinematic).toBe(0);
+  });
+
   it('Interrupt Pulse removes active throttle stacks', () => {
     const sc = pair();
     sc.give(2, 'throttle_drone');

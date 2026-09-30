@@ -11,7 +11,7 @@ export interface AiProfile {
   instBoostRate: number;              // probability of executing an instant boost after a full drift
   instJitterTicks: number;            // ± jitter of the throttle tap
   reactionTicks: number;              // item/threat reaction delay
-  mistakeRate: number;                // chance per corner of a late/overcooked entry
+  mistakeRate: number;                // expected mistakes per lap (late brake, over-held drift, running wide; 14-ai §3.9)
   startDelayTicks: readonly [number, number];
   falseStartProb: number;
   useDraft: boolean;
@@ -22,10 +22,10 @@ export interface AiProfile {
 }
 
 export const AI_TIERS: Readonly<Record<AiTier, AiProfile>> = {
-  rookie: { tier: 'rookie', vMul: 0.93, lineNoise: 1.2, driftSkill: 0.45, instBoostRate: 0.15, instJitterTicks: 7, reactionTicks: 90, mistakeRate: 0.12, startDelayTicks: [18, 30], falseStartProb: 0.08, useDraft: false, aggression: 0.3, shortcutRisk: 0.2, itemSkill: 1, mashHz: 6 },
-  racer: { tier: 'racer', vMul: 0.97, lineNoise: 0.7, driftSkill: 0.7, instBoostRate: 0.45, instJitterTicks: 4, reactionTicks: 45, mistakeRate: 0.06, startDelayTicks: [12, 24], falseStartProb: 0.04, useDraft: false, aggression: 0.5, shortcutRisk: 0.45, itemSkill: 2, mashHz: 8 },
-  pro: { tier: 'pro', vMul: 1.0, lineNoise: 0.35, driftSkill: 0.9, instBoostRate: 0.8, instJitterTicks: 2, reactionTicks: 22, mistakeRate: 0.02, startDelayTicks: [0, 12], falseStartProb: 0.01, useDraft: true, aggression: 0.6, shortcutRisk: 0.75, itemSkill: 3, mashHz: 11 },
-  legend: { tier: 'legend', vMul: 1.0, lineNoise: 0.1, driftSkill: 1.0, instBoostRate: 0.95, instJitterTicks: 1, reactionTicks: 10, mistakeRate: 0.0, startDelayTicks: [0, 5], falseStartProb: 0.0, useDraft: true, aggression: 0.7, shortcutRisk: 0.95, itemSkill: 3, mashHz: 14 },
+  rookie: { tier: 'rookie', vMul: 0.93, lineNoise: 1.2, driftSkill: 0.35, instBoostRate: 0.15, instJitterTicks: 7, reactionTicks: 60, mistakeRate: 1.5, startDelayTicks: [6, 30], falseStartProb: 0.08, useDraft: false, aggression: 0.2, shortcutRisk: 0.2, itemSkill: 1, mashHz: 6 },
+  racer: { tier: 'racer', vMul: 0.97, lineNoise: 0.7, driftSkill: 0.6, instBoostRate: 0.45, instJitterTicks: 4, reactionTicks: 30, mistakeRate: 0.7, startDelayTicks: [2, 18], falseStartProb: 0.04, useDraft: false, aggression: 0.4, shortcutRisk: 0.45, itemSkill: 2, mashHz: 8 },
+  pro: { tier: 'pro', vMul: 1.0, lineNoise: 0.35, driftSkill: 0.8, instBoostRate: 0.8, instJitterTicks: 2, reactionTicks: 15, mistakeRate: 0.25, startDelayTicks: [0, 10], falseStartProb: 0.01, useDraft: true, aggression: 0.6, shortcutRisk: 0.75, itemSkill: 3, mashHz: 10 },
+  legend: { tier: 'legend', vMul: 1.0, lineNoise: 0.1, driftSkill: 0.98, instBoostRate: 0.95, instJitterTicks: 1, reactionTicks: 6, mistakeRate: 0.05, startDelayTicks: [0, 6], falseStartProb: 0.0, useDraft: true, aggression: 0.7, shortcutRisk: 0.95, itemSkill: 3, mashHz: 12 },
 };
 
 export interface AiDriver {

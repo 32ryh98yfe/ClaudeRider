@@ -25,7 +25,7 @@ export function bakedTrack(rel: string): BakedTrack {
   return t;
 }
 
-export interface RigOptions { mode?: 'speed' | 'item'; laps?: number; slots?: Partial<SlotConfig>[]; seed?: number; introTicks?: number; countdownTicks?: number }
+export interface RigOptions { mode?: RaceConfig['mode']; teams?: RaceConfig['teams']; laps?: number; slots?: Partial<SlotConfig>[]; seed?: number; introTicks?: number; countdownTicks?: number }
 
 export interface Rig {
   w: WorldState; ctx: StepContext; cfg: RaceConfig; track: BakedTrack; inputs: InputFrame[]; events: SimEvent[];
@@ -41,7 +41,7 @@ export function makeRig(track: BakedTrack, o: RigOptions = {}): Rig {
     kind: 'human', team: 0, name: `k${i}`, characterId: 'clay', kartBodyId: 'pebble', vMul: 1, ...s,
   } as SlotConfig));
   const cfg: RaceConfig = {
-    simVersion: 1, mode: o.mode ?? 'speed', teams: 'solo', trackId: track.id, trackHash: track.hash, laps: o.laps ?? track.laps,
+    simVersion: 1, mode: o.mode ?? 'speed', teams: o.teams ?? 'solo', trackId: track.id, trackHash: track.hash, laps: o.laps ?? track.laps,
     slots, seed: o.seed ?? 1234,
     rules: { retireTicks: 600, friendlyFire: 'area', itemSet: 'standard', rubberBand: false, instantBoostInItem: true },
     introTicks: o.introTicks ?? 0, countdownTicks: o.countdownTicks ?? 180,

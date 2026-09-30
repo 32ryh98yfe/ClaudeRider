@@ -448,7 +448,9 @@ function buildRail(st: Stmt, paths: PathModel[], main: PathModel, dslRef: (r: st
   if (!(toD > fromD)) fail(`RAIL ${id}: to must be after from`);
   const h = num(a.h, 1.0);
   // offsets: d=[s:d,…] (absolute host DSL s, or relative to from when all keys are < from); optional s:d:h triples
-  const keys = (a.d ?? '').replace(/^\[|\]$/g, '').split(',').filter(Boolean).map((p) => { const q = p.split(':').map(Number); return { s: q[0]!, d: q[1] ?? 0, h: q[2] ?? h }; });
+  const ref = (v: string): number => dslRef(v, host === main ? null : host, st.line);
+  const keys = (a.d ?? '').replace(/^\[|\]$/g, '').split(',').filter(Boolean).map((p) => { const q = p.split(':'); return { s: ref(q[0]!), d: Number(q[1] ?? 0), h: q[2] !== undefined ? Number(q[2]) : h }; });
+  if (keys.some((k) => !Number.isFinite(k.s) || !Number.isFinite(k.d) || !Number.isFinite(k.h))) fail(`RAIL ${id}: bad d=[s:d[:h],…] table`);
   if (!keys.length) keys.push({ s: fromD, d: 0, h }, { s: toD, d: 0, h });
   if (keys.every((k) => k.s < fromD - 1e-6) || keys[0]!.s === 0) for (const k of keys) k.s += fromD;
   keys.sort((p, q) => p.s - q.s);
