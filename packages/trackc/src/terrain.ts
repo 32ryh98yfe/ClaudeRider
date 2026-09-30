@@ -9,8 +9,8 @@ export interface TerrainField { height(x: number, z: number): number; cell: numb
 
 interface Pt { x: number; z: number; y: number; half: number; drop: boolean }
 
-export function buildTerrainField(m: TrackModel, c: Content, bounds: number[], noise: (x: number, z: number) => number, amp: number, cell = 8, margin = 180): TerrainField {
-  const pts: Pt[] = [];
+export function buildTerrainField(m: TrackModel, c: Content, bounds: number[], noise: (x: number, z: number) => number, amp: number, extra: { x: number; z: number; y: number }[] = [], cell = 8, margin = 180): TerrainField {
+  const pts: Pt[] = extra.map((e) => ({ x: e.x, z: e.z, y: e.y, half: 3, drop: false }));
   const addPath = (p: PathModel): void => {
     for (let i = 0; i < p.samples.length; i += 1) {
       const s = p.samples[i]!;
