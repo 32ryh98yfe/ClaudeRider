@@ -3,7 +3,7 @@
 # climbs back up through the basalt chicane and the twin R12 switchbacks.
 @signature helix, stacked, rail, jump, ledge, hazard:geyser, conveyor
 @fallback helix -> "3 x C R16 180 descending switchbacks, dy -4.7 each" when=F6
-@fallback rail -> "lava-edge corner: open inside ledge over the lava, no capture" when=F4
+@fallback rail -> "lava-edge corner at d -6 behind a low lava lip, no capture" when=F4
 @fallback hazard:geyser -> "static vents (cosmetic)" when=F5
 TRACK magma_switchback name="Magma Switchback" theme=ember_mine diff=5 laps=2 topo=circuit
 DEFAULTS w=12 surf=basalt wall=rock:1.5 shoulder=0 shoulderSurf=gravel blend=16
@@ -24,7 +24,7 @@ WIGGLE R30 50/100/50 R                      @geyser_field
 S 24                                        @geyser_gap
 WIGGLE R30 50/100/50 R
 S 15                                        @rail_corner_in
-C R35 120 L bank=6 wallL=none:0:ledgeKill wallR=rock:1.5 @rail_corner
+C R35 120 L bank=6 wallL=rock:0.7 wallR=rock:1.5 @rail_corner
 J ramp=30@8 gap=14 drop=4 land=40 wland=14 vmin=25 vmax=46 w=14 wall=rock:1.5 @lava_jump
 C R40 54 L w=12 bank=5
 S ?b dy=1.5                                 @conveyors
@@ -41,10 +41,14 @@ S 30
 C R30 90 R w=13 bank=-6                     @plateau_return
 CLOSE solve=[?a,?b,?c] length=1850
 LINE start at=40
+# the obsidian ledge: a 7 m risk line along the lava channel, left of the geyser-field wiggles, no walls, lava kill
+BRANCH ledge from=@geyser_field to=@rail_corner_in kind=risk aiMin=0.75 w=7 wall=none:0:ledgeKill surf=obsidian kill=lava {
+  C R150 12 L ; S ?x ; C R150 24 R ; S ?y ; C R150 12 L
+}
 PAD at=@under_plateau d=0 len=6 w=4
 PAD at=@lava_jump+1 d=0 len=6 w=4
 ITEMS at=190,488,772,1123,1334,1496,1788 n=5
-KEYS 190,480,660,780,940,1130,1340,1600,1790
+KEYS 190,480,940,1080,1180,1340,1500,1640,1790
 ZONE conveyor from=@conveyors+10 to=@conveyors+75 d=[0,6] mul=1.15
 ZONE conveyor from=@conveyors+10 to=@conveyors+75 d=[-6,0] mul=0.85
 # --- dressing: the lava pit inside the helix, pit-floor lava beside the geyser field and the lava-edge corner,
@@ -53,7 +57,6 @@ PROPS kind=helix_pillar from=@helix+130 to=@helix+262 side=L every=11 offset=1.4
 PROPS kind=lava_lake from=@helix+134 to=@helix+134 side=L every=100 offset=22 scale=1-1
 PROPS kind=lava_rim from=@helix+134 to=@helix+134 side=L every=100 offset=22 scale=1-1
 PROPS kind=lava_pit from=@geyser_field+40 to=@geyser_field+40 side=R every=100 offset=30
-PROPS kind=lava_pit from=@geyser_gap+60 to=@geyser_gap+60 side=L every=100 offset=30
 PROPS kind=lava_pit from=@rail_corner+35 to=@rail_corner+35 side=L every=100 offset=26
 PROPS kind=geyser_vent from=@geyser_field to=@rail_corner_in side=both every=31 offset=2.2
 PROPS kind=obsidian from=@basalt_chicane to=@climb side=both every=29 offset=3
