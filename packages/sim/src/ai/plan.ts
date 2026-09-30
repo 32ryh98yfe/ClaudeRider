@@ -49,6 +49,8 @@ export interface PathPlan {
   /** Safe lateral limit per side (m, positive): the paved half-width minus a margin that is larger where the
    *  side is an open ledge (no ground just past the edge). LEDGE bit 1 = left open, bit 2 = right open. */
   readonly LIM_L: Float64Array; readonly LIM_R: Float64Array; readonly LEDGE: Uint8Array;
+  /** 1 where the cross-section curves up into ridable walls (halfpipe / gutter profiles, 14-ai §4.4). */
+  readonly PIPE: Uint8Array;
 }
 
 /** A jump as the AI needs it: lip position and the validated lip-speed window (14-ai §4.2). */
@@ -122,7 +124,7 @@ function buildPlan(track: BakedTrack): TrackPlan {
       index: pi, n, ds, length: L, closed, X, Y, H, TX, TY, HW, WALL, LINE, KAP, VLIM, T40,
       LK: new Float64Array(n), LINEW: new Float64Array(n).fill(1), KEFF: new Float64Array(n), STRAIGHT: new Float64Array(n), CORNER: new Int16Array(n).fill(-1), corners: [],
       next: null, forks: [], jumps: [],
-      LIM_L: new Float64Array(n), LIM_R: new Float64Array(n), LEDGE: new Uint8Array(n),
+      LIM_L: new Float64Array(n), LIM_R: new Float64Array(n), LEDGE: new Uint8Array(n), PIPE: new Uint8Array(n),
     });
   }
   // old bakes carry lineU = 0 everywhere: relax a line here with the same algorithm the bake uses
@@ -285,11 +287,21 @@ function derive(pp: PathPlan, track: BakedTrack): void {
 function probeEdges(track: BakedTrack, pp: PathPlan): void {
   const F: FrameSample = { px: 0, py: 0, pz: 0, tx: 0, ty: 0, tz: 0, rx: 0, ry: 0, rz: 0, ux: 0, uy: 0, uz: 0, wL: 0, wR: 0, sMain: 0, flags: 0 };
   const hit = { t: 0, x: 0, y: 0, z: 0, nx: 0, ny: 0, nz: 0, surf: 0, tri: 0, flags: 0 };
-  const LL = pp.LIM_L as Float64Array, LR = pp.LIM_R as Float64Array, LE = pp.LEDGE as Uint8Array;
+  const LL = pp.LIM_L as Float64Array, LR = pp.LIM_R as Float64Array, LE = pp.LEDGE as Uint8Array, PI = pp.PIPE as Uint8Array;
   for (let i = 0; i < pp.n; i++) {
     track.frameAt(pp.index, i * pp.ds, F);
     const hw = pp.HW[i]!;
     let mask = 0;
+    // halfpipe / gutter: the ground 1 m inside the edge stands clearly above the centreline plane
+    {
+      let up = 0;
+      for (let side = -1; side <= 1; side += 2) {
+        const d = side * Math.max(1, Math.min(F.wL, F.wR) - 1);
+        const ox = F.px + F.rx * d + F.ux * 6, oy = F.py + F.ry * d + F.uy * 6, oz = F.pz + F.rz * d + F.uz * 6;
+        if (track.groundRay(ox, oy, oz, -F.ux, -F.uy, -F.uz, 12, hit) && 6 - hit.t > 0.6) up++;
+      }
+      PI[i] = up === 2 ? 1 : 0;
+    }
     for (let side = -1; side <= 1; side += 2) {
       // side −1 = left (u < 0), +1 = right
       const d = side * (hw + 1.5);

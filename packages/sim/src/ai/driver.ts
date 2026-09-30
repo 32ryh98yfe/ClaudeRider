@@ -339,7 +339,8 @@ class BotDriver implements AiDriverEx {
     if (ci !== this.cCorner || ppS.index !== this.cPath) this.rollCorner(ci, ppS, corner, prof);
     // ---- line noise (OU at 20 Hz: dt = 3 ticks, τ = 90 ticks)
     if (highRate) {
-      const sig = prof.lineNoise * ((k.status.modMask & REDACTION_BIT) !== 0 ? 2 : 1);
+      // Redaction doubles perception noise (14-ai §6); on halfpipe walls the line is held twice as tightly (§4.4)
+      const sig = prof.lineNoise * ((k.status.modMask & REDACTION_BIT) !== 0 ? 2 : 1) * (ppS.PIPE[this.ri] ? 0.5 : 1);
       if (sig > 0) {
         const a = 3 / 90;
         this.noise += -a * this.noise + sig * Math.sqrt(2 * a) * this.rng.gauss();
@@ -367,7 +368,8 @@ class BotDriver implements AiDriverEx {
     const ppT = this.rp;
     const cxT = this.lerp(ppT.X), cyT = this.lerp(ppT.Y), txT = this.lerp(ppT.TX), tyT = this.lerp(ppT.TY);
     const hwT = this.lerp(ppT.HW);
-    let lineAbs = this.lerp(ppT.LINE) * this.lerp(ppT.LINEW) * ex.lineTrack;
+    // on halfpipes the baked line is the guide line (the bake's best wall ride): always follow it
+    let lineAbs = this.lerp(ppT.LINE) * (ppT.PIPE[this.ri] ? 1 : this.lerp(ppT.LINEW)) * ex.lineTrack;
     { const lc = AI_TUNING.lineClampFrac * Math.max(0, hwT - 1.5); if (lineAbs > lc) lineAbs = lc; else if (lineAbs < -lc) lineAbs = -lc; }
     // personality line bias: + = outside of the next corner, on straights and before corners (not inside them)
     let bias = 0;
