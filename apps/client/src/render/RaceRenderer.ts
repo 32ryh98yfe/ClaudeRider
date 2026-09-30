@@ -62,6 +62,9 @@ export class RaceRenderer {
   private lineAt = new THREE.Vector3();
   private fxAt = new THREE.Vector3();
   private ccM = new THREE.Matrix4();
+  private curW: Readonly<WorldState> | null = null;
+  /** Per-player box availability (no per-frame closure). */
+  private boxAvail = (i: number): boolean => { const w = this.curW; return !!w && w.boxRespawn[i * 8 + this.localSlot]! <= w.tick; };
   private hazards: TrackHazards | null = null;
   private cap = new FrameCap();
   private dtBank = 0; private skipFrame = false;
@@ -278,8 +281,6 @@ export class RaceRenderer {
     this.items.update(prev, curr, alpha, this.poses, fxDt, this.t);
     this.hazards?.update(curr.tick, alpha, fxDt, this.driving.sparks, this.driving.smoke);
     if (this.lights) this.lights.end();
-    // personal item boxes for the local player; props culled against last frame's camera
-    this.view.update(this.t, (i) => curr.boxRespawn[i * 8 + this.localSlot]! <= curr.tick, cam);
     const me = this.bySlot[this.localSlot] ?? this.karts[0];
     if (me) {
       const k = curr.karts[me.slot]!;
@@ -307,6 +308,9 @@ export class RaceRenderer {
       U.hit.value = this.hitK;
       if (this.flickerT > 0) { this.flickerT -= dt; U.fade.value = Math.sin(this.t * 55) > 0.2 ? 0.35 : 0.05; } else U.fade.value = 0;
     }
+    // personal item boxes for the local player; props culled against this frame's camera (after the director moved it)
+    this.curW = curr;
+    this.view.update(this.t, this.boxAvail, cam);
     this.ambient.update(cam.position, this.camFwd, fxDt);
     // spatial audio listener = camera (velocity for Doppler)
     this.camVel.copy(cam.position).sub(this.camPrev).divideScalar(Math.max(1e-3, dt));
