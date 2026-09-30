@@ -8,7 +8,8 @@ import type { AiProfile } from '../api.ts';
 import { EF, NO_TARGET, itemDef } from '../../items/codes.ts';
 import { activeEffect } from '../../items/effects.ts';
 import { aimCandidateValid, lockNeed } from '../../items/use.ts';
-import { firewallTarget, inRace, leaderSlot, leaderTarget, nextAheadOpponent, sameTeam, teamMode } from '../../items/team.ts';
+import { DT } from '../../core/units.ts';
+import { firewallTarget, friendlyAllowed, inRace, leaderSlot, leaderTarget, nextAheadOpponent, sameTeam, teamMode } from '../../items/team.ts';
 import { PERCEIVE_ETA, blockableThreatEta, droneOrTetherThreat, teamThreat, type ItemEnv } from './perception.ts';
 
 export type { ItemEnv } from './perception.ts';
@@ -69,6 +70,42 @@ function cornerAhead(env: ItemEnv, k: Readonly<KartState>, within: number): bool
 }
 
 const isOpp = (env: ItemEnv, k: Readonly<KartState>, o: Readonly<KartState>): boolean => o.slot !== k.slot && inRace(o) && !sameTeam(env, k, o);
+const isMate = (env: ItemEnv, k: Readonly<KartState>, o: Readonly<KartState>): boolean => o.slot !== k.slot && inRace(o) && sameTeam(env, k, o);
+
+/**
+ * ADR-008 `area` in team formats: an area item whose most likely first victim is a teammate is held (itemSkill ≥ 2).
+ * Friendly area hits were the main source of the wider squad finish spread, so this gates the tactical rule and the
+ * WAIT_BASE fallback alike.
+ */
+function teamSafe(w: Readonly<WorldState>, env: ItemEnv, k: Readonly<KartState>, def: Readonly<ItemDef>): boolean {
+  if (!teamMode(env) || !friendlyAllowed(env, def)) return true;
+  const D = k.race.raceDist;
+  if (def.drop) { // the nearest kart behind drives into a dropped hazard first
+    let best = 60, mate = false;
+    for (const o of w.karts) {
+      if (o.slot === k.slot || !inRace(o)) continue;
+      const d = D - o.race.raceDist;
+      if (d > 0 && d < best) { best = d; mate = sameTeam(env, k, o); }
+    }
+    return !mate;
+  }
+  if (def.lob) { // teammate position predicted at landing vs the blast
+    const at = D + def.lob.aheadM, t = def.lob.flightTicks * DT, r = def.lob.radius + 6;
+    for (const o of w.karts) {
+      if (!isMate(env, k, o)) continue;
+      const bd = o.body, v = bd.vx * bd.fx + bd.vy * bd.fy + bd.vz * bd.fz;
+      if (Math.abs(o.race.raceDist + v * t - at) < r) return false;
+    }
+    return true;
+  }
+  if (def.place) { // a teammate between the target and its blocks reaches them first
+    const t = firewallTarget(w, env, k);
+    if (t < 0) return true;
+    const tD = w.karts[t]!.race.raceDist;
+    for (const o of w.karts) if (isMate(env, k, o) && o.race.raceDist > tD - 5 && o.race.raceDist < tD + def.place.aheadM + 5) return false;
+  }
+  return true;
+}
 
 /** Picks an aim candidate for `def` (front cone; look-back for the Prompt Missile when leading with a pursuer close). */
 function chooseAim(b: ItemBrain, w: Readonly<WorldState>, env: ItemEnv, k: Readonly<KartState>, def: Readonly<ItemDef>, out: InputFrame): void {
@@ -248,6 +285,7 @@ export function decideItem(b: ItemBrain, w: Readonly<WorldState>, env: ItemEnv, 
   // an attack/speed item waits at most WAIT_BASE + 120·h ticks for its tactical moment (§6), then goes out when valid,
   // so a held item never blocks the slots (and the boxes) for the rest of the race
   if (!want && skill >= 2 && !DEFENSIVE.has(def.id) && tick - b.heldSince > WAIT_BASE + 120 * b.hoarding) want = validNow(w, env, k, def, out);
+  if (want && skill >= 2 && !teamSafe(w, env, k, def)) want = false;
   if (!want) { b.triggerAt = -1; return; }
   if (b.triggerAt < 0) b.triggerAt = tick + (def.aim ? 0 : reaction(b, w, k, def)); // aim items already waited for the lock dwell
   if (tick >= b.triggerAt) {
