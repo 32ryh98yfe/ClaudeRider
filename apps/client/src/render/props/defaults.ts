@@ -112,4 +112,8 @@ export const DEFAULT_PROPS: Record<string, PropFactory> = {
 };
 
 /** Visible placeholder for unknown prop kinds (never crash). */
+// generic kinds the track DSL emits when a theme has no named variant
+DEFAULT_PROPS['tree'] ??= DEFAULT_PROPS['tree_round']!;
+DEFAULT_PROPS['pine'] ??= DEFAULT_PROPS['tree_pine']!;
+
 export const PLACEHOLDER_PROP: PropFactory = { build: () => ({ geometry: paint(place(box(1, 1, 1), 0, 0.5, 0), '#ff00ff'), material: lit() }) };

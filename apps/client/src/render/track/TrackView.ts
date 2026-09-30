@@ -7,6 +7,7 @@
 //   `road.ice`, `water`), then fall back to a magenta placeholder with a dev warning (never a crash).
 import * as THREE from 'three/webgpu';
 import { CVIS_MAGIC, CVIS_VERSION, readContainer, type BakedTrack } from '@cr/sim';
+import { repairTerrain } from './repair.ts';
 import type { ThemeKit } from '../themes/kit.ts';
 import type { RoadStyle, WallStyle } from '../materials/library.ts';
 import { PLACEHOLDER_PROP } from '../props/defaults.ts';
@@ -134,6 +135,8 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
   meta.slots.forEach((slot, j) => {
     const pos = c.arrays.get(`s${j}.pos`) as Float32Array, nrm = c.arrays.get(`s${j}.nrm`) as Float32Array;
     const uv = c.arrays.get(`s${j}.uv`) as Float32Array, col = c.arrays.get(`s${j}.col`) as Float32Array, idx = c.arrays.get(`s${j}.idx`) as Uint32Array;
+    const repaired = slot.material === 'terrain' ? repairTerrain(pos, nrm) : 0;
+    if (repaired && import.meta.env.DEV) console.warn(`[track] ${meta.id}: repaired ${repaired} non-finite terrain vertices (trackc bug, see contract-requests/L11-terrain-nan.md)`);
     const aPos = new THREE.BufferAttribute(pos, 3), aNrm = new THREE.BufferAttribute(nrm, 3), aUv = new THREE.BufferAttribute(uv, 2), aCol = new THREE.BufferAttribute(col, 3);
     const mat = resolveMaterial(slot, mats, kit, warned);
     // merge runs of contiguous chunks (same index buffer, adjacent ranges, same chunk kind) into groups of `mergeChunks`
@@ -151,6 +154,12 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', aPos); g.setAttribute('normal', aNrm); g.setAttribute('uv', aUv); g.setAttribute('color', aCol);
       g.setIndex(new THREE.BufferAttribute(idx.subarray(ch.i0, ch.i0 + ch.n), 1));
+      if (repaired) {
+        // repaired heights may leave the baked chunk bbox (it was computed with NaN): refit y from the geometry
+        let lo = Infinity, hi = -Infinity;
+        for (let i = ch.i0; i < ch.i0 + ch.n; i++) { const y = pos[idx[i]! * 3 + 1]!; if (y < lo) lo = y; if (y > hi) hi = y; }
+        ch.bbox[1] = Math.min(Number.isFinite(ch.bbox[1]!) ? ch.bbox[1]! : lo, lo); ch.bbox[4] = Math.max(Number.isFinite(ch.bbox[4]!) ? ch.bbox[4]! : hi, hi);
+      }
       const [x0, y0, z0, x1, y1, z1] = ch.bbox as [number, number, number, number, number, number];
       g.boundingBox = new THREE.Box3(new THREE.Vector3(x0, y0, z0), new THREE.Vector3(x1, y1, z1));
       g.boundingSphere = g.boundingBox.getBoundingSphere(new THREE.Sphere());
