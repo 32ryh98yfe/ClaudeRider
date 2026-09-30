@@ -6,7 +6,7 @@ import { signal } from '@preact/signals';
 import { createRenderer, type Backend } from '../render/engine/createRenderer.ts';
 import { Showcase } from '../render/showcase/Showcase.ts';
 import { navigate } from '../ui/store/route.ts';
-import { isWarming, warmPassPrograms } from '../render/engine/warm.ts';
+import { isWarming, MaterialReveal } from '../render/engine/warm.ts';
 import { pickTier, tierSettings, withUserPrefs, pixelRatioFor, FrameCap, type QualityTier, type TierSettings } from '../render/quality.ts';
 import { MaterialLibrary } from '../render/materials/library.ts';
 import { Audio } from '../audio/engine.ts';
@@ -18,7 +18,7 @@ class StageImpl {
   renderer: THREE.WebGPURenderer | null = null;
   tier: QualityTier = 'medium';
   showcase: Showcase | null = null;
-  private warming: Promise<void> | null = null;
+  private reveal: MaterialReveal | null = null;
   private ts: TierSettings | null = null;
   /** Settings → frame cap, shared by the lobby loop and the race renderer. */
   readonly cap = new FrameCap();
@@ -72,15 +72,12 @@ class StageImpl {
   showShowcase(characterId: string, kartBodyId: string): void {
     if (!this.renderer) return;
     const first = !this.showcase;
-    if (!this.showcase) this.showcase = new Showcase(this.renderer);
+    if (!this.showcase) this.showcase = new Showcase(this.renderer, { env: this.tier !== 'low' });
     const lv = save.get().profile.livery;
     this.showcase.setLoadout(characterId, kartBodyId, lv);
-    if (first) {
-      // compile the lobby scene off the critical path (compileAsync yields between objects): on software GL each
-      // program link blocks for up to seconds, and a synchronous first frame would freeze the title and menus
-      const sc = this.showcase;
-      this.warming = warmPassPrograms(this.renderer, sc.scene, sc.camera).catch(() => undefined).finally(() => { this.warming = null; });
-    }
+    // Low (software GL in CI): every program link blocks for up to seconds, and the first showcase frame needs ~30 of
+    // them. Reveal the scene one material per frame so the title and menus keep handling input while it fills in.
+    if (first && this.tier === 'low') this.reveal = new MaterialReveal(this.showcase.scene);
     if (this.mode !== 'showcase') {
       this.mode = 'showcase';
       cancelAnimationFrame(this.raf);
@@ -88,18 +85,19 @@ class StageImpl {
       const loop = (now: number): void => {
         if (this.mode !== 'showcase') return;
         this.raf = requestAnimationFrame(loop);
-        if (this.warming || isWarming()) { this.last = now; return; }
+        if (isWarming()) { this.last = now; return; }
         if (!this.cap.ready(now)) return;
         const dt = Math.min(0.1, (now - this.last) / 1000); this.last = now;
         this.fps(dt);
         this.renderer!.info.reset();
         this.showcase!.frame(dt);
+        if (this.reveal && this.reveal.step(1)) this.reveal = null;
       };
       this.raf = requestAnimationFrame(loop);
     }
   }
 
-  enterRace(): void { this.mode = 'race'; cancelAnimationFrame(this.raf); }
+  enterRace(): void { this.reveal?.finish(); this.reveal = null; this.mode = 'race'; cancelAnimationFrame(this.raf); }
   leaveRace(): void { this.mode = 'none'; }
 
   fps(dt: number): void {

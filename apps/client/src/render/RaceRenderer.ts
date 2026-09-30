@@ -11,7 +11,7 @@ import type { ThemeKit } from './themes/kit.ts';
 import { buildEnvironment, type Environment } from './env/environment.ts';
 import { buildTrackView, type TrackView, type VisMeta } from './track/TrackView.ts';
 import { createPost, type Post } from './post/pipeline.ts';
-import { withEverythingVisible } from './engine/warm.ts';
+import { withEverythingVisible, finishReveals } from './engine/warm.ts';
 import { CameraDirector } from './camera/CameraDirector.ts';
 import type { ChaseCamera } from './camera/ChaseCamera.ts';
 import { buildMascot, type MascotInstance } from './mascot/rig.ts';
@@ -92,6 +92,7 @@ export class RaceRenderer {
   async init(slots: KartSlotVisual[]): Promise<void> {
     const ts = this.ts;
     MaterialLibrary.configure(this.tier);
+    finishReveals();
     // Settings → shadows may differ from the tier the Stage booted with
     this.renderer.shadowMap.enabled = ts.shadowSize > 0;
     const meta = readContainer(this.vis, CVIS_MAGIC, CVIS_VERSION).meta as VisMeta;

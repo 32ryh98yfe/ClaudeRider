@@ -26,6 +26,7 @@ export async function compileInContext(renderer: THREE.WebGPURenderer, rt: THREE
 
 /** Runs `fn` with every non-light object in `scene` visible and unculled, so pooled and off-screen meshes compile too. */
 export async function withEverythingVisible(scene: THREE.Object3D, fn: () => Promise<void> | void): Promise<void> {
+  finishReveals(); // shared materials hidden by a lobby reveal would otherwise be skipped
   const shown: THREE.Object3D[] = [], unculled: THREE.Object3D[] = [];
   scene.traverse((o) => {
     if (!o.visible && !(o as THREE.Light).isLight) { o.visible = true; shown.push(o); }
@@ -52,4 +53,38 @@ export async function warmPassPrograms(renderer: THREE.WebGPURenderer, scene: TH
   try {
     await compileInContext(renderer, rt, mrtNode ?? mrt({ output, emissive }), () => withEverythingVisible(scene, () => renderer.compileAsync(scene, camera)));
   } finally { rt.dispose(); }
+}
+
+/**
+ * Hides every material of a scene, then shows them back a few per frame. A cold start then links its shaders over
+ * many short frames instead of one frozen frame, so menus stay responsive on software GL (the lobby showcase on
+ * Low). Materials are shared across scenes: `finish()` must run before anything else renders them.
+ */
+const reveals = new Set<MaterialReveal>();
+/** Makes every material hidden by a pending reveal visible again (before a race builds or warms its scene). */
+export function finishReveals(): void { for (const r of [...reveals]) r.finish(); }
+
+export class MaterialReveal {
+  private queue: THREE.Material[] = [];
+  private hidden = new Set<THREE.Material>();
+
+  constructor(scene: THREE.Object3D) {
+    reveals.add(this);
+    scene.traverse((o) => {
+      const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+      if (!m) return;
+      for (const x of Array.isArray(m) ? m : [m]) if (x.visible && !this.hidden.has(x)) { x.visible = false; this.hidden.add(x); this.queue.push(x); }
+    });
+  }
+
+  get done(): boolean { return this.queue.length === 0; }
+
+  /** Shows the next `n` materials; returns true once every material is visible again. */
+  step(n = 1): boolean {
+    for (let i = 0; i < n && this.queue.length; i++) { const m = this.queue.shift()!; m.visible = true; this.hidden.delete(m); }
+    if (this.done) reveals.delete(this);
+    return this.done;
+  }
+
+  finish(): void { for (const m of this.queue) m.visible = true; this.queue.length = 0; this.hidden.clear(); reveals.delete(this); }
 }
