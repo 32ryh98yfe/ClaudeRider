@@ -37,7 +37,7 @@ function canopy(parts: THREE.BufferGeometry[], cx: number, cy: number, cz: numbe
 /** Giant forest trunk (≈ 34 m): root flares, moss collars, shelf fungus, a broad canopy that shades the trail. */
 function giantTrunk(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
-  parts.push(part(facet(lathe([[3.6, -3], [3.8, 0], [3.0, 2.5], [2.5, 7], [2.3, 14], [2.1, 22], [1.7, 29], [1.2, 33]], 9)), C.bark, 0, 0, 0, 0, 0.2, 0, 1, 1, 1, 0.1, 3));
+  parts.push(part(facet(lathe([[3.9, -24], [3.6, -3], [3.8, 0], [3.0, 2.5], [2.5, 7], [2.3, 14], [2.1, 22], [1.7, 29], [1.2, 33]], 9)), C.bark, 0, 0, 0, 0, 0.2, 0, 1, 1, 1, 0.1, 3));
   parts.push(...around(6, (i, a) => part(facet(new THREE.BoxGeometry(3.6, 3.2, 1.3)), i % 2 ? C.barkDark : C.bark, Math.cos(a) * 3.6, -0.3, Math.sin(a) * 3.6, 0, -a, -0.35)));
   parts.push(part(blob(3.15, 1, 0.12, 11, 1, 0.35, 1), C.moss, 0, 1.4, 0, 0, 0, 0, 1, 1, 1, 0.12, 5));
   parts.push(part(blob(2.45, 1, 0.1, 12, 1, 0.3, 1), C.mossDeep, 0, 12, 0));
@@ -57,7 +57,7 @@ function forestWall(): THREE.BufferGeometry {
   const rnd = prng(177);
   for (let i = 0; i < 3; i++) {
     const x = (rnd() - 0.5) * 6, z = -7 + i * 7 + (rnd() - 0.5) * 2, h = 24 + rnd() * 8, r = 1.6 + rnd() * 0.8;
-    parts.push(part(facet(lathe([[r * 1.25, -3], [r * 1.3, 0], [r, 3], [r * 0.8, h * 0.6], [r * 0.55, h]], 7)), i === 1 ? C.barkDark : C.bark, x, 0, z, 0, rnd() * 3, 0));
+    parts.push(part(facet(lathe([[r * 1.3, -22], [r * 1.25, -3], [r * 1.3, 0], [r, 3], [r * 0.8, h * 0.6], [r * 0.55, h]], 7)), i === 1 ? C.barkDark : C.bark, x, 0, z, 0, rnd() * 3, 0));
     parts.push(part(blob(6 + rnd() * 2, 0, 0.2, 181 + i, 1.2, 0.6, 1.2), [C.leaf, C.leafDeep, C.leafLight][i]!, x + (rnd() - 0.5) * 3, h + 1, z));
   }
   parts.push(part(blob(3.5, 0, 0.3, 191, 1.8, 0.6, 3), C.leafDeep, 0, 0.8, 0));
@@ -390,6 +390,71 @@ function trunkPillar(): THREE.BufferGeometry {
   ]);
 }
 
+/**
+ * Forest floor for `THEME … terrain=none` tracks (Cascade Slalom): one 900 m disc of mossy ground with painted clearings,
+ * placed once as a landmark at the lowest road level, so elevated boardwalks stand on trestles instead of embankments.
+ */
+function forestFloor(): THREE.BufferGeometry {
+  const g = new THREE.RingGeometry(0.5, 900, 72, 30);
+  g.rotateX(-Math.PI / 2);
+  const p = g.attributes.position as THREE.BufferAttribute;
+  const col = new Float32Array(p.count * 3);
+  const a = new THREE.Color(C.leafDeep), b = new THREE.Color(C.mossDeep), c = new THREE.Color('#5b4a2f'), t = new THREE.Color();
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), z = p.getZ(i);
+    const n = 0.5 + 0.25 * Math.sin(x * 0.013 + Math.cos(z * 0.011) * 2) + 0.25 * Math.sin(z * 0.017 - x * 0.007);
+    t.copy(a).lerp(b, n); if (n > 0.8) t.lerp(c, (n - 0.8) * 2.5);
+    col[i * 3] = t.r; col[i * 3 + 1] = t.g; col[i * 3 + 2] = t.b;
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return g.toNonIndexed();
+}
+/** Boardwalk trestle: two log legs from the forest floor (−24 m) up to the deck edges, with cross braces. */
+function trestle(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  for (const z of [-1.2, 1.2]) parts.push(part(facet(cyl(0.35, 0.45, 25, 6)), C.barkDark, 0, -12.2, z));
+  for (let k = 0; k < 4; k++) parts.push(part(box(0.2, 0.25, 3.4), C.bark, 0, -2 - k * 5.5, 0, (k % 2 ? 1 : -1) * 0.6, 0, 0));
+  parts.push(part(box(1.2, 0.5, 3.2), C.wood, 0, -0.35, 0));
+  return merge(parts);
+}
+/**
+ * Behind-the-waterfall section (centred on the tunnel straight): a rock overhang over the road, the cliff on the
+ * inside, and a curtain of falling water on the outside edge (+X side of the prop is the road's left).
+ */
+function fallsCurtain(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  const rnd = prng(229);
+  const L = 52, H = 16, half = 8.5;
+  parts.push(part(facet(new THREE.BoxGeometry(8, H + 20, L + 8)), C.stoneDark, -(half + 4), H / 2 - 10, 0, 0, 0, 0, 1, 1, 1, 0.08, 19));
+  parts.push(part(facet(new THREE.BoxGeometry(2 * half + 12, 3, L + 4)), C.stone, -3, H - 1.5, 0, 0, 0, 0.04, 1, 1, 1, 0.08, 23));
+  parts.push(part(blob(6, 1, 0.2, 231, 2.2, 0.4, 5), C.moss, -4, H + 0.2, 0));
+  for (let i = 0; i < 14; i++) {
+    const z = -L / 2 + (i + 0.5) * (L / 14);
+    parts.push(part(new THREE.PlaneGeometry(L / 14 + 0.1, H + 12), i % 2 ? hdr('#e6fbff', 1.25) : hdr('#bfeaf2', 1.15), half + 1.2 + rnd() * 0.3, (H - 12) / 2 - 0.5, z, 0, -Math.PI / 2, 0));
+    parts.push(part(new THREE.PlaneGeometry(L / 14 + 0.1, H + 12), i % 2 ? hdr('#e6fbff', 1.2) : hdr('#bfeaf2', 1.1), half + 1.3 + rnd() * 0.3, (H - 12) / 2 - 0.5, z, 0, Math.PI / 2, 0));
+  }
+  for (let i = 0; i < 10; i++) parts.push(part(blob(1.2 + rnd(), 1, 0.3, 233 + i, 1, 0.5, 1), hdr('#f4ffff', 1.2), half + 2 + rnd() * 2, -0.2, -L / 2 + rnd() * L));
+  return merge(parts);
+}
+
+/**
+ * Pendulum-run gate (the swinger fallback: logs hang still): two trunk posts, a crossbeam 9 m up and a log slung on
+ * ropes 3.2 m above the road. Placed centred on the road as a landmark (posts at ±10 m clear a 13 m road).
+ */
+function logArch(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  for (const x of [-10, 10]) {
+    parts.push(part(facet(lathe([[1.0, -2], [1.05, 0], [0.8, 5], [0.75, 9.6]], 8)), C.bark, x, 0, 0, 0, 0, 0, 1, 1, 1, 0.1, 4));
+    parts.push(part(blob(1.6, 1, 0.2, 239 + x, 1, 0.7, 1), C.leaf, x, 10, 0));
+  }
+  parts.push(part(facet(new THREE.CylinderGeometry(0.55, 0.55, 22, 7)), C.barkDark, 0, 9, 0, 0, 0, Math.PI / 2));
+  for (const x of [-3, 3]) parts.push(part(cyl(0.05, 0.05, 5.2, 4), C.rope, x, 6.4, 0));
+  parts.push(part(facet(new THREE.CylinderGeometry(0.7, 0.75, 8, 8)), C.bark, 0, 3.8, 0, 0, 0, Math.PI / 2));
+  parts.push(part(new THREE.CircleGeometry(0.68, 8), C.rings, 4.01, 3.8, 0, 0, Math.PI / 2, 0), part(new THREE.CircleGeometry(0.68, 8), C.rings, -4.01, 3.8, 0, 0, -Math.PI / 2, 0));
+  parts.push(part(blob(0.9, 1, 0.2, 243, 3.4, 0.35, 0.9), C.moss, 0, 4.45, 0));
+  return merge(parts);
+}
+
 // ------------------------------------------------------------------------------------------------ factory table
 const kind = (build: () => THREE.BufferGeometry, material: () => THREE.Material, castShadow = true): PropFactory => {
   let cache: THREE.BufferGeometry | null = null;
@@ -410,6 +475,10 @@ export const CANOPY_PROPS: Record<string, PropFactory> = {
   hollow_log: kind(hollowLog, matte),
   gantry: kind(forestGantry, matte),
   gore_cushion: kind(goreCushion, matte),
+  forest_floor: kind(forestFloor, matte, false),
+  trestle: kind(trestle, matte, false),
+  falls_curtain: kind(fallsCurtain, matte),
+  log_arch: kind(logArch, matte),
   pillar: kind(trunkPillar, matte, false),
   log_rail: kind(logRail, matte),
   bridge_deck: kind(bridgeDeck, matte, false),
