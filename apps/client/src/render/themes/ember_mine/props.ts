@@ -204,6 +204,59 @@ function crystalSpire(): THREE.BufferGeometry {
   return merge(crystalCluster(VIOLET, 9, 16, 5).map((g) => place(g, 0, -2.2, 0)));
 }
 
+/**
+ * Lava lake surface (emissive) and its basalt rim (lit) are two kinds placed by identical PROPS rows: positions match
+ * exactly, and the rim band (0.62–1.45 R) always contains the surface edge for any pair of row scales (0.85–1.15).
+ */
+function lavaLake(r: number, seed: number): THREE.BufferGeometry {
+  const R = rng(seed);
+  const parts = [paint(place(blob(r, seed, 18), 0, 0.12, 0), LAVA)];
+  for (let i = 0; i < 6; i++) parts.push(paint(place(blob(r * (0.08 + R() * 0.1), seed + i + 1), (R() - 0.5) * r, 0.16, (R() - 0.5) * r), '#ffc857'));
+  return merge(parts);
+}
+function lavaRim(r: number, seed: number): THREE.BufferGeometry {
+  const R = rng(seed);
+  const parts: THREE.BufferGeometry[] = [];
+  const n = 16;
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + R() * 0.2, d = r * (1.02 + R() * 0.12);
+    parts.push(paint(place(rock(r * 0.2 + R() * r * 0.06, seed + i, 1), Math.cos(a) * d, -0.3, Math.sin(a) * d, 0, R() * 3, 0, 1.4, 0.55, 1.1), i % 2 ? '#2b2320' : '#3b2f29', 0.1, i));
+  }
+  // basalt skirt from the rim down to the pit floor (the lake may sit several metres above the flattened terrain)
+  parts.push(paint(place(cyl(r * 1.2, r * 1.35, 10, 16), 0, -5.05, 0), '#2b2320', 0.06, seed));
+  return merge(parts);
+}
+
+/** Basalt column between two helix decks (inner edge of the lowest turn, top meets the deck above at +9.3 m). */
+function helixPillar(): THREE.BufferGeometry {
+  return merge([
+    paint(place(cyl(0.95, 1.1, 18.6, 6), 0, 0, 0), BASALT, 0.08, 3),
+    paint(place(cyl(1.25, 1.25, 0.5, 6), 0, 8.9, 0), '#4a3a33'),
+    paint(place(cyl(1.35, 1.5, 0.6, 6), 0, -0.2, 0), '#4a3a33'),
+    glow(paint(place(box(0.08, 3.2, 0.3), 0.9, 2.2, 0, 0, 0, 0.1), LAVA), 2.2),
+  ]);
+}
+
+function obsidianShards(seed: number): THREE.BufferGeometry {
+  const R = rng(seed);
+  const parts: THREE.BufferGeometry[] = [paint(place(rock(1.8, seed, 1, 0.9), 0, -1.0, 0), '#1c1a22')];
+  for (let i = 0; i < 6; i++) {
+    const a = R() * Math.PI * 2, d = R() * 1.4, h = 1.2 + R() * 2.6;
+    parts.push(paint(place(cone(0.35 + R() * 0.25, h, 4), Math.cos(a) * d, h / 2, Math.sin(a) * d, (R() - 0.5) * 0.7, R() * 3, (R() - 0.5) * 0.7), i % 2 ? '#15131a' : '#2a2433'));
+  }
+  return merge(parts);
+}
+
+/** Dormant geyser vent (F5 geysers fall back to static vents): a basalt cone with a glowing mouth. */
+function geyserVent(): THREE.BufferGeometry {
+  return merge([
+    paint(place(cyl(0.9, 2.6, 1.6, 9), 0, 0.3, 0), '#3b2f29', 0.1, 4),
+    paint(place(cyl(2.8, 3.2, 1.6, 9), 0, -1.2, 0), '#2b2320'),
+    glow(paint(place(cyl(0.72, 0.72, 0.12, 9), 0, 1.12, 0), '#ffb347'), 3),
+    glow(paint(place(torus(0.85, 0.12, 4, 12), 0, 1.1, 0, Math.PI / 2, 0, 0), LAVA), 2.4),
+  ]);
+}
+
 export const EMBER_PROPS: Record<string, PropFactory> = {
   timber_arch: { build: () => ({ geometry: timberArch(), material: lit(), castShadow: false }) },
   mine_cart: { build: () => ({ geometry: mineCart(), material: metal(), castShadow: true }) },
@@ -221,5 +274,12 @@ export const EMBER_PROPS: Record<string, PropFactory> = {
   crystal_spire: { build: () => ({ geometry: crystalSpire(), material: MaterialLibrary.emissive(VIOLET, 1.25) }) },
   lava_pool: { build: () => ({ geometry: lavaPool(4), material: MaterialLibrary.emissive(LAVA, 1.6) }) },
   lava_crack: { build: () => ({ geometry: lavaCracks(9), material: MaterialLibrary.emissive(LAVA, 1.8) }) },
+  lava_lake: { build: () => ({ geometry: lavaLake(12, 31), material: MaterialLibrary.emissive(LAVA, 1.6) }) },
+  lava_rim: { build: () => ({ geometry: lavaRim(12, 31), material: lit() }) },
+  // pit-floor lava: surface 4.6 m below the row origin, for rows on decks ~5 m above the flattened terrain
+  lava_pit: { build: () => ({ geometry: place(lavaLake(22, 47), 0, -4.6, 0), material: MaterialLibrary.emissive(LAVA, 1.5) }) },
+  helix_pillar: { build: () => ({ geometry: helixPillar(), material: lit() }) },
+  obsidian: { build: () => ({ geometry: obsidianShards(13), material: MaterialLibrary.vertexLit(0.25, 0.3) }) },
+  geyser_vent: { build: () => ({ geometry: geyserVent(), material: lit() }) },
   gantry: { build: () => ({ geometry: minePortal(), material: lit(), castShadow: false }) },
 };
