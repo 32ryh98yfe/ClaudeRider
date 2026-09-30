@@ -27,9 +27,9 @@ optional `tier` parameter so that "add AI" can choose one:
 
 ## 3. HUD net indicator: done on the client side
 While an online Session runs, `RaceScreen` writes `hudX.net = { pingMs: stats.rttMs, late }` twice a second and clears
-it when the race ends. `late` stays 0 until an ITEM_USE_REJECTED (reason 6) → "late signal (+N ms)" event reaches the
-client. When it does, HudPresenter can set it, and L10 will wire it. Per-kart ping pills in the standings wait on
-PLAYER_RTT from the server (L9 gap).
+it when the race ends. HudPresenter sets `late` for 3 s when an effect on the local kart resolves as `hit_late_input`
+(the v1 late shield). The lateness is estimated as RTT/2, because the event carries no arrival delay; an exact value would
+need one on the event. Per-kart ping pills in the standings wait on PLAYER_RTT from the server (L9 gap).
 
 ## 4. Art override index (ADR-013): still open
 Please serve `/art/overrides/index.json` from the Node server and a Vite dev plugin. When the folder is empty, return

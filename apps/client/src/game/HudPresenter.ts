@@ -265,6 +265,13 @@ export class HudPresenter {
     const itemId = (used ? idOf(ITEM_IDS, used) : undefined) ?? EFFECT_ITEM[e.effect] ?? 'turbo_token';
     const now = performance.now();
     const line: FeedLine = { id: this.feedId++, attacker: this.names[e.source] ?? '?', victim: this.names[e.victim] ?? '?', itemId, result: RESULT[e.result] ?? 'hit', mine: e.source === me || e.victim === me, until: now + 4000 };
+    // v1 late shield (20-netcode-spec §5): my defence reached the authority after the hit. Online only (net is null
+    // offline); the lateness is estimated as one-way latency, and the pill clears after 3 s.
+    const net = hudX.net.value;
+    if (e.result === 'hit_late_input' && e.victim === me && net) {
+      hudX.net.value = { ...net, late: Math.max(1, Math.round(net.pingMs / 2)) };
+      setTimeout(() => { const n = hudX.net.value; if (n) hudX.net.value = { ...n, late: 0 }; }, 3000);
+    }
     if (save.get().settings.itemFeed === false && !line.mine) return;
     hudX.feed.value = [...hudX.feed.value.filter((x) => x.until >= now).slice(-3), line];
     const text = t('hud.feed', { attacker: line.attacker, item: itemName(itemId), victim: line.victim });
