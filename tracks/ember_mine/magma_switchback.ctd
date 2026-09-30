@@ -15,11 +15,11 @@ C R28 540 L dy=-14 bank=12                  @helix
 S 30 dy=-2 w=12                             @under_plateau
 C R45 54 R bank=-5
 S 12
-WIGGLE R28 50/100/50 L                      @north_run
+WIGGLE R28 50/100/50 L wall=rock:1.5:soft      @north_run
 S ?a
-WIGGLE R30 50/100/50 R                      @geyser_field
+WIGGLE R30 50/100/50 R wall=rock:1.5:soft      @geyser_field
 S 24                                        @geyser_gap
-WIGGLE R30 50/100/50 R
+WIGGLE R30 50/100/50 R wall=rock:1.5:soft
 S 15                                        @rail_corner_in
 C R35 120 L bank=6 wallL=rock:0.7 wallR=rock:1.5 @rail_corner
 J ramp=30@8 gap=14 drop=4 land=40 wland=14 vmin=25 vmax=46 w=14 wall=rock:1.5 @lava_jump
@@ -39,8 +39,8 @@ C R30 90 R w=13 bank=-6                     @plateau_return
 CLOSE solve=[?a,?b,?c] length=1850
 LINE start at=40
 # the obsidian ledge: an 8.5 m risk line along the lava channel, cutting the first geyser-field wiggle, open lava edge
-BRANCH ledge from=@geyser_field to=@geyser_gap+22 kind=risk aiMin=0.75 w=8.5 wall=rock:0.6 gore=none surf=obsidian kill=lava {
-  C R50 20 L ; S ?x wallL=none:0:ledgeKill ; C R80 40 R wallL=none:0:ledgeKill ; S ?y wallL=rock:0.6 ; C R50 20 L
+BRANCH ledge from=@geyser_field to=@geyser_gap+22 kind=risk aiMin=0.9 w=8.5 wall=rock:0.6 gore=none surf=obsidian kill=lava {
+  C R50 20 L ; S ?x wallL=none:0:ledgeKill ; C R80 40 R wallL=rock:0.6 ; S ?y wallL=rock:0.6 ; C R50 20 L
 }
 PAD at=@under_plateau d=0 len=6 w=4
 PAD at=@lava_jump+1 d=0 len=6 w=4
