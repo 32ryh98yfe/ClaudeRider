@@ -40,6 +40,10 @@ interface KartVis {
   pose: KartPose; lod: number; hitT: number;
 }
 
+/** Low tier: contiguous chunks merged per slot (≈ 300 m groups). trackc's V20 counts draws with the same value
+ *  (packages/trackc/src/pvs.ts DEFAULT_PVS.merge); change both together. */
+const LOW_MERGE_CHUNKS = 6;
+
 export class RaceRenderer {
   readonly scene = new THREE.Scene();
   readonly director: CameraDirector;
@@ -113,7 +117,7 @@ export class RaceRenderer {
     const fog = this.scene.fog as THREE.Fog;
     fog.far = Math.min(fog.far, ts.far * 0.97); fog.near = Math.min(fog.near, fog.far * 0.6);
     setParticleFog(fog.color, fog.near, fog.far);
-    this.view = buildTrackView(this.vis, this.track, this.kit, { mergeChunks: this.tier === 'low' ? 3 : this.tier === 'medium' ? 2 : 1, propFar: ts.propFar, foliage: ts.foliage });
+    this.view = buildTrackView(this.vis, this.track, this.kit, { mergeChunks: this.tier === 'low' ? LOW_MERGE_CHUNKS : this.tier === 'medium' ? 2 : 1, propFar: ts.propFar, foliage: ts.foliage });
     this.scene.add(this.view.root);
     if (meta.hazards?.length && this.track.hazards.length) {
       this.hazards = new TrackHazards(meta.hazards, this.track, this.kit);

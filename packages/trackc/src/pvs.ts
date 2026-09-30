@@ -4,16 +4,17 @@
 // within `far` and one of its test points (bbox centre and top corners, 1 m above the top) is not blocked by the
 // static scene (terrain, road, walls). It is omnidirectional (look-back works) and conservative (no frustum).
 // The same pass measures V20's worst visible static set for the Low tier (`lowFar`, a 120° forward cone), with LOD0
-// inside `lodNear` and LOD1 beyond, draw calls counted per slot as runs of `merge` contiguous chunks (TrackView).
+// inside `lodNear` and LOD1 beyond, draw calls counted per slot as TrackView's static merge groups (see slotGroups).
 import { DoubleSide, Ray, Vector3 } from 'three';
 import type { MeshBVH } from 'three-mesh-bvh';
 import { sampleAt, type TrackModel } from './paths.ts';
 import type { RenderSlot } from './render.ts';
 
 export interface PvsOptions { step: number; near: number; far: number; lodNear: number; merge: number; fovCos: number; lowFar: number }
-/** far = the High tier's far plane (the bitset serves every tier); V20 counts the Low tier: far 600 m, 3-chunk merges
+/** far = the High tier's far plane (the bitset serves every tier); V20 counts the Low tier: far 600 m, 6-chunk merges
+ *  (must equal TrackView's Low `mergeChunks`, RaceRenderer)
  *  (apps/client quality.ts / RaceRenderer), a 120° cone for the ~100° horizontal FOV plus chunk extents. */
-export const DEFAULT_PVS: PvsOptions = { step: 10, near: 120, far: 1000, lodNear: 150, merge: 3, fovCos: 0.5, lowFar: 600 };
+export const DEFAULT_PVS: PvsOptions = { step: 10, near: 120, far: 1000, lodNear: 150, merge: 6, fovCos: 0.5, lowFar: 600 };
 
 export interface PvsChunk { id: number; bbox: number[]; groups: { slot: number; n: number }[]; tris: number; lod1Tris: number }
 export interface PvsResult {
@@ -35,7 +36,21 @@ export function buildPvs(m: TrackModel, chunks: readonly PvsChunk[], slots: read
     return [(x0 + x1) / 2, y, (z0 + z1) / 2, x0, y, z0, x1, y, z0, x0, y, z1, x1, y, z1];
   });
   // slot → chunk order, for the draw-run count
-  const slotChunks = slots.map((s) => s.chunks.map((c) => c.chunk));
+  // TrackView groups each slot's chunk ranges once, at load: runs of ≤ merge ranges that are contiguous in the index
+  // buffer and of chunk kind 'track' (terrain tiles, plaza and misc chunks stay single). A group is one draw call
+  // whenever any of its chunks is in view, so V20 counts groups, not runs of visible chunks.
+  const kindOf = new Map<number, string>();
+  for (const c of chunks) kindOf.set(c.id, (c as { kind?: string }).kind ?? 'track');
+  const slotGroups: number[][][] = slots.map((sl) => {
+    const groups: number[][] = [];
+    let end = -1, lastKind = '', ids: number[] | null = null;
+    for (const ch of sl.chunks) {
+      const kind = kindOf.get(ch.chunk) ?? 'track';
+      if (ids && sl.material !== 'terrain' && kind === 'track' && lastKind === 'track' && end === ch.i0 && ids.length < o.merge) { ids.push(ch.chunk); end = ch.i0 + ch.n; continue; }
+      ids = [ch.chunk]; groups.push(ids); end = ch.i0 + ch.n; lastKind = kind;
+    }
+    return groups;
+  });
   const worst = { draws: 0, tris: 0, s: 0 };
   const worstBySlot: Record<string, number> = {};
   let visSum = 0;
@@ -79,7 +94,7 @@ export function buildPvs(m: TrackModel, chunks: readonly PvsChunk[], slots: read
     let nVis = 0;
     for (let id = 0; id <= maxId; id++) if (vis[id]) { bits[k * bytes + (id >> 3)]! |= 1 << (id & 7); nVis++; }
     visSum += nVis;
-    // worst visible static set (Low tier): tris by LOD, draws = per-slot runs of ≤ merge contiguous visible chunks
+    // worst visible static set (Low tier): tris by LOD, draws = per-slot merge groups with any chunk in view
     let tris = 0, draws = 0;
     const cam = sampleAt(m.paths[0]!, m.closed ? sMain : sMain + m.lineS);
     for (const c of chunks) if (front[c.id]) {
@@ -88,13 +103,9 @@ export function buildPvs(m: TrackModel, chunks: readonly PvsChunk[], slots: read
       tris += d <= o.lodNear ? c.tris : c.lod1Tris;
     }
     const bySlot: number[] = [];
-    slotChunks.forEach((list, j) => {
-      // TrackView merges runs of `merge` chunks, except terrain tiles (one draw each)
-      const merge = slots[j]!.material === 'terrain' ? 1 : o.merge;
-      let run = 0, n = 0;
-      for (const id of list) {
-        if (front[id]) { if (run === 0) n++; run++; if (run === merge) run = 0; } else run = 0;
-      }
+    slotGroups.forEach((groups) => {
+      let n = 0;
+      for (const g of groups) { for (const id of g) if (front[id]) { n++; break; } }
       bySlot.push(n); draws += n;
     });
     if (draws > worst.draws) {

@@ -1,6 +1,6 @@
 // .vis → render meshes (per slot per ~50 m chunk, shared attributes), instanced props, item boxes.
 // - Chunks are frustum-culled by three (bounding spheres) and beyond the tier's camera far plane; on Low,
-//   contiguous chunks of a slot are merged (150 m) to trade culling granularity for fewer draw calls.
+//   contiguous chunks of a slot are merged (6 chunks ≈ 300 m, matching trackc V20) to trade culling granularity for fewer draw calls.
 // - Props stay one InstancedMesh per kind (1 draw), but the instance list is rebuilt from a frustum + distance
 //   test every few frames, so off-screen and far props cost no triangles (large landmarks keep a longer range).
 // - Material slots resolve exactly (`road`, `wall`, …), then by family (`wall.rock` → wall material of type rock,
