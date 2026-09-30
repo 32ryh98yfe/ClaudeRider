@@ -47,7 +47,9 @@ export function buildTerrainField(m: TrackModel, c: Content, bounds: number[], n
     }
     const natural = baseY - 1.5 + noise(x, z) * amp * Math.min(1, Math.max(0, (best - bestHalf - 10) / 60));
     let y = natural;
-    if (Number.isFinite(best)) {
+    // only near-track points blend towards the decks: beyond 60 m `near` is empty, yRef would stay Infinity and
+    // Infinity·0 made the vertex NaN
+    if (Number.isFinite(best) && best < 60) {
       // reference height: the lowest deck about as near as the nearest one (stacked decks → the lower one)
       let yRef = Infinity, drop = false;
       for (let k = 0; k < near.length; k += 2) {
