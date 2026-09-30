@@ -18,6 +18,7 @@ export function filterChat(s: string): string {
 }
 
 // control, zero-width and bidi-override characters (written as escapes so the source stays plain ASCII)
+// eslint-disable-next-line no-control-regex -- matching control characters is the point
 const CONTROL = new RegExp('[\\u0000-\\u001f\\u007f-\\u009f\\u200b-\\u200f\\u2028-\\u202e\\u2060-\\u2064\\ufeff]', 'g');
 
 /** 1–16 visible characters, no control/bidi characters, not profane. Returns null when invalid. */

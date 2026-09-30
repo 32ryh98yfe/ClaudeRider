@@ -330,7 +330,7 @@ describe('fuzz', () => {
       }
       for (const d of decoders) {
         try { d(b); ok++; } catch (e) {
-          if (!(e instanceof ProtocolError)) throw new Error(`non-protocol error ${String(e)} for ${Array.from(b).join(',')}`);
+          if (!(e instanceof ProtocolError)) throw new Error(`non-protocol error ${String(e)} for ${Array.from(b).join(',')}`, { cause: e });
           threw++;
         }
       }
