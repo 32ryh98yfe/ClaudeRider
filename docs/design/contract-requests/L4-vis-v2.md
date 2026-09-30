@@ -46,4 +46,16 @@ rail, so the HUD can draw shortcuts.
 | `pillar` | support under elevated decks (variant 0–3 = height class, ≈ 6 m each); y is the terrain height |
 | `chevron`, `gantry` | as in M1 (chevrons only where the outside of the corner has a wall) |
 
-Later ladder steps append to this file (kill planes, portals, rails, hazard visuals, LOD1, PVS).
+## 6. F2: kill planes
+`visMeta.killPlanes = [{ id, y, surf: 'lava' | 'water' | 'void', aabb: [x0, z0, x1, z1] }]`; their geometry is already in
+slot `underside:kill_<surf>` (40 m tiles, vertex colour lava-orange / water-blue / void-dark). Jump landings have a
+`wall:cliff` face; ramp ends have an `underside` face.
+
+## 7. F3: plazas and profiles
+`visMeta.areas = [{ id, kind: 'annulus' | 'polygon', y, surf, center, rIn, rOut, from, sweep, obstacles: [{kind, x, z, r, w, d, h, yaw}] }]`.
+Plaza triangles are in `road:<surf>` slots with world-space uv (x/12, z/4) and sit in their own chunk (`kind: 'area'`).
+Obstacles (a tower, pillars) are collision walls and render as `wall:building` panels; dress them with a landmark prop
+(`PROP kind=clock_tower at=…`). Plaza curbs render in the `kerb` slot. Halfpipe slopes are ordinary `road:<surf>`
+triangles with steep normals.
+
+Later ladder steps append to this file (portals, rails, hazard visuals, LOD1, PVS).
