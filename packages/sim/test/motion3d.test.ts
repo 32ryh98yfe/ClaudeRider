@@ -83,6 +83,22 @@ describe('jumps (§10.3, §13.5, V11)', () => {
     expect(k2.race.loc.valid).toBe(1);
   });
 
+  it('a kart too slow for the gap falls in and respawns on the landing side, once (no respawn loop)', () => {
+    const kit = jumpKit(2, true);
+    const rig = racingRig(kit.track);
+    const k = place(rig, 0, { s: kit.lipS - 20, speed: 18 }); // coasts to ≈ 13 m/s at the lip: short of the 14 m gap
+    let placedAt = -1, placedDist = -1, distBefore = 0;
+    runUntil(rig, 900, (_t, ev) => {
+      if (k.race.respawnPhase === 0 && placedAt < 0) distBefore = k.race.raceDist;
+      if (ev.some((e) => e.t === 'respawn' && e.phase === 'in')) { placedAt = k.race.loc.s; placedDist = k.race.raceDist; }
+    }, (_w, inp) => { inp[0]!.throttle = placedAt < 0 ? 0 : 15; });
+    expect(k.stats.respawns).toBe(1);
+    expect(placedAt).toBeGreaterThan(kit.landS0);
+    expect(placedAt).toBeLessThan(kit.landS1);
+    expect(placedDist).toBeGreaterThan(distBefore); // progress moved forward with the kart
+    expect(k.race.loc.s).toBeGreaterThan(kit.landS1); // and it drove on from there
+  });
+
   it('coyote time: 6 ticks after leaving the ground the kart still steers and can start a drift', () => {
     const tryDrift = (after: number): KartState => {
       const kit = jumpKit(2, true);
