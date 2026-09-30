@@ -156,6 +156,23 @@ function pathMeta(m: TrackModel, p: PathModel): CtrkPathMeta {
   return meta;
 }
 
+/** u32 → u16 when every value fits (indices, triangle ids): the loader indexes either type the same way. */
+function narrow(a: Uint32Array, count: number): Uint32Array | Uint16Array { return count <= 65535 ? Uint16Array.from(a) : a; }
+
+/** Octahedral unit-normal encoding, 2 × i16 per normal (y is the pole, so upward normals stay most precise).
+ *  Stored as u16 = (c + 1)·32767.5 (the container has no i16). BakedTrack decodes with + − × ÷ and sqrt only, so every engine reads identical normals. */
+function octNormals(n: Float64Array): Uint16Array {
+  const out = new Uint16Array((n.length / 3) * 2);
+  for (let i = 0, j = 0; i < n.length; i += 3, j += 2) {
+    const x = n[i]!, y = n[i + 1]!, z = n[i + 2]!;
+    const l1 = Math.abs(x) + Math.abs(y) + Math.abs(z) || 1;
+    let u = x / l1, v = z / l1;
+    if (y < 0) { const u2 = (1 - Math.abs(v)) * (u >= 0 ? 1 : -1), v2 = (1 - Math.abs(u)) * (v >= 0 ? 1 : -1); u = u2; v = v2; }
+    out[j] = Math.round((Math.max(-1, Math.min(1, u)) + 1) * 32767.5); out[j + 1] = Math.round((Math.max(-1, Math.min(1, v)) + 1) * 32767.5);
+  }
+  return out;
+}
+
 function f32(a: ArrayLike<number>): TypedArray {
   return Float32Array.from(a);
 }
@@ -271,10 +288,10 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   const arrays: [string, TypedArray][] = [];
   m.paths.forEach((p, k) => arrays.push(...pathArrays(p, k, m)));
   arrays.push(
-    ['g.pos', f32(gPos)], ['g.nrm', f32(gW.nrm)], ['g.idx', gIdx], ['g.surf', gW.triSurf], ['g.flg', gW.triFlg],
-    ['g.hd', Float64Array.from([gh.ox, gh.oy, gh.oz, gh.nx, gh.ny, gh.nz])], ['g.hk', gh.keys], ['g.hs', gh.starts], ['g.ht', gh.tris],
-    ['w.pos', f32(wPos)], ['w.idx', wIdx], ['w.flg', wFlg],
-    ['w.hd', Float64Array.from([wh.ox, wh.oy, wh.oz, wh.nx, wh.ny, wh.nz])], ['w.hk', wh.keys], ['w.hs', wh.starts], ['w.ht', wh.tris],
+    ['g.pos', f32(gPos)], ['g.noct', octNormals(gW.nrm)], ['g.idx', narrow(gIdx, gPos.length / 3)], ['g.surf', gW.triSurf], ['g.flg', gW.triFlg],
+    ['g.hd', Float64Array.from([gh.ox, gh.oy, gh.oz, gh.nx, gh.ny, gh.nz])], ['g.hk', gh.keys], ['g.hs', gh.starts], ['g.ht', narrow(gh.tris, gIdx.length / 3)],
+    ['w.pos', f32(wPos)], ['w.idx', narrow(wIdx, wPos.length / 3)], ['w.flg', wFlg],
+    ['w.hd', Float64Array.from([wh.ox, wh.oy, wh.oz, wh.nx, wh.ny, wh.nz])], ['w.hk', wh.keys], ['w.hs', wh.starts], ['w.ht', narrow(wh.tris, wIdx.length / 3)],
   );
   // pass 1 → load → respawn tables → final bytes (the hash covers everything but itself)
   const pass1 = loadCtrk(toArrayBuffer(writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays)));

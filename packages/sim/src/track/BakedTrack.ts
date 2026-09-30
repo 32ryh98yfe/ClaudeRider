@@ -69,6 +69,19 @@ export interface BakedTrack {
 
 interface PathData { meta: CtrkPathMeta; smp: Float64Array; flg: Uint16Array; ai: Float64Array | null; grav: Float64Array | null; rok: Uint8Array | null; lineS: number }
 
+/** Octahedral normals (2 × u16 = (c + 1)·32767.5, y = pole) → unit f64 xyz; arithmetic + sqrt only (deterministic). */
+function decodeOct(e: Uint16Array): Float64Array {
+  const out = new Float64Array((e.length / 2) * 3);
+  for (let i = 0, j = 0; i < e.length; i += 2, j += 3) {
+    let u = e[i]! / 32767.5 - 1, v = e[i + 1]! / 32767.5 - 1;
+    const y = 1 - (u < 0 ? -u : u) - (v < 0 ? -v : v);
+    if (y < 0) { const u2 = (1 - (v < 0 ? -v : v)) * (u >= 0 ? 1 : -1), v2 = (1 - (u < 0 ? -u : u)) * (v >= 0 ? 1 : -1); u = u2; v = v2; }
+    const l = Math.sqrt(u * u + y * y + v * v) || 1;
+    out[j] = u / l; out[j + 1] = y / l; out[j + 2] = v / l;
+  }
+  return out;
+}
+
 /** f32 arrays (v2 files) are widened once; f64 arrays (v1 files) are used zero-copy. */
 function f64(a: TypedArray | undefined): Float64Array | null {
   if (!a) return null;
@@ -93,8 +106,8 @@ class BakedTrackImpl implements BakedTrack {
   readonly pads: PadBaked[]; readonly keyGates: number[]; readonly hazards: HazardDefBaked[]; readonly zones: ZoneBaked[];
   readonly rails: RailBaked[]; readonly warps: WarpBaked[]; readonly jumps: JumpBaked[]; readonly killY: number;
   private paths: PathData[];
-  private gPos: Float64Array; private gNrm: Float64Array; private gIdx: Uint32Array; private gSurf: Uint8Array; private gFlg: Uint8Array; private gHash: TriHashData;
-  private wPos: Float64Array; private wIdx: Uint32Array; private wFlg: Uint8Array; private wHash: TriHashData;
+  private gPos: Float64Array; private gNrm: Float64Array; private gIdx: Uint32Array | Uint16Array; private gSurf: Uint8Array; private gFlg: Uint8Array; private gHash: TriHashData;
+  private wPos: Float64Array; private wIdx: Uint32Array | Uint16Array; private wFlg: Uint8Array; private wHash: TriHashData;
   private seen: Int32Array = new Int32Array(256);
   private tmpFrame: FrameSample = { px: 0, py: 0, pz: 0, tx: 0, ty: 0, tz: 0, rx: 0, ry: 0, rz: 0, ux: 0, uy: 0, uz: 0, wL: 0, wR: 0, sMain: 0, flags: 0 };
   private cand: TrackLoc = { path: 0, i: 0, s: 0, u: 0, h: 0, sMain: 0, valid: 0 };
@@ -111,10 +124,10 @@ class BakedTrackImpl implements BakedTrack {
       meta: pm, smp: f64(A.get(`p${k}.smp`))!, flg: A.get(`p${k}.flg`) as Uint16Array, ai: f64(A.get(`p${k}.ai`)),
       grav: f64(A.get(`p${k}.grav`)), rok: (A.get(`p${k}.rok`) as Uint8Array | undefined) ?? null, lineS: pm.lineS ?? 0,
     }));
-    this.gPos = f64(A.get('g.pos'))!; this.gNrm = f64(A.get('g.nrm'))!; this.gIdx = A.get('g.idx') as Uint32Array;
+    this.gPos = f64(A.get('g.pos'))!; this.gNrm = A.has('g.noct') ? decodeOct(A.get('g.noct') as Uint16Array) : f64(A.get('g.nrm'))!; this.gIdx = A.get('g.idx') as Uint32Array | Uint16Array;
     this.gSurf = A.get('g.surf') as Uint8Array; this.gFlg = A.get('g.flg') as Uint8Array;
     this.gHash = hashFrom(A, 'g', m.hashCells, A.get('g.hd') as Float64Array);
-    this.wPos = f64(A.get('w.pos'))!; this.wIdx = A.get('w.idx') as Uint32Array; this.wFlg = A.get('w.flg') as Uint8Array;
+    this.wPos = f64(A.get('w.pos'))!; this.wIdx = A.get('w.idx') as Uint32Array | Uint16Array; this.wFlg = A.get('w.flg') as Uint8Array;
     this.wHash = hashFrom(A, 'w', m.hashCells, A.get('w.hd') as Float64Array);
   }
 
