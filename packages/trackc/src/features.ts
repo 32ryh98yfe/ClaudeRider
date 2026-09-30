@@ -98,12 +98,29 @@ export function buildFeatures(m: TrackModel, c: Content, rows: Map<number, numbe
       }
     }
   }
-  // ---- KILL planes: collision strips along every path wherever the road stands > 2 m above the plane
+  // ---- KILL planes: collision strips under the spans a kart can actually fall from — open edges (no wall), jump
+  // gaps, warps and kill spans, ±20 m — wherever the road stands > 2 m above the plane. Under fully walled road a
+  // strip only fed the TriHash (≈ 600 KB on a 3.9 km track); a kart thrown over a wall there still dies at killY.
+  const MARGIN = 20;
   for (const kp of c.killPlanes) {
     for (const p of m.paths) {
       if (p.kind === 'rail') continue;
       const step = 6;
+      const open: number[] = [];
+      for (const q of p.samples) if (q.wallL.type === 'none' || q.wallR.type === 'none' || q.jumpPart === 2 || q.warp || q.kill) open.push(q.s);
+      if (!open.length) continue;
+      const near = (s0: number, s1: number): boolean => {
+        // binary search the sorted open samples for one within [s0 − MARGIN, s1 + MARGIN] (wrapping on circuits)
+        const hit = (lo: number, hi: number): boolean => {
+          let a = 0, b = open.length;
+          while (a < b) { const mid = (a + b) >> 1; if (open[mid]! < lo) a = mid + 1; else b = mid; }
+          return a < open.length && open[a]! <= hi;
+        };
+        if (hit(s0 - MARGIN, s1 + MARGIN)) return true;
+        return p.closed && (hit(s0 - MARGIN + p.length, s1 + MARGIN + p.length) || hit(s0 - MARGIN - p.length, s1 + MARGIN - p.length));
+      };
       for (let s = 0; s < p.length - 1e-6; s += step) {
+        if (!near(s, s + step)) continue;
         const a = sampleAt(p, s), b = sampleAt(p, Math.min(p.length, s + step));
         if (a.y < kp.y + 2 || b.y < kp.y + 2) continue;
         const inBox = (x: number, z: number): boolean => !kp.aabb || (x >= kp.aabb[0] && x <= kp.aabb[2] && z >= kp.aabb[1] && z <= kp.aabb[3]);
