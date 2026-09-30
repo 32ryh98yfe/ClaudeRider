@@ -68,7 +68,8 @@ const KIND_DEFAULTS: Record<SkyKind, Partial<EnvLook> & { elev: number; hemiK: n
   overcast: { elev: 45, hemiK: 1.5, sunK: 0.35, sunColor: '#eef2f7', top: '#9fb0c2', bottom: '#dfe6ee', horizon: '#eef2f6', exposure: 1.05, envIntensity: 0.7, rimBoost: 1.1 },
   night: { elev: 38, hemiK: 0.55, sunK: 0.28, sunColor: '#a8c0ff', top: '#070818', bottom: '#2a2450', horizon: '#3a3570', exposure: 1.15, envIntensity: 0.35, rimBoost: 1.9 },
   aurora: { elev: 42, hemiK: 0.55, sunK: 0.3, sunColor: '#b8d4ff', top: '#040a1c', bottom: '#12305a', horizon: '#1e4a6e', exposure: 1.15, envIntensity: 0.35, rimBoost: 1.9 },
-  underground: { elev: 80, hemiK: 0.8, sunK: 0.0, sunColor: '#ffb070', top: '#0d0a09', bottom: '#2a1a14', horizon: '#3a2418', exposure: 1.2, envIntensity: 0.25, rimBoost: 1.7 },
+  // a weak overhead key (work lamps) keeps road relief and kart shapes readable under the vault
+  underground: { elev: 80, hemiK: 1.0, sunK: 0.3, sunColor: '#ffb070', top: '#0d0a09', bottom: '#2a1a14', horizon: '#3a2418', exposure: 1.2, envIntensity: 0.25, rimBoost: 1.7 },
   space: { elev: 35, hemiK: 0.45, sunK: 1.05, sunColor: '#ffffff', top: '#02030a', bottom: '#0b1026', horizon: '#18204a', exposure: 1.05, envIntensity: 0.4, rimBoost: 1.6 },
 };
 

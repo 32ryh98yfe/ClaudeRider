@@ -16,7 +16,7 @@ export default defineItemVfx({
   key: 'item.top1_missile',
   projectile() {
     const p = makeProxy(parts(), 'top1_missile');
-    const num = new THREE.Mesh(plate(), MaterialLibrary.emissiveVertex(3.5));
+    const num = new THREE.Mesh(plate(), MaterialLibrary.emissiveVertex(3));
     num.position.set(0, 0.24, 0); num.rotation.x = -Math.PI / 2; p.root.add(num);
     return { root: p.root, update(v) { orient(p.root, v as never); } };
   },

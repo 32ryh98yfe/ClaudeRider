@@ -14,10 +14,12 @@ export interface StatusFlags {
   shield: boolean; halo: boolean; trapBomb: boolean; trapBug: boolean; spin: boolean; stun: boolean; slow: boolean;
   throttle: number; mirror: boolean; lock: boolean; pulse: boolean; overclock: boolean; airborne: boolean;
   tetherFrom: number; slingshot: boolean; escape: boolean; lens: boolean;
+  /** Ticks until the nearest committed-but-unresolved hit lands on this kart (0 = none): drives the warning ring. */
+  incoming: number;
 }
 export function clearFlags(f: StatusFlags): void {
   f.shield = f.halo = f.trapBomb = f.trapBug = f.spin = f.stun = f.slow = f.mirror = f.lock = f.pulse = f.overclock = f.airborne = f.slingshot = f.escape = f.lens = false;
-  f.throttle = 0; f.tetherFrom = -1;
+  f.throttle = 0; f.tetherFrom = -1; f.incoming = 0;
 }
 export function newFlags(): StatusFlags { const f = {} as StatusFlags; clearFlags(f); return f; }
 
@@ -45,7 +47,7 @@ export function applyEffect(f: StatusFlags, code: number, source: number): void 
   }
 }
 
-const COL = { shield: new THREE.Color('#7DE2FC'), bomb: new THREE.Color('#FFC857'), bug: new THREE.Color('#7BD88F'), beam: new THREE.Color('#ff5a5a'), pulse: new THREE.Color('#A6FFCB') };
+const COL = { warn: new THREE.Color('#E5484D'), shield: new THREE.Color('#7DE2FC'), bomb: new THREE.Color('#FFC857'), bug: new THREE.Color('#7BD88F'), beam: new THREE.Color('#ff5a5a'), pulse: new THREE.Color('#A6FFCB') };
 const ARC: SpawnOpts = { shape: 1, additive: true, size0: 0.05, size1: 0.02, gravity: 0, drag: 6, stretch: 0.06, emissive: 3.2 };
 const GREY: SpawnOpts = { shape: 5, additive: false, size0: 0.3, size1: 1.2, gravity: 0.6, drag: 2, alpha: 0.4 };
 const SPARKLE: SpawnOpts = { shape: 2, additive: true, size0: 0.22, size1: 0.06, gravity: 0, drag: 4, emissive: 2.4, spin: 5 };
@@ -77,7 +79,7 @@ export class StatusRig {
     if (p) return p;
     const g = geos();
     const bubble = (c: THREE.Color, r: number): THREE.Mesh => { const m = new THREE.Mesh(g.bubble!, MaterialLibrary.bubble('#7DE2FC', true)); m.userData['fxColor'] = c; m.scale.setScalar(r); m.position.y = 0.7; return m; };
-    const glow = (geo: THREE.BufferGeometry): THREE.Mesh => new THREE.Mesh(geo, MaterialLibrary.emissiveVertex(3.2));
+    const glow = (geo: THREE.BufferGeometry): THREE.Mesh => new THREE.Mesh(geo, MaterialLibrary.emissiveVertex(3));
     switch (key) {
       case 'shield': p = bubble(COL.shield, 1.45); break;
       case 'trapBomb': case 'trapBug': {
@@ -88,11 +90,12 @@ export class StatusRig {
         p = grp; break;
       }
       case 'halo': p = glow(g.halo!); p.position.y = 1.55; break;
-      case 'lock': { const grp = new THREE.Group(); grp.add(new THREE.Mesh(g.lockLit!, MaterialLibrary.vertexLit(0.35, 0.6)), glow(g.lockGlow!)); grp.position.y = 1.9; p = grp; break; }
+      case 'lock': { const grp = new THREE.Group(); grp.add(new THREE.Mesh(g.lockLit!, MaterialLibrary.vertexLit(0.5, 0.2)), glow(g.lockGlow!)); grp.position.y = 1.9; p = grp; break; }
       case 'mirror': p = glow(g.mirror!); p.position.y = 2.0; break;
       case 'stars': { const grp = new THREE.Group(); for (let i = 0; i < 4; i++) grp.add(glow(g.star!)); grp.position.y = 1.35; p = grp; break; }
       case 'beam': { const m = new THREE.Mesh(g.beam!, MaterialLibrary.bubble('#7DE2FC', true)); m.userData['fxColor'] = COL.beam.clone(); m.scale.set(1.6, 7, 1.6); m.position.y = 7.5; p = m; break; }
       case 'pulse': { const m = new THREE.Mesh(g.ring!, MaterialLibrary.bubble('#7DE2FC', false)); m.userData['fxColor'] = COL.pulse; m.position.y = 0.3; p = m; break; }
+      case 'warn': { const m = new THREE.Mesh(g.ring!, MaterialLibrary.bubble('#7DE2FC', false)); m.userData['fxColor'] = COL.warn.clone(); m.position.y = 0.12; p = m; break; }
       default: p = new THREE.Group();
     }
     p.visible = false;
@@ -100,6 +103,9 @@ export class StatusRig {
     this.parts.set(key, p);
     return p;
   }
+
+  /** Builds every part once (hidden) so their shaders compile behind the loading screen. */
+  prewarm(): void { for (const k of ['shield', 'trapBomb', 'trapBug', 'halo', 'lock', 'mirror', 'stars', 'beam', 'pulse', 'warn']) this.part(k); }
 
   private show(key: string, on: boolean): THREE.Object3D | null {
     if (!on) { const p = this.parts.get(key); if (p) p.visible = false; return null; }
@@ -132,6 +138,14 @@ export class StatusRig {
     const b = this.show('beam', f.throttle > 0);
     if (b) { (b.userData['fxColor'] as THREE.Color).copy(COL.beam).multiplyScalar(0.6 + 0.4 * Math.min(3, f.throttle)); b.rotation.y = t; }
     const pr = this.show('pulse', f.pulse); if (pr) { pr.scale.setScalar(1 + Math.sin(t * 5) * 0.06); pr.rotation.y = t; }
+    // incoming hit (missile lock, bolt, bomb in flight): a red ground ring that tightens and pulses faster near impact
+    const wr = this.show('warn', f.incoming > 0);
+    if (wr) {
+      const near = 1 - Math.min(1, f.incoming / 90);
+      const beat = 0.5 + 0.5 * Math.sin(t * (6 + 18 * near));
+      wr.scale.setScalar(1.25 - 0.25 * near + beat * 0.08);
+      (wr.userData['fxColor'] as THREE.Color).copy(COL.warn).multiplyScalar(0.6 + 0.9 * beat);
+    }
     // continuous particles
     const x = pose.pos.x, y = pose.pos.y, z = pose.pos.z;
     if (f.stun) {

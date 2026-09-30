@@ -30,6 +30,16 @@ const EMBER = o(Shape.SOFT, true, 0.12, 0.02, 1, 3, { emissive: 1.8 });
 const LAND_DUST = o(Shape.SMOKE, false, 0.4, 2.0, 0.2, 2.6, { alpha: 0.45 });
 
 const C = (h: string): THREE.Color => new THREE.Color(h);
+const CONFETTI_GOLD = ['#FFD23F', '#FFC857', '#FAF9F5', '#D97757'].map(C);
+const CONFETTI_MIX = ['#FAF9F5', '#6A9BCC', '#D97757', '#7BD88F', '#B57CFF'].map(C);
+/** Mascot emote cues (rig `onFx`): palette and particle family per cue name. */
+const EMOTE_FX: Record<string, { cols: THREE.Color[]; kind: 'glow' | 'chips' | 'puff' | 'snow' }> = {
+  confetti: { cols: CONFETTI_MIX, kind: 'chips' }, coins: { cols: ['#FFC857', '#E8A93A', '#FFE29A'].map(C), kind: 'chips' },
+  sparkle: { cols: ['#fff6e0', '#FFD23F'].map(C), kind: 'glow' }, stars: { cols: ['#FFD23F', '#fff1b8'].map(C), kind: 'glow' },
+  hearts: { cols: ['#ff6f91', '#ff9eb5'].map(C), kind: 'glow' }, glitch: { cols: ['#6af0ff', '#ff4fd8', '#b57cff'].map(C), kind: 'glow' },
+  smoke: { cols: ['#9a9590'].map(C), kind: 'puff' }, steam: { cols: ['#f4f4f2'].map(C), kind: 'puff' }, snow: { cols: ['#ffffff', '#dff0ff'].map(C), kind: 'snow' },
+};
+const EMOTE_DEFAULT = EMOTE_FX['sparkle']!;
 /** Drift-spark tiers: white (0–29 ticks), coral #D97757 (30–59), violet #B57CFF (≥ 60 or gauge completed). */
 export const SPARK_TIERS = [C('#fff6e0'), C('#ff8f5e'), C('#b57cff')];
 const SPARK_GLOW = [C('#ffe9b8'), C('#d97757'), C('#9a5cff')];
@@ -267,10 +277,10 @@ export class DrivingFx {
 
   /** Finish confetti from the arch; gold-heavy for a 1st place. */
   confetti(at: THREE.Vector3, gold: boolean, width = 14): void {
-    const cols = gold ? ['#FFD23F', '#FFC857', '#FAF9F5', '#D97757'] : ['#FAF9F5', '#6A9BCC', '#D97757', '#7BD88F', '#B57CFF'];
+    const cols = gold ? CONFETTI_GOLD : CONFETTI_MIX;
     const n = this.smoke.burst(90, 30);
     for (let q = 0; q < n; q++) {
-      const c = C(cols[q % cols.length]!);
+      const c = cols[q % cols.length]!;
       const x = at.x + (Math.random() - 0.5) * width, z = at.z + (Math.random() - 0.5) * 3;
       this.smoke.spawn(x, at.y + 6 + Math.random(), z, (Math.random() - 0.5) * 5, 2 + Math.random() * 5, (Math.random() - 0.5) * 5, 2.4 + Math.random(), c.r, c.g, c.b, CONFETTI);
     }
@@ -286,6 +296,21 @@ export class DrivingFx {
     const m = this.smoke.burst(8, 4);
     for (let q = 0; q < m; q++) this.smoke.spawn(at.x, at.y, at.z, (Math.random() - 0.5) * 6, 2 + Math.random() * 4, (Math.random() - 0.5) * 6, 0.8, 0.98, 0.97, 0.96, { ...CHIP, size0: 0.18, size1: 0.1 });
     this.sparks.spawn(at.x, at.y, at.z, 0, 0, 0, 0.14, 1, 0.8, 0.7, { ...FLASH, size0: 1.2, size1: 2.4 });
+  }
+
+  /** Emote cue from a mascot's `onFx` hook (anchor world position): a small burst above the head. */
+  emoteFx(name: string, at: THREE.Vector3): void {
+    const d = EMOTE_FX[name] ?? EMOTE_DEFAULT;
+    const pool = d.kind === 'glow' ? this.sparks : this.smoke;
+    const n = pool.burst(d.kind === 'glow' ? 14 : 12, 4);
+    for (let q = 0; q < n; q++) {
+      const c = d.cols[q % d.cols.length]!;
+      const a = Math.random() * Math.PI * 2, r = 0.6 + Math.random() * 1.4;
+      const vx = Math.cos(a) * r, vz = Math.sin(a) * r;
+      if (d.kind === 'glow') pool.spawn(at.x, at.y + 0.2, at.z, vx, 1.5 + Math.random() * 2, vz, 0.7, c.r, c.g, c.b, STAR);
+      else if (d.kind === 'chips') pool.spawn(at.x, at.y + 0.3, at.z, vx * 1.5, 2.5 + Math.random() * 2.5, vz * 1.5, 1.2, c.r, c.g, c.b, CONFETTI);
+      else pool.spawn(at.x, at.y + 0.1, at.z, vx * 0.6, 0.6 + Math.random(), vz * 0.6, 1.3, c.r, c.g, c.b, d.kind === 'snow' ? SNOW : SMOKE);
+    }
   }
 
   burstStars(at: THREE.Vector3, n: number, c: THREE.Color, sp: number): void {

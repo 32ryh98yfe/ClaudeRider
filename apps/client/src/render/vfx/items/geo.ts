@@ -67,15 +67,15 @@ export function drone(): ProxyParts {
 }
 
 /** Firewall segment: a stack of bricks (3 × 4), unit width 1.2 m, height 1.6 m; flame strips glow on top. */
-export function firewall(width: number): ProxyParts {
+export function firewall(width: number, height = 1.2, depth = 1.6): ProxyParts {
   const bricks: THREE.BufferGeometry[] = [];
-  const cols = Math.max(2, Math.round(width / 0.9));
-  for (let r = 0; r < 4; r++) for (let c = 0; c < cols; c++) {
+  const cols = Math.max(2, Math.round(width / 0.9)), rows = Math.max(1, Math.round(height / 0.4)), rh = height / rows;
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
     const x = -width / 2 + (c + (r % 2 ? 0.5 : 0.25)) * (width / cols);
-    bricks.push(paint(place(rbox(width / cols - 0.06, 0.36, 0.5, 0.04, 1), x, 0.2 + r * 0.4, 0), r % 2 ? '#b5452f' : '#c9553a', 0.08, 3 + r * 7 + c));
+    bricks.push(paint(place(rbox(width / cols - 0.06, rh - 0.04, depth - 0.06, 0.04, 1), x, rh / 2 + r * rh, 0), r % 2 ? '#b5452f' : '#c9553a', 0.08, 3 + r * 7 + c));
   }
   const flames: THREE.BufferGeometry[] = [];
-  for (let c = 0; c < cols; c++) flames.push(paint(place(cone(0.28, 0.9, 6), -width / 2 + (c + 0.5) * (width / cols), 2.05, 0), c % 2 ? '#ff8a3a' : '#ffd23f'));
+  for (let c = 0; c < cols; c++) flames.push(paint(place(cone(0.28, 0.9, 6), -width / 2 + (c + 0.5) * (width / cols), height + 0.45, 0), c % 2 ? '#ff8a3a' : '#ffd23f'));
   return { lit: merge(bricks), glow: merge(flames) };
 }
 

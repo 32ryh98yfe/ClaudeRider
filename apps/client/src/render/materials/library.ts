@@ -9,7 +9,10 @@ import {
 } from './world.ts';
 import { buildVinyl, buildKartPaint, buildEmissive, buildEmissiveVertex, buildNeon, buildVertexLit, type VinylParams } from './character.ts';
 import { buildFlame, buildFlameShared, buildBubble, buildRingDecal, type FlameUserData } from './fx.ts';
-import { fxUniforms } from './tsl.ts';
+import { fxUniforms, setNoiseQuality } from './tsl.ts';
+import { buildMascotVinyl, buildMascotGlass, buildMascotEyes, buildKartLivery, buildKartOverlay } from './rigs.ts';
+import { registerLocalMaterial, localMaterials, eyeAtlas, EYE_ATLAS } from '../mascot/materials.ts';
+import { kartAtlas } from '../karts/materials.ts';
 
 export type { RoadParams, RoadStyle, WallStyle, WaterParams, FlameUserData, VinylParams };
 export interface MascotPalette { body: THREE.Color; shade: THREE.Color; accent: THREE.Color; detail: THREE.Color; eye: THREE.Color }
@@ -32,6 +35,15 @@ const pk = (k: string): string => `${k}@${profileKey}`;
 function configure(tier: MaterialTier, opts: { triplanar?: boolean } = {}): void {
   profile = { hq: tier !== 'low', triplanar: opts.triplanar ?? (tier === 'high' || tier === 'ultra') };
   profileKey = `${profile.hq ? 'hq' : 'lq'}${profile.triplanar ? '+tri' : ''}`;
+  setNoiseQuality(profile.hq);
+  // Promoted L8 materials (L8-portraits.md §4): L8's getters (mascot/materials.ts, karts/materials.ts) memoise
+  // through registerLocalMaterial, so seeding their keys hands every mascot and kart the library's tier-aware
+  // build. The first configure() wins; the tier is fixed for the lifetime of the Stage's renderer.
+  registerLocalMaterial('mascotVinyl', mascotVinyl);
+  registerLocalMaterial('mascotGlass', mascotGlass);
+  registerLocalMaterial('mascotEyes', mascotEyes);
+  registerLocalMaterial('kartPaint', kartLivery);
+  registerLocalMaterial('kartOverlay', kartOverlay);
 }
 
 /** Stylized world material (low-frequency noise albedo + vertex AO). */
@@ -53,7 +65,7 @@ function killPlane(kind: 'lava' | 'void'): THREE.MeshStandardNodeMaterial { retu
 function startLine(): THREE.MeshStandardNodeMaterial { return memo('startline', buildStartLine); }
 /** Vinyl-toy mascot material: vertex-coloured palette, clearcoat, Fresnel rim. */
 function vinyl(p: VinylParams): THREE.MeshPhysicalNodeMaterial {
-  return memo(keyOf('vinyl', { ...p, tint: p.tint ? p.tint.getHexString() : null }), () => buildVinyl(p));
+  return memo(pk(keyOf('vinyl', { ...p, tint: p.tint ? p.tint.getHexString() : null })), () => buildVinyl(p, profile.hq));
 }
 /**
  * Candy kart paint. Liveries live in vertex colours, so every kart shares one material (the colour argument is
@@ -63,6 +75,13 @@ function kartPaint(p?: string | { livery?: unknown; map?: THREE.Texture }): THRE
   const map = typeof p === 'object' && p?.map ? p.map : null;
   return memo(pk(map ? `kartPaint:${map.uuid}` : 'kartPaint'), () => buildKartPaint(profile.hq, map));
 }
+/** Shared mascot body (vertex palette + `surf` attribute), eyes (atlas decal) and glass. */
+function mascotVinyl(): THREE.MeshStandardNodeMaterial { return memo(pk('mascotVinyl'), () => buildMascotVinyl(profile.hq)); }
+function mascotGlass(): THREE.MeshStandardNodeMaterial { return memo(pk('mascotGlass'), () => buildMascotGlass(profile.hq)); }
+function mascotEyes(): THREE.MeshStandardNodeMaterial { return memo(pk('mascotEyes'), () => buildMascotEyes(eyeAtlas(), EYE_ATLAS, profile.hq)); }
+/** Shared kart body with the 12 livery patterns (attributes `pcol`, `pat`, `surf`) and the transparent decal overlay. */
+function kartLivery(): THREE.MeshStandardNodeMaterial { return memo(pk('kartLivery'), () => buildKartLivery(profile.hq)); }
+function kartOverlay(): THREE.MeshStandardNodeMaterial { return memo(pk('kartOverlay'), () => buildKartOverlay(kartAtlas(), profile.hq)); }
 function emissive(c: string, intensity: number): THREE.MeshBasicNodeMaterial { return memo(keyOf('emissive', [c, intensity]), () => buildEmissive(c, intensity)); }
 function emissiveVertex(intensity = 3): THREE.MeshBasicNodeMaterial { return memo(keyOf('emissiveV', intensity), () => buildEmissiveVertex(intensity)); }
 function neon(c: string, intensity = 4, flicker = 0): THREE.MeshBasicNodeMaterial { return memo(keyOf('neon', [c, intensity, flicker]), () => buildNeon(c, intensity, flicker)); }
@@ -80,13 +99,21 @@ function ringDecal(c: string): THREE.MeshBasicNodeMaterial { return memo(keyOf('
 function custom<T extends THREE.Material>(key: string, make: () => T): T { return memo(`custom:${key}`, make); }
 
 export const boostUniform = uniform(0);
+const counted = new Set<THREE.Material>();
 
 export const MaterialLibrary = {
   configure, world, road, kerb, wall, terrain, water, boostPad, killPlane, startLine, vinyl, kartPaint, emissive, emissiveVertex, neon,
   flame, flameShared, foliage, foliageLit, vertexLit, bubble, ringDecal, custom,
+  mascotVinyl, mascotGlass, mascotEyes, kartLivery, kartOverlay,
   /** Look uniforms shared by all library materials (rim boost, wind, wetness, pulse). */
   uniforms: fxUniforms,
-  count(): number { return cache.size; },
+  /** Library materials plus any still-local L8 ones (the promoted ones are the same objects, counted once). */
+  count(): number {
+    counted.clear();
+    for (const m of cache.values()) counted.add(m);
+    for (const m of localMaterials()) counted.add(m);
+    return counted.size;
+  },
   keys(): string[] { return [...cache.keys()]; },
   get(key: string): THREE.Material | undefined { return cache.get(key); },
   dispose(): void { for (const m of cache.values()) m.dispose(); cache.clear(); },

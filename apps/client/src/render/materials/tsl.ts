@@ -24,14 +24,35 @@ export const fxUniforms = {
   pulse: uniform(1),
 };
 
-/** Noise remapped to 0..1. */
-export const n01 = (p: N): N => mx_noise_float(p).mul(0.5).add(0.5);
+// Noise quality: MaterialX Perlin on Medium+; on Low a compact value noise emitted once per shader as a GLSL
+// function. Shader size dominates compile/link time (SwiftShader spends seconds per Perlin-heavy program).
+let hqNoise = true;
+export function setNoiseQuality(hq: boolean): void { hqNoise = hq; }
+
+const hash3 = Fn(([p]: [N]) => fract(sin(dot(p, vec3(127.1, 311.7, 74.7))).mul(43758.5453)))
+  .setLayout({ name: 'crHash3', type: 'float', inputs: [{ name: 'p', type: 'vec3' }] }) as unknown as (p: N) => N;
+/** Trilinear value noise 0..1 (vec2 inputs are padded with z = 0). */
+export const vnoise = Fn(([p]: [N]) => {
+  const i: N = floor(p), f: N = fract(p);
+  const u: N = f.mul(f).mul(f.mul(-2).add(3));
+  const a = mix(hash3(i), hash3(i.add(vec3(1, 0, 0))), u.x), b = mix(hash3(i.add(vec3(0, 1, 0))), hash3(i.add(vec3(1, 1, 0))), u.x);
+  const c = mix(hash3(i.add(vec3(0, 0, 1))), hash3(i.add(vec3(1, 0, 1))), u.x), d = mix(hash3(i.add(vec3(0, 1, 1))), hash3(i.add(vec3(1, 1, 1))), u.x);
+  return mix(mix(a, b, u.y), mix(c, d, u.y), u.z);
+}).setLayout({ name: 'crValueNoise', type: 'float', inputs: [{ name: 'p', type: 'vec3' }] }) as unknown as (p: N) => N;
+
+/** Noise remapped to 0..1 (Perlin on Medium+, value noise on Low). */
+export const n01 = (p: N): N => (hqNoise ? mx_noise_float(p).mul(0.5).add(0.5) : vnoise(p));
 
 /** Two-octave value noise, 0..1 (cheaper than mx_fractal_noise_float with 3+ octaves). */
 export const fbm2 = (p: N): N => n01(p).mul(0.65).add(n01(p.mul(2.13).add(17.3)).mul(0.35));
 
 /** Cellular edges (0 at cell borders → 1 inside), for cracks, stones and scales. */
 export const cellEdges = (p: N, width: number): N => {
+  if (!hqNoise) {
+    // Low: distance to one jittered point per cell (no neighbour search) — blockier, a fraction of the code
+    const q = vec3(p), c = floor(q), j = vec3(hash3(c), hash3(c.add(7.7)), hash3(c.add(3.1))).mul(0.6).add(0.2);
+    return smoothstep(0, width, fract(q).sub(j).length().mul(0.9));
+  }
   const d = mx_worley_noise_float(p);
   return smoothstep(0, width, d);
 };
