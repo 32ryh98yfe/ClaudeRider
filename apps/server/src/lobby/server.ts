@@ -208,8 +208,8 @@ export class GameServer {
     const r = s.room;
     if (r) {
       if (r.race && r.race.humans.has(s.id)) {
-        r.race.attach(s.id, mux);
         this.sendRaceStart(r, s);
+        r.race.attach(s.id, mux);
       }
       if (r.kind === 'custom') this.broadcastRoom(r); else this.sendQueue(r);
     }
@@ -501,7 +501,8 @@ export class GameServer {
     r.race = host;
     r.phase = 'loading';
     r.deadline = 0;
-    for (const s of humans) { if (s.mux) host.attach(s.id, s.mux); this.sendRaceStart(r, s); }
+    // raceStart first: the client opens its race channel on it, so the catch-up relay that attach() sends is kept
+    for (const s of humans) { this.sendRaceStart(r, s); if (s.mux) host.attach(s.id, s.mux); }
     if (r.kind === 'custom') this.broadcastRoom(r);
     this.log(`race ${host.raceId} loading ${trackId} (${humans.length} humans) room ${r.code || r.queueKey}`);
   }
