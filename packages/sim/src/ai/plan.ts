@@ -47,6 +47,8 @@ export interface PathPlan {
   readonly forks: readonly Fork[];
   /** Where branches rejoin this path (host s, side the branch arrives from). */
   readonly merges: readonly { at: number; side: -1 | 1 }[];
+  /** Warp gates on this path (entry s, lateral window, where they lead). */
+  readonly warps: readonly WarpPlan[];
   /** Jumps on this path, sorted by lip s. */
   readonly jumps: readonly JumpPlan[];
   /** Safe lateral limit per side (m, positive): the paved half-width minus a margin that is larger where the
@@ -58,6 +60,9 @@ export interface PathPlan {
   readonly RMF: Uint8Array;
 }
 
+/** A warp gate (14-ai §4.6): cross `at` with u inside [u0, u1] to be carried to exitPath/exitS. */
+export interface WarpPlan { id: number; at: number; u0: number; u1: number; exitPath: number; exitS: number; mandatory: boolean }
+
 /** A jump as the AI needs it: lip position and the validated lip-speed window (14-ai §4.2). */
 export interface JumpPlan { lipS: number; rampS: number; landS1: number; vMin: number; vMax: number }
 
@@ -66,7 +71,9 @@ export interface Fork {
   id: number;          // index into TrackPlan.forks (per-bot decisions are kept by id)
   path: number; at: number; to: number; toS: number;
   aiMinSkill: number;
-  kind: 'shortcut' | 'risk' | 'alt';
+  kind: 'shortcut' | 'risk' | 'alt' | 'rail';
+  /** Rail capture speed (rails only). */
+  vMin: number;
   /** Side of the host road the branch leaves from (−1 left, +1 right). */
   side: -1 | 1;
 }
@@ -135,7 +142,7 @@ function buildPlan(track: BakedTrack): TrackPlan {
     paths.push({
       index: pi, n, ds, length: L, closed, X, Y, H, TX, TY, HW, WALL, LINE, KAP, VLIM, T40,
       LK: new Float64Array(n), LINEW: new Float64Array(n).fill(1), KEFF: new Float64Array(n), STRAIGHT: new Float64Array(n), CORNER: new Int16Array(n).fill(-1), corners: [],
-      next: null, forks: [], merges: [], jumps: [],
+      next: null, forks: [], merges: [], warps: [], jumps: [],
       LIM_L: new Float64Array(n), LIM_R: new Float64Array(n), LEDGE: new Uint8Array(n), PIPE: new Uint8Array(n), RMF: widenAhead(RMFS, closed, Math.round(40 / ds)),
     });
   }
@@ -149,6 +156,10 @@ function buildPlan(track: BakedTrack): TrackPlan {
     (pp as { jumps: readonly JumpPlan[] }).jumps = track.jumps.filter((j) => j.path === pp.index)
       .map((j) => ({ lipS: j.lipS, rampS: j.rampS ?? j.lipS - 20, landS1: j.landS1, vMin: j.vMin, vMax: j.vMax }))
       .sort((a, b) => a.lipS - b.lipS);
+    (pp as { warps: readonly WarpPlan[] }).warps = track.warps.map((wp, id) => ({ id, at: wp.s, u0: wp.u0, u1: wp.u1, exitPath: wp.exitPath, exitS: wp.exitS, mandatory: wp.u1 - wp.u0 >= 2 * pp.HW[Math.min(pp.n - 1, Math.round(wp.s / pp.ds))]! - 0.5 }))
+      .filter((_, id) => track.warps[id]!.path === pp.index).sort((a, b) => a.at - b.at);
+    // rails are guide curves above the ground: no ledge logic on them
+    if (track.path(pp.index).kind === 'rail') { (pp.LEDGE as Uint8Array).fill(0); continue; }
     probeEdges(track, pp);
   }
   return { paths, forks, zonesPerLap: zones, bakedLine: anyLine, gripCache: new Map() };
@@ -359,14 +370,16 @@ function linkRoutes(track: BakedTrack, paths: PathPlan[]): Fork[] {
       const to = paths[ln.to];
       if (!to || ln.to === pp.index) continue;
       const tm = track.path(ln.to);
-      if (ln.kind === 'split' && tm.kind !== 'rail' && ln.toS < 1 && (tm.hostFrom === undefined || Math.abs(tm.hostFrom - ln.at) < 2)) {
+      const railIn = ln.kind === 'railIn' && tm.kind === 'rail';
+      if ((ln.kind === 'split' && tm.kind !== 'rail' || railIn) && ln.toS < 1 && (tm.hostFrom === undefined || Math.abs(tm.hostFrom - ln.at) < 2)) {
         // which side the branch leaves on: its centre 15 m in, measured in the host frame 15 m past the split
         const hi = Math.min(pp.n - 1, Math.round((ln.at + 15) / pp.ds) % pp.n), bi = Math.min(to.n - 1, Math.round((ln.toS + 15) / to.ds));
         const side = (to.X[bi]! - pp.X[hi]!) * pp.TY[hi]! - (to.Y[bi]! - pp.Y[hi]!) * pp.TX[hi]! >= 0 ? 1 : -1;
-        const f: Fork = { id: forks.length, path: pp.index, at: ln.at, to: ln.to, toS: ln.toS, aiMinSkill: tm.aiMinSkill ?? 0, kind: tm.branchKind ?? 'shortcut', side };
+        const rail = railIn ? track.rails.find((r) => r.path === ln.to) : undefined;
+        const f: Fork = { id: forks.length, path: pp.index, at: ln.at, to: ln.to, toS: ln.toS, aiMinSkill: tm.aiMinSkill ?? 0, kind: railIn ? 'rail' : tm.branchKind ?? 'shortcut', vMin: rail?.vMin ?? 0, side };
         forks.push(f); pf.push(f);
       }
-      if (ln.kind === 'merge' && !pp.closed && ln.at >= pp.length - 2) (pp as { next: PathPlan['next'] }).next = { path: ln.to, s: ln.toS, at: ln.at };
+      if ((ln.kind === 'merge' || ln.kind === 'railOut') && !pp.closed && ln.at >= pp.length - 2) (pp as { next: PathPlan['next'] }).next = { path: ln.to, s: ln.toS, at: ln.at };
       if (ln.kind === 'merge' && tm.kind !== 'rail' && ln.toS >= to.length - 2) {
         // host side of a merge: the branch end arrives from this side (measured 15 m before the merge)
         const hi = ((Math.round((ln.at - 15) / pp.ds) % pp.n) + pp.n) % pp.n, bi = Math.max(0, Math.round((ln.toS - 15) / to.ds));

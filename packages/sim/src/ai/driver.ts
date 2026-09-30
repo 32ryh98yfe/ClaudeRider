@@ -7,7 +7,7 @@
 import type { ContentTables } from '@cr/content';
 import type { InputFrame } from '../core/input.ts';
 import { Held, Edge } from '../core/input.ts';
-import { Phase, type KartState, type WorldState } from '../core/state.ts';
+import { Attach, Phase, type KartState, type WorldState } from '../core/state.ts';
 import { DT } from '../core/units.ts';
 import type { BakedTrack } from '../track/BakedTrack.ts';
 import { gripGain, paramsFor, type KartParams } from '../kart/params.ts';
@@ -27,6 +27,7 @@ import { EF } from '../items/codes.ts';
 const REDACTION_BIT = 1 << (EF.redaction - 1);
 
 const DEG = Math.PI / 180;
+const RAIL_INTENT: Readonly<Record<string, number>> = { rookie: 0.3, racer: 0.6, pro: 1, legend: 1 };
 /** A split this far behind the kart's located s still counts as taken (the sim relocates onto the branch late). */
 const FORK_GRACE = 40;
 /** Branch ends converge into the host over this many metres; queries there resolve onto the host. */
@@ -103,7 +104,9 @@ class BotDriver implements AiDriverEx {
   private readonly forkTake: Uint8Array;
   private readonly forkLap: Int32Array;
   private routePath = -1; private routeS0 = 0.5; private onRiskBranch = false;
-  private forkNear = 0; private forkTakeNear = false; private forkNoDrift = false; private mergeSide = 0;
+  private forkNear = 0; private forkTakeNear = false; private forkNoDrift = false; private mergeSide = 0; private forkNearRailVMin = 0;
+  private readonly warpTake: Uint8Array; private readonly warpLap: Int32Array;
+  private warpNear = false; private warpU0 = 0.5; private warpU1 = 0.5; private warpDist = 0.5;
   private P: KartParams | null = null;
   private grip: Float64Array[] | null = null;
 
@@ -168,6 +171,7 @@ class BotDriver implements AiDriverEx {
     this.brain = args.cfg && !ghost ? createItemBrain(slot, this.profile, { itemHoarding: pers.itemHoarding, aggression: pers.aggression }, mixSeed(seed, slot, 0x49544d32)) : null;
     this.wantBoxes = this.item !== null || args.mode === 'item' || args.cfg?.mode === 'item';
     this.forkTake = new Uint8Array(this.plan.forks.length);
+    this.warpTake = new Uint8Array(track.warps.length); this.warpLap = new Int32Array(track.warps.length).fill(-999);
     this.forkLap = new Int32Array(this.plan.forks.length).fill(-999);
     this.startOffset = args.startOffsetTicks ?? NaN;
     this.laneOff = 0; this.laneTarget = 0; this.noise = 0; this.laneTtc = Infinity; this.laneClosing = 0;
@@ -251,6 +255,13 @@ class BotDriver implements AiDriverEx {
       if (w.phase < Phase.RACING || applyTick < this.pressAt) { this.commit(out); return; }
     }
     if (w.phase === Phase.DONE) { this.commit(out); return; }
+    if (k.body.attachKind !== Attach.NONE) {
+      // on a rail or inside a warp the kart is kinematic: hold the throttle, wheel straight, no drift
+      this.rec.reset(); this.tapLeft = 0; this.predDrifting = false; this.holdExtra = 0;
+      out.throttle = 15;
+      this.commit(out);
+      return;
+    }
     if (k.race.respawnPhase !== 0) {
       // inputs are ignored while respawning; hold throttle so the kart launches the moment control returns
       this.rec.reset(); this.cCorner = -2; this.holdExtra = 0; this.tapLeft = 0; this.predDrifting = false;
@@ -405,6 +416,11 @@ class BotDriver implements AiDriverEx {
       if (this.forkTakeNear) { if (off * sd < 0.6 * usable) off = sd * 0.6 * usable; }
       else if (off * sd > -0.25 * usable) off = -sd * 0.25 * usable;
     }
+    if (this.warpNear) {
+      // aim for the middle of the warp window from 50 m out
+      const mid = 0.5 * (this.warpU0 + this.warpU1), half = Math.max(0.2, 0.5 * (this.warpU1 - this.warpU0) - 0.9);
+      if (this.warpDist < 50) { off = mid + Math.max(-half, Math.min(half, off - mid) * 0.3); }
+    }
     if (ledgeHere || (ledge !== 0)) {
       // hold the line: damp lateral drift and respect the edge limits where the kart is, not only at the target
       off -= vU * 0.3;
@@ -434,7 +450,7 @@ class BotDriver implements AiDriverEx {
       if (this.tapLeft > 0) {
         // entry tap whose drift the model did not see start (speed or lock): finish the tap anyway
         drift = true; steer = this.tapDir; this.tapLeft--;
-      } else if (planDrift && !jumpNear && !narrowLedge && !this.forkNoDrift) {
+      } else if (planDrift && !jumpNear && !narrowLedge && !this.forkNoDrift && !this.warpNear) {
         // drift trigger (14-ai §3.4) with the plan's timing
         let lead = v * A.tLead * Math.max(0.3, Math.min(1, A.rLead / cornerR));
         if (this.cPlan === DriftPlan.SLOPPY) lead = Math.max(0, lead - this.cLate);
@@ -467,7 +483,7 @@ class BotDriver implements AiDriverEx {
       const eExit = style === 'long' ? AI_TUNING.eExit + 0.03 : style === 'chain' ? AI_TUNING.eExit - 0.02 : AI_TUNING.eExit;
       // long corner: hold one drag drift through it (soft counter-steer, no cut) instead of chaining short drifts
       const holding = !this.cChain && corner !== null && inCorner && corner.dir === dd && this.remainingTurn(corner, ppS.length) > AI_TUNING.holdTurn;
-      if (dLip < 30) { this.holdExtra = 0; if (e > -eExit - 0.01) e_forceExit = true; }
+      if (dLip < 30 || (this.warpNear && this.warpDist < 30)) { this.holdExtra = 0; if (e > -eExit - 0.01) e_forceExit = true; }
       // S-bends: the next bend turns the other way within 15 m — cut now instead of sliding across it
       this.at(path, s + 15);
       { const kn = this.rp.KAP[this.ri]!; if (kn * dd < -1 / 150) { e_forceExit = true; this.holdExtra = 0; } }
@@ -528,6 +544,7 @@ class BotDriver implements AiDriverEx {
       if (vLim < jvMin + 2) vLim = jvMin + 2; // never brake below the clearing speed before a gap
     }
     if (narrowLedge) { const cap = 26 + 6 * prof.personality.risk; if (cap < vLim) vLim = cap; }
+    if (this.forkNearRailVMin > 0 && vLim < this.forkNearRailVMin + 3) vLim = this.forkNearRailVMin + 3; // rail capture speed
     if (ledgeHere) {
       // beside an open drop a failed drift must still stay on the road: corners at grip speed (+ a risk margin)
       const gt = this.grip![this.rp.index]!;
@@ -623,19 +640,23 @@ class BotDriver implements AiDriverEx {
       if (ahead < 0 || ahead > 250 || this.forkLap[f.id] === lapKey) continue;
       this.forkLap[f.id] = lapKey;
       const roll = prof.ghost ? 1 : 0.8 + 0.4 * this.rng.next();
-      const take = prof.shortcutRiskEff * roll >= f.aiMinSkill;
+      // rails: intent Pro/Legend 1, Racer 0.6, Rookie 0.3, × (0.5 + risk) (14-ai §4.3); branches: skill vs aiMinSkill
+      const take = f.kind === 'rail'
+        ? prof.ghost || this.rng.next() < Math.min(1, RAIL_INTENT[prof.tier]! * (0.5 + prof.personality.risk))
+        : prof.shortcutRiskEff * roll >= f.aiMinSkill;
       this.forkTake[f.id] = take ? 1 : 0;
       this.stats.forksSeen++;
       if (take) this.stats.forksTaken++;
     }
     // the nearest split within 70 m ahead (or just passed): approach lane and no drifting through the split
-    this.forkNear = 0; this.forkNoDrift = false;
+    this.forkNear = 0; this.forkNoDrift = false; this.forkNearRailVMin = 0;
     for (let q = 0; q < pp.forks.length; q++) {
       const f = pp.forks[q]!;
       let d = f.at - s;
       if (pp.closed) { if (d < -pp.length / 2) d += pp.length; else if (d > pp.length / 2) d -= pp.length; }
       if (d < -8 || d > 70) continue;
       this.forkNear = f.side; this.forkTakeNear = this.forkTake[f.id] === 1;
+      this.forkNearRailVMin = f.kind === 'rail' && this.forkTakeNear ? f.vMin : 0;
       // not lined up on the branch side 30 m out (traffic, a late drift): keep to the host road this time
       if (this.forkTakeNear && d > 0 && d < 30) {
         const usable = Math.max(0.5, pp.HW[Math.min(pp.n - 1, Math.max(0, Math.round(s / pp.ds)))]! - 1.5);
@@ -657,6 +678,20 @@ class BotDriver implements AiDriverEx {
       if (d < -5 || d > 60) continue;
       this.forkNear = m.side; this.forkTakeNear = false;
       if (d > 0 && d < 45) this.mergeSide = m.side;
+      break;
+    }
+    // warp gates within 60 m: roll once per lap, then line up inside the window with no drift (14-ai §4.6)
+    this.warpNear = false;
+    for (let q = 0; q < pp.warps.length; q++) {
+      const wp = pp.warps[q]!;
+      let d = wp.at - s;
+      if (pp.closed && d < -pp.length / 2) d += pp.length;
+      if (d < -2 || d > 60) continue;
+      if (this.warpLap[wp.id] !== lapKey) {
+        this.warpLap[wp.id] = lapKey;
+        this.warpTake[wp.id] = wp.mandatory || prof.ghost || this.rng.next() < Math.min(1, RAIL_INTENT[prof.tier]! + 0.3) ? 1 : 0;
+      }
+      if (this.warpTake[wp.id] === 1) { this.warpNear = true; this.warpU0 = wp.u0; this.warpU1 = wp.u1; this.warpDist = d; }
       break;
     }
     // on a kill-risk branch bots keep their items (14-ai §4.1)
