@@ -120,6 +120,13 @@ Projectiles can exceed 16 concurrent only in extreme cases (8 karts × 2 slots).
 11. **Redaction Cloud** `maxPerOwner` is 2 (unspecified). The puddle's owner is immune for 120 ticks.
 12. **Finished or retired karts** cannot use items or open boxes; effects on them resolve as `miss`.
 13. **Contact hits have no lead:** puddle, cloud, firewall, aura and bomb landing resolve immediately in phase 5.
+14. **The Attention Tether hook uses the fixed 21-tick SCE lead** (spec §2.2.2 said 12). Every scheduled effect now has lead ≥ 21, so remote peers learn of it before S. SimLink at 200 ms: `shortLeadEffects` 0, `m3Late` 0 over 72 schedules.
+15. **Only CC classes count as attacks.** Team buffs from teammates (halo, pulse_guard, lens_reveal) produce no attack stats and no `result` decision, so the feed never shows "HIT" for a gift.
+16. **Track-hazard hits** (L1, source 255, `EFlag.HAZARD`) go through the same resolution: never shielded, CC immunity applies. They emit the `effect` event and the `result` decision but no item stats. Friendly-fire logic never reads the source slot.
+17. **Firewall:** a kart already under `firewall_hit` (threading two adjacent blocks) only shatters the second block, so the ×0.35 speed cut never compounds.
+18. **Team catch-up:** `CATCH_UP` in `items/boxes.ts` is a per-format knob, with values unchanged from §8.2.
+    - Measured over 12 duo/squad races: 8/8 finishers every time, average finish spread 4.65 s (solo 3.6 s) against the 10 s retire window.
+    - Earlier team thresholds (200 m / 400 m) changed nothing measurable.
 
 ## 5. Notes for other lanes
 - **L1 SIM:**
@@ -136,12 +143,16 @@ Tests: `pnpm vitest run --project sim --maxWorkers=1`. The item files are listed
 | Test file | Tests | What it checks |
 |---|---|---|
 | `items-content` | 8 | Registries; key patterns; i18n keys; §3 effect table; drop sums; §8.3 variants |
-| `items-timeline` | 25 | Every item's use, spawn, commit, S and end ticks |
-| `items-status` | 13 | Refresh; 36 immunity; stacks and caps; shield/halo/grace/hazard; mash 76/61/48 and floor; late taps |
+| `items-timeline` | 26 | Every item's use, spawn, commit, S and end ticks |
+| `items-status` | 13 | Refresh; 36 immunity; stacks and caps; shield/halo/grace; hazard source 255; mash 76/61/48 and floor; late taps |
 | `items-roll` | 13 | HalfSipHash vectors; weights; buckets and overrides; rerolls; secret determinism; predictor never rolls; personal boxes; roulette P + 30; full slots |
 | `items-predictor` | 4 | See §2 |
 | `items-races` | 7 | 6 seeded 8-bot races (solo/duo/squad, standard/light/chaos) all 8/8 finishers, worst stuck ≤ 105 ticks, no NaN or off-route projectiles; every item used and every effect applied |
 
 A wider 24-race exploration (all tiers including rookie-only fields, friendly fire `all`) gave 8/8 finishers in every race, worst stuck 134 ticks, median 88.
+
+`items-tracks` covers every roster track present after the merge of the integration branch: 17 tracks plus the F1 branch fixture (projectiles verified riding the branch).
+- Each track gets one 8-bot item race (Pro/Racer, 2 laps). All pass: ≥ 6/8 finishers, stuck ≤ 300, no NaN or off-route projectiles.
+- `manor_catacombs` (no ITEMS rows) and `rainline_blvd` (does not bake) are listed as known world-lane gaps. They are skipped with a warning, and guarded automatically once fixed.
 
 Sim cost: the item modules account for ≈ 5% of `step()` time in an item race. The step is dominated by L1's `locate` and `groundRay`.
