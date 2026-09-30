@@ -11,6 +11,8 @@ import { getKartBody } from '../karts/registry.ts';
 import type { KartModel, Livery } from '../karts/types.ts';
 import { createStudio, contactShadow, type Studio } from './studio.ts';
 import { ParticlePool } from '../vfx/particles.ts';
+// registers getPortrait() as the art-slot fallback for portrait.<id> (side effect, lazy: renders on first request)
+import '../portrait/register.ts';
 
 interface Loadout {
   key: string; charId: string; kartId: string; livery: Livery;
