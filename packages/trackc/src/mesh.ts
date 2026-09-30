@@ -153,6 +153,8 @@ export function buildRibbon(m: TrackModel, c: Content, p: PathModel, ground: Tri
   if (p.kind === 'rail') return { rows, sections: [], kerbRows: 0 };
   const smps = rows.map((s) => sampleAt(p, s));
   const secs = smps.map((smp) => crossSection(m, c, p, smp, o));
+  // closed paths: the closing row must be bit-identical to the first row (no crack at s = 0); keep s = L for uv
+  if (p.closed && secs.length > 1) secs[secs.length - 1] = secs[0]!.map((v) => ({ ...v, s: rows[rows.length - 1]! }));
   let kerbRows = 0;
   for (let r = 0; r + 1 < rows.length; r++) {
     const sa = rows[r]!, sb = rows[r + 1]!;
@@ -170,7 +172,7 @@ export function buildRibbon(m: TrackModel, c: Content, p: PathModel, ground: Tri
       const W = mid.w / 2;
       const nUp = (a.nx + b.nx + cc.nx) * mid.ux + (a.ny + b.ny + cc.ny) * mid.uy + (a.nz + b.nz + cc.nz) * mid.uz;
       const role = dc < -W - 1e-3 || dc > W + 1e-3 ? ROLE.SHOULDER : nUp < 3 * 0.97 ? ROLE.SLOPE : mid.jumpPart === 3 ? ROLE.LANDING : ROLE.ROAD;
-      ground.push(vtx(a), vtx(b), vtx(cc), surf, flg, p.index, role);
+      ground.push(vtx(a), vtx(b), vtx(cc), surf, role === ROLE.SLOPE ? flg | TFLAG.SLOPE : flg, p.index, role);
     });
     // walls (outermost ground vertex of each row, per side)
     for (const side of [-1, 1] as const) {
@@ -216,7 +218,8 @@ export function buildRibbon(m: TrackModel, c: Content, p: PathModel, ground: Tri
 /** Wall quads → triangles (both faces are collidable; the sim resolves by closest point). */
 export function wallTriangles(walls: WallQuad[], out: TriSoup): void {
   for (const w of walls) {
-    const n = [-w.out[0], -w.out[1], -w.out[2]];
+    // collision walls need no normals (the sim uses closest points); zero them so neighbouring panels weld
+    const n = [0, 0, 0];
     const V = (p: [number, number, number], s: number, h: number): number[] => [p[0], p[1], p[2], n[0]!, n[1]!, n[2]!, s, h];
     out.push(V(w.a0, w.sa, 0), V(w.b0, w.sb, 0), V(w.a1, w.sa, 1), 0, w.flg, w.path, ROLE.CLIFF);
     out.push(V(w.a1, w.sa, 1), V(w.b0, w.sb, 0), V(w.b1, w.sb, 1), 0, w.flg, w.path, ROLE.CLIFF);

@@ -8,7 +8,7 @@ export default defineTrack({
   modes: ['speed', 'item'],
   topology: 'circuit',
   lapLengthM: 1500,
-  refLapTicks: 0,
+  refLapTicks: 2415, // Legend ghost from `trackc build --ghost` (40.25 s; roster target 40.5 s)
   nameKey: 'tracks.spark_grand_circuit.name',
   onRoster: true,
 });
