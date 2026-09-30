@@ -325,3 +325,21 @@ with `@signature`, or `--strict`); M1-era tracks see them as warnings.
 | V18 `rejoin tangent error` | The branch's turns must match the host heading change between from and to. |
 | V18 `no key gate between branch …` | Add a KEYS entry between the merge of one branch and the split of the next. |
 | V19 `corners where drift beats grip` | Needs N(D) = 3/4/5/7/9 drift corners; without a ghost this is an analytic estimate (warning). |
+| V20 `… draw groups` / `worst visible static set …` | Fewer surface/wall variants per 50 m chunk. The worst-set message names the heaviest slots: shorten long open sight lines, or add terrain or walls that occlude. |
+| `NonFiniteError: non-finite value in …` | A compiler bug, not your track. Report the track and the location in the message. |
+
+## 10. Building and previewing
+```
+pnpm bake                                                            # build all --validate (AO + PVS, cached)
+node packages/trackc/src/cli.ts build meadow_loop --validate --preview --png   # + SVG and PNG top-down preview
+node packages/trackc/src/cli.ts build all --jobs 2                   # worker threads (the box is shared: keep N small)
+node packages/trackc/src/cli.ts build f5_hazards --no-ao --no-pvs    # fast iteration (no AO, no PVS)
+```
+- Outputs go to `apps/client/public/tracks/`: `<id>.ctrk`, `.vis`, `.meta.json` (the report: findings, stats,
+  timings), `.svg`/`.png` and `index.json`.
+- The cache (`.cache/trackc/`) is keyed by the source, the options and a hash of the compiler, sim track and content
+  sources. Unchanged tracks print `cached`. Use `--no-cache` to force a rebuild.
+- Budgets per track: bake ≤ 20 s, `.ctrk` ≤ 1.5 MB, `.vis` ≤ 2 MB gzip.
+- `tracks/golden.json` pins every committed track's `.ctrk` hash. When a change to the compiler or a track is
+  intended, run `node packages/trackc/src/golden.ts --update` and commit the result.
+
