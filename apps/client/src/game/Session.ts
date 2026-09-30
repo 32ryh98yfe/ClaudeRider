@@ -2,13 +2,13 @@
 // feeds the HUD/audio/VFX. Online sessions (lane L9) implement the same surface with NetClient.
 import type * as THREE from 'three/webgpu';
 import { loadContent, type CharacterId, type KartBodyId, type ModeId, type TrackId, type AiTier, CHARACTER_IDS, KART_BODY_IDS } from '@cr/content';
-import { loadCtrk, toArrayBuffer, DT, AI_TIERS, createAiDriver, makeInput, Phase, Held, type RaceConfig, type SimEvent, type InputFrame, type AiDriver, type WorldState } from '@cr/sim';
+import { loadCtrk, toArrayBuffer, DT, AI_TIERS, createAiDriver, makeInput, Held, type RaceConfig, type SimEvent, type InputFrame, type AiDriver, type WorldState } from '@cr/sim';
 import { RaceRoom, type RaceResult } from '@cr/room';
 import { RaceRenderer, type KartSlotVisual } from '../render/RaceRenderer.ts';
 import type { QualityTier } from '../render/quality.ts';
 import { sampleInput } from '../input/keyboard.ts';
 import { HudPresenter } from './HudPresenter.ts';
-import { Audio } from '../audio/engine.ts';
+import { raceAudioStart, raceAudioStop, raceAudioFrame, raceAudioEvent } from '../audio/race.ts';
 import { save } from '../meta/save.ts';
 import { t } from '../i18n/index.ts';
 
@@ -84,8 +84,7 @@ export class Session {
   start(): void {
     this.running = true;
     this.last = performance.now();
-    Audio.startEngine();
-    Audio.playLoop(this.config.mode === 'item' ? 128 : 136, 57, 'race');
+    raceAudioStart(this.config.mode);
     const frame = (now: number): void => {
       if (!this.running) return;
       this.raf = requestAnimationFrame(frame);
@@ -113,35 +112,13 @@ export class Session {
       n++;
     }
     if (n === maxSteps) this.acc = 0;
-    for (const e of this.events) { this.renderer.onEvent(e); this.hud.onEvent(e); this.sound(e); }
+    for (const e of this.events) { this.renderer.onEvent(e); this.hud.onEvent(e); raceAudioEvent(e, this.localSlot); }
     this.events.length = 0;
     const alpha = this.acc / DT;
     this.renderer.update(this.room.prev, this.room.world, alpha, dt);
     this.renderer.render();
     this.hud.update(now, alpha);
-    const k = this.room.world.karts[this.localSlot]!;
-    const sp = Math.hypot(k.body.vx, k.body.vy, k.body.vz);
-    const u = k.body.vx * k.body.fx + k.body.vy * k.body.fy + k.body.vz * k.body.fz;
-    const slip = k.drive.drift && sp > 5 ? Math.abs(1 - Math.abs(u) / sp) * 2 : 0;
-    Audio.updateEngine(Math.min(1, sp / 44), this.room.world.phase < Phase.RACING ? (inp.throttle > 0 ? 0.6 : 0) : inp.throttle / 15, k.drive.boostTicks > 0 || k.drive.startTicks > 0, slip);
-  }
-
-  private sound(e: SimEvent): void {
-    const me = this.localSlot;
-    switch (e.t) {
-      case 'countdown': Audio.sfx(e.n === 0 ? 'go' : 'countdown'); break;
-      case 'boostStart': if (e.kart === me) Audio.sfx('boost'); break;
-      case 'instantBoost': if (e.kart === me) Audio.sfx('instant'); break;
-      case 'startBoost': if (e.kart === me && e.tier === 'perfect') Audio.sfx('perfectStart'); break;
-      case 'gaugeFull': if (e.kart === me) Audio.sfx('gauge'); break;
-      case 'wall': if (e.kart === me && e.severity > 0) Audio.sfx('wall'); break;
-      case 'bump': if (e.a === me || e.b === me) Audio.sfx('bump'); break;
-      case 'lap': if (e.kart === me) Audio.sfx('lap'); break;
-      case 'finalLap': if (e.kart === me) Audio.sfx('finalLap'); break;
-      case 'finish': if (e.kart === me) Audio.sfx('finish'); break;
-      case 'wrongWay': if (e.kart === me && e.on) Audio.sfx('wrongWay'); break;
-      default: break;
-    }
+    raceAudioFrame(this.room.world, this.localSlot, this.autopilot ? this.autoInput : inp);
   }
 
   private finishSoon(r: RaceResult): void {
@@ -155,8 +132,7 @@ export class Session {
   stop(): void {
     this.running = false;
     cancelAnimationFrame(this.raf);
-    Audio.stopEngine();
-    Audio.stopLoop();
+    raceAudioStop();
     this.hud?.hide();
     this.renderer?.dispose();
   }
