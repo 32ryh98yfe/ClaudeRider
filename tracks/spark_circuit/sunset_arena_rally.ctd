@@ -60,6 +60,14 @@ PROPS kind=pine along=main from=@gravel_straight to=@bridge_approach+40 side=bot
 PROPS kind=tyre_wall along=main from=@off_camber to=@off_camber+44 side=R every=4 offset=1.2
 PROPS kind=banner along=main from=@bridge_approach+3 to=@bridge_approach+57 side=both every=12 offset=1.4
 PROPS kind=pine along=main from=@ridge_run-30 to=@bridge_corner+40 side=both every=9 offset=3 jitter=10
+# landmarks over the road are hand-placed (PROPS rows never land on a drivable surface); regenerate if the layout moves
+PROP kind=tunnel at=(-29.00,-0.20,0.00) yaw=90.0 scale=1   # stadium tunnel, s=1921
+PROP kind=bridge_span at=(-50.45,8.80,-111.05) yaw=90.0 scale=1   # s=712
+PROP kind=bridge_span at=(-30.45,8.80,-111.05) yaw=90.0 scale=1   # s=732
+PROP kind=bridge_span at=(-10.45,8.80,-111.05) yaw=90.0 scale=1   # s=752
+PROP kind=bridge_span at=(9.55,8.80,-111.05) yaw=90.0 scale=1   # s=772, over the gravel straight
+PROP kind=bridge_span at=(29.55,8.80,-111.05) yaw=90.0 scale=1   # s=792
+PROP kind=bridge_span at=(49.55,8.19,-111.23) yaw=93.1 scale=1   # s=812
 # the crossover bridge: boards on the parapets
 PROPS kind=banner along=main from=@crossover_bridge+2 to=@crossover_bridge+96 side=both every=16 offset=0.3
 # quarry: boulders, a tyre wall round the hairpin

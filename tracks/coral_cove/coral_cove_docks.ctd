@@ -50,7 +50,8 @@ PROPS kind=palm along=1172-1346 side=both every=17 offset=5 jitter=9
 PROPS kind=lifeguard_tower along=124-124 side=R every=10 offset=6
 # the pier over open water: pilings, boats and buoys, the moored galleon, and the drive-through galleon on the deck
 PROPS kind=pier_post along=150-466 side=both every=6 offset=0.2
-PROPS kind=galleon_deck along=383-383 side=R every=100 offset=-8.5
+# the drive-through galleon is hand-placed over the deck (PROPS rows never land on a drivable surface)
+PROP kind=galleon_deck at=(130.00,2.80,-257.02) yaw=180.0 scale=1   # galleon deck, s=383
 PROPS kind=galleon along=270-270 side=R every=100 offset=34
 PROPS kind=boat along=160-460 side=R every=48 offset=20 jitter=34
 PROPS kind=buoy along=150-470 side=both every=32 offset=10 jitter=22
@@ -59,6 +60,8 @@ PROPS kind=beach along=464-1170 side=both every=14 offset=0
 PROPS kind=market_stall along=470-500 side=R every=10 offset=4
 PROPS kind=net_shed along=512-612 side=R every=24 offset=4
 PROPS kind=net_shed along=530-600 side=L every=35 offset=4
+PROPS kind=net_shed along=net_shed side=both every=22 offset=1 from=12 to=88
+PROPS kind=cargo along=net_shed side=both every=30 offset=0.5 from=20 to=80
 PROPS kind=market_stall along=622-790 side=both every=16 offset=3
 PROPS kind=cargo along=630-790 side=R every=20 offset=13 jitter=6
 PROPS kind=dock_crane along=704-704 side=R every=100 offset=11
@@ -75,5 +78,5 @@ PROPS kind=boat along=700-900 side=L every=60 offset=45 jitter=30
 # the far water: lighthouse islet across the bay, sea stacks, a kraken cameo
 PROPS kind=lighthouse along=1250-1250 side=R every=100 offset=150
 PROPS kind=sea_stack along=0-1350 side=R every=120 offset=95 jitter=120
-PROPS kind=kraken_tentacle along=430-430 side=R every=100 offset=125
+PROPS kind=kraken_tentacle along=470-470 side=R every=100 offset=125
 THEME terrain=none scatter=sea_stack density=0 sky=day time=12:30
