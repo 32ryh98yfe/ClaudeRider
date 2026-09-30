@@ -56,7 +56,7 @@ export interface AiExecution {
 }
 
 export const AI_EXECUTION: Readonly<Record<AiTier, AiExecution>> = {
-  rookie: { cornerSpeedMul: 0.9, gripSpeedMul: 0.93, sloppyLateM: [4, 10], sloppyHoldTicks: [6, 15], boostSkill: 0, boostDelayTicks: [30, 150], lineTrack: 0.4, laneEvalTicks: 12, ttcHorizon: 0.9, mistakeLateTicks: 20, mistakeHoldTicks: 20, panicBrakeTicks: [12, 24], chainRate: 0, gripViable: 0.8 },
+  rookie: { cornerSpeedMul: 0.88, gripSpeedMul: 0.93, sloppyLateM: [4, 10], sloppyHoldTicks: [6, 15], boostSkill: 0, boostDelayTicks: [30, 150], lineTrack: 0.4, laneEvalTicks: 12, ttcHorizon: 0.9, mistakeLateTicks: 20, mistakeHoldTicks: 20, panicBrakeTicks: [12, 24], chainRate: 0, gripViable: 0.8 },
   racer: { cornerSpeedMul: 0.95, gripSpeedMul: 0.96, sloppyLateM: [4, 9], sloppyHoldTicks: [6, 12], boostSkill: 1, boostDelayTicks: [10, 60], lineTrack: 0.75, laneEvalTicks: 9, ttcHorizon: 1.2, mistakeLateTicks: 18, mistakeHoldTicks: 20, panicBrakeTicks: [10, 20], chainRate: 0, gripViable: 0.85 },
   pro: { cornerSpeedMul: 0.99, gripSpeedMul: 0.99, sloppyLateM: [3, 7], sloppyHoldTicks: [5, 10], boostSkill: 2, boostDelayTicks: [0, 12], lineTrack: 1, laneEvalTicks: 6, ttcHorizon: 1.5, mistakeLateTicks: 18, mistakeHoldTicks: 20, panicBrakeTicks: [8, 16], chainRate: 0, gripViable: 0.9 },
   legend: { cornerSpeedMul: 1.0, gripSpeedMul: 1.0, sloppyLateM: [2, 5], sloppyHoldTicks: [4, 8], boostSkill: 3, boostDelayTicks: [0, 3], lineTrack: 1, laneEvalTicks: 6, ttcHorizon: 1.6, mistakeLateTicks: 18, mistakeHoldTicks: 20, panicBrakeTicks: [6, 12], chainRate: 0, gripViable: 0.9 },

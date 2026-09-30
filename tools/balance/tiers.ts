@@ -2,7 +2,7 @@
 // characters and seeds, driven through the same 8-tick lookahead a RaceRoom uses.
 //   node tools/balance/tiers.ts [--tracks a,b] [--seeds 3] [--lookahead 8] [--chars all|clay,pixel] [--tiers rookie,pro]
 //                               [--field] [--json out.json] [--verbose] [--set rookie.vMul=0.95,pro.cornerSpeedMul=0.98]
-// --set patches AI_TIERS / AI_EXECUTION in this process only (tuning experiments; commit the winners to the tables).
+// --set patches AI_TIERS / AI_EXECUTION (tier.key) or AI_TUNING (tuning.key) in this process only (tuning experiments; commit the winners to the tables).
 import { readFileSync, readdirSync, writeFileSync, existsSync } from 'node:fs';
 import { performance } from 'node:perf_hooks';
 import { loadContent, CHARACTER_IDS, type AiTier, type CharacterId } from '@cr/content';
@@ -10,6 +10,7 @@ import { loadCtrk, toArrayBuffer, type BakedTrack } from '@cr/sim';
 import { runRace, ghostRaceSec, soloPace } from '@cr/sim/ai/balance.ts';
 import { AI_TIERS } from '@cr/sim';
 import { AI_EXECUTION } from '@cr/sim';
+import { AI_TUNING } from '@cr/sim/ai/driver.ts';
 import { buildTrack } from '@cr/trackc/build.ts';
 
 export const PACE_TARGETS: Readonly<Record<AiTier, { lo: number; hi: number; target: string }>> = {
@@ -65,6 +66,7 @@ function main(): void {
     const [path, val] = kv.split('=');
     const [tier, key] = (path ?? '').split('.') as [AiTier, string];
     const v = val!.includes(':') ? val!.split(':').map(Number) : Number(val);
+    if ((tier as string) === 'tuning') { const t = AI_TUNING as unknown as Record<string, unknown>; if (!(key in t)) throw new Error(`--set: unknown key ${path}`); t[key] = v; continue; }
     const prof = AI_TIERS[tier] as unknown as Record<string, unknown>, ex = AI_EXECUTION[tier] as unknown as Record<string, unknown>;
     if (key in prof) prof[key] = v; else if (key in ex) ex[key] = v; else throw new Error(`--set: unknown key ${path}`);
   }

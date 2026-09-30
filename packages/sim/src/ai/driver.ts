@@ -41,8 +41,16 @@ const A = {
   tapFrames: 8,
 } as const;
 
-/** Controller knobs shared by every bot (mutable only for tools/balance experiments; never per bot). */
-export const AI_TUNING = { lineClampFrac: 9, holdTurn: 0.5, holdMinSIn: -0.3, holdMode: 0, holdKeyEh: -0.05, holdSbMax: 0.45, minZones: 6, eExit: 0.05, hazards: 1 };
+/**
+ * Controller knobs shared by every bot (mutable only for tools/balance experiments; never per bot).
+ * Drift styles are flavour and must stay inside the tier band on every track: chopping a corner into chained drifts
+ * (corners with chainMinTurn ≤ turn ≤ chainMaxTurn) cost 2–4% on sandglass/spark/proving, so the 'chain' style now
+ * shows as earlier cuts (chainEExit), re-kicks and its extra instant-boost rate; 'long' exits later and shifts later.
+ */
+export const AI_TUNING = {
+  lineClampFrac: 9, holdTurn: 0.5, holdMinSIn: -0.3, holdMode: 0, holdKeyEh: -0.05, holdSbMax: 0.45, minZones: 6, eExit: 0.05, hazards: 1,
+  chainMinTurn: 0, chainMaxTurn: 0, chainEExit: -0.02, chainShift: 0.4, longEExit: 0.03, longShift: 0.35, longRekickTurn: 2.0,
+};
 
 /** Drift execution plan for one corner on one lap (14-ai §3.9). */
 export const DriftPlan = { OPTIMAL: 0, SLOPPY: 1, GRIP: 2 } as const;
@@ -491,7 +499,7 @@ class BotDriver implements AiDriverEx {
       if (sIn > A.sInMax) sIn = A.sInMax;
       if (sb > A.sbHi || (outside > A.outBite && eh > 0)) { if (sIn > 0.3) sIn = 0.3; }
       const style = prof.personality.driftStyle;
-      const eExit = style === 'long' ? AI_TUNING.eExit + 0.03 : style === 'chain' ? AI_TUNING.eExit - 0.02 : AI_TUNING.eExit;
+      const eExit = style === 'long' ? AI_TUNING.eExit + AI_TUNING.longEExit : style === 'chain' ? AI_TUNING.eExit + AI_TUNING.chainEExit : AI_TUNING.eExit;
       // long corner: hold one drag drift through it (soft counter-steer, no cut) instead of chaining short drifts
       const holding = !this.cChain && corner !== null && inCorner && corner.dir === dd && this.remainingTurn(corner, ppS.length) > AI_TUNING.holdTurn;
       if (dLip < 30 || (this.warpNear && this.warpDist < 30)) { this.holdExtra = 0; if (e > -eExit - 0.01) e_forceExit = true; }
@@ -506,7 +514,7 @@ class BotDriver implements AiDriverEx {
         else sIn = -1;
       }
       sIn = sIn > 1 ? 1 : sIn < -1 ? -1 : sIn;
-      const ehShift = style === 'long' ? 0.3 : style === 'chain' ? 0.5 : A.ehShift;
+      const ehShift = style === 'long' ? AI_TUNING.longShift : style === 'chain' ? AI_TUNING.chainShift : A.ehShift;
       if (e_forceExit) { drift = false; this.tapLeft = 0; }
       else if (this.tapLeft > 0) { drift = true; this.tapLeft--; if (sIn < 0.6) sIn = 0.6; }
       else if (holding && AI_TUNING.holdMode === 1) {
@@ -514,7 +522,7 @@ class BotDriver implements AiDriverEx {
         drift = eh > AI_TUNING.holdKeyEh && sb < AI_TUNING.holdSbMax;
       } else if (eh > ehShift && sb < A.sbShiftMax) {
         const reKick = style === 'chain' ? 1.0 : A.ehRekick;
-        const longOk = style !== 'long' || (corner !== null && corner.turn > 2.0) || eh > 1.0;
+        const longOk = style !== 'long' || (corner !== null && corner.turn > AI_TUNING.longRekickTurn) || eh > 1.0;
         if (pr.dTicks > A.rekTicks && eh > reKick && this.rek === 0 && longOk) { this.rek = 1; drift = false; }
         else drift = true;
         if (sIn < 0.6) sIn = 0.6;
@@ -741,7 +749,7 @@ class BotDriver implements AiDriverEx {
       this.cHold = this.rng.int(ex.sloppyHoldTicks[0], ex.sloppyHoldTicks[1]);
     } else this.cPlan = DriftPlan.GRIP;
     // chained short drifts are a style ('chain'), not a skill: holding one drift is faster on long corners
-    this.cChain = !prof.ghost && (prof.personality.driftStyle === 'chain' || this.rng.next() < ex.chainRate);
+    this.cChain = !prof.ghost && corner.turn >= AI_TUNING.chainMinTurn && corner.turn <= AI_TUNING.chainMaxTurn && (prof.personality.driftStyle === 'chain' || this.rng.next() < ex.chainRate);
     if (corner.needsDrift) this.stats.plans[this.cPlan as 0 | 1 | 2]++;
     // mistakes: expected mistakeRate per lap spread over the drift-worthy corners; a lap with very few such
     // corners (an oval) is treated as a typical 6-corner lap so two corners don't absorb a whole lap's mistakes
