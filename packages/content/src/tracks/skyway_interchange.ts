@@ -8,7 +8,7 @@ export default defineTrack({
   modes: ['speed', 'item'],
   topology: 'circuit',
   lapLengthM: 2000,
-  refLapTicks: 0,
+  refLapTicks: 3513,
   nameKey: 'tracks.skyway_interchange.name',
   onRoster: true,
 });

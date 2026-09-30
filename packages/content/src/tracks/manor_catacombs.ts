@@ -7,8 +7,8 @@ export default defineTrack({
   laps: 2,
   modes: ['speed', 'item'],
   topology: 'circuit',
-  lapLengthM: 1850,
-  refLapTicks: 0,
+  lapLengthM: 1800,
+  refLapTicks: 3265, // §12 reference lap (speed); the baked .ctrk carries the ghost value
   nameKey: 'tracks.manor_catacombs.name',
   onRoster: true,
 });

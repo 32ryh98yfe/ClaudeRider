@@ -109,5 +109,7 @@ export class Recovery {
   private finishIfFree(r: Readonly<RecoveryIn>): void {
     this.mode = RecoveryMode.NONE; this.t = 0;
     if (r.v > SLOW_V) this.slow = 0;
+    // pointed down the road and moving: recovered, even if turning round ate the progress the episode waits for
+    if (r.vFwd > 6 && Math.abs(r.aTrack) < 0.6) this.episode = 0;
   }
 }

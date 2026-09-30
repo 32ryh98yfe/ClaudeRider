@@ -7,8 +7,8 @@ export default defineTrack({
   laps: 2,
   modes: ['speed', 'item'],
   topology: 'circuit',
-  lapLengthM: 1900,
-  refLapTicks: 0,
+  lapLengthM: 1950,
+  refLapTicks: 3353, // §12 reference lap (speed); the baked .ctrk carries the ghost value
   nameKey: 'tracks.cascade_slalom.name',
   onRoster: true,
 });

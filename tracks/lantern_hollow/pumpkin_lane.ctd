@@ -1,67 +1,80 @@
 # Pumpkin Lane — Lantern Hollow D2 (item-built). A cosy autumn-night festival: the lantern-lit parade lane, the
-# pumpkin-patch corner, scarecrows, a graveyard S between smiling tombstones, the creek bridge, the mill, the parade
-# street under lantern gates, the bat tree, candle alley, a hayride S, the orchard sweepers and the chapel.
-@signature branch, jump
-@fallback branch -> "graveyard shortcut as 4 m dirt shoulders through the graveyard S (cut the tombstone line)" when=F1
-@fallback jump -> "flat wooden bridge over the creek (surf=wood, no air)" when=F2
-@fallback hazard:swinger -> "parade gates fixed open (static lantern arches over the parade street)" when=F5
+# pumpkin-patch corner, scarecrows, a deep graveyard S between smiling tombstones (or the shortcut straight through),
+# the creek-bridge hop, the mill, the parade street under lantern gates, the bat tree, candle alley, a hayride S, the
+# orchard sweepers and the chapel.
+@signature branch, jump, hazard:swinger
 TRACK pumpkin_lane name="Pumpkin Lane" theme=lantern_hollow diff=2 laps=3 topo=circuit
-DEFAULTS w=17 surf=cobble wall=barrier:1.1 shoulder=1.5 shoulderSurf=grass blend=16
+DEFAULTS w=17 surf=cobble wall=barrier:1.1 shoulders=1.5:grass blend=16
 START pos=(0,0,0) hdg=0
 GRID rows=4 cols=2 pitch=7 stagger=3.5 d=4
 S ?a                                              @lantern_lane
-C R25 85 L bank=6 w=16                            @pumpkin_patch
+C R25 71 L bank=6 w=16                            @pumpkin_patch
 S ?b w=17 dy=3                                    @scarecrow_row
-WIGGLE R35 44/70/41 R bank=4 shoulder=4 shoulderSurf=dirt   @graveyard_s
-S 42 dy=-3 shoulder=1.5 shoulderSurf=grass        @creek_approach
-S 50 surf=wood wall=invisible:1.1 shoulder=0.5    @creek_bridge
-C R30 97 L bank=6 surf=cobble wall=barrier:1.1 shoulder=1.5   @mill_corner
-WIGGLE R40 39/59/43 R bank=4                      @mill_race_s
-S ?c                                              @parade_street
-C R40 73 L bank=6                                 @bat_tree
-WIGGLE R35 38/54/42 L bank=4                      @candle_s
-S 34                                              @candle_alley
-WIGGLE R60 28/49/31 L bank=3 dy=2.5               @hayride_s
-C R80 40 R bank=-3 dy=-2.5                        @orchard_in
-C R80 62 L bank=3                                 @orchard_out
-C R60 24 R bank=-2                                @chapel_kink
-C R35 109 L bank=6                                @chapel_corner
-S 81                                              @home
+WIGGLE R35 55/110/55 R bank=4 dy=-3               @graveyard_s
+S 40                                              @creek_approach
+J ramp=8@8 gap=6 drop=0 land=40 vmin=24 vmax=46 surf=wood wall=invisible:1.1 shoulders=0.5:grass   @creek_hop
+C R30 82 L bank=6 surf=cobble wall=barrier:1.1 shoulders=1.5:grass   @mill_corner
+WIGGLE R40 37/61/52 R bank=4 wall=barrier:1.1:soft   @mill_race_s
+S ?c wall=barrier:1.1                             @parade_street
+C R40 90 L bank=6                                 @bat_tree
+WIGGLE R35 36/59/52 L bank=4 wall=barrier:1.1:soft   @candle_s
+S 56 wall=barrier:1.1                              @candle_alley
+WIGGLE R60 30/47/45 L bank=3 dy=2.5 wall=barrier:1.1:soft   @hayride_s
+C R80 44 R bank=-3 dy=-2.5 wall=barrier:1.1       @orchard_in
+C R80 60 L bank=3                                 @orchard_out
+C R60 26 R bank=-2                                @chapel_kink
+C R35 98 L bank=6                                 @chapel_corner
+S 71                                              @home
 CLOSE solve=[?a,?b,?c] length=1300
 LINE start at=0
-# 6 rows ≈ L/250 (+1): lantern lane, scarecrow row, creek bridge, parade street, candle alley, orchard
-ITEMS at=120,270,462,672,854,1080 n=5
-PAD at=40,80 d=0 len=6 w=4
-KEYS 150,340,560,760,960,1160
-# --- dressing (s from the line)
-PROPS kind=lantern_string along=0-190 side=both every=12 offset=1.5
-PROPS kind=jack_o_lantern along=6-190 side=both every=15 offset=0.6
-PROPS kind=lantern_post along=1225-1300 side=both every=16 offset=1.2
-PROPS kind=jack_o_lantern along=1225-1300 side=both every=13 offset=0.6
-PROPS kind=pumpkin_patch along=205-230 side=L every=12 offset=5
-PROPS kind=pumpkin_patch along=240-300 side=both every=22 offset=9
-PROPS kind=scarecrow along=240-300 side=both every=20 offset=4
-PROPS kind=gravestone along=305-395 side=both every=10 offset=1.5
-PROPS kind=iron_fence along=305-395 side=both every=8 offset=0.4
-PROPS kind=crooked_tree along=310-395 side=both every=34 offset=9
-PROPS kind=ghost along=315-390 side=both every=26 offset=6
-PROPS kind=wisp along=300-400 side=both every=30 offset=12
-PROPS kind=bridge_rail along=439-489 side=both every=8 offset=-0.2
-PROPS kind=bridge_deck along=464-464 side=R every=100 offset=-9
-PROPS kind=mill along=515-515 side=R every=100 offset=22
-PROPS kind=hay_bale along=545-635 side=both every=26 offset=4
-PROPS kind=lantern_post along=545-635 side=both every=20 offset=1.5
-PROPS kind=lantern_arch along=648-698 side=R every=23 offset=-10
-PROPS kind=jack_o_lantern along=640-705 side=both every=9 offset=0.6
-PROPS kind=crooked_tree along=730-730 side=L every=10 offset=7
-PROPS kind=bat along=712-750 side=L every=12 offset=4
-PROPS kind=candles along=756-871 side=both every=9 offset=0.8
-PROPS kind=lantern_post along=760-870 side=both every=24 offset=2
-PROPS kind=hay_bale along=875-980 side=both every=24 offset=4
-PROPS kind=scarecrow along=890-980 side=both every=45 offset=8
-PROPS kind=crooked_tree along=990-1125 side=both every=22 offset=6 jitter=6
-PROPS kind=pumpkin_patch along=990-1125 side=both every=30 offset=14
-PROPS kind=chapel along=1186-1186 side=L every=10 offset=22
-PROPS kind=gravestone along=1160-1215 side=L every=14 offset=3
-PROPS kind=manor along=100-100 side=L every=10 offset=150
-THEME scatter=crooked_tree,crooked_tree,pumpkin_patch,gravestone,hay_bale,wisp density=7 hills=5 sky=night headlights=on
+
+# Graveyard shortcut: a straight dirt path between the tombstones, cutting the deep S (≈ 20 m, ≈ 0.5 s)
+BRANCH graveyard from=@graveyard_s to=@creek_approach kind=shortcut aiMin=0.4 w=8 surf=dirt wall=fence:1.0:soft shoulders=0.5:grass {
+  C R60 8 L ; S ?x dy=-1.5 ; C R60 16 R ; S ?y dy=-1.5 ; C R60 8 L
+}
+
+# 5 rows ≈ L/250: lantern lane, creek approach, parade street, candle alley, orchard
+ITEMS at=@lantern_lane+100,@creek_approach+15,@parade_street+30,@candle_alley+28,@orchard_out+30 n=5
+PAD at=@home+8,@lantern_lane+15 d=0 len=6 w=4
+
+# the parade street: giant paper lanterns swing across the road under the first and last arch (always live)
+HAZ swinger lantern1 at=@parade_street+12 d=0 capsule=(0.8,2.0) arm=7 amp=45 plane=across period=4 offset=0 prop=hazard_lantern
+HAZ swinger lantern2 at=@parade_street+48 d=0 capsule=(0.8,2.0) arm=7 amp=45 plane=across period=4 offset=2 prop=hazard_lantern
+KEYS @lantern_lane+150,@scarecrow_row+20,@mill_corner+20,@parade_street+20,@candle_alley+20,@orchard_in+20,@chapel_corner+20
+
+# --- dressing
+PROPS kind=lantern_string from=@lantern_lane to=@lantern_lane+125 side=both every=12 offset=1.5
+PROPS kind=jack_o_lantern from=@lantern_lane+6 to=@lantern_lane+125 side=both every=15 offset=0.6
+PROPS kind=lantern_post from=@home to=@home+71 side=both every=16 offset=1.2
+PROPS kind=jack_o_lantern from=@home to=@home+71 side=both every=13 offset=0.6
+PROPS kind=pumpkin_patch from=@pumpkin_patch+5 to=@pumpkin_patch+30 side=L every=12 offset=5
+PROPS kind=pumpkin_patch from=@scarecrow_row to=@scarecrow_row+66 side=both every=22 offset=9
+PROPS kind=scarecrow from=@scarecrow_row+5 to=@scarecrow_row+66 side=both every=20 offset=4
+PROPS kind=gravestone from=@graveyard_s to=@creek_approach side=both every=10 offset=1.5
+PROPS kind=iron_fence from=@graveyard_s to=@creek_approach side=both every=8 offset=0.4
+PROPS kind=crooked_tree from=@graveyard_s+5 to=@creek_approach side=both every=34 offset=9
+PROPS kind=ghost from=@graveyard_s+10 to=@creek_approach-5 side=both every=26 offset=6
+PROPS kind=gravestone along=graveyard side=both every=9 offset=0.8
+PROPS kind=ghost along=graveyard side=L every=40 offset=3
+PROPS kind=wisp from=@graveyard_s to=@creek_approach+30 side=both every=30 offset=12
+PROPS kind=bridge_rail from=@creek_hop+14 to=@creek_hop+54 side=both every=8 offset=0.3
+PROPS kind=hay_bale from=@mill_race_s to=@parade_street side=both every=26 offset=4
+PROPS kind=lantern_post from=@mill_race_s to=@parade_street side=both every=20 offset=1.5
+PROPS kind=jack_o_lantern from=@parade_street to=@bat_tree side=both every=9 offset=0.6
+PROPS kind=bat from=@bat_tree+5 to=@bat_tree+50 side=L every=12 offset=4
+PROPS kind=candles from=@candle_s to=@hayride_s side=both every=9 offset=0.8
+PROPS kind=lantern_post from=@candle_s to=@hayride_s side=both every=24 offset=2
+PROPS kind=hay_bale from=@hayride_s to=@orchard_in side=both every=24 offset=4
+PROPS kind=scarecrow from=@hayride_s+20 to=@orchard_in side=both every=45 offset=8
+PROPS kind=crooked_tree from=@orchard_in to=@chapel_kink side=both every=22 offset=6 jitter=6
+PROPS kind=pumpkin_patch from=@orchard_in to=@chapel_kink side=both every=30 offset=14
+PROPS kind=gravestone from=@chapel_corner to=@home side=L every=14 offset=3
+PROP kind=lantern_arch at=(137.1,-0.2,-381.2) yaw=-145.0
+PROP kind=lantern_arch at=(126.8,-0.2,-396.0) yaw=-145.0
+PROP kind=lantern_arch at=(116.5,-0.2,-410.7) yaw=-145.0
+PROP kind=creek at=(227.1,-4.0,-236.7) yaw=161.0
+PROP kind=mill at=(271.1,-0.3,-307.5) yaw=19.2
+PROP kind=crooked_tree at=(98.0,-0.3,-398.0) yaw=0 scale=1.4
+PROP kind=chapel at=(-74.6,-0.3,-31.3) yaw=-134.0
+PROP kind=manor at=(64.0,-0.3,-150.0) yaw=-90
+THEME lantern_hollow sky=night headlights=on scatter=crooked_tree,crooked_tree,pumpkin_patch,gravestone,hay_bale,wisp density=7 hills=5

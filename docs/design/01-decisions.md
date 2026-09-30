@@ -287,6 +287,11 @@ Kart bodies:
   - Drift control by heading pursuit.
   - Uses baked AI tables (line offset, vLim, κ, turnAhead40, drift zones).
 - **Tier table:** line noise σ 1.2/0.7/0.35/0.1 m; instant-boost success 0.15/0.45/0.8/0.95; item reaction 60–120/30–60/15–30/6–15 ticks; false-start probability 0.08/0.04/0.01/0.
+- **Amendment (M2, from `contract-requests/L3-ai-pace.md`): where the pace targets apply.**
+  - The pace targets hold on the average over the baked roster and on each reference track (meadow_loop, bal_switchback). Measure them with `tools/balance/tiers.ts` against the noise-free Legend ghost.
+  - On a single track, Rookie and Racer may sit up to ±4 points outside their band on ovals dominated by instant boosts, such as proving_ring. There, vMul and instBoostRate, both fixed by this ADR, carry most of the pace.
+  - The ADR constants above do not change.
+  - Lane-level deviations from the 14-ai §2 table, recorded here so they are not "fixed" back: Pro driftSkill 0.75 (was 0.80; 0.80 ran above the Pro ceiling on seven tracks) and Rookie `cornerSpeedMul` 0.88 (was 0.90).
 
 ## ADR-010 Items
 - The 18-item ClaudeRider set and its drop tables follow `docs/research/03-items.md` §6–7, with speeds converted to V_REF 34 (gap-2 §2):

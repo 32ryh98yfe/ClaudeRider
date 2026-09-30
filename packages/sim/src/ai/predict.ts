@@ -5,9 +5,11 @@
 // slip cap, drift entry/exit, base acceleration) — no walls, no contacts, flat ground. ~0.3 µs per frame.
 import type { KartState } from '../core/state.ts';
 import { DT } from '../core/units.ts';
-import { gripGain, type KartParams } from '../kart/params.ts';
+import type { KartParams } from '../kart/params.ts';
 
 const decay = (k: number): number => { const x = k * DT; return 1 / (1 + x * (1 + x * (0.5 + x / 6))); };
+const DEC12 = decay(12), DEC6 = decay(6);
+const KICK_C = Math.cos(0.06981317007977318), KICK_S = Math.sin(0.06981317007977318), RE_C = Math.cos(0.05235987755982988), RE_S = Math.sin(0.05235987755982988);
 const SIN6 = Math.sin(6 * Math.PI / 180), SIN8 = Math.sin(8 * Math.PI / 180), SIN55 = Math.sin(55 * Math.PI / 180);
 
 export class SelfPredictor {
@@ -66,11 +68,11 @@ export class SelfPredictor {
       if (drift === 0) {
         if (held && (sig >= 0.3 || sig <= -0.3) && u >= 10 && lock <= 0) {
           drift = 1; dir = sig > 0 ? 1 : -1; dT = 0; peak = 0;
-          yaw += dir * 1.2; const r = rot(hx, hy, dir * 0.06981317007977318); hx = R2[0]!; hy = r;
+          yaw += dir * 1.2; const nx = hx * KICK_C - hy * KICK_S * dir, ny = hx * KICK_S * dir + hy * KICK_C; hx = nx; hy = ny;
           vx *= 0.99; vy *= 0.99;
         }
       } else if (held && !prevHeld && dT >= 9) {
-        yaw += dir * 0.8; const r = rot(hx, hy, dir * 0.05235987755982988); hx = R2[0]!; hy = r;
+        yaw += dir * 0.8; const nx = hx * RE_C - hy * RE_S * dir, ny = hx * RE_S * dir + hy * RE_C; hx = nx; hy = ny;
         vx *= 0.99; vy *= 0.99;
       }
       prevHeld = held;
@@ -78,10 +80,15 @@ export class SelfPredictor {
       // yaw law
       const sIn = sig * dir;
       let rT: number;
-      if (drift === 0) rT = sig * gripGain(u > 0 ? u : 0, P);
+      if (drift === 0) { const uu = u > 0 ? u : 0, q = uu / P.gripV1; rT = sig * (P.yGrip * uu) / (uu + P.gripV0) / (1 + q * q); }
       else rT = dir * (0.6 / (1 + dT / 36) + 1.2 * sIn + (held ? 0.7 : 0));
-      yaw += (rT - yaw) * (1 - decay(drift === 0 ? 12 : 6));
-      { const r = rot(hx, hy, yaw * DT); hx = R2[0]!; hy = r; }
+      yaw += (rT - yaw) * (1 - (drift === 0 ? DEC12 : DEC6));
+      {
+        // small-angle rotation (|yaw·DT| < 0.1 rad) + renormalisation
+        const a = yaw * DT, a2 = a * a, sa = a * (1 - a2 / 6), ca = 1 - a2 * 0.5 * (1 - a2 / 12);
+        const nx = hx * ca - hy * sa, ny = hx * sa + hy * ca, nl = Math.sqrt(nx * nx + ny * ny) || 1;
+        hx = nx / nl; hy = ny / nl;
+      }
       // lateral damping with momentum retention
       u = vx * hx + vy * hy;
       let w = -vx * hy + vy * hx;
@@ -95,7 +102,7 @@ export class SelfPredictor {
         else kL = P.kLatNeutral + (9 - P.kLatNeutral) * ((-sIn - 0.3) / 0.7);
         if (held) kL *= 0.85;
       }
-      const w2 = w * decay(kL);
+      const xk = kL * DT, w2 = w / (1 + xk * (1 + xk * (0.5 + xk / 6)));
       const vRaw = Math.sqrt(u * u + w2 * w2);
       if (vRaw > 1e-6) { const f = (vRaw + eta * (v - vRaw)) / vRaw; u *= f; w = w2 * f; } else w = w2;
       v = Math.sqrt(u * u + w * w);
@@ -127,14 +134,4 @@ export class SelfPredictor {
     this.px = px; this.py = py; this.hx = hx; this.hy = hy; this.vx = vx; this.vy = vy; this.yaw = yaw;
     this.drift = drift; this.dir = dir; this.dTicks = dT; this.peak = peak; this.lock = lock; this.win = win;
   }
-}
-
-// rotation helper: returns y and leaves x in R2[0] (a typed-array slot, so the hot loop never boxes doubles)
-const R2 = new Float64Array(1);
-function rot(x: number, y: number, a: number): number {
-  const c = Math.cos(a), s = Math.sin(a);
-  const nx = x * c - y * s, ny = x * s + y * c;
-  const l = Math.sqrt(nx * nx + ny * ny) || 1;
-  R2[0] = nx / l;
-  return ny / l;
 }

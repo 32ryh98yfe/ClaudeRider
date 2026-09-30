@@ -1,0 +1,69 @@
+# Cascade Slalom — Canopy Forest D4 (speed-built). A misty waterfall gorge: the pool straight, a rhythmic rock-pillar
+# slalom, the tunnel behind the falls, the cave hairpin, the climb into the canopy, a boardwalk among the treetops, the
+# pendulum run, a spiral down around the treehouse tree (its exit runs under its own entry), the waterfall-lip jump,
+# the river, the spray hairpin, the rapids and the gorge sweepers home.
+@signature jump, stacked, hazard:swinger
+TRACK cascade_slalom name="Cascade Slalom" theme=canopy_forest diff=4 laps=2 topo=circuit
+DEFAULTS w=13 surf=asphalt wall=rock:1.2 shoulders=0:dirt blend=15
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=7 stagger=3.5 d=3.2
+S ?a                                              @pool_straight
+C R25 89 L bank=5                                 @pool_corner
+WIGGLE R30 30/64/21 R bank=4 w=15                      @slalom_1
+WIGGLE R30 30/63/30 L bank=4                      @slalom_2
+WIGGLE R30 28/59/28 R bank=4                      @slalom_3
+S 44 w=14                                         @falls_tunnel
+C R20 161 L bank=6 w=16                           @cave_hairpin
+S 39 dy=4.5 w=14                                  @canopy_climb
+C R30 117 R bank=-5 dy=7                          @canopy_ramp
+S ?b surf=wood wall=fence:1.2:soft                     @canopy_boardwalk
+WIGGLE R24 40/85/35 L bank=4 w=15                      @boardwalk_s
+S 55 w=14                                         @pendulum_run
+HELIX R25 463 L dy=-13.5 bank=7 surf=asphalt wall=rock:1.2 w=14   @treehouse_spiral
+S 62 dy=2                                         @descent
+S 30                                              @falls_lip
+J ramp=10@8 gap=14 drop=4 land=46 vmin=24 vmax=46 @falls_jump
+C R35 90 R bank=-5                                @splash_corner
+C R80 75 L bank=4 dy=4                            @river_sweeper
+WIGGLE R60 34/62/25 R bank=3                      @river_s
+S ?c                                              @cross_bridge
+C R22 133 L bank=6 w=16 wall=rock:1.2:soft                           @spray_hairpin
+WIGGLE R30 30/64/30 R bank=4 w=15                 @rapids_s
+S 54 wall=rock:1.2 w=13                           @rapids_straight
+WIGGLE R70 28/56/20 L bank=3                      @rapids_exit_s
+C R100 52 L bank=3                                @gorge_in
+C R100 52 R bank=-3                               @gorge_out
+C R40 84 R bank=-5                                @bank_corner
+C R30 88 L bank=5                                 @pool_return
+S 54                                              @home
+CLOSE solve=[?a,?b,?c] length=1950
+LINE start at=0
+
+# 7 rows ≈ L/250 (−1): falls tunnel, canopy boardwalk, falls lip, river sweeper, rapids straight, gorge, home
+ITEMS at=@falls_tunnel+22,@canopy_boardwalk+20,@falls_lip+14,@river_sweeper+30,@rapids_straight+27,@gorge_in+45,@home+27 n=5
+# pads on the descent: boost off the waterfall lip (the landing window covers 24–46 m/s)
+PAD at=@descent+8,@descent+40 d=0 len=6 w=4
+
+# the pendulum run: two logs swing across the canopy road, half a period apart (dodge by line, always live)
+HAZ swinger log1 at=@pendulum_run+14 d=0 capsule=(0.8,2.4) arm=6 amp=50 plane=across period=3.2 offset=0 prop=hazard_log
+HAZ swinger log2 at=@pendulum_run+40 d=0 capsule=(0.8,2.4) arm=6 amp=50 plane=across period=3.2 offset=1.6 prop=hazard_log
+
+# --- dressing: karst pillars flank the slalom, giant trunks carry the canopy, the treehouse tree fills the spiral
+PROPS kind=karst_pillar from=@slalom_1 to=@falls_tunnel side=both every=26 offset=9
+PROPS kind=giant_trunk from=@pool_straight to=@pool_corner+30 side=both every=24 offset=7 jitter=4
+PROPS kind=giant_trunk from=@canopy_climb to=@pendulum_run+50 side=both every=22 offset=6 jitter=5
+PROPS kind=rope_rail from=@canopy_boardwalk to=@treehouse_spiral side=both every=6 offset=0.3
+PROPS kind=fern along=main side=both every=10 offset=1.0
+PROPS kind=bamboo from=@river_s to=@spray_hairpin side=both every=28 offset=5 jitter=4
+PROPS kind=bamboo from=@rapids_s to=@gorge_in side=both every=30 offset=6 jitter=4
+PROPS kind=rock_moss from=@rapids_s to=@rapids_exit_s side=both every=22 offset=3
+PROPS kind=panda from=@rapids_straight+10 to=@rapids_straight+10 side=R every=10 offset=6
+PROPS kind=karst_pillar from=@gorge_in to=@bank_corner side=both every=45 offset=14 jitter=8
+PROPS kind=forest_wall along=main side=both every=34 offset=24 jitter=12
+PROPS kind=mushroom_red from=@bank_corner to=@home side=both every=18 offset=2
+PROP kind=falls_curtain at=(53.7,-0.2,-219.6) yaw=-168.0
+PROP kind=log_gantry at=(-139.4,11.3,-251.3) yaw=-134.0
+PROP kind=log_gantry at=(-158.1,11.3,-269.3) yaw=-134.0
+PROP kind=treehouse at=(-186.0,-2.0,-262.0) yaw=0 scale=1.3
+PROP kind=waterfall at=(-283.0,-5.0,-199.8) yaw=-31.0 scale=1.2
+THEME canopy_forest sky=day time=09:30 scatter=forest_wall,forest_wall,karst_pillar,giant_trunk,bamboo,rock_moss density=8 hills=6
