@@ -276,14 +276,14 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
     maxInstances: 16,
   },
   /** Compiler-placed support under an elevated deck (origin on the terrain, only where the deck is > 4 m up).
-   *  The instance carries no deck height yet (docs/design/contract-requests/L12-pillar-height.md), so one geometry must
-   *  fit every deck: 3.4 m keeps it under the lowest possible road surface. */
+   *  TrackView stretches it in Y by (1 + height class); a 2.7 m base stays under the lowest deck of every class
+   *  (class v covers decks from 6v m, v ≥ 1, and 4–6 m for v = 0). */
   pillar: {
     build: () => ({
       geometry: merge([
-        paint(place(rbox(2.2, 3.1, 2.2, 0.3, 2), 0, 1.55, 0), C.concrete),
-        paint(place(box(3.0, 0.4, 3.6), 0, 3.2, 0), C.concreteDark),
-        paint(place(box(2.3, 0.35, 2.3), 0, 0.7, 0), C.kerbRed),
+        paint(place(rbox(2.2, 2.45, 2.2, 0.3, 2), 0, 1.22, 0), C.concrete),
+        paint(place(box(3.0, 0.3, 3.6), 0, 2.55, 0), C.concreteDark),
+        paint(place(box(2.3, 0.3, 2.3), 0, 0.55, 0), C.kerbRed),
       ]), material: gloss(), castShadow: true,
     }),
     maxInstances: 120,
