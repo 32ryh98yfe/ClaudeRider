@@ -468,6 +468,22 @@ function giantTable(): THREE.BufferGeometry {
   return merge(parts);
 }
 
+/** Gore cushion at a branch split: hay bales, a smiling pumpkin and a chevron board facing traffic (−Z). */
+function goreCushion(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  for (const [x, y, z] of [[-0.8, 0.4, 0], [0.8, 0.4, 0], [0, 1.4, 0.1]] as const) parts.push(part(rbox(1.5, 1.0, 1.9, 0.12, 2), C.straw, x, y, z, 0, 0, 0, 1, 1, 1, 0.08, 211));
+  pumpkin(parts, 0, 1.9, 0.2, 0.5, 213); jackFace(parts, 0, 1.9, 0.2, 0.5);
+  parts.push(part(box(2.4, 1.0, 0.12), '#1c1f26', 0, 3.4, -1.1), part(box(0.12, 1.6, 0.12), C.woodDark, 0, 2.4, -1.0));
+  for (const sx of [-1, 1]) for (const dy of [-0.16, 0.16]) parts.push(part(box(0.5, 0.14, 0.05), '#ffd23f', sx * 0.55, 3.4 + dy, -1.18, 0, 0, sx * (dy > 0 ? -0.7 : 0.7)));
+  return merge(parts);
+}
+/** Support under elevated decks: a short stone column with a lantern niche (kept under the 4 m minimum clearance). */
+function stonePillar(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [part(facet(cyl(1.2, 1.5, 6, 8)), C.stoneDark, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0.06, 217), part(cyl(1.6, 1.6, 0.4, 8), C.stone, 0, 3.8, 0)];
+  paperLantern(parts, 1.35, 3.4, 0, 0.22, 2.2);
+  return merge(parts);
+}
+
 // ------------------------------------------------------------------------------------------------ factory table
 const kind = (build: () => THREE.BufferGeometry, material: () => THREE.Material, castShadow = true): PropFactory => {
   let cache: THREE.BufferGeometry | null = null;
@@ -481,6 +497,8 @@ export const LANTERN_PROPS: Record<string, PropFactory> = {
   lantern_arch: kind(lanternArch, matte),
   lantern_string: kind(lanternString, matte, false),
   bridge_rail: kind(bridgeRail, matte, false),
+  gore_cushion: kind(goreCushion, matte),
+  pillar: kind(stonePillar, matte, false),
   bridge_deck: CANOPY_PROPS.bridge_deck!,
   gravestone: kind(gravestones, matte, false),
   iron_fence: kind(ironFence, matte, false),

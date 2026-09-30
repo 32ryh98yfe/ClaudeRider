@@ -368,6 +368,28 @@ function bamboo(): THREE.BufferGeometry {
   return merge(parts);
 }
 
+/** Gore cushion at a branch split (yaw = branch direction): stacked mossy logs with a chevron board facing traffic. */
+function goreCushion(): THREE.BufferGeometry {
+  const parts: THREE.BufferGeometry[] = [];
+  for (const [y, z, r] of [[0.5, -0.9, 0.55], [0.5, 0.2, 0.55], [1.4, -0.35, 0.5]] as const) {
+    parts.push(part(facet(new THREE.CylinderGeometry(r, r, 3.2, 8)), C.bark, 0, y, z, 0, 0, Math.PI / 2));
+    parts.push(part(new THREE.CircleGeometry(r * 0.9, 8), C.rings, 1.61, y, z, 0, Math.PI / 2, 0), part(new THREE.CircleGeometry(r * 0.9, 8), C.rings, -1.61, y, z, 0, -Math.PI / 2, 0));
+  }
+  parts.push(part(blob(1.0, 1, 0.2, 193, 1.6, 0.35, 1), C.moss, 0, 1.95, -0.3));
+  // chevron board facing −Z (oncoming karts), arrows pointing both ways
+  parts.push(part(box(2.4, 1.0, 0.12), '#1c1f26', 0, 2.9, -1.2), part(box(0.12, 1.4, 0.12), C.barkDark, 0, 2.0, -1.1));
+  for (const sx of [-1, 1]) for (const dy of [-0.16, 0.16]) parts.push(part(box(0.5, 0.14, 0.05), '#ffd23f', sx * 0.55, 2.9 + dy, -1.28, 0, 0, sx * (dy > 0 ? -0.7 : 0.7)));
+  return merge(parts);
+}
+/** Support under elevated decks: a short mossy trunk column (the compiler's variant height class is not rendered yet,
+ * so it stays under 4 m — the minimum clearance where pillars are placed — and never pokes through a deck). */
+function trunkPillar(): THREE.BufferGeometry {
+  return merge([
+    part(facet(lathe([[1.6, -2], [1.7, 0], [1.2, 1.2], [1.0, 3.8], [1.4, 4.0]], 8)), C.bark, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0.1, 3),
+    part(blob(1.3, 1, 0.2, 197, 1, 0.35, 1), C.moss, 0, 0.4, 0),
+  ]);
+}
+
 // ------------------------------------------------------------------------------------------------ factory table
 const kind = (build: () => THREE.BufferGeometry, material: () => THREE.Material, castShadow = true): PropFactory => {
   let cache: THREE.BufferGeometry | null = null;
@@ -387,6 +409,8 @@ export const CANOPY_PROPS: Record<string, PropFactory> = {
   shrub: kind(shrub, matte, false),
   hollow_log: kind(hollowLog, matte),
   gantry: kind(forestGantry, matte),
+  gore_cushion: kind(goreCushion, matte),
+  pillar: kind(trunkPillar, matte, false),
   log_rail: kind(logRail, matte),
   bridge_deck: kind(bridgeDeck, matte, false),
   pond: kind(pond, glossy, false),
