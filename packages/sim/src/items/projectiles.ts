@@ -34,6 +34,11 @@ export function spawnProjectile(w: WorldState, ctx: StepContext, def: Readonly<I
   const ahead = t.race.raceDist >= k.race.raceDist;
   p.path = k.race.loc.path; p.s = k.race.raceDist + (ahead ? 1.5 : -1.5); p.u = k.race.loc.u; p.h = 1;
   p.px = k.body.px + k.body.nx; p.py = k.body.py + k.body.ny; p.pz = k.body.pz + k.body.nz;
+  // a launch in mid-air (jump, zero-g) starts at the kart's height over the route and eases down to cruise height,
+  // instead of snapping several metres onto the route on its first step
+  routePoint(ctx.track, p.path, p.s, 0, 0, F, POS);
+  const h0 = (p.px - POS.x) * F.ux + (p.py - POS.y) * F.uy + (p.pz - POS.z) * F.uz;
+  if (h0 > 1) p.h = h0 < 12 ? h0 : 12;
   p.spawn = w.tick; p.commit = 0;
   p.impact = pd.route === 'direct' ? w.tick + pd.lifeTicks : 0;
   const L = w.projectiles;
