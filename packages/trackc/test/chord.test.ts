@@ -2,7 +2,7 @@
 // and landing overlap the host with 0.2–1 m steps. V18 now names it, overlapping-surface samples are no respawn slot,
 // and a branch sample without a slot of its own respawns on the host (it used to respawn in place, in a loop).
 import { describe, expect, it } from 'vitest';
-import { CTRK_MAGIC, CTRK_VERSION, SMP, readContainer, toArrayBuffer } from '@cr/sim';
+import { CTRK_MAGIC, CTRK_VERSION, SMP, readContainer, toArrayBuffer, type TrackLoc } from '@cr/sim';
 import { bakeSrc, reload } from './helpers.ts';
 
 const CHORD = `TRACK chord name="Chord" theme=spark_circuit diff=3 laps=3 topo=circuit
@@ -48,8 +48,8 @@ describe('branch laid as the chord of a host wiggle', () => {
   it('a host-fallback target decodes to a pose on the host road', () => {
     const i = [...rto].findIndex((v) => v <= -2);
     expect(i).toBeGreaterThanOrEqual(0);
-    const loc = { path: b.index, i, s: smp[i * SMP.STRIDE + SMP.S]!, u: 0, h: 0, sMain: 0, valid: 1 };
-    const out = { ...loc };
+    const loc: TrackLoc = { path: b.index, i, s: smp[i * SMP.STRIDE + SMP.S]!, u: 0, h: 0, sMain: 0, valid: 1 };
+    const out: TrackLoc = { ...loc };
     t.respawnLoc!(loc, out);
     expect(out.path).toBe(0);
     const pose = { x: 0, y: 0, z: 0, fx: 0, fy: 0, fz: 1 };

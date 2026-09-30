@@ -33,6 +33,23 @@ export interface FeatureOut { kills: number; faces: number }
 export function buildFeatures(m: TrackModel, c: Content, rows: Map<number, number[]>, ground: TriSoup, walls: WallQuad[]): FeatureOut {
   let kills = 0, faces = 0;
   const up: P3 = [0, 1, 0];
+  // ---- point-to-point end caps: a soft barrier across the road at both ends of the main line, so finished karts
+  // (and karts reversing off the grid) stop at the end instead of driving off it and respawning (L6 §8)
+  if (!m.closed) {
+    const p = m.paths[0]!;
+    for (const [s, dir] of [[0, -1], [p.length, 1]] as const) {
+      const q = sampleAt(p, s);
+      const L0 = edgePoint(m, p, s, -1, 0.3), R0 = edgePoint(m, p, s, 1, 0.3);
+      const out: P3 = [q.tx * dir, q.ty * dir, q.tz * dir];
+      walls.push({
+        path: p.index, side: 1, flg: TFLAG.SOFT, kind: 'barrier',
+        a0: [L0[0] - q.ux * 0.5, L0[1] - q.uy * 0.5, L0[2] - q.uz * 0.5], a1: [L0[0] + q.ux * 1.6, L0[1] + q.uy * 1.6, L0[2] + q.uz * 1.6],
+        b0: [R0[0] - q.ux * 0.5, R0[1] - q.uy * 0.5, R0[2] - q.uz * 0.5], b1: [R0[0] + q.ux * 1.6, R0[1] + q.uy * 1.6, R0[2] + q.uz * 1.6],
+        sa: s, sb: s, out, render: true,
+      });
+      faces++;
+    }
+  }
   // ---- jumps: landing front face (wall) and a kill floor under the gap
   for (const j of c.jumps) {
     if (j.legacy || j.gapLen <= 0) continue;
