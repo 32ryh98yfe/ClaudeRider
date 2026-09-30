@@ -1,8 +1,8 @@
 # Fernwood Hollow — Canopy Forest D1 (item-built starter). A morning trail through giant trunks: the trunk corner,
 # a hollow-log tunnel, fern S-bends, a log bridge over the creek, the pond sweeper, a mushroom hop and the old oak.
-# @signature branch, pads, jump
-# @fallback branch -> "Mossy Bypass as 5 m dirt shoulders around the pond sweeper (cut the inside on dirt)" when=F1
-# @fallback jump -> "gentle hump (S 25 dy +1.2 / S 25 dy -1.2) between the giant mushrooms" when=F2
+@signature branch, pads, jump
+@fallback branch -> "Mossy Bypass as 5 m dirt shoulders around the pond sweeper (cut the inside on dirt)" when=F1
+@fallback jump -> "gentle hump (S 25 dy +1.2 / S 25 dy -1.2) between the giant mushrooms" when=F2
 TRACK fernwood_hollow name="Fernwood Hollow" theme=canopy_forest diff=1 laps=3 topo=circuit
 DEFAULTS w=18 surf=asphalt wall=rock:1.2 shoulder=2.5 shoulderSurf=dirt blend=16
 START pos=(0,0,0) hdg=0

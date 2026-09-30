@@ -3,10 +3,10 @@
 # spiral staircase down 270° into the catacombs (its exit passes under its own entry), a crypt grid of R12 corners,
 # the ossuary, the bat cave, the ramp tunnel back up, the garden terrace over the catacombs, hedges, roses, the
 # hedge maze, the orangery and the gazebo hairpin.
-# @signature warp, hazard:press, hazard:swinger, stacked
-# @fallback warp -> "ramp tunnel climbing back to the garden (S 125, dy +10)" when=F4
-# @fallback hazard:press -> "bookcase always open (static bookcase walls in the crypt grid)" when=F5
-# @fallback hazard:swinger -> "chandeliers hang still above the chandelier bend" when=F5
+@signature warp, hazard:press, hazard:swinger, stacked
+@fallback warp -> "ramp tunnel climbing back to the garden (S 125, dy +10)" when=F4
+@fallback hazard:press -> "bookcase always open (static bookcase walls in the crypt grid)" when=F5
+@fallback hazard:swinger -> "chandeliers hang still above the chandelier bend" when=F5
 TRACK manor_catacombs name="Manor Catacombs" theme=lantern_hollow diff=4 laps=2 topo=circuit
 DEFAULTS w=13 surf=cobble wall=parapet:1.2 shoulder=0.5 shoulderSurf=stone blend=15
 START pos=(0,0,0) hdg=0
