@@ -1,68 +1,50 @@
-// Pebble — starter open tube-frame go-kart (1.6 × 1.1 × 0.5 m, wheels r 0.22).
-import * as THREE from 'three/webgpu';
-import type { KartBodyDef, KartModel, Livery } from '../types.ts';
-import { MaterialLibrary } from '../../materials/library.ts';
-import { merge, paint, place, rbox, box, cyl, torus } from '../../util/geo.ts';
+// Pebble (페블) — balance starter: an open tube-frame go-kart. 1.6 × 1.1 × 0.5 m, wheels r 0.22, one exhaust.
+// Silhouette: low flat tray, chunky side pods, a chrome roll hoop framing the driver, big nose number.
+import { defineKart } from '../kit.ts';
+import { box, cyl } from '../../mascot/shapes.ts';
 
-function build(l: Livery): KartModel {
-  const root = new THREE.Group();
-  root.name = 'kart:pebble';
-  const body = merge([
-    paint(place(rbox(1.0, 0.1, 1.5, 0.05, 2), 0, 0.2, 0), '#2b2b2e'),                       // floor pan
-    paint(place(rbox(0.28, 0.2, 1.1, 0.08, 3), -0.47, 0.3, 0.05), l.primary),              // side pods
-    paint(place(rbox(0.28, 0.2, 1.1, 0.08, 3), 0.47, 0.3, 0.05), l.primary),
-    paint(place(rbox(0.9, 0.18, 0.34, 0.08, 3), 0, 0.3, 0.72), l.primary),                 // nose
-    paint(place(rbox(0.5, 0.06, 0.2, 0.03, 2), 0, 0.42, 0.72), l.secondary),               // number plate
-    paint(place(rbox(0.56, 0.32, 0.18, 0.06, 2), 0, 0.46, -0.3, -0.25, 0, 0), '#3a3a3f'),  // seat back
-    paint(place(rbox(0.56, 0.08, 0.4, 0.04, 2), 0, 0.3, -0.12), '#3a3a3f'),                // seat base
-    paint(place(rbox(0.6, 0.26, 0.34, 0.06, 2), 0, 0.36, -0.66), '#515158'),               // engine
-    paint(place(cyl(0.05, 0.05, 1.2, 8), 0, 0.26, -0.82, 0, 0, Math.PI / 2), '#8a8a90'),   // rear bumper tube
-    paint(place(cyl(0.045, 0.045, 1.1, 8), 0, 0.24, 0.92, 0, 0, Math.PI / 2), '#8a8a90'),  // front bumper tube
-    paint(place(cyl(0.035, 0.035, 0.5, 8), 0, 0.5, 0.28, -0.9, 0, 0), '#2b2b2e'),          // steering column
-    paint(place(rbox(0.1, 0.02, 0.6, 0.01, 1), -0.2, 0.43, 0.72), l.secondary),            // stripes
-    paint(place(rbox(0.1, 0.02, 0.6, 0.01, 1), 0.2, 0.43, 0.72), l.secondary),
-  ]);
-  const bodyMesh = new THREE.Mesh(body, MaterialLibrary.kartPaint(l.primary));
-  bodyMesh.castShadow = true; bodyMesh.receiveShadow = true;
-  root.add(bodyMesh);
-  const steering = new THREE.Group();
-  steering.position.set(0, 0.62, 0.18);
-  steering.rotation.x = -0.9;
-  const wheelGeo = paint(torus(0.13, 0.025, 6, 16), '#1f1f22');
-  steering.add(new THREE.Mesh(wheelGeo, MaterialLibrary.vertexLit(0.5, 0.2)));
-  root.add(steering);
-  // wheels: tyre + rim merged
-  const tyre = merge([
-    paint(place(cyl(0.22, 0.22, 0.2, 18), 0, 0, 0, 0, 0, Math.PI / 2), '#1c1c1f'),
-    paint(place(cyl(0.13, 0.13, 0.21, 12), 0, 0, 0, 0, 0, Math.PI / 2), l.secondary),
-    paint(place(box(0.215, 0.05, 0.3), 0, 0, 0), '#9a9aa0'),
-  ]);
-  const wheelMat = MaterialLibrary.vertexLit(0.8, 0.1);
-  const wheels: THREE.Object3D[] = [];
-  for (const [x, z] of [[-0.58, 0.58], [0.58, 0.58], [-0.6, -0.55], [0.6, -0.55]] as const) {
-    const pivot = new THREE.Group(); pivot.position.set(x, 0.22, z);
-    const w = new THREE.Mesh(tyre, wheelMat); w.castShadow = true;
-    pivot.add(w); root.add(pivot); wheels.push(pivot);
-  }
-  const seat = new THREE.Object3D(); seat.position.set(0, 0.34, -0.1); root.add(seat);
-  const exhausts = [new THREE.Object3D(), new THREE.Object3D()];
-  exhausts[0]!.position.set(-0.18, 0.38, -0.86); exhausts[1]!.position.set(0.18, 0.38, -0.86);
-  for (const e of exhausts) root.add(e);
-  let spin = 0;
-  return {
-    root, wheels, steering, seat, exhausts,
-    update(s, dt): void {
-      spin += s.wheelSpin * dt;
-      for (let i = 0; i < 4; i++) {
-        const p = wheels[i]!;
-        p.children[0]!.rotation.x = spin;
-        if (i < 2) p.rotation.y = -s.steer * 0.45;
-      }
-      steering.rotation.z = s.steer * 1.2;
-    },
-    dispose(): void { body.dispose(); tyre.dispose(); },
-  };
-}
-
-const def: KartBodyDef = { id: 'pebble', dims: { length: 1.6, width: 1.1, height: 0.5, wheelR: 0.22 }, build };
-export default def;
+export default defineKart({
+  id: 'pebble',
+  archetype: 'balance',
+  dims: { length: 1.6, width: 1.1, height: 0.5, wheelR: 0.22 },
+  livery: { primary: '#D97757', secondary: '#FAF9F5', pattern: 1, number: 7 },
+  seat: [0, 0.56, -0.12],
+  build(k) {
+    const q = k.q;
+    // floor tray + perimeter frame
+    k.add(k.rb(0.86, 0.06, 1.36, 0.03).translate(0, 0.17, 0), { color: 'trim', surf: 'plastic' });
+    k.add(k.tb([[0.4, 0.2, 0.62], [0.44, 0.2, 0.1], [0.44, 0.2, -0.5], [0.3, 0.2, -0.74], [-0.3, 0.2, -0.74], [-0.44, 0.2, -0.5], [-0.44, 0.2, 0.1], [-0.4, 0.2, 0.62]], 0.025), { color: 'metal', surf: 'chrome' });
+    // side pods (painted, livery pattern) with a rounded sporty wedge
+    for (const s of [1, -1]) {
+      k.add(k.rb(0.2, 0.2, 0.5, 0.08).translate(s * 0.42, 0.29, -0.01), { color: 'paint' });
+      if (k.lod < 2) k.add(k.rb(0.16, 0.06, 0.3, 0.03).translate(s * 0.42, 0.4, -0.01), { color: 'secondary' });
+    }
+    // nose fairing + number plate
+    k.add(k.rb(0.72, 0.2, 0.4, 0.09, true).translate(0, 0.28, 0.6), { color: 'paint' });
+    if (k.lod < 2) k.add(k.rb(0.46, 0.04, 0.22, 0.02).translate(0, 0.39, 0.6), { color: 'secondary' });
+    k.number([0, 0.412, 0.6], 'y+', 0.2, { color: 'primary' });
+    // bumpers
+    k.add(k.tb([[0.48, 0.2, 0.62], [0.42, 0.22, 0.84], [0, 0.23, 0.9], [-0.42, 0.22, 0.84], [-0.48, 0.2, 0.62]], 0.035), { color: 'chrome', surf: 'chrome' });
+    k.add(k.tb([[0.5, 0.22, -0.62], [0.42, 0.24, -0.82], [0, 0.25, -0.86], [-0.42, 0.24, -0.82], [-0.5, 0.22, -0.62]], 0.04), { color: 'chrome', surf: 'chrome' });
+    // bucket seat
+    k.add(k.rb(0.5, 0.08, 0.42, 0.035).translate(0, 0.31, -0.12), { color: 'seat', surf: 'matte' });
+    k.add(k.rb(0.54, 0.36, 0.08, 0.035).rotateX(-0.22).translate(0, 0.48, -0.37), { color: 'seat', surf: 'matte' });
+    // engine block behind the seat
+    k.add(k.rb(0.42, 0.22, 0.26, 0.05).translate(0.04, 0.32, -0.62), { color: 'metal', surf: 'metal' });
+    if (k.lod === 0) for (let i = 0; i < 4; i++) k.add(box(0.44, 0.02, 0.02).translate(0.04, 0.36 + i * 0.03, -0.49), { color: 'chrome', surf: 'chrome' });
+    // roll hoop framing the driver (chrome) — lower than the head accessories so hats stay readable
+    k.add(k.tb([[0.3, 0.22, -0.44], [0.29, 0.6, -0.47], [0.2, 0.72, -0.48], [-0.2, 0.72, -0.48], [-0.29, 0.6, -0.47], [-0.3, 0.22, -0.44]], 0.028, true), { color: 'chrome', surf: 'chrome' });
+    k.handlebar({ color: 'chrome' });
+    k.exhaust([-0.2, 0.36, -0.8], { r: 0.05, len: 0.2 });
+    if (k.lod < 2) k.add(cyl(0.035, 0.035, 0.22, q(10, 6, 4)).rotateZ(Math.PI / 2).translate(-0.08, 0.36, -0.72), { color: 'chrome', surf: 'chrome' });
+    // side sparkle stickers + side numbers
+    for (const s of [1, -1]) {
+      k.decal([s * 0.521, 0.29, 0.13], s > 0 ? 'x+' : 'x-', 0.14, 0.14, { color: 'secondary', cell: 'sparkle' });
+      k.number([s * 0.521, 0.28, -0.08], s > 0 ? 'x+' : 'x-', 0.15, { color: 'secondary' });
+    }
+    k.wheel(0, [0.47, 0.22, 0.52], { r: 0.22, w: 0.19, style: 'kart', rim: 'secondary' });
+    k.wheel(1, [-0.47, 0.22, 0.52], { r: 0.22, w: 0.19, style: 'kart', rim: 'secondary' });
+    k.wheel(2, [0.49, 0.23, -0.5], { r: 0.23, w: 0.24, style: 'kart', rim: 'secondary' });
+    k.wheel(3, [-0.49, 0.23, -0.5], { r: 0.23, w: 0.24, style: 'kart', rim: 'secondary' });
+  },
+});

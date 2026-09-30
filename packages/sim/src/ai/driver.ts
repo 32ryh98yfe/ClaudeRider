@@ -1,134 +1,750 @@
-// AI racer: port of the validated gap-2 aiDriver (pure pursuit + drift trigger + yaw-budget speed profile)
-// onto baked per-sample AI tables and the 3D kart frame. Runs ONLY on the authority (server / offline worker).
+// AI racer (14-ai §3): the validated gap-2 controller (pure pursuit, yaw-budget speed, drift trigger,
+// heading-pursuit drift control) on the dense per-track plan, plus tier execution (per-corner drift plans,
+// instant-boost and start rolls, line noise, mistakes, booster discipline), personalities, lane choice
+// (avoidance, slipstream, overtakes), stuck recovery, lookahead self-prediction and the L2 item hook.
+// Runs ONLY on the authority (server / offline worker); it reads the world and writes an InputFrame.
+// No per-tick allocation: all state lives in fields of one object per bot.
 import type { ContentTables } from '@cr/content';
 import type { InputFrame } from '../core/input.ts';
 import { Held, Edge } from '../core/input.ts';
-import { Phase, type WorldState } from '../core/state.ts';
+import { Phase, type KartState, type WorldState } from '../core/state.ts';
 import { DT } from '../core/units.ts';
-import type { AiSample, BakedTrack, FrameSample } from '../track/BakedTrack.ts';
+import type { BakedTrack } from '../track/BakedTrack.ts';
 import { gripGain, paramsFor, type KartParams } from '../kart/params.ts';
 import type { AiDriver, AiProfile } from './api.ts';
 import { AI_TIERS } from './api.ts';
+import { AiRng, mixSeed } from './rng.ts';
+import { planFor, gripTable, type PathPlan, type TrackPlan, type Corner } from './plan.ts';
+import { AI_GHOST_PROFILE, personalityOf, resolveProfile, type EffectiveProfile } from './profiles.ts';
+import { planLane, type LaneQuery, type LaneResult } from './avoid.ts';
+import { Recovery, type RecoveryIn, type RecoveryOut } from './recovery.ts';
+import { SelfPredictor } from './predict.ts';
+import type { AiDriverArgs, AiItemPolicy, AiItemView, AiRole } from './hooks.ts';
+import { createItemBrain, decideItem, type ItemBrain, type ItemEnv } from './items/index.ts';
+import { EF } from '../items/codes.ts';
 
-const deg = Math.PI / 180;
+/** status.modMask bit of the Redaction overlay (perception noise, 14-ai §6). */
+const REDACTION_BIT = 1 << (EF.redaction - 1);
 
-function rng(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+const DEG = Math.PI / 180;
+/** A split this far behind the kart's located s still counts as taken (the sim relocates onto the branch late). */
+const FORK_GRACE = 40;
+/** Validated gap-2 controller constants (docs/research/sim-prototype.md aiDriver). */
+const A = {
+  Lk0: 6, Lk1: 0.35, trigDeg: 25, trigLook: 40, gripFrac: 0.9, tLead: 0.5, outBias: 0.6, tHead: 0.45, kHead: 2.5, kLatPos: 0.6,
+  eExit: 0.05, ehShift: 0.4, rekTicks: 18, ehRekick: 0.8, sInMax: 0.8, sbHi: 0.42, sbShiftMax: 0.4, outBite: 0.35, tPred: 0.25, rLead: 25,
+  // the prototype's 0.1 s tap, decremented in float seconds, held DRIFT for 8 frames: keep exactly that
+  tapFrames: 8,
+} as const;
+
+/** Controller knobs shared by every bot (mutable only for tools/balance experiments; never per bot). */
+export const AI_TUNING = { lineClampFrac: 9, holdTurn: 0.5, holdMinSIn: -0.3, holdMode: 0, holdKeyEh: -0.05, holdSbMax: 0.45, minZones: 6, eExit: 0.05 };
+
+/** Drift execution plan for one corner on one lap (14-ai §3.9). */
+export const DriftPlan = { OPTIMAL: 0, SLOPPY: 1, GRIP: 2 } as const;
+/** Mistakes (14-ai §3.9): late brake (or a panic brake where no braking is needed), over-held drift, running wide. */
+export const Mistake = { NONE: 0, LATE_BRAKE: 1, OVERHOLD: 2, WIDE: 3, PANIC_BRAKE: 4 } as const;
+
+/** Counters a driver keeps about itself (tests, tools/balance). Plain numbers; never read by the sim. */
+export interface AiDriverStats {
+  plans: [number, number, number];   // optimal / sloppy / grip plans on drift-worthy corners
+  mistakes: number;
+  instRolls: number; instPlanned: number;
+  boostsFired: number;
+  laneChanges: number; overtakeLanes: number; draftFollows: number;
+  recoveries: number; resets: number;
+  /** Branch forks passed / taken (14-ai §4.1). */
+  forksSeen: number; forksTaken: number;
+  /** Σ|u − line| and Σ signed personality bias, sampled every tick (line accuracy / style metrics). */
+  sumAbsLineDev: number; sumBias: number; samples: number;
 }
-const gauss = (r: () => number): number => { const u = Math.max(1e-9, r()), v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
 
-const A = { Lk0: 6, Lk1: 0.35, trigDeg: 25, trigLook: 40, rBias: 0.6, gripFrac: 0.9, tLead: 0.5, outBias: 0.6, tHead: 0.45, kHead: 2.5, kLatPos: 0.6, eExit: 0.05, ehShift: 0.4, rekT: 0.3, ehRekick: 0.8, sInMax: 0.8, sbHi: 0.42, sbShiftMax: 0.4, outBite: 0.35, tPred: 0.25, rLead: 25, shTap: 0.1 };
+/** The driver interface plus introspection used by tests/tools (a superset of B8 `AiDriver`). */
+export interface AiDriverEx extends AiDriver {
+  readonly profile: Readonly<EffectiveProfile>;
+  readonly stats: AiDriverStats;
+  readonly role: AiRole;
+  /** Forget per-lap plans, pipe and recovery state (e.g. when a takeover driver is re-attached). */
+  resync(): void;
+}
 
-export function createAiDriver(track: BakedTrack, content: ContentTables, slot: number, profile: AiProfile = AI_TIERS.pro, personality: Partial<AiProfile> = {}, seed = 1): AiDriver {
-  const prof: AiProfile = { ...profile, ...personality };
-  const R = rng(seed ^ (slot * 0x9e3779b1));
-  const F: FrameSample = { px: 0, py: 0, pz: 0, tx: 0, ty: 0, tz: 0, rx: 0, ry: 0, rz: 0, ux: 0, uy: 0, uz: 0, wL: 0, wR: 0, sMain: 0, flags: 0 };
-  const F2: FrameSample = { ...F };
-  const AS: AiSample = { lineU: 0, vLim: 99, kappa: 0, turnAhead40: 0, driftZone: 0, width: 8 };
-  let shT = 0, rek = 0, prevBoost = false, noise = 0, noiseT = 0;
-  let instDelay = -1, startDelay = -1, falseStart = false;
-  let P: KartParams | null = null;
+/**
+ * B8 factory. `personality` may carry AiProfile overrides and the driver extras (hooks.ts: character, lookahead,
+ * role, cfg, …). `cfg` may also be passed as a 7th argument (the L2 call-site request's form); with a config the
+ * driver runs L2's item brain at the end of every decide().
+ */
+export function createAiDriver(track: BakedTrack, content: ContentTables, slot: number, profile: AiProfile = AI_TIERS.pro, personality: AiDriverArgs = {}, seed = 1,
+  cfg?: AiDriverArgs['cfg']): AiDriverEx {
+  return new BotDriver(track, content, slot, profile, cfg && !personality.cfg ? { ...personality, cfg } : personality, seed);
+}
 
-  return {
-    slot,
-    decide(w: Readonly<WorldState>, out: InputFrame): void {
-      const k = w.karts[slot]!;
-      out.steer = 0; out.throttle = 0; out.brake = 0; out.held = 0; out.edges = 0; out.aim = 255; out.emote = 0;
-      if (!k.active) return;
-      if (!P) P = paramsFor(content.karts.byCode[k.spec]!);
-      const b = k.body, d = k.drive, loc = k.race.loc;
-      // ---- start: press throttle around GO with tier-dependent timing
-      if (w.phase < Phase.RACING || w.tick < w.goTick + 30) {
-        if (startDelay < 0) {
-          falseStart = R() < prof.falseStartProb;
-          startDelay = falseStart ? -30 - Math.floor(R() * 20) : prof.startDelayTicks[0] + Math.floor(R() * (prof.startDelayTicks[1] - prof.startDelayTicks[0] + 1));
-        }
-        const pressAt = w.goTick + startDelay;
-        out.throttle = w.tick >= pressAt ? 15 : 0;
-        if (w.phase < Phase.RACING) return;
-      }
-      // 2D mapping: X = x, Y = -z → CCW math frame where + = left turn
-      const hx = b.fx, hy = -b.fz;
-      const hl = Math.hypot(hx, hy) || 1;
-      const kx = b.px, ky = -b.pz;
-      const vx2 = b.vx, vy2 = -b.vz;
-      const v = Math.hypot(vx2, vy2);
-      const Lk = A.Lk0 + A.Lk1 * v;
-      track.frameAt(loc.path, loc.s + Lk, F);
-      const hw = Math.max(3, Math.min(F.wL, F.wR) - 3);
-      track.aiAt(loc.path, loc.s, AS);
-      const dPsi = AS.turnAhead40;
-      const vLim = AS.vLim * prof.vMul;
-      // upcoming corner: first sample where centreline curvature exceeds grip capability at current speed
-      let dCorner = 1e9, cornerDir = 0, cornerR = 1e9;
-      const gripKap = gripGain(v, P) / Math.max(v, 1);
-      for (let s = 0; s <= A.trigLook; s += 1) {
-        track.aiAt(loc.path, loc.s + s, AS);
-        const cr = AS.kappa;
-        if (Math.abs(cr) * (1 / (1 + A.rBias * hw * Math.abs(cr))) > A.gripFrac * gripKap) { dCorner = s; cornerDir = cr > 0 ? 1 : -1; cornerR = 1 / Math.abs(cr); break; }
-      }
-      // slowly varying lateral noise (line imperfection)
-      if (--noiseT <= 0) { noise = gauss(R) * prof.lineNoise; noiseT = 60 + Math.floor(R() * 60); }
-      let steer: number, thr = 1, brk = 0, drift = false, boost = false;
-      if (d.drift === 0) {
-        let off = noise;
-        if (dCorner < 1e8) off += -cornerDir * A.outBias * (hw - 1.5);
-        // pursue an offset point (left normal of the track tangent = (-ty, tx) in 2D)
-        const ttx = F.tx, tty = -F.tz;
-        const gx = F.px - tty * off, gy = -F.pz + ttx * off;
-        const ex = gx - kx, ey = gy - ky;
-        const ed = Math.max(1, Math.hypot(ex, ey));
-        const aH2 = Math.atan2(-ex * hy + ey * hx, ex * hx + ey * hy);
-        steer = clampSteer((2 * Math.sin(aH2) / ed) * v, v, P);
-        const lead = v * A.tLead * Math.max(0.3, Math.min(1, A.rLead / cornerR));
-        const skillOk = R() < 0.85 + 0.15 * prof.driftSkill;
-        if (Math.abs(dPsi) > A.trigDeg * deg && v > 15 && dCorner <= lead && d.reDriftLock <= 0 && skillOk) { drift = true; steer = cornerDir; shT = A.shTap; rek = 0; }
-        if (d.instWindow > 0) {
-          if (instDelay < 0) instDelay = R() < prof.instBoostRate ? Math.floor(R() * (prof.instJitterTicks + 1)) : 999;
-          if (instDelay === 0) thr = d.prevThrottle === 1 ? 0 : 1; else if (instDelay < 900) instDelay--;
-        } else instDelay = -1;
-      } else {
-        const dd = d.driftDir;
-        track.frameAt(loc.path, loc.s + Math.max(4, v * A.tHead), F2);
-        const tpx = F2.tx, tpy = -F2.tz;
-        const eh = Math.atan2((hx / hl) * tpy - (hy / hl) * tpx, (hx / hl) * tpx + (hy / hl) * tpy) * dd;
-        track.frameAt(loc.path, loc.s, F2);
-        const qtx = F2.tx, qty = -F2.tz;
-        const dDot = -vx2 * qty + vy2 * qtx;           // lateral velocity w.r.t. track (left +)
-        const dLeft = -loc.u;                           // loc.u is right-positive
-        const outside = -dd * (dLeft + dDot * A.tPred) / hw;
-        const wl = -vx2 * (hy / hl) + vy2 * (hx / hl);
-        const sb = -dd * wl / Math.max(v, 1);
-        const e = eh + A.kLatPos * outside;
-        let sIn = A.kHead * e;
-        if (sIn > A.sInMax) sIn = A.sInMax;
-        if (sb > A.sbHi || (outside > A.outBite && eh > 0)) { if (sIn > 0.3) sIn = 0.3; }
-        if (e < -A.eExit) sIn = -1;
-        sIn = sIn > 1 ? 1 : sIn < -1 ? -1 : sIn;
-        if (shT > 0) { drift = true; shT -= DT; if (sIn < 0.6) sIn = 0.6; }
-        else if (eh > A.ehShift && sb < A.sbShiftMax) {
-          if (d.driftTicks * DT > A.rekT && eh > A.ehRekick && rek === 0) { rek = 1; drift = false; }
-          else drift = true;
-          if (sIn < 0.6) sIn = 0.6;
-        }
-        steer = sIn * dd;
-        if (sIn < -0.3) thr = 0;
-      }
-      if (v > vLim + 0.5) { brk = 1; thr = 0; } else if (v > vLim) thr = 0;
-      if (d.boosters + d.teamBoosters > 0 && d.drift === 0 && Math.abs(dPsi) < 12 * deg && d.boostTicks < 12 && !prevBoost) boost = true;
-      prevBoost = boost;
-      // stuck recovery: reverse briefly, then respawn
-      if (d.lowSpeedTicks > 120 && w.tick > w.goTick + 120) { thr = 0; brk = 1; steer = -steer; }
-      if (d.lowSpeedTicks > 300) out.edges |= Edge.RESPAWN;
-      out.steer = Math.round(-steer * 127);
-      out.throttle = thr > 0 ? 15 : 0;
-      out.brake = brk > 0 ? 15 : 0;
-      out.held = drift ? Held.DRIFT : 0;
-      if (boost && w.phase >= Phase.RACING) out.edges |= Edge.USE_ITEM;
-      if (k.race.wrongWayTicks > 90) out.edges |= Edge.RESPAWN;
-    },
+class BotDriver implements AiDriverEx {
+  readonly slot: number;
+  readonly profile: EffectiveProfile;
+  readonly role: AiRole;
+  readonly stats: AiDriverStats = {
+    plans: [0, 0, 0], mistakes: 0, instRolls: 0, instPlanned: 0, boostsFired: 0, laneChanges: 0, overtakeLanes: 0, draftFollows: 0,
+    recoveries: 0, resets: 0, forksSeen: 0, forksTaken: 0, sumAbsLineDev: 0, sumBias: 0, samples: 0,
   };
+  private readonly track: BakedTrack;
+  private readonly content: ContentTables;
+  private readonly plan: TrackPlan;
+  private readonly rng: AiRng;
+  private readonly LA: number;
+  private readonly item: AiItemPolicy | null;
+  private readonly wantBoxes: boolean;
+  private readonly cruiseProfile: EffectiveProfile;
+  private readonly pred: SelfPredictor;
+  private readonly brain: ItemBrain | null;
+  private readonly itemEnv: ItemEnv | null;
+  // ---- route (branch choice): per-fork decision for the current lap, and the origin of route-relative queries
+  private readonly forkTake: Uint8Array;
+  private readonly forkLap: Int32Array;
+  private routePath = -1; private routeS0 = 0.5; private onRiskBranch = false;
+  private P: KartParams | null = null;
+  private grip: Float64Array[] | null = null;
+
+  // ---- sampling scratch (resolved path/index/fraction of the last `at()` call)
+  private rp: PathPlan;
+  private ri = 0; private rj = 0; private rf = 0.5; private rs = 0.5; private rsCur = 0.5;
+
+  // ---- start
+  private pressAt = -1e9; private startRolled = false; private readonly startOffset: number;
+  // ---- line noise (Ornstein–Uhlenbeck, σ = lineNoise, τ = 90 ticks, advanced at 20 Hz)
+  private noise = 0.5;
+  // ---- drift state
+  private tapLeft = 0; private tapDir = 1; private rek = 0;
+  private predDrifting = false;
+  private instOk = true; private instHandled = true; private instPressAt = -1; private instArmed = false;
+  private holdExtra = 0; private cornerDrifts = 0;
+  // ---- per-corner plan
+  private cCorner = -2; private cPath = -1;
+  private cPlan: number = DriftPlan.OPTIMAL; private cLate = 0.5; private cHold = 0; private cMistake: number = Mistake.NONE;
+  private lateBrakeLeft = 0; private wideT = 0.5; private cChain = true; private panicLeft = 0;
+  // ---- boosters
+  private boostReadyAt = -1; private prevBoost = false;
+  // ---- lanes
+  private laneOff = 0.5; private laneTarget = 0.5; private laneTtc = 1e9; private laneClosing = 0.5; private laneDrafting = false;
+  private startLaneSet = false;
+  // ---- recovery
+  private readonly rec = new Recovery();
+  private readonly recIn: RecoveryIn = { sinceGo: 0, v: 0.5, vFwd: 0.5, aTarget: 0.5, aTrack: 0.5, lowSpeedTicks: 0, wrongWayTicks: 0, canAct: false, sinceRespawn: 0, raceDist: 0.5, sinceCc: 999 };
+  private lastCcTick = -1000;
+  private readonly recOut: RecoveryOut = { steer: 0.5, thr: 0.5, brk: 0.5, reset: false };
+  private lastRespawnTick = -1000; private prevRespawns = 0;
+  // ---- mash-out
+  private nextTap = 0; private mashDir = 1;
+  // ---- avoidance scratch
+  private readonly lq: LaneQuery = {
+    slot: 0, sMain: 0.5, path: 0, u: 0.5, vS: 0.5, vU: 0.5, tx: 0.5, tz: 0.5, rx: 0.5, rz: 0.5, hw: 8.5, lineAbs: 0.5, laneOff: 0.5, la: 0.5,
+    straight: false, nextCornerDir: 0, nextCornerDist: 0.5, lineWeight: 1.5, draftActive: false, wish: NaN, horizon: 1.5,
+  };
+  private readonly lr: LaneResult = { laneOff: 0.5, ttc: 1e9, closing: 0.5, drafting: false, overtaking: false, urgent: false };
+  private laneUrgent = false;
+  private readonly view: { -readonly [K in keyof AiItemView]: AiItemView[K] };
+
+  constructor(track: BakedTrack, content: ContentTables, slot: number, profile: AiProfile, args: AiDriverArgs, seed: number) {
+    this.slot = slot;
+    this.track = track;
+    this.content = content;
+    this.plan = planFor(track);
+    this.rp = this.plan.paths[0]!;
+    this.role = args.role ?? 'racer';
+    const ghost = this.role === 'ghost';
+    this.rng = new AiRng(mixSeed(seed, slot, 0x41490001));
+    const pers = personalityOf(content, ghost ? undefined : args.character);
+    this.profile = resolveProfile(ghost ? AI_GHOST_PROFILE : profile, ghost ? {} : args, pers, args.noJitter || ghost ? null : this.rng, ghost);
+    // finished karts cruise with Rookie noise and no items (10-sim §12.8, 14-ai §10)
+    this.cruiseProfile = resolveProfile(AI_TIERS.rookie, {}, pers, null, false);
+    this.LA = Math.max(0, Math.min(30, Math.floor(args.lookaheadTicks ?? 0)));
+    this.pred = new SelfPredictor(this.LA);
+    const ip = args.itemPolicy;
+    this.item = typeof ip === 'function' ? ip(slot, this.profile, mixSeed(seed, slot, 0x49544d31)) : ip ?? null;
+    // L2 item brain (ai/items): needs the race config for team rules
+    this.itemEnv = args.cfg ? { track, content, cfg: args.cfg } : null;
+    this.brain = args.cfg && !ghost ? createItemBrain(slot, this.profile, { itemHoarding: pers.itemHoarding, aggression: pers.aggression }, mixSeed(seed, slot, 0x49544d32)) : null;
+    this.wantBoxes = this.item !== null || args.mode === 'item' || args.cfg?.mode === 'item';
+    this.forkTake = new Uint8Array(this.plan.forks.length);
+    this.forkLap = new Int32Array(this.plan.forks.length).fill(-999);
+    this.startOffset = args.startOffsetTicks ?? NaN;
+    this.laneOff = 0; this.laneTarget = 0; this.noise = 0; this.laneTtc = Infinity; this.laneClosing = 0;
+    this.view = {
+      w: null as unknown as WorldState, track, slot, profile: this.profile, applyTick: 0, highRate: false, s: 0, u: 0, turnAhead40: 0, straightAhead: 0, busy: false,
+    };
+  }
+
+  resync(): void {
+    this.cCorner = -2; this.rec.reset(); this.laneOff = 0; this.laneTarget = 0; this.boostReadyAt = -1;
+    this.instHandled = true; this.instPressAt = -1; this.holdExtra = 0; this.tapLeft = 0; this.rek = 0; this.pred.reset();
+  }
+
+  // ------------------------------------------------------------------------------------------------ sampling
+  /**
+   * Resolves (path, s) to a sample pair on the plan: sets rp/ri/rj/rf/rs. Queries on the bot's current path are
+   * route-relative: past a fork it chose they continue on the branch; past the end of a branch on its host.
+   */
+  private at(path: number, s: number): void {
+    const paths = this.plan.paths;
+    let pp = paths[path] ?? paths[0]!;
+    let ss = s;
+    let from = path === this.routePath ? this.routeS0 : NaN;
+    for (let hop = 0; hop < 4; hop++) {
+      let moved = false;
+      if (from === from) {
+        const forks = pp.forks;
+        for (let q = 0; q < forks.length; q++) {
+          const f = forks[q]!;
+          if (this.forkTake[f.id] !== 1) continue;
+          // signed distance from the route origin to the split; the sim keeps locating a kart on the host for a
+          // few metres into the branch, so a split up to FORK_GRACE behind still counts as taken
+          let d = f.at - from;
+          if (pp.closed) { const L = pp.length; if (d < -L / 2) d += L; else if (d >= L / 2) d -= L; }
+          if (d >= -FORK_GRACE && from + d <= ss) {
+            ss = f.toS + (ss - (from + d)); from = f.toS + (d < 0 ? -d : 0); pp = paths[f.to] ?? pp; moved = true; break;
+          }
+        }
+      }
+      if (!moved && !pp.closed && pp.next && ss > pp.next.at) {
+        ss = pp.next.s + (ss - pp.next.at); from = pp.next.s; pp = paths[pp.next.path] ?? pp; moved = true;
+      }
+      if (!moved) break;
+    }
+    if (pp.closed) { const L = pp.length; ss -= L * Math.floor(ss / L); }
+    else if (ss < 0) ss = 0; else if (ss > pp.length) ss = pp.length;
+    const x = ss / pp.ds;
+    let i = Math.floor(x);
+    let f = x - i;
+    if (pp.closed) { if (i >= pp.n) i -= pp.n; this.rj = i + 1 >= pp.n ? 0 : i + 1; }
+    else { if (i >= pp.n - 1) { i = pp.n - 1; f = 0; } this.rj = i + 1 < pp.n ? i + 1 : i; }
+    this.rp = pp; this.ri = i; this.rf = f; this.rs = ss;
+  }
+  private lerp(a: Float64Array): number { const x = a[this.ri]!; return x + (a[this.rj]! - x) * this.rf; }
+
+  // ------------------------------------------------------------------------------------------------ decide
+  decide(w: Readonly<WorldState>, out: InputFrame): void {
+    out.steer = 0; out.throttle = 0; out.brake = 0; out.held = 0; out.edges = 0; out.aim = 255; out.emote = 0;
+    const k = w.karts[this.slot];
+    if (!k || !k.active) return;
+    this.decideDriving(w, k, out);
+    // L2 item brain: the single item call site, after the driving controls are final (it may add item edges, aim
+    // and LOOK_BACK, and counter-steer under Mirror Mode). Never while cruising after the finish or on a kill-risk branch.
+    if (this.brain && this.itemEnv && k.race.finishTick < 0 && this.role !== 'cruise') {
+      decideItem(this.brain, w, this.itemEnv, out);
+      if (this.onRiskBranch) out.edges &= ~Edge.USE_ITEM;
+    }
+  }
+
+  private decideDriving(w: Readonly<WorldState>, k: KartState, out: InputFrame): void {
+    if (!this.P) { this.P = paramsFor(this.content.karts.byCode[k.spec]!); this.grip = gripTable(this.plan, this.P); }
+    const applyTick = w.tick + 1 + this.LA;
+    if (k.stats.respawns !== this.prevRespawns) { this.prevRespawns = k.stats.respawns; this.lastRespawnTick = w.tick; }
+    if (w.phase < Phase.RACING || applyTick <= w.goTick + 24) {
+      // start: press throttle around GO with the tier's timing (10-sim §7.1); hold it once pressed
+      if (!this.startRolled) this.rollStart(w);
+      if (applyTick >= this.pressAt) out.throttle = 15;
+      if (w.phase < Phase.RACING || applyTick < this.pressAt) { this.commit(out); return; }
+    }
+    if (w.phase === Phase.DONE) { this.commit(out); return; }
+    if (k.race.respawnPhase !== 0) {
+      // inputs are ignored while respawning; hold throttle so the kart launches the moment control returns
+      this.rec.reset(); this.cCorner = -2; this.holdExtra = 0; this.tapLeft = 0; this.predDrifting = false;
+      out.throttle = 15;
+      this.commit(out);
+      return;
+    }
+    this.drive(w, k, out, applyTick, k.race.finishTick >= 0 || this.role === 'cruise');
+    this.commit(out);
+  }
+
+  /** Every frame goes into the self-prediction pipe (it applies LA ticks from now). */
+  private commit(out: InputFrame): void {
+    this.pred.push(-out.steer / 127, (out.held & Held.DRIFT) !== 0, out.throttle > 0, out.brake > 0);
+  }
+
+  private rollStart(w: Readonly<WorldState>): void {
+    this.startRolled = true;
+    const p = this.profile;
+    // a takeover or late-attached driver after GO just drives
+    if (w.tick >= w.goTick || this.role === 'cruise' || this.role === 'takeover' && w.tick >= w.goTick - 30) { this.pressAt = -1e9; return; }
+    if (this.startOffset === this.startOffset) { this.pressAt = w.goTick + this.startOffset; return; }
+    if (this.rng.next() < p.falseStartProb) this.pressAt = w.goTick - this.rng.int(13, 20);
+    else this.pressAt = w.goTick + this.rng.int(p.startDelayTicks[0], p.startDelayTicks[1]);
+  }
+
+  private drive(w: Readonly<WorldState>, k: KartState, out: InputFrame, applyTick: number, cruising: boolean): void {
+    const P = this.P!, prof = cruising ? this.cruiseProfile : this.profile, ex = prof.exec;
+    const b = k.body, d = k.drive, loc = k.race.loc;
+    const highRate = (w.tick + this.slot) % 3 === 0;
+    // ---- perception at the apply tick: replay our own pending frames (14-ai §1)
+    const pr = this.pred;
+    pr.run(k, P, prof.vMul);
+    const hx = pr.hx, hy = pr.hy, vx = pr.vx, vy = pr.vy, kx = pr.px, ky = pr.py;
+    const v = Math.sqrt(vx * vx + vy * vy);
+    const drifting = pr.drift === 1;
+    const locPath = loc.path;
+    this.routePath = locPath; this.routeS0 = loc.s;
+    this.decideForks(k, prof);
+    this.at(locPath, loc.s);
+    const tX0 = this.lerp(this.rp.TX), tY0 = this.lerp(this.rp.TY);
+    // predicted track coordinates: a linear step in the current frame, then a projection onto the route path
+    // (past a chosen fork the kart is measured against the branch even while the sim still locates it on main)
+    let path = locPath, s = loc.s, u = loc.u;
+    {
+      const dx = kx - b.px, dy = ky + b.pz;
+      s += dx * tX0 + dy * tY0; u += dx * tY0 - dy * tX0;
+      this.at(locPath, s);
+      if (this.LA > 0 || this.rp.index !== locPath) {
+        const cx = this.lerp(this.rp.X), cy = this.lerp(this.rp.Y), tx = this.lerp(this.rp.TX), ty = this.lerp(this.rp.TY);
+        const e1 = kx - cx, e2 = ky - cy;
+        s = this.rs + e1 * tx + e2 * ty; u = e1 * ty - e2 * tx;
+        if (this.rp.index !== locPath) {
+          if (Math.abs(u) > this.lerp(this.rp.WALL) + 1.5 && this.abandonFork(locPath, this.rp.index)) {
+            // not actually in the branch (blocked or missed the gore): stay on the host this lap
+            this.at(locPath, loc.s);
+            s = loc.s + dx * tX0 + dy * tY0; u = loc.u + dx * tY0 - dy * tX0;
+          } else { path = this.rp.index; this.routePath = path; this.routeS0 = s; }
+        }
+      }
+    }
+    this.at(path, s);
+    const ppS = this.rp;
+    this.rsCur = this.rs;
+    const tXs = this.lerp(ppS.TX), tYs = this.lerp(ppS.TY);
+    const vS = vx * tXs + vy * tYs, vU = vx * tYs - vy * tXs; // along-track, right-positive lateral
+    const vFwd = vx * hx + vy * hy;
+    const hw = this.lerp(ppS.HW);
+    const t40 = this.lerp(ppS.T40);
+    const straightAhead = ppS.STRAIGHT[this.ri]!;
+    const ci = ppS.CORNER[this.ri]!;
+    const corner: Corner | null = ci >= 0 ? ppS.corners[ci]! : null;
+    let cornerDist = 1e9, inCorner = false;
+    if (corner) {
+      cornerDist = corner.s0 - this.rs;
+      if (ppS.closed && cornerDist < -ppS.length / 2) cornerDist += ppS.length;
+      if (cornerDist <= 0) { inCorner = true; cornerDist = 0; }
+    }
+    // ---- next jump on the route (14-ai §4.2): lip distance and the validated lip-speed window
+    let dLip = 1e9, jvMin = 0, jvMax = 99;
+    {
+      const js = ppS.jumps;
+      for (let q = 0; q < js.length; q++) {
+        const j = js[q]!;
+        let d = j.lipS - this.rs;
+        if (ppS.closed && d < -50) d += ppS.length;
+        if (d > -2 && d < dLip) { dLip = d; jvMin = j.vMin; jvMax = j.vMax; }
+      }
+    }
+    const jumpNear = dLip < 60;
+    // ---- per-corner execution plan, rolled once per corner per pass
+    if (ci !== this.cCorner || ppS.index !== this.cPath) this.rollCorner(ci, ppS, corner, prof);
+    // ---- line noise (OU at 20 Hz: dt = 3 ticks, τ = 90 ticks)
+    if (highRate) {
+      const sig = prof.lineNoise * ((k.status.modMask & REDACTION_BIT) !== 0 ? 2 : 1);
+      if (sig > 0) {
+        const a = 3 / 90;
+        this.noise += -a * this.noise + sig * Math.sqrt(2 * a) * this.rng.gauss();
+        const nl = Math.max(0, hw - 1.5);
+        if (this.noise > nl) this.noise = nl; else if (this.noise < -nl) this.noise = -nl;
+      } else this.noise = 0;
+    }
+
+    // ---- upcoming corner at the current speed: first sample in 40 m where the width-allowed curvature beats grip
+    const gripKap = gripGain(v, P) / Math.max(v, 1);
+    let dCorner = 1e9, cornerDir = 0, cornerR = 1e9;
+    {
+      const thr = A.gripFrac * gripKap;
+      for (let q = 0; q <= A.trigLook; q++) {
+        this.at(path, s + q);
+        const ke = this.rp.KEFF[this.ri]!;
+        if ((ke > 0 ? ke : -ke) > thr) { dCorner = q; cornerDir = ke > 0 ? 1 : -1; const kk = this.rp.KAP[this.ri]!; cornerR = 1 / Math.max(1e-6, kk > 0 ? kk : -kk); break; }
+      }
+    }
+    const planDrift = this.cPlan !== DriftPlan.GRIP;
+
+    // ---- lateral target at the pursuit point
+    const Lk = A.Lk0 + A.Lk1 * v;
+    this.at(path, s + Lk);
+    const ppT = this.rp;
+    const cxT = this.lerp(ppT.X), cyT = this.lerp(ppT.Y), txT = this.lerp(ppT.TX), tyT = this.lerp(ppT.TY);
+    const hwT = this.lerp(ppT.HW);
+    let lineAbs = this.lerp(ppT.LINE) * this.lerp(ppT.LINEW) * ex.lineTrack;
+    { const lc = AI_TUNING.lineClampFrac * Math.max(0, hwT - 1.5); if (lineAbs > lc) lineAbs = lc; else if (lineAbs < -lc) lineAbs = -lc; }
+    // personality line bias: + = outside of the next corner, on straights and before corners (not inside them)
+    let bias = 0;
+    if (corner && !inCorner) bias = prof.lineBiasFrac * Math.max(0, hwT - 1.5) * corner.dir * (cornerDist < 120 ? 1 : 0.5);
+    let off = lineAbs + bias + this.noise + this.laneOff;
+    if (dCorner < 1e8 && planDrift && !drifting) {
+      // approach bias to the outside of a drift corner within the lead distance (validated gap-2 approach);
+      // the outside of a left corner (+1) is the right side (+u)
+      const ob = cornerDir * A.outBias * (hwT - 1.5) + bias;
+      if (ob > 0 ? off < ob : off > ob) off = ob;
+    }
+    const ledge = ppT.LEDGE[this.ri]! | ppT.LEDGE[this.rj]!;
+    let limL = this.lerp(ppT.LIM_L), limR = this.lerp(ppT.LIM_R);
+    if (this.cMistake === Mistake.WIDE && inCorner && corner && (ledge & (corner.dir > 0 ? 2 : 1)) === 0) {
+      // running wide (onto the shoulder or into the wall) never toward an open ledge
+      off += corner.dir * this.wideT;
+      if (corner.dir > 0) limR += 2; else limL += 2;
+    }
+    // jump approach: line up on the ramp centre (no lane games, no line bias) over the last 50 m
+    if (jumpNear) { const f = dLip < 10 ? 0 : (dLip - 10) / 40; off *= f < 1 ? f : 1; }
+    if (off > limR) off = limR; else if (off < -limL) off = -limL;
+    const gx = cxT + tyT * off, gy = cyT - txT * off; // right = (ty, −tx)
+    const exT = gx - kx, eyT = gy - ky;
+    const ed = Math.max(1, Math.sqrt(exT * exT + eyT * eyT));
+    const aH = Math.atan2(-exT * hy + eyT * hx, exT * hx + eyT * hy);
+    this.at(path, s);
+    this.stats.sumAbsLineDev += Math.abs(u - this.lerp(this.rp.LINE) * this.lerp(this.rp.LINEW) * ex.lineTrack);
+    this.stats.sumBias += bias; this.stats.samples++;
+
+    let steer: number, thr = 1, brk = 0, drift = false, boost = false;
+    const airborne = !b.grounded && b.coyote <= 0;
+    let keepThrottle = d.startTicks > 0; // releasing the throttle would cancel a start boost
+
+    if (airborne) {
+      // in the air: throttle held, wheel straight (14-ai §4.2)
+      steer = 0;
+    } else if (!drifting) {
+      this.predDrifting = false;
+      steer = Math.abs(aH) > Math.PI / 2 ? (aH > 0 ? 1 : -1) : clampSteer((2 * Math.sin(aH) / ed) * v, v, P);
+      if (this.tapLeft > 0) {
+        // entry tap whose drift the model did not see start (speed or lock): finish the tap anyway
+        drift = true; steer = this.tapDir; this.tapLeft--;
+      } else if (planDrift && !jumpNear) {
+        // drift trigger (14-ai §3.4) with the plan's timing
+        let lead = v * A.tLead * Math.max(0.3, Math.min(1, A.rLead / cornerR));
+        if (this.cPlan === DriftPlan.SLOPPY) lead = Math.max(0, lead - this.cLate);
+        if (Math.abs(t40) > A.trigDeg * DEG && v > 15 && dCorner <= lead && pr.lock <= 0) {
+          drift = true; steer = cornerDir; this.tapDir = cornerDir; this.tapLeft = A.tapFrames - 1; this.rek = 0;
+          this.onDriftStart(prof);
+        }
+      }
+    } else {
+      // heading pursuit while drifting (14-ai §3.5)
+      const dd = pr.dir;
+      // a drift we did not start ourselves (takeover mid-drift): roll its instant boost now
+      if (!this.predDrifting) { this.predDrifting = true; if (!this.instArmed) this.onDriftStart(prof); this.instArmed = false; }
+      this.at(path, s + Math.max(4, v * A.tHead));
+      const tpx = this.lerp(this.rp.TX), tpy = this.lerp(this.rp.TY);
+      const eh = Math.atan2(hx * tpy - hy * tpx, hx * tpx + hy * tpy) * dd;
+      const dDot = -vU;                        // lateral velocity w.r.t. track, left +
+      const dLeft = -u;
+      let outside = -dd * (dLeft + dDot * A.tPred) / Math.max(1, hw);
+      // running wide (mistake): the controller tolerates the outside until the corner is done
+      if (this.cMistake === Mistake.WIDE && corner && (inCorner || cornerDist < 15)) outside -= this.wideT / Math.max(1, hw);
+      const wl = -vx * hy + vy * hx;
+      const sb = -dd * wl / Math.max(v, 1);
+      const e = eh + A.kLatPos * outside;
+      let e_forceExit = false;
+      let sIn = A.kHead * e;
+      if (sIn > A.sInMax) sIn = A.sInMax;
+      if (sb > A.sbHi || (outside > A.outBite && eh > 0)) { if (sIn > 0.3) sIn = 0.3; }
+      const style = prof.personality.driftStyle;
+      const eExit = style === 'long' ? AI_TUNING.eExit + 0.03 : style === 'chain' ? AI_TUNING.eExit - 0.02 : AI_TUNING.eExit;
+      // long corner: hold one drag drift through it (soft counter-steer, no cut) instead of chaining short drifts
+      const holding = !this.cChain && corner !== null && inCorner && this.remainingTurn(corner, ppS.length) > AI_TUNING.holdTurn;
+      if (dLip < 30) { this.holdExtra = 0; if (e > -eExit - 0.01) e_forceExit = true; }
+      if (e < -eExit || e_forceExit) {
+        if (this.holdExtra > 0) { this.holdExtra--; if (sIn < 0.25) sIn = 0.25; }
+        else if (holding && !e_forceExit) { if (sIn < AI_TUNING.holdMinSIn) sIn = AI_TUNING.holdMinSIn; }
+        else sIn = -1;
+      }
+      sIn = sIn > 1 ? 1 : sIn < -1 ? -1 : sIn;
+      const ehShift = style === 'long' ? 0.3 : style === 'chain' ? 0.5 : A.ehShift;
+      if (e_forceExit) { drift = false; this.tapLeft = 0; }
+      else if (this.tapLeft > 0) { drift = true; this.tapLeft--; if (sIn < 0.6) sIn = 0.6; }
+      else if (holding && AI_TUNING.holdMode === 1) {
+        // drag drift (끌기): keep the key while not over-rotated; the yaw is trimmed with the wheel
+        drift = eh > AI_TUNING.holdKeyEh && sb < AI_TUNING.holdSbMax;
+      } else if (eh > ehShift && sb < A.sbShiftMax) {
+        const reKick = style === 'chain' ? 1.0 : A.ehRekick;
+        const longOk = style !== 'long' || (corner !== null && corner.turn > 2.0) || eh > 1.0;
+        if (pr.dTicks > A.rekTicks && eh > reKick && this.rek === 0 && longOk) { this.rek = 1; drift = false; }
+        else drift = true;
+        if (sIn < 0.6) sIn = 0.6;
+      }
+      steer = sIn * dd;
+      // throttle off during the counter-steer sets up the instant-boost edge (only when this drift plans one)
+      if (sIn < -0.3 && this.instOk) thr = 0;
+      if (!this.instOk) keepThrottle = true;
+    }
+
+    // ---- instant boost (14-ai §3.6): press inside the window, or keep the throttle steady to skip it
+    if (pr.win > 0 && !drifting && !airborne) {
+      if (!this.instHandled) {
+        this.instHandled = true;
+        // at least one released frame before the press, then the tier's timing jitter
+        this.instPressAt = this.instOk ? applyTick + 1 + (prof.instJitterTicks > 0 ? this.rng.int(0, 2 * prof.instJitterTicks) : 0) : -1;
+      }
+      if (this.instPressAt >= 0) {
+        if (applyTick < this.instPressAt) thr = 0;
+        else { thr = 1; this.instPressAt = -1; this.instOk = false; }
+        keepThrottle = thr === 1;
+      } else keepThrottle = true;
+    }
+
+    // ---- speed control (14-ai §3.3) with the tier's brake points and the corner plan
+    this.at(path, s);
+    let vLim = this.lerp(this.rp.VLIM) * ex.cornerSpeedMul * prof.riskSpeedMul;
+    if (this.cPlan === DriftPlan.GRIP && corner && corner.needsDrift && (cornerDist < 90 || inCorner)) {
+      const gt = this.grip![this.rp.index]!;
+      const g = (gt[this.ri]! + (gt[this.rj]! - gt[this.ri]!) * this.rf) * ex.gripSpeedMul;
+      if (g < vLim) vLim = g;
+    }
+    if (dLip < 150) {
+      // arrive at the lip inside [vMin + 2, vMax − 2]; bold personalities aim nearer the top (14-ai §8 risk)
+      const lipMax = jvMax - 2 - 2 * (1 - prof.personality.risk);
+      const vj = Math.sqrt(Math.max(0, lipMax * lipMax + 2 * 0.8 * P.aBrake * Math.max(0, dLip)));
+      if (vj < vLim) vLim = vj;
+      if (vLim < jvMin + 2) vLim = jvMin + 2; // never brake below the clearing speed before a gap
+    }
+    if (cruising) vLim = Math.min(vLim, 0.8 * P.vGrip);
+    let wantBrake = v > vLim + 0.5, wantCoast = !wantBrake && v > vLim;
+    if (wantBrake && this.cMistake === Mistake.LATE_BRAKE && this.lateBrakeLeft > 0) { this.lateBrakeLeft--; wantBrake = false; wantCoast = false; }
+    if (this.cMistake === Mistake.PANIC_BRAKE && this.panicLeft > 0 && corner && cornerDist < 12 && v > 12) { this.panicLeft--; wantBrake = true; }
+    // traffic: never ram a kart ahead (lift, then brake when contact is imminent and no lane is free)
+    // traffic: never ram a kart ahead — lift when contact is near and no lane is free, brake when it is imminent
+    // (also mid-drift: a drift brakes at 14 m/s² and keeps its slide)
+    if (this.laneTtc < 0.6 && this.laneClosing > 1.5) {
+      if (this.laneTtc < 0.35 && this.laneClosing > 3) wantBrake = true;
+      else if (!drifting) wantCoast = true;
+    }
+    if (wantBrake) { brk = 1; if (!keepThrottle) thr = 0; }
+    else if (wantCoast && !keepThrottle) thr = 0;
+
+    // ---- boosters (speed mode; 14-ai §3.7) by booster discipline
+    if (!cruising && d.boosters + d.teamBoosters > 0 && !airborne) boost = this.wantBoost(k, applyTick, t40, straightAhead, drifting, ex.boostSkill, prof);
+    else if (d.boosters + d.teamBoosters === 0) this.boostReadyAt = -1;
+    if (boost) this.stats.boostsFired++;
+    this.prevBoost = boost;
+
+    // ---- lane choice (avoidance / slipstream / overtakes) at the tier's re-plan rate, slewed ≤ 3 m/s
+    if ((w.tick + this.slot) % ex.laneEvalTicks === 0) this.replanLane(w, k, path, s, u, vS, vU, tXs, tYs, hwT, lineAbs, straightAhead, t40, corner, cornerDist, inCorner, prof);
+    const dl = this.laneTarget - this.laneOff, stepL = (this.laneUrgent ? 5 : 3) * DT;
+    this.laneOff += dl > stepL ? stepL : dl < -stepL ? -stepL : dl;
+
+    // ---- recovery (stuck / wrong way)
+    const ri = this.recIn;
+    ri.sinceGo = w.tick - w.goTick; ri.v = v; ri.vFwd = vFwd; ri.aTarget = aH;
+    ri.aTrack = Math.atan2(hx * tYs - hy * tXs, hx * tXs + hy * tYs);
+    ri.lowSpeedTicks = d.lowSpeedTicks; ri.wrongWayTicks = k.race.wrongWayTicks;
+    ri.canAct = !airborne && k.status.cc === 0 && w.phase >= Phase.RACING;
+    ri.sinceRespawn = w.tick - this.lastRespawnTick; ri.raceDist = k.race.raceDist;
+    if (k.status.cc !== 0) this.lastCcTick = w.tick;
+    ri.sinceCc = w.tick - this.lastCcTick;
+    const wasRec = this.rec.mode !== 0;
+    if (this.rec.update(ri, this.recOut)) {
+      if (!wasRec) this.stats.recoveries++;
+      steer = this.recOut.steer; thr = this.recOut.thr; brk = this.recOut.brk; drift = false; boost = false;
+      if (this.recOut.reset) { out.edges |= Edge.RESPAWN; this.stats.resets++; }
+    }
+
+    // ---- mash-out while trapped (hard CC): alternating taps at mashHz with ±1 tick jitter
+    if (!this.brain && k.status.cc !== 0 && applyTick >= this.nextTap) {
+      out.edges |= this.mashDir > 0 ? Edge.TAP_R : Edge.TAP_L;
+      this.mashDir = -this.mashDir;
+      this.nextTap = applyTick + Math.max(3, Math.round(60 / Math.max(1, prof.mashHz))) + this.rng.int(-1, 1);
+    }
+
+    out.steer = Math.round(-steer * 127);
+    out.throttle = thr > 0 ? 15 : 0;
+    out.brake = brk > 0 ? 15 : 0;
+    out.held = drift ? Held.DRIFT : 0;
+    if (boost) out.edges |= Edge.USE_ITEM;
+
+    // ---- item hook (L2): after the driving controls, never while recovering or cruising
+    if (this.item && !cruising) {
+      const vw = this.view;
+      vw.w = w; vw.applyTick = applyTick; vw.highRate = highRate; vw.s = s; vw.u = u; vw.turnAhead40 = t40; vw.straightAhead = straightAhead;
+      vw.busy = this.rec.mode !== 0;
+      this.item.decideItem(vw, out);
+    }
+  }
+
+  /** Drops this lap's decision to take a fork from `host` onto `to` (true if one was dropped). */
+  private abandonFork(host: number, to: number): boolean {
+    const forks = this.plan.paths[host]?.forks;
+    if (!forks) return false;
+    let any = false;
+    for (let q = 0; q < forks.length; q++) { const f = forks[q]!; if (f.to === to && this.forkTake[f.id] === 1) { this.forkTake[f.id] = 0; any = true; } }
+    return any;
+  }
+
+  /**
+   * Branch choice (14-ai §4.1): for each fork up to 250 m ahead on the current path, once per lap:
+   * take it if shortcutRisk_eff · (0.8 + 0.4·rng) ≥ the branch's aiMinSkill.
+   */
+  private decideForks(k: KartState, prof: EffectiveProfile): void {
+    const pp = this.plan.paths[k.race.loc.path];
+    this.onRiskBranch = false;
+    if (!pp) return;
+    const lapKey = k.race.lap;
+    const s = k.race.loc.s;
+    for (let q = 0; q < pp.forks.length; q++) {
+      const f = pp.forks[q]!;
+      let ahead = f.at - s;
+      if (pp.closed && ahead < 0) ahead += pp.length;
+      if (ahead < 0 || ahead > 250 || this.forkLap[f.id] === lapKey) continue;
+      this.forkLap[f.id] = lapKey;
+      const roll = prof.ghost ? 1 : 0.8 + 0.4 * this.rng.next();
+      const take = prof.shortcutRiskEff * roll >= f.aiMinSkill;
+      this.forkTake[f.id] = take ? 1 : 0;
+      this.stats.forksSeen++;
+      if (take) this.stats.forksTaken++;
+    }
+    // on a kill-risk branch bots keep their items (14-ai §4.1)
+    for (let q = 0; q < this.plan.forks.length; q++) {
+      const f = this.plan.forks[q]!;
+      if (f.to === pp.index && f.kind === 'risk') { this.onRiskBranch = true; break; }
+    }
+  }
+
+  private onDriftStart(prof: EffectiveProfile): void {
+    this.instArmed = true;
+    this.stats.instRolls++;
+    this.instOk = this.rng.next() < prof.instBoostRate;
+    if (this.instOk) this.stats.instPlanned++;
+    this.instHandled = false; this.instPressAt = -1;
+    this.holdExtra = 0;
+    // a corner is often several chained drifts: the sloppy / over-hold penalty belongs to its first one
+    if (this.cornerDrifts++ === 0) {
+      if (this.cPlan === DriftPlan.SLOPPY) this.holdExtra += this.cHold;
+      if (this.cMistake === Mistake.OVERHOLD) this.holdExtra += prof.exec.mistakeHoldTicks;
+    }
+  }
+
+  private rollCorner(ci: number, pp: PathPlan, corner: Corner | null, prof: EffectiveProfile): void {
+    this.cCorner = ci; this.cPath = pp.index; this.cornerDrifts = 0;
+    this.cPlan = DriftPlan.OPTIMAL; this.cMistake = Mistake.NONE; this.cLate = 0; this.cHold = 0; this.lateBrakeLeft = 0; this.panicLeft = 0;
+    this.cChain = true;
+    if (!corner) return;
+    const r = this.rng.next();
+    const ex = prof.exec;
+    if (prof.ghost || r < prof.driftSkill) this.cPlan = DriftPlan.OPTIMAL;
+    else if (r < prof.driftSkill + 0.6 * (1 - prof.driftSkill) || corner.gripRatio < ex.gripViable) {
+      this.cPlan = DriftPlan.SLOPPY;
+      this.cLate = this.rng.range(ex.sloppyLateM[0], ex.sloppyLateM[1]);
+      this.cHold = this.rng.int(ex.sloppyHoldTicks[0], ex.sloppyHoldTicks[1]);
+    } else this.cPlan = DriftPlan.GRIP;
+    // chained short drifts are a style ('chain'), not a skill: holding one drift is faster on long corners
+    this.cChain = !prof.ghost && (prof.personality.driftStyle === 'chain' || this.rng.next() < ex.chainRate);
+    if (corner.needsDrift) this.stats.plans[this.cPlan as 0 | 1 | 2]++;
+    // mistakes: expected mistakeRate per lap spread over the drift-worthy corners; a lap with very few such
+    // corners (an oval) is treated as a typical 6-corner lap so two corners don't absorb a whole lap's mistakes
+    const zones = Math.max(AI_TUNING.minZones, this.plan.zonesPerLap);
+    if (corner.needsDrift && !prof.ghost && this.rng.next() < prof.mistakeRate / zones) {
+      const m = this.rng.next();
+      const braking = corner.vDrift < 0.95 * this.P!.vGrip * prof.vMul;
+      this.cMistake = m < 0.4 ? (braking ? Mistake.LATE_BRAKE : Mistake.PANIC_BRAKE) : m < 0.7 ? Mistake.OVERHOLD : Mistake.WIDE;
+      if (this.cMistake === Mistake.LATE_BRAKE) this.lateBrakeLeft = ex.mistakeLateTicks;
+      if (this.cMistake === Mistake.PANIC_BRAKE) this.panicLeft = this.rng.int(ex.panicBrakeTicks[0], ex.panicBrakeTicks[1]);
+      this.wideT = this.rng.range(1.5, 3.0);
+      this.stats.mistakes++;
+    }
+  }
+
+  /** Heading change left in the corner from the predicted position (rad). */
+  private remainingTurn(c: Corner, pathLength: number): number {
+    const len = c.s1 - c.s0;
+    if (len <= 1) return 0;
+    let left = c.s1 - this.rsCur;
+    if (left < 0 && left < -len) left += pathLength;
+    return left <= 0 ? 0 : c.turn * Math.min(1, left / len);
+  }
+
+  private wantBoost(k: KartState, applyTick: number, t40: number, straight: number, drifting: boolean, skill: number, prof: EffectiveProfile): boolean {
+    const d = k.drive;
+    if (this.boostReadyAt < 0) {
+      const dl = prof.exec.boostDelayTicks;
+      this.boostReadyAt = applyTick + (prof.ghost ? 0 : this.rng.int(dl[0], dl[1]));
+    }
+    if (applyTick < this.boostReadyAt || drifting || this.prevBoost || d.boostTicks >= 12 || d.startTicks > 0) return false;
+    const at = Math.abs(t40);
+    // final stretch: burn everything
+    if (skill >= 2 && this.remainingDist(k) < 260 && at < 20 * DEG) return true;
+    switch (skill) {
+      case 0: return at < 25 * DEG;
+      case 1: return at < 12 * DEG;
+      default:
+        // a booster fired just before a drift corner is half wasted; Pro+ wait for a little road when they can
+        if (at >= 12 * DEG) return false;
+        return straight >= 40 || d.boosters + d.teamBoosters >= 2;
+    }
+  }
+
+  private remainingDist(k: KartState): number {
+    const laps = this.track.topology === 'circuit' ? this.track.laps : 1;
+    return laps * this.track.lapLength - k.race.raceDist;
+  }
+
+  private replanLane(w: Readonly<WorldState>, k: KartState, path: number, s: number, u: number, vS: number, vU: number, tX: number, tY: number, hwT: number, lineAbs: number, straight: number, t40: number, corner: Corner | null, cornerDist: number, inCorner: boolean, prof: EffectiveProfile): void {
+    const q = this.lq, loc = k.race.loc;
+    q.slot = this.slot; q.sMain = loc.sMain + vS * this.LA * DT; q.path = path; q.u = u; q.vS = vS; q.vU = vU;
+    // world x/z of the track tangent and right vector (2D Y = −z)
+    q.tx = tX; q.tz = -tY; q.rx = tY; q.rz = tX;
+    q.hw = hwT; q.lineAbs = lineAbs; q.laneOff = this.laneOff; q.la = this.LA * DT;
+    q.straight = straight >= 100 && Math.abs(t40) < 10 * DEG;
+    q.nextCornerDir = corner && !inCorner ? corner.dir : 0; q.nextCornerDist = cornerDist;
+    // just after the start keep the grid lanes and fan in gently (no pile-up into turn 1)
+    const sinceGo = w.tick - w.goTick;
+    q.lineWeight = sinceGo < 240 ? 0.25 + 0.75 * (sinceGo / 240) : 1;
+    if (!this.startLaneSet) { this.startLaneSet = true; if (sinceGo < 60) { this.laneOff = u - lineAbs; this.laneTarget = this.laneOff; } }
+    q.draftActive = k.drive.draftTicks > 0;
+    q.wish = NaN;
+    if (this.item?.laneWish) { this.view.w = w; const wish = this.item.laneWish(this.view); if (wish === wish) q.wish = wish; }
+    else if (this.wantBoxes) q.wish = this.boxWish(k, path, s);
+    if (q.wish !== q.wish) q.wish = this.padWish(path, s);
+    q.horizon = prof.exec.ttcHorizon;
+    planLane(w, this.track, q, prof, this.lr);
+    const r = this.lr;
+    if (Math.abs(r.laneOff - this.laneTarget) > 0.6) this.stats.laneChanges++;
+    if (r.overtaking) this.stats.overtakeLanes++;
+    if (r.drafting && !this.laneDrafting) this.stats.draftFollows++;
+    this.laneDrafting = r.drafting;
+    this.laneTarget = r.laneOff;
+    this.laneTtc = r.ttc; this.laneClosing = r.closing; this.laneUrgent = r.urgent;
+  }
+
+  /** Lateral offset of a boost pad 5–45 m ahead on this path (NaN = none). */
+  private padWish(path: number, s: number): number {
+    const pads = this.track.pads;
+    const pp = this.plan.paths[path]!;
+    for (let i = 0; i < pads.length; i++) {
+      const p = pads[i]!;
+      if (p.path !== path || p.kind !== 'boost') continue;
+      let ds = p.s0 - s;
+      if (pp.closed && ds < -pp.length / 2) ds += pp.length;
+      if (ds > 5 && ds < 45) return 0.5 * (p.u0 + p.u1);
+    }
+    return NaN;
+  }
+
+  /** Nearest item-box row 10–50 m ahead while an item slot is free: the box closest to our lane (NaN = none). */
+  private boxWish(k: KartState, path: number, s: number): number {
+    if (k.items.slot0 !== 0 && k.items.slot1 !== 0) return NaN;
+    const boxes = this.track.boxes, pp = this.plan.paths[path]!;
+    let rowD = 1e9;
+    for (let i = 0; i < boxes.length; i++) {
+      const bx = boxes[i]!;
+      if (bx.path !== path) continue;
+      let ds = bx.s - s;
+      if (pp.closed && ds < -pp.length / 2) ds += pp.length;
+      if (ds > 10 && ds < 50 && ds < rowD) rowD = ds;
+    }
+    if (rowD > 1e8) return NaN;
+    let best = NaN, bestDu = 1e9;
+    const myU = k.race.loc.u;
+    for (let i = 0; i < boxes.length; i++) {
+      const bx = boxes[i]!;
+      if (bx.path !== path) continue;
+      let ds = bx.s - s;
+      if (pp.closed && ds < -pp.length / 2) ds += pp.length;
+      if (Math.abs(ds - rowD) > 3) continue;
+      const du = Math.abs(bx.u - myU);
+      if (du < bestDu) { bestDu = du; best = bx.u; }
+    }
+    return best;
+  }
 }
 
 function clampSteer(r: number, v: number, P: KartParams): number {

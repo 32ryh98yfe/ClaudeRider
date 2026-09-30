@@ -159,6 +159,44 @@ KILL lava belowY=-6 aabb=(-200,-400 .. 500,120)
 `shoulders=3:grass` (both), `shoulderL=4:sand`, `shoulderR=0`. Shoulders are drivable (grass ×0.60 top speed, sand
 ×0.92 …, `10-sim-spec.md` §13.1), blend over `blend`, and the wall stands at their outer edge.
 
+## 7. F3 recipes
+### Halfpipe and custom cross-sections
+```
+PROFILE hp60 halfpipe floorHalf=5 filletR=6 wallDeg=60 wallH=4.5        # built in; define your own variants
+PROFILE gutter custom pts=[-9:1.6,-8:0.9,-7:0.3,-6:0,6:0,7:0.3,8:0.9,9:1.6]
+PROFILE crowned flat crown=0.12
+S 40
+S 120 prof=hp60 surf=ice          # prof is one-shot: the next segment is flat again
+S 60  surf=asphalt
+C R40 90 L prof=gutter
+```
+- A profile replaces the road cross-section; the road width becomes the profile footprint (hp60 = 22.1 m).
+- Profiles blend in and out over `blend` metres (the walls grow from flat), so give the pipe a straight run-in.
+- Every profile segment up to **60°** is ground (the kart can ride it); walls stand on the outermost point (the lip).
+  `wallDeg > 60` or a custom slope > 60° is a compile error.
+- Custom `pts=[d:h[:surf],…]` in metres, left → right (d increasing); canonicalised to 17 vertices. A third field sets
+  the surface of that part of the section (`-8:0.9:sand`).
+- Slope triangles carry `TFLAG.SLOPE` (sim / VFX).
+
+### Plaza (AREA)
+```
+C R24 90 R w=18                                @veerIn
+C R33 270 L w=30 area=piazza                   @plaza     # the guide arc (progress + AI line through the plaza)
+C R24 90 R w=16                                @veerOut
+AREA piazza annulus rIn=18 rOut=48 surf=stone wallIn=curb:0.4 wallOut=planter:0.8 tower=cyl(r=14,h=30)
+AREA market polygon pts=[(0,0),(60,0),(70,40),(10,55)] y=4 surf=cobble wall=planter:0.8 obst=cyl(x=30,z=20,r=2,h=4)
+```
+- `annulus`: centre, `from` and `sweep` default to the guide arc (`c=(x,y,z) from= sweep=` override — angles use the
+  heading convention: point = c + r·(cos θ, −sin θ), sweep + = counter-clockwise). `PLAZA <id> [L|R]` writes the guide
+  arc for you (radius = mid-ring, width = ring width).
+- `polygon`: `pts=[(x,z),…]` (plan), `y=`, optional `hole=[(x,z),…]`. Make the guide segments' `w` cover the plaza
+  or rely on the automatic locate reach (the compiler widens the guide's lateral reach to the plaza boundary).
+- The plaza wins: ribbons (any path at the same level) are cut to its outline, and the guide ribbon inside its own span
+  is replaced entirely. Boundary walls open wherever a road joins. `wallIn=curb` makes the inner edge drivable (the
+  compiler fills the ring down to the tower base); `tower=cyl(r=,h=)` / `obst=cyl(x=,z=,r=,h=)` / `obst=box(x=,z=,w=,d=,h=,yaw=)`
+  are solid walls (`.vis areas[]` lists them for the renderer).
+- V16: the area must triangulate, the guide must stay inside it, and its height must match the area `y` (±0.3 m).
+
 ## 9. Validators and common errors
 Severity: structural rules are always errors. **V5 V6 V9 V10 V13 V14 V19 V20 are errors only in strict mode** (tracks
 with `@signature`, or `--strict`); M1-era tracks see them as warnings.
@@ -184,6 +222,7 @@ with `@signature`, or `--strict`); M1-era tracks see them as warnings.
 | V11 `at N m/s the kart lands … past the lip` | Shorten the gap, raise `lip`, add `drop`, lengthen `land`, or narrow [vmin, vmax]. |
 | V11 `landing zone … < 40 m` | `land=` ≥ 40. |
 | V14 `straight ratio …` | Adjust straights vs corners toward the D band (R ≥ 150 counts as straight). |
+| V16 `AREA … guide path leaves the area` / `height differs` | Put the guide arc (`area=<id>`) inside the plaza and at its `y`. |
 | V15 `samples have no ground` | Something removed the road: check `warp=`, jump spans, area clipping. |
 | V18 `rejoin tangent error` | The branch's turns must match the host heading change between from and to. |
 | V18 `no key gate between branch …` | Add a KEYS entry between the merge of one branch and the split of the next. |

@@ -59,14 +59,15 @@ export function blockableThreatEta(w: Readonly<WorldState>, env: ItemEnv, k: Rea
   return best;
 }
 
+const mine = (w: Readonly<WorldState>, env: ItemEnv, k: Readonly<KartState>, slot: number): boolean => slot === k.slot || sameTeam(env, k, w.karts[slot]!);
+
 /** Drone or tether pressure on `k` (or its teammates for drones): the Interrupt Pulse triggers. */
 export function droneOrTetherThreat(w: Readonly<WorldState>, env: ItemEnv, k: Readonly<KartState>): boolean {
   const drone = env.content.items.byId.get('throttle_drone')?.code ?? -1;
-  const mine = (slot: number): boolean => slot === k.slot || sameTeam(env, k, w.karts[slot]!);
-  for (const p of w.projectiles) if (p.code === drone && mine(p.target)) return true;
+  for (const p of w.projectiles) if (p.code === drone && mine(w, env, k, p.target)) return true;
   for (const e of w.effects) {
     if ((e.flags & EFlag.DEAD) !== 0) continue;
-    if (e.code === EF.throttle && mine(e.victim)) return true;
+    if (e.code === EF.throttle && mine(w, env, k, e.victim)) return true;
     if (e.code === EF.tether_pull && tetherTarget(e) === k.slot && !sameTeam(env, k, w.karts[e.victim]!) && e.victim !== k.slot) return true;
   }
   return false;

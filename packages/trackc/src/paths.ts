@@ -21,6 +21,7 @@ export interface Sample {
   curv: number;          // signed plan curvature (+ left), 1/m
   prim: number; pl: number; // primitive index and offset into it
   frameReq: 0 | 1 | 2; rmf: boolean; tanSide?: -1 | 0 | 1;
+  reachL?: number; reachR?: number; // lateral locate reach override (plazas)
   gravMode: 0 | 1 | 2; grav: number;
   jumpPart: 0 | 1 | 2 | 3; // none, ramp, gap (no ground), landing
   area: string | null; kill: string | null; warp: string | null; noItem: boolean; tag: string | null;

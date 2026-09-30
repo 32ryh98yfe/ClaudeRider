@@ -1,0 +1,52 @@
+# Fernwood Hollow — Canopy Forest D1 (item-built starter). A morning trail through giant trunks: the trunk corner,
+# a hollow-log tunnel, fern S-bends, a log bridge over the creek, the pond sweeper, a mushroom hop and the old oak.
+@signature branch, pads, jump
+@fallback branch -> "Mossy Bypass as 5 m dirt shoulders around the pond sweeper (cut the inside on dirt)" when=F1
+@fallback jump -> "gentle hump (S 25 dy +1.2 / S 25 dy -1.2) between the giant mushrooms" when=F2
+TRACK fernwood_hollow name="Fernwood Hollow" theme=canopy_forest diff=1 laps=3 topo=circuit
+DEFAULTS w=18 surf=asphalt wall=rock:1.2 shoulder=2.5 shoulderSurf=dirt blend=16
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=7 stagger=3.5 d=4
+S ?a                                              @trail
+C R40 97 L bank=5                                 @trunk_corner
+S 76 w=17 shoulder=1                              @log_tunnel
+WIGGLE R60 43/99/43 R bank=3 w=18 shoulder=2.5    @fern_s
+S ?b w=17 surf=wood wall=invisible:1.1 shoulder=0.5   @log_bridge
+C R35 111 L bank=6 w=18 surf=asphalt wall=rock:1.2 shoulder=5   @pond_sweeper
+WIGGLE R55 38/66/38 R bank=3 shoulder=2.5         @pond_s
+S ?c                                              @mushroom_meadow
+S 25 dy=1.2                                       @mushroom_hop
+S 25 dy=-1.2
+C R55 85 L bank=5                                 @firefly_corner
+S 74                                              @glade
+C R70 45 R bank=-3                                @root_kink
+C R50 109 L bank=5                                @old_oak
+S 97                                              @home
+CLOSE solve=[?a,?b,?c] length=1350
+LINE start at=0
+# 5 rows ≈ L/250: trail, inside the hollow log, on the log bridge, mushroom meadow, glade
+ITEMS at=110,268,555,855,1066 n=5
+PAD at=40,75 d=0 len=6 w=4
+KEYS 150,350,560,800,1000,1200
+# --- dressing (s from the line). Two rows of giant trunks + a forest wall behind; the tunnel, bridge and pond stay open.
+PROPS kind=giant_trunk along=0-225 side=both every=22 offset=7 jitter=5
+PROPS kind=giant_trunk along=310-495 side=both every=26 offset=8 jitter=6
+PROPS kind=giant_trunk along=680-810 side=both every=26 offset=8 jitter=5
+PROPS kind=giant_trunk along=950-1150 side=both every=24 offset=8 jitter=6
+PROPS kind=giant_trunk along=1255-1350 side=both every=22 offset=7 jitter=5
+PROPS kind=forest_wall along=0-1350 side=both every=36 offset=26 jitter=12
+PROPS kind=fern along=0-1350 side=both every=9 offset=1.0
+PROPS kind=shrub along=0-1350 side=both every=29 offset=3.5 jitter=2
+PROPS kind=hollow_log along=268-268 side=R every=100 offset=-9.5
+PROPS kind=mushroom_red along=306-500 side=both every=23 offset=2
+PROPS kind=rock_moss along=330-480 side=both every=40 offset=5
+PROPS kind=log_rail along=500-610 side=both every=8 offset=-0.2
+PROPS kind=bridge_deck along=555-555 side=R every=100 offset=-9
+PROPS kind=pond along=644-644 side=L every=10 offset=21
+PROPS kind=mushroom_giant along=820-940 side=both every=32 offset=7
+PROPS kind=mushroom_red along=820-945 side=both every=14 offset=1.5
+PROPS kind=firefly along=950-1030 side=both every=18 offset=4
+PROPS kind=stump along=1035-1100 side=both every=24 offset=4
+PROPS kind=mossy_log along=1105-1155 side=both every=30 offset=5
+PROPS kind=old_oak along=1205-1205 side=L every=10 offset=24
+THEME scatter=forest_wall,forest_wall,giant_trunk,rock_moss,shrub,stump,mossy_log density=10 hills=4 sky=day time=08:00

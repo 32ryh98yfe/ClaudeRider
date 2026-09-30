@@ -170,7 +170,7 @@ export function buildRibbon(m: TrackModel, c: Content, p: PathModel, ground: Tri
       const W = mid.w / 2;
       const nUp = (a.nx + b.nx + cc.nx) * mid.ux + (a.ny + b.ny + cc.ny) * mid.uy + (a.nz + b.nz + cc.nz) * mid.uz;
       const role = dc < -W - 1e-3 || dc > W + 1e-3 ? ROLE.SHOULDER : nUp < 3 * 0.97 ? ROLE.SLOPE : mid.jumpPart === 3 ? ROLE.LANDING : ROLE.ROAD;
-      ground.push(vtx(a), vtx(b), vtx(cc), surf, flg, p.index, role);
+      ground.push(vtx(a), vtx(b), vtx(cc), surf, role === ROLE.SLOPE ? flg | TFLAG.SLOPE : flg, p.index, role);
     });
     // walls (outermost ground vertex of each row, per side)
     for (const side of [-1, 1] as const) {

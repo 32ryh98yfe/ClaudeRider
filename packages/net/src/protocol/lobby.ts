@@ -18,6 +18,12 @@ export interface RoomSettings {
   botTier: AiTier;
   isPrivate: boolean;
   maxHumans: number;          // 2–8
+  // --- additive (L9): the remaining host settings of 13-modes-rules §7.2; server defaults apply when absent
+  retireSec?: 5 | 10 | 15 | 20;
+  itemSet?: 'standard' | 'light' | 'chaos';
+  friendlyFire?: 'off' | 'area' | 'all';
+  rubberBand?: boolean;
+  instantBoostInItem?: boolean;
 }
 
 export type SlotState = 'open' | 'closed' | 'human' | 'bot';
@@ -42,6 +48,10 @@ export interface RoomView {
   /** Server time (ms) when an auto-start / roulette / results phase ends. */
   endsAt?: number;
   hostSession: string;
+  // --- additive (L9)
+  /** The track being loaded/raced (after a roulette or a random pick). */
+  trackId?: TrackId;
+  kind?: 'custom' | 'quick';
 }
 
 export interface RaceResultWire {
@@ -67,17 +77,23 @@ export type C2SLobby =
   | { t: 'loaded'; trackHash: string };
 
 export type S2CLobby =
-  | { t: 'welcome'; session: string; serverVersion: number; simVersion: number }
+  | { t: 'welcome'; session: string; serverVersion: number; simVersion: number;
+      /** additive (L9): secret token for `hello.resume` (session is the public id shown in room views). */
+      resume?: string; serverMs?: number; tickEpochMs?: number }
   | { t: 'queue'; phase: 'search' | 'stage'; endsAt: number; humans: number; trackId?: TrackId }
   | { t: 'room'; room: RoomView }
   | { t: 'roulette'; endsAt: number; votes: Partial<Record<TrackId, number>> }
-  | { t: 'raceStart'; config: RaceConfig; startTick: Tick; serverTick: Tick; yourSlot: number }
+  | { t: 'raceStart'; config: RaceConfig; startTick: Tick; serverTick: Tick; yourSlot: number;
+      /** additive (L9): a second raceStart with the same raceId moves startTick once everyone has loaded. */
+      raceId?: string; resumeToken?: string; provisional?: boolean }
   | { t: 'raceEnd'; result: RaceResultWire }
   | { t: 'chat'; from: string; text: string }
   | { t: 'error'; code: LobbyErrorCode };
 
 export type LobbyErrorCode =
-  | 'offline' | 'version' | 'full' | 'notFound' | 'notHost' | 'badCode' | 'inRace' | 'rateLimited' | 'kicked' | 'timeout' | 'internal';
+  | 'offline' | 'version' | 'full' | 'notFound' | 'notHost' | 'badCode' | 'inRace' | 'rateLimited' | 'kicked' | 'timeout' | 'internal'
+  // additive (L9)
+  | 'notReady' | 'nameInvalid' | 'chatFiltered' | 'resumeExpired' | 'slowConsumer' | 'trackHashMismatch' | 'badMessage' | 'serverFull';
 
 export function defaultRoomSettings(): RoomSettings {
   return { mode: 'item', teams: 'solo', track: 'roulette', laps: 'default', fillBots: true, botTier: 'racer', isPrivate: true, maxHumans: 8 };
