@@ -6,7 +6,7 @@ import { t } from '../../../i18n/index.ts';
 import { Audio } from '../../../audio/engine.ts';
 import { Stage } from '../../../game/Stage.ts';
 import { useBack } from '../../hooks.ts';
-import { raceSetup, setRaceSetup, saveState } from '../../store/profile.ts';
+import { raceSetup, setRaceSetup, saveState, raceTeams, teamParams } from '../../store/profile.ts';
 import { bakedIndex, loadTrackIndex, playableTracks, resolveTrack, trackInfos } from '../../store/tracks.ts';
 import { ScreenHead, NavHints } from '../../components/common.tsx';
 import { Seg, Stars, lapsText } from '../../components/controls.tsx';
@@ -36,7 +36,7 @@ export function ModeSelectScreen() {
   const start = (): void => {
     void Audio.unlock(); Audio.sfx('uiOk');
     const track = resolveTrack(setup.track, setup.mode);
-    navigate('loading', { track, mode: setup.mode, tier: setup.tier, ...(setup.laps !== 'auto' ? { laps: String(setup.laps) } : {}) });
+    navigate('loading', { track, mode: setup.mode, tier: setup.tier, ...(setup.laps !== 'auto' ? { laps: String(setup.laps) } : {}), ...teamParams() });
   };
   const focus = hover ?? (setup.mode as Card);
   return (
@@ -65,9 +65,8 @@ export function ModeSelectScreen() {
           <section class="card ms-rules">
             <div class="opt">
               <h3 class="eyebrow">{t('lobby.modeSelect.format')}</h3>
-              <Seg label={t('lobby.modeSelect.format')} value="solo" onChange={() => undefined}
-                options={[{ value: 'solo', label: t('common.format.solo') }, { value: 'duo', label: t('common.format.duo'), disabled: true, title: t('lobby.modeSelect.teamOffline') }, { value: 'squad', label: t('common.format.squad'), disabled: true, title: t('lobby.modeSelect.teamOffline') }]} />
-              <p class="opt-note">{t('lobby.modeSelect.teamOffline')}</p>
+              <Seg label={t('lobby.modeSelect.format')} value={raceTeams.value} onChange={(v) => { Audio.sfx('uiMove'); raceTeams.value = v as 'solo' | 'duo' | 'squad'; }}
+                options={[{ value: 'solo', label: t('common.format.solo') }, { value: 'duo', label: t('common.format.duo') }, { value: 'squad', label: t('common.format.squad') }]} />
             </div>
             <div class="opt">
               <h3 class="eyebrow">{t('lobby.modeSelect.tier')}</h3>

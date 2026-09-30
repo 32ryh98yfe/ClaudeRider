@@ -133,6 +133,7 @@ export function RaceScreen() {
       ...(params['laps'] ? { laps: Number(params['laps']) } : q.get('laps') ? { laps: Number(q.get('laps')) } : {}),
       ...(q.get('seed') ? { seed: Number(q.get('seed')) } : {}),
       ...(ta ? { solo: true } : {}),
+      ...(!ta && (params['teams'] === 'duo' || params['teams'] === 'squad') ? { teams: params['teams'] } : {}),
     };
     // Online (routed here by raceStart with online=1): build the Session from the server's race explicitly, and show its
     // real line-up on the loading card at once. Without a pending race (a reload) this falls back to an offline race.
