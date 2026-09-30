@@ -1,0 +1,75 @@
+# Aurora Summit / 오로라 정상 활강 — Frostbyte Glacier, D5, 1 × 3700 m point-to-point, speed★ (11-track-spec §12.6).
+# Night under a dancing aurora, headlights on: summit gate, cornice bends, the steep chute, the ice-shelf and
+# cornice S-chains, the spiral descent (switchback fallback), the moraine, the glacier hairpin, the avalanche gully,
+# the serac S, the ski jump (down-ramp fallback), the pine slalom, the ice-bridge hairpin, the frozen lake, the
+# lodge hairpin and S, the birch and village S, the chapel hairpin and the valley mouth to the finish gate.
+# Summit-to-valley descent −120 m, no stretch steeper than 15%. Connecting-corner angles re-balanced so the
+# descent never crosses itself (stacked levels arrive with F6).
+# @signature jump, ledge, kill, helix, stacked
+# @fallback helix -> "2 × C R16 170° switchback hairpins with the same −24 m drop" when=F6
+# @fallback stacked -> "switchback hairpins stay on one level (no overlap)" when=F6
+# @fallback jump -> "ski-jump down-ramp (no air): S 110 dy -10" when=F2
+# @fallback ledge -> "ice-shelf and cornice S keep low snow walls" when=F2
+# @fallback kill -> "no kill planes; walls everywhere" when=F2
+TRACK aurora_summit name="Aurora Summit" theme=frostbyte_glacier diff=5 laps=1 topo=p2p finishBefore=170
+DEFAULTS w=12 surf=asphalt wall=barrier:1.1 shoulder=0.5 shoulderSurf=snow blend=16
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=7 stagger=3.5 d=3
+S 46 w=13                                 @grid          # grid lead-in behind the start gate
+S 41                                      @summit_gate   # start gate; pad
+C R30 90 L dy=-4 bank=6 w=12              @summit_drop   # (V19)
+C R20 120 R dy=-4 bank=-8                 @cornice_bend  # (V19)
+S 59 dy=-6                                @chute         # steep chute (10%)
+WIGGLE R60 30/60/30 L dy=-6 bank=4        @upper_s
+C R120 95 L dy=-8                         @upper_sweeper
+S 25 w=13                                 @shelf_brake
+WIGGLE R15 35/70/35 L dy=-3 w=13 wall=barrier:0.8 @ice_shelf_s  # ice-shelf S (V19 ×2)
+S 22 w=13                                 @shelf_link
+WIGGLE R16 30/60/30 R dy=-3 w=13          @cornice_s     # (V19 ×2)
+S 45 w=13 wall=barrier:1.1                @shelf_run
+S 50 dy=-5 w=12                           @spiral_a      # spiral descent fallback: switchback 1
+C R16 170 R dy=-5 bank=-6 w=14            @spiral_1      # (V19)
+S 50 dy=-5 w=12                           @spiral_b
+C R16 170 L dy=-5 bank=6 w=14             @spiral_2      # (V19)
+S 51 dy=-2 w=12                           @spiral_exit
+WIGGLE R60 35/60/30 R dy=-4 bank=4        @moraine_s
+C R100 95 R dy=-6                         @moraine_sweeper
+C R12 180 L bank=6 w=14                   @glacier_hairpin # R12 (V19)
+S 58 dy=-5 w=12 wall=rock:3               @gully         # avalanche-gully tunnel
+WIGGLE R18 35/70/35 R dy=-2 w=13 wall=barrier:1.1 @gully_s   # (V19 ×2)
+WIGGLE R16 30/60/30 L dy=-2              @serac_s       # (V19 ×2)
+S 68 dy=-4 w=13                           @ski_runup     # pads before the lip
+S 110 dy=-10                              @ski_jump      # jump fallback: down-ramp
+C R40 90 L bank=5 w=12                    @landing_bend
+WIGGLE R80 30/60/30 L dy=-2               @landing_s
+S 20 w=13                                 @slalom_brake
+WIGGLE R22 40/75/40 L dy=-2 bank=5        @pine_slalom   # (V19 ×2)
+S 20                                      @slalom_link
+WIGGLE R22 35/75/40 R dy=-2 bank=7        @pine_slalom_2 # (V19)
+S 54 dy=-4                                @lower_valley
+C R16 135 R bank=-7 w=14                  @ice_bridge    # (V19)
+S 65 w=12 surf=ice shoulder=1.5 shoulderSurf=ice @frozen_lake # frozen-lake straight
+C R120 75 R dy=-2 surf=asphalt shoulder=0.5 shoulderSurf=snow @lake_sweeper
+WIGGLE R60 40/60/30 L dy=-2               @lake_shore_s
+WIGGLE R30 40/70/40 R dy=-2 bank=4        @aurora_s
+S 20 w=13                                 @lodge_brake
+C R12 180 L bank=6 w=14                   @lodge_hairpin # (V19)
+WIGGLE R20 30/60/30 R dy=-2 bank=5 w=13   @lodge_s       # (V19)
+S 64 w=12                                 @lodge_straight # pad
+WIGGLE R80 30/60/40 R dy=-2               @lodge_road_s
+C R90 120 L dy=-2                         @lodge_sweeper
+WIGGLE R60 30/60/30 R dy=-2               @birch_s
+WIGGLE R25 35/65/35 L dy=-1 bank=5        @village_s     # (V19)
+S 20 w=13                                 @chapel_brake
+C R14 180 R bank=-6 w=14                  @chapel_hairpin # (V19)
+S 15 w=13                                 @chapel_exit
+WIGGLE R18 35/65/35 L dy=-1 bank=6        @chapel_s      # (V19)
+S 57 dy=-2                                @final_descent
+C R100 90 L dy=-2                         @valley_mouth
+C R35 90 R bank=-5                        @final_corner
+S 132 w=13                                @finish        # finish gate; long run-off after it
+C R80 60 L w=14 wall=barrier:1.4          @runoff
+LINE start at=46
+ITEMS at=205,420,690,844,1005,1175,1340,1570,1770,2020,2225,2380,2660,2965,3125,3390 n=4
+PAD at=62,190,1455,1480,1530,2635 d=0 len=6 w=4
+KEYS 200,500,800,1100,1400,1700,2000,2300,2600,2900,3200,3500
