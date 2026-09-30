@@ -235,7 +235,10 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), s = new THREE.Vector3();
   const frustum = new THREE.Frustum(), pv = new THREE.Matrix4(), sph = new THREE.Sphere(), camPos = new THREE.Vector3();
   let frameNo = 0;
+  const lastPos = new THREE.Vector3(1e9, 0, 0), lastDir = new THREE.Vector3(), dir = new THREE.Vector3();
   const cullProps = (camera: THREE.Camera): void => {
+    // the director moved the camera this frame, but three refreshes its world matrix only at render time
+    camera.updateMatrixWorld();
     pv.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     frustum.setFromProjectionMatrix(pv);
     camPos.setFromMatrixPosition(camera.matrixWorld);
@@ -259,7 +262,14 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
   return {
     root, meta, minimap, boxes, stats: { meshes, tris },
     update(t: number, boxAvail: (i: number) => boolean, camera?: THREE.Camera): void {
-      if (camera && (frameNo++ % 3 === 0)) cullProps(camera);
+      if (camera) {
+        // every 3rd frame while the chase camera drifts; at once after a cut, a fly-by step or a fast turn
+        // (the intro fly-over and slow software frames otherwise pop roadside props out for a frame or two)
+        camera.getWorldDirection(dir);
+        const moved = camera.position.distanceToSquared(lastPos) > 4 || dir.dot(lastDir) < 0.995;
+        if (moved || frameNo % 3 === 0) { cullProps(camera); lastPos.copy(camera.position); lastDir.copy(dir); }
+        frameNo++;
+      }
       if (!boxes || !glyphs) return;
       for (let i = 0; i < track.boxes.length; i++) {
         const b = track.boxes[i]!;

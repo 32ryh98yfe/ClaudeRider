@@ -2,7 +2,7 @@
 
 **Symptom.** Large black and white stripe patches show on the terrain beside and beyond the road. This happens on meadow_loop and on every track with terrain, at any tier. It is most visible toward the horizon.
 
-**Evidence.** A dump of the baked `.vis` (`tools/shots/visinfo.mjs`) shows the problem in the `terrain` slot:
+**Evidence.** A dump of the baked `.vis` (`a local dump script (tools/scratch/visinfo.mjs)`) shows the problem in the `terrain` slot:
 
 | track | vertices with y = NaN | NaN normals |
 |---|---|---|

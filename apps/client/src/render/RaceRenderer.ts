@@ -28,7 +28,8 @@ import { AmbientFx } from './vfx/ambient.ts';
 import { Headlights } from './vfx/headlights.ts';
 import { setParticleClock, particleClock, setParticleFog } from './vfx/gpuParticles.ts';
 import { airborneLift } from '@cr/sim/items/public.ts';
-import { setListener } from '../audio/listener.ts';
+import { setListener, listenerDist } from '../audio/listener.ts';
+import { Audio } from '../audio/engine.ts';
 import { raceAudioPrepare } from '../audio/race.ts';
 import { save, type SettingsV1 } from '../meta/save.ts';
 
@@ -61,6 +62,9 @@ export class RaceRenderer {
   private lineAt = new THREE.Vector3();
   private fxAt = new THREE.Vector3();
   private ccM = new THREE.Matrix4();
+  private curW: Readonly<WorldState> | null = null;
+  /** Per-player box availability (no per-frame closure). */
+  private boxAvail = (i: number): boolean => { const w = this.curW; return !!w && w.boxRespawn[i * 8 + this.localSlot]! <= w.tick; };
   private hazards: TrackHazards | null = null;
   private cap = new FrameCap();
   private dtBank = 0; private skipFrame = false;
@@ -77,7 +81,9 @@ export class RaceRenderer {
 
   constructor(renderer: THREE.WebGPURenderer, track: BakedTrack, vis: ArrayBuffer, content: ContentTables, tier: QualityTier) {
     this.renderer = renderer; this.track = track; this.vis = vis; this.tier = tier; this.content = content;
-    this.kit = getThemeKit(track.meta.themeId, content);
+    // per-track lighting (L12-track-env): the kit sees the track's THEME attrs (e.g. sky=sunset on one Spark track)
+    const trackTheme = (readContainer(vis, CVIS_MAGIC, CVIS_VERSION).meta as VisMeta).theme ?? {};
+    this.kit = getThemeKit(track.meta.themeId, content, trackTheme);
     const st = save.get().settings;
     this.ts = withUserPrefs(tierSettings(tier), st);
     this.director = new CameraDirector(renderer.domElement.clientWidth / Math.max(1, renderer.domElement.clientHeight), track);
@@ -111,6 +117,8 @@ export class RaceRenderer {
     this.scene.add(this.view.root);
     if (meta.hazards?.length && this.track.hazards.length) {
       this.hazards = new TrackHazards(meta.hazards, this.track, this.kit);
+      // hazard sounds only near the listener (the mixer pans and attenuates; far cues would waste voices)
+      this.hazards.onCue = (id, at) => { if (listenerDist(at) < 90) Audio.sfx(id, { pos: at }); };
       this.scene.add(this.hazards.root);
     }
     const line = this.view.meta.line;
@@ -273,8 +281,6 @@ export class RaceRenderer {
     this.items.update(prev, curr, alpha, this.poses, fxDt, this.t);
     this.hazards?.update(curr.tick, alpha, fxDt, this.driving.sparks, this.driving.smoke);
     if (this.lights) this.lights.end();
-    // personal item boxes for the local player; props culled against last frame's camera
-    this.view.update(this.t, (i) => curr.boxRespawn[i * 8 + this.localSlot]! <= curr.tick, cam);
     const me = this.bySlot[this.localSlot] ?? this.karts[0];
     if (me) {
       const k = curr.karts[me.slot]!;
@@ -302,6 +308,9 @@ export class RaceRenderer {
       U.hit.value = this.hitK;
       if (this.flickerT > 0) { this.flickerT -= dt; U.fade.value = Math.sin(this.t * 55) > 0.2 ? 0.35 : 0.05; } else U.fade.value = 0;
     }
+    // personal item boxes for the local player; props culled against this frame's camera (after the director moved it)
+    this.curW = curr;
+    this.view.update(this.t, this.boxAvail, cam);
     this.ambient.update(cam.position, this.camFwd, fxDt);
     // spatial audio listener = camera (velocity for Doppler)
     this.camVel.copy(cam.position).sub(this.camPrev).divideScalar(Math.max(1e-3, dt));
@@ -369,7 +378,7 @@ export class RaceRenderer {
 
   /** Shows (or with null removes) the ghost kart. No FX, name tag, shadow or collision. */
   setGhost(v: { characterId: string; kartBodyId: string } | null): void {
-    if (this.ghost) { this.scene.remove(this.ghost.root); this.ghost.kart.dispose(); this.ghost.mascot.dispose(); this.ghost.mat.dispose(); this.ghost = null; }
+    if (this.ghost) { this.scene.remove(this.ghost.root); this.ghost.kart.dispose(); this.ghost.mascot.dispose(); this.ghost = null; } // the hologram material is shared (library)
     if (!v) return;
     const root = new THREE.Group();
     root.matrixAutoUpdate = false;
@@ -379,7 +388,7 @@ export class RaceRenderer {
     mascot.root.scale.setScalar(0.62);
     kart.seat.add(mascot.root);
     root.add(kart.root);
-    const mat = new THREE.MeshBasicNodeMaterial({ color: new THREE.Color('#bfe6ff'), transparent: true, opacity: 0.32, depthWrite: false });
+    const mat = MaterialLibrary.ghost();
     root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.material = mat; m.castShadow = false; m.receiveShadow = false; m.renderOrder = 2; } });
     this.scene.add(root);
     this.ghost = { root, kart, mascot, mat };

@@ -6,7 +6,7 @@
 
 On the Low tier (SwiftShader in CI), boot → lobby took 25.8–33 s. The e2e limit is 16 s.
 
-`tools/shots/boottime.mjs` and `compileprof.mjs` attribute most of that time to `createStudio()`, which calls `PMREMGenerator.fromScene(RoomEnvironment)` in the `Showcase` constructor:
+`tools/scratch/boottime.mjs` and `compileprof.mjs` (local, gitignored) attribute most of that time to `createStudio()`, which calls `PMREMGenerator.fromScene(RoomEnvironment)` in the `Showcase` constructor:
 
 - It renders a 256² cube, then runs about 10 GGX blur passes, all on the CPU rasterizer.
 - The first tiny post programs that link afterwards absorb that work: 3.5 s, 6.6 s and 2.6 s "links" for 2.7 KB shaders.

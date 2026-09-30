@@ -17,3 +17,12 @@ export function getThemeKit(id: string, content: ContentTables, env?: Record<str
 this.kit = getThemeKit(track.meta.themeId, content, visMeta.theme);
 ```
 Kits then do `env?.sky === 'sunset' ? SUNSET_LOOK : LOOK`. No format change: `.vis` meta already carries `theme`.
+
+## L11 response: accepted as proposed
+
+This shipped in the L11 branch.
+
+- `render/themes/registry.ts` now exports `type ThemeKitFactory = (c, env?) => ThemeKit` and `getThemeKit(id, content, env?)`. The change is additive: existing one-argument factories keep working.
+- `RaceRenderer` decodes the vis meta in its constructor and passes `visMeta.theme`.
+- A kit can now switch to its alternate look with `env?.sky === 'sunset' ? { ...LOOK, ...SUNSET_LOOK } : LOOK`.
+- `env/look.ts` still applies the track's `sky=` / `time=` to the sky kind and sun elevation, so a kit that ignores `env` keeps today's behaviour.
