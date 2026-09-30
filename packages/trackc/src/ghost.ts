@@ -14,7 +14,9 @@ export function ghostLap(track: BakedTrack, laps = 3): GhostResult {
   };
   const w = createWorld(cfg, track, content);
   const ctx = makeContext({ track, cfg, content, role: 'authority', events: NULL_SINK });
-  const driver = createAiDriver(track, content, 0, AI_TIERS.legend, {}, 11);
+  // 14-ai §2 reference: the noise-free Legend ghost (no personality, no jitter, no mistakes), the same driver
+  // tools/balance measures tier pace against (contract-requests/L3-ai-pace.md §4)
+  const driver = createAiDriver(track, content, 0, AI_TIERS.legend, { role: 'ghost', noJitter: true }, 11);
   const inputs = [makeInput()];
   const k = w.karts[0]!;
   const lapTicks: number[] = [];

@@ -2,7 +2,7 @@
 // L10 binds UI to these signals/actions; L9 replaces the stub transport behind them. Keep the exported API stable.
 import { signal, type Signal } from '@preact/signals';
 import type { C2SLobby, S2CLobby, RoomView, Loadout, RoomSettings, LobbyErrorCode, RaceResultWire } from '@cr/net';
-import type { ModeId, TeamFormat, TrackId } from '@cr/content';
+import type { AiTier, ModeId, TeamFormat, TrackId } from '@cr/content';
 
 export type ConnState = 'idle' | 'connecting' | 'online' | 'reconnecting' | 'offline';
 
@@ -55,7 +55,7 @@ export const lobbyActions = {
   ready: (ready: boolean): void => send({ t: 'ready', ready }),
   loadout: (loadout: Loadout): void => send({ t: 'loadout', loadout }),
   settings: (settings: Partial<RoomSettings>): void => send({ t: 'settings', settings }),
-  slot: (slot: number, action: 'open' | 'close' | 'bot' | 'kick'): void => send({ t: 'slot', slot, action }),
+  slot: (slot: number, action: 'open' | 'close' | 'bot' | 'kick', tier?: AiTier): void => send({ t: 'slot', slot, action, ...(tier ? { tier } : {}) }),
   team: (slot: number, team: number): void => send({ t: 'team', slot, team }),
   start: (): void => send({ t: 'start' }),
   vote: (trackId: TrackId): void => send({ t: 'vote', trackId }),

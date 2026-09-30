@@ -1,4 +1,4 @@
-// ClaudeRider server: node apps/server/src/main.ts [--port 8787] [--host 127.0.0.1] [--static apps/client/dist] [--tracks <dir>]
+// ClaudeRider server: node apps/server/src/main.ts [--port 8787] [--host 127.0.0.1] [--static apps/client/dist] [--tracks <dir>] [--art <dir>]
 // Serves the built client, /health, and the game WebSocket on /ws (lobby JSON + binary race frames, ADR-007).
 import { createServer } from 'node:http';
 import { existsSync } from 'node:fs';
@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { WebSocketServer } from 'ws';
 import { loadContent } from '@cr/content';
 import { createStatic } from './http/static.ts';
+import { createArtRoute } from './http/artIndex.ts';
 import { startGameServer } from './game/run.ts';
 
 const args = process.argv.slice(2);
@@ -16,7 +17,11 @@ const staticDir = opt('--static', new URL('../../client/dist', import.meta.url).
 const publicTracks = new URL('../../client/public/tracks', import.meta.url).pathname;
 const tracksDirs = [opt('--tracks', ''), join(staticDir, 'tracks'), publicTracks].filter((d) => d && existsSync(d));
 
+// Codex art overrides: the live source folder first (drop a file, reload), then the copy in the build
+const artDirs = [opt('--art', ''), new URL('../../client/public/art/overrides', import.meta.url).pathname, join(staticDir, 'art', 'overrides')].filter((d) => d && existsSync(d));
+
 const serveStatic = createStatic(staticDir);
+const serveArt = createArtRoute(artDirs);
 const started = Date.now();
 const game = startGameServer({ content: loadContent(), tracksDirs, log: (m) => console.log(`[game] ${m}`) });
 
@@ -27,6 +32,7 @@ const server = createServer((req, res) => {
     res.end(JSON.stringify({ ok: true, uptimeSec: Math.round((Date.now() - started) / 1000), ...game.stats() }));
     return;
   }
+  if (serveArt(req, res)) return;
   if (!serveStatic(req, res)) res.writeHead(405).end();
 });
 

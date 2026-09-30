@@ -9,8 +9,8 @@ export { artSlots, registerRenderFallback } from './slots.ts';
 interface IndexEntry { file: string; w?: number; h?: number; mtime?: number }
 type OverrideIndex = Record<string, IndexEntry>;
 
-/** Flip to true once `/art/overrides/index.json` is always served (contract request L10-art-index.md). */
-const ART_INDEX_READY = false;
+/** `/art/overrides/index.json` is always served: Node server and Vite dev plugin (apps/server/src/http/artIndex.ts). */
+const ART_INDEX_READY = true;
 const BASE = `${import.meta.env.BASE_URL ?? '/'}art/overrides/`;
 
 let indexPromise: Promise<OverrideIndex> | null = null;
