@@ -213,7 +213,7 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
     boxes = new THREE.InstancedMesh(g.body, MaterialLibrary.vinyl({ rim: '#ffd9c7', clearcoat: 1, roughness: 0.22 }), track.boxes.length);
     boxes.name = 'itemBoxes';
     boxes.castShadow = true;
-    glyphs = new THREE.InstancedMesh(g.glyph, MaterialLibrary.emissiveVertex(2.6), track.boxes.length);
+    glyphs = new THREE.InstancedMesh(g.glyph, MaterialLibrary.emissiveVertex(3), track.boxes.length);
     glyphs.name = 'itemBoxGlyphs';
     boxes.frustumCulled = glyphs.frustumCulled = false;
     root.add(boxes, glyphs);

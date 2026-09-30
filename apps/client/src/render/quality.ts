@@ -26,6 +26,7 @@ export interface TierSettings {
   lod: [number, number];       // kart LOD1 / LOD2 switch distances (m)
   propFar: number;             // small props are hidden beyond this distance (m)
   triplanar: boolean;          // terrain triplanar detail
+  liteEnv: boolean;            // gradient day sky instead of SkyMesh, no PMREM (Low: fewer / smaller shaders)
   engineVoices: number;        // detailed engine voices (player + near)
   drawBudget: number; triBudget: number; materialBudget: number;
 }
@@ -55,22 +56,22 @@ function baseSettings(t: QualityTier): TierSettings {
     case 'low': return {
       dprCap: 1.0, dynResMin: 0.7, shadowSize: 0, shadowFar: 80, bloom: true, bloomStrength: 0.8, bloomRadius: 0.4, bloomMode: 'taps', fxaa: true, aa: 'fxaa',
       blurTaps: 16, motionBlur: false, speedLines: false, chroma: 0, ssao: false, lut: false, particles: 0.25, foliage: 0.4, far: 600,
-      lod: [20, 55], propFar: 160, triplanar: false, engineVoices: 2, drawBudget: 150, triBudget: 600_000, materialBudget: 40,
+      lod: [20, 55], propFar: 160, triplanar: false, liteEnv: true, engineVoices: 2, drawBudget: 150, triBudget: 600_000, materialBudget: 40,
     };
     case 'medium': return {
       dprCap: 1.25, dynResMin: 1, shadowSize: 1024, shadowFar: 120, bloom: true, bloomStrength: 1.0, bloomRadius: 0.5, bloomMode: 'mips', fxaa: true, aa: 'smaa',
       blurTaps: 32, motionBlur: false, speedLines: true, chroma: 0.2, ssao: false, lut: true, particles: 0.6, foliage: 0.7, far: 800,
-      lod: [25, 70], propFar: 260, triplanar: false, engineVoices: 3, drawBudget: 250, triBudget: 1_200_000, materialBudget: 40,
+      lod: [25, 70], propFar: 260, triplanar: false, liteEnv: false, engineVoices: 3, drawBudget: 250, triBudget: 1_200_000, materialBudget: 40,
     };
     case 'high': return {
       dprCap: 1.5, dynResMin: 1, shadowSize: 2048, shadowFar: 200, bloom: true, bloomStrength: 1.0, bloomRadius: 0.5, bloomMode: 'mips', fxaa: false, aa: 'msaa',
       blurTaps: 32, motionBlur: false, speedLines: true, chroma: 0.3, ssao: true, lut: true, particles: 1, foliage: 1, far: 800,
-      lod: [25, 70], propFar: 400, triplanar: true, engineVoices: 3, drawBudget: 400, triBudget: 2_000_000, materialBudget: 40,
+      lod: [25, 70], propFar: 400, triplanar: true, liteEnv: false, engineVoices: 3, drawBudget: 400, triBudget: 2_000_000, materialBudget: 40,
     };
     case 'ultra': return {
       dprCap: 2, dynResMin: 1, shadowSize: 2048, shadowFar: 200, bloom: true, bloomStrength: 1.0, bloomRadius: 0.5, bloomMode: 'mips', fxaa: false, aa: 'msaa',
       blurTaps: 32, motionBlur: false, speedLines: true, chroma: 0.4, ssao: true, lut: true, particles: 1.5, foliage: 1, far: 1000,
-      lod: [35, 90], propFar: 600, triplanar: true, engineVoices: 3, drawBudget: 600, triBudget: 3_000_000, materialBudget: 40,
+      lod: [35, 90], propFar: 600, triplanar: true, liteEnv: false, engineVoices: 3, drawBudget: 600, triBudget: 3_000_000, materialBudget: 40,
     };
   }
 }

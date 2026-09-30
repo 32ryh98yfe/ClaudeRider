@@ -9,7 +9,7 @@ import {
 } from './world.ts';
 import { buildVinyl, buildKartPaint, buildEmissive, buildEmissiveVertex, buildNeon, buildVertexLit, type VinylParams } from './character.ts';
 import { buildFlame, buildFlameShared, buildBubble, buildRingDecal, type FlameUserData } from './fx.ts';
-import { fxUniforms } from './tsl.ts';
+import { fxUniforms, setNoiseQuality } from './tsl.ts';
 
 export type { RoadParams, RoadStyle, WallStyle, WaterParams, FlameUserData, VinylParams };
 export interface MascotPalette { body: THREE.Color; shade: THREE.Color; accent: THREE.Color; detail: THREE.Color; eye: THREE.Color }
@@ -32,6 +32,7 @@ const pk = (k: string): string => `${k}@${profileKey}`;
 function configure(tier: MaterialTier, opts: { triplanar?: boolean } = {}): void {
   profile = { hq: tier !== 'low', triplanar: opts.triplanar ?? (tier === 'high' || tier === 'ultra') };
   profileKey = `${profile.hq ? 'hq' : 'lq'}${profile.triplanar ? '+tri' : ''}`;
+  setNoiseQuality(profile.hq);
 }
 
 /** Stylized world material (low-frequency noise albedo + vertex AO). */
@@ -53,7 +54,7 @@ function killPlane(kind: 'lava' | 'void'): THREE.MeshStandardNodeMaterial { retu
 function startLine(): THREE.MeshStandardNodeMaterial { return memo('startline', buildStartLine); }
 /** Vinyl-toy mascot material: vertex-coloured palette, clearcoat, Fresnel rim. */
 function vinyl(p: VinylParams): THREE.MeshPhysicalNodeMaterial {
-  return memo(keyOf('vinyl', { ...p, tint: p.tint ? p.tint.getHexString() : null }), () => buildVinyl(p));
+  return memo(pk(keyOf('vinyl', { ...p, tint: p.tint ? p.tint.getHexString() : null })), () => buildVinyl(p, profile.hq));
 }
 /**
  * Candy kart paint. Liveries live in vertex colours, so every kart shares one material (the colour argument is

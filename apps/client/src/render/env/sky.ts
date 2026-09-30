@@ -4,22 +4,22 @@
 import * as THREE from 'three/webgpu';
 import {
   color, float, vec2, vec3, vec4, mix, smoothstep, normalize, positionLocal, time, sin, abs, fract, floor, dot, max, pow, clamp,
-  atan, uniform, Fn, modelViewProjection, mx_noise_float, length,
+  atan, uniform, Fn, modelViewProjection, length,
 } from 'three/tsl';
 import { SkyMesh } from 'three/addons/objects/SkyMesh.js';
 import { MaterialLibrary } from '../materials/library.ts';
-import { setEmissive } from '../materials/tsl.ts';
+import { setEmissive, n01 } from '../materials/tsl.ts';
 import type { EnvLook } from './look.ts';
 
 type N = any;
 
 export interface SkyObject { object: THREE.Object3D; /** optional per-frame hook (dome follows the camera) */ update?(camPos: THREE.Vector3): void; moonDir: THREE.Vector3 | null }
 
-const n01 = (p: N): N => mx_noise_float(p).mul(0.5).add(0.5);
 const rand3 = (c: N): N => fract(sin(dot(c, vec3(127.1, 311.7, 74.7))).mul(43758.5453));
 
-export function buildSky(L: EnvLook): SkyObject {
-  if (L.kind === 'day' || L.kind === 'goldenHour' || L.kind === 'sunset' || L.kind === 'overcast') {
+export function buildSky(L: EnvLook, lite = false): SkyObject {
+  // Low tier: the Preetham sky + cloud fbm is one of the largest shaders; use the gradient dome with a sun and clouds
+  if (!lite && (L.kind === 'day' || L.kind === 'goldenHour' || L.kind === 'sunset' || L.kind === 'overcast')) {
     const s = new SkyMesh();
     s.scale.setScalar(4500);
     s.turbidity.value = L.kind === 'overcast' ? 9 : L.sky.turbidity;
@@ -32,7 +32,7 @@ export function buildSky(L: EnvLook): SkyObject {
     s.name = 'sky';
     return { object: s, moonDir: null };
   }
-  const key = `sky:${L.kind}:${L.sky.top}:${L.sky.bottom}:${L.sky.horizon}:${L.sky.stars}:${L.sky.moon}:${L.sky.aurora}:${JSON.stringify(L.sky.planet)}`;
+  const key = `sky${lite ? 'Lite' : ''}:${L.kind}:${L.sunDir.x.toFixed(2)},${L.sunDir.y.toFixed(2)}:${L.sky.top}:${L.sky.bottom}:${L.sky.horizon}:${L.sky.stars}:${L.sky.moon}:${L.sky.aurora}:${JSON.stringify(L.sky.planet)}`;
   const moonDir = new THREE.Vector3(L.sunDir.x, Math.max(0.35, L.sunDir.y), L.sunDir.z).normalize();
   const mat = MaterialLibrary.custom(key, () => domeMaterial(L, moonDir));
   const dome = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 24), mat);
@@ -52,6 +52,20 @@ function domeMaterial(L: EnvLook, moonDir: THREE.Vector3): THREE.MeshBasicNodeMa
   let c: N = mix(mix(hor, bottom, smoothstep(-0.25, 0.02, h.negate()).oneMinus()), top, smoothstep(0.02, 0.65, h));
   let glow: N = vec3(0);
   const kind = L.kind;
+  if (kind === 'day' || kind === 'goldenHour' || kind === 'sunset' || kind === 'overcast') {
+    // lite day sky: horizon → zenith gradient, warm sun glow and disc, two-octave cloud bands
+    const sd = normalize(vec3(L.sunDir.x, L.sunDir.y, L.sunDir.z));
+    const cosS = max(dot(dir, sd), 0);
+    const warm = kind === 'day' ? color('#fff2d8') : kind === 'overcast' ? color('#f4f6f8') : color('#ffc58a');
+    c = mix(color(L.sky.horizon), color(L.sky.top), smoothstep(-0.02, 0.55, h)).add(warm.mul(pow(cosS, 12).mul(kind === 'overcast' ? 0.1 : 0.45)));
+    c = mix(c, color(L.sky.bottom), smoothstep(0.0, -0.3, h));
+    const cp = dir.xz.div(max(h, 0.05)).mul(0.9);
+    const cl = smoothstep(0.55, 0.8, n01(vec3(cp.x.add(time.mul(0.004)), cp.y, 0.5)).mul(0.7).add(n01(vec3(cp.mul(3.1), 2.5)).mul(0.3))).mul(smoothstep(0.02, 0.2, h));
+    c = mix(c, mix(color('#ffffff'), warm, 0.25), cl.mul(kind === 'overcast' ? 0.9 : 0.65));
+    const disc = smoothstep(0.9993, 0.9996, cosS).mul(kind === 'overcast' ? 0 : 1);
+    c = c.add(warm.mul(disc.mul(4)));
+    glow = warm.mul(disc.mul(1.5));
+  }
   if (kind === 'underground') {
     // cave vault: rocky noise overhead, warm glow low on the horizon, sparse crystal glints
     const rock = n01(dir.mul(9)).mul(0.6).add(n01(dir.mul(23)).mul(0.4));

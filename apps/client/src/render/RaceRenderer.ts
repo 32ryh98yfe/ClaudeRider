@@ -133,9 +133,30 @@ export class RaceRenderer {
     }
     this.post = createPost(this.renderer, this.scene, cam, { ts, reducedMotion: this.reducedMotion, grade: { ...L.grade, bloom: L.bloom ?? ts.bloomStrength } });
     this.budget = new BudgetTracker(this.renderer, this.tier, ts, () => MaterialLibrary.count());
-    // warm up shader compilation behind the loading screen
-    await this.renderer.compileAsync(this.scene, cam);
+    this.items.prewarm();
+    await this.warmShaders();
     this.budget.countMaterials(this.scene);
+  }
+
+  /**
+   * Compiles every program the race can need behind the loading screen: pooled/hidden objects and off-screen
+   * chunks are made visible and unculled for the pass, then one real frame links the post chain and shadow
+   * programs. Without this, SwiftShader stalls for seconds whenever a new item or chunk first appears.
+   */
+  private async warmShaders(): Promise<void> {
+    const shown: THREE.Object3D[] = [], unculled: THREE.Object3D[] = [];
+    this.scene.traverse((o) => {
+      if (!o.visible && !(o as THREE.Light).isLight) { o.visible = true; shown.push(o); }
+      if (o.frustumCulled) { o.frustumCulled = false; unculled.push(o); }
+    });
+    try {
+      await this.post.warm();
+      this.post.render();
+    } finally {
+      for (const o of shown) o.visible = false;
+      for (const o of unculled) o.frustumCulled = true;
+    }
+    this.renderer.info.reset();
   }
 
   /** Per-frame update. `alpha` interpolates prev→curr sim states. */

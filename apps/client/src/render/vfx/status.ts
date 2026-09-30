@@ -77,7 +77,7 @@ export class StatusRig {
     if (p) return p;
     const g = geos();
     const bubble = (c: THREE.Color, r: number): THREE.Mesh => { const m = new THREE.Mesh(g.bubble!, MaterialLibrary.bubble('#7DE2FC', true)); m.userData['fxColor'] = c; m.scale.setScalar(r); m.position.y = 0.7; return m; };
-    const glow = (geo: THREE.BufferGeometry): THREE.Mesh => new THREE.Mesh(geo, MaterialLibrary.emissiveVertex(3.2));
+    const glow = (geo: THREE.BufferGeometry): THREE.Mesh => new THREE.Mesh(geo, MaterialLibrary.emissiveVertex(3));
     switch (key) {
       case 'shield': p = bubble(COL.shield, 1.45); break;
       case 'trapBomb': case 'trapBug': {
@@ -88,7 +88,7 @@ export class StatusRig {
         p = grp; break;
       }
       case 'halo': p = glow(g.halo!); p.position.y = 1.55; break;
-      case 'lock': { const grp = new THREE.Group(); grp.add(new THREE.Mesh(g.lockLit!, MaterialLibrary.vertexLit(0.35, 0.6)), glow(g.lockGlow!)); grp.position.y = 1.9; p = grp; break; }
+      case 'lock': { const grp = new THREE.Group(); grp.add(new THREE.Mesh(g.lockLit!, MaterialLibrary.vertexLit(0.5, 0.2)), glow(g.lockGlow!)); grp.position.y = 1.9; p = grp; break; }
       case 'mirror': p = glow(g.mirror!); p.position.y = 2.0; break;
       case 'stars': { const grp = new THREE.Group(); for (let i = 0; i < 4; i++) grp.add(glow(g.star!)); grp.position.y = 1.35; p = grp; break; }
       case 'beam': { const m = new THREE.Mesh(g.beam!, MaterialLibrary.bubble('#7DE2FC', true)); m.userData['fxColor'] = COL.beam.clone(); m.scale.set(1.6, 7, 1.6); m.position.y = 7.5; p = m; break; }

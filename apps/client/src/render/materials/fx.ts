@@ -1,7 +1,7 @@
 // FX materials shared by the VFX systems: boost flames (per-object colours), glow shells, decals.
 import * as THREE from 'three/webgpu';
-import { color, float, vec3, uv, time, mix, smoothstep, sin, uniform, mx_noise_float, abs, positionLocal } from 'three/tsl';
-import { fresnel, setEmissive } from './tsl.ts';
+import { color, float, vec3, uv, time, mix, smoothstep, sin, uniform, abs, positionLocal } from 'three/tsl';
+import { fresnel, setEmissive, vnoise } from './tsl.ts';
 import type { NodeFrame } from 'three/webgpu';
 
 type N = any;
@@ -32,7 +32,7 @@ function flameGraph(core: N, edge: N, heat: N): THREE.MeshBasicNodeMaterial {
   const U = uv();
   const along = U.y;                                   // 0 at the nozzle → 1 at the tip
   const flick = sin(time.mul(43).add(along.mul(14))).mul(0.12).add(0.88);
-  const n = mx_noise_float(vec3(U.x.mul(4), along.mul(5).sub(time.mul(11)), 0.5)).mul(0.5).add(0.5);
+  const n = vnoise(vec3(U.x.mul(4), along.mul(5).sub(time.mul(11)), 0.5));
   const c = mix(core, edge, smoothstep(0.05, 0.75, along));
   const body = float(1).sub(along).mul(smoothstep(0.0, 0.06, along).mul(0.6).add(0.4));
   const a = body.mul(n.mul(0.7).add(0.45)).mul(flick).clamp(0, 1);

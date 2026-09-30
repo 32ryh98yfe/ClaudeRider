@@ -2,7 +2,7 @@
 // between sim states), status rigs per kart from world.effects + KartStatus, and one-shot bursts for item
 // events (use, impact, hazard removal, effect results incl. shield absorbs and "late signal").
 import * as THREE from 'three/webgpu';
-import { EFFECT_IDS, type ContentTables } from '@cr/content';
+import { EFFECT_IDS, ITEM_IDS, type ContentTables } from '@cr/content';
 import type { SimEvent, WorldState } from '@cr/sim';
 import type { GpuParticles, SpawnOpts } from './gpuParticles.ts';
 import type { KartPose } from './driving.ts';
@@ -63,6 +63,19 @@ export class ItemFx {
     const inst = make();
     this.root.add(inst.root);
     return inst;
+  }
+  /** Builds one hidden proxy per item (projectile and hazard forms) so their shaders compile during loading. */
+  prewarm(): void {
+    for (let code = 1; code <= ITEM_IDS.length; code++) {
+      for (let h = 0; h < 2; h++) {
+        const inst = this.acquire(code, h === 1);
+        if (!inst) continue;
+        inst.root.visible = false;
+        const key = code + h * 1000;
+        let pool = this.pools.get(key); if (!pool) { pool = []; this.pools.set(key, pool); }
+        pool.push(inst);
+      }
+    }
   }
   private release(index: number): void {
     const l = this.list[index]!;

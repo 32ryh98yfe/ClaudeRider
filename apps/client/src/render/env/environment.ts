@@ -20,7 +20,8 @@ export async function buildEnvironment(renderer: THREE.WebGPURenderer, scene: TH
   const shadowSize = typeof ts === 'number' ? ts : ts.shadowSize;
   const shadowFar = typeof ts === 'number' ? 120 : ts.shadowFar;
   const L = resolveEnvLook(kit, trackTheme);
-  const sky = buildSky(L);
+  const lite = typeof ts !== 'number' && ts.liteEnv;
+  const sky = buildSky(L, lite);
   scene.add(sky.object);
   scene.background = new THREE.Color(L.sky.top);
 
@@ -29,11 +30,15 @@ export async function buildEnvironment(renderer: THREE.WebGPURenderer, scene: TH
   envScene.add(sky.object.clone());
   const hemiEnv = new THREE.HemisphereLight(L.hemi.sky, L.hemi.ground, 0.4);
   envScene.add(hemiEnv);
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  const envRT = pmrem.fromScene(envScene, 0.03, 1, 5000);
-  scene.environment = envRT.texture;
-  scene.environmentIntensity = L.envIntensity;
-  pmrem.dispose();
+  // Low tier skips PMREM (its cube + blur programs cost more to compile than the reflections are worth there)
+  let envRT: THREE.RenderTarget | null = null;
+  if (!lite) {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    envRT = pmrem.fromScene(envScene, 0.03, 1, 5000);
+    scene.environment = envRT.texture;
+    scene.environmentIntensity = L.envIntensity;
+    pmrem.dispose();
+  }
 
   const keyDir = sky.moonDir ?? L.sunDir;
   const sun = new THREE.DirectionalLight(L.sun.color, L.sun.intensity);
@@ -89,7 +94,7 @@ export async function buildEnvironment(renderer: THREE.WebGPURenderer, scene: TH
       if (water) { water.position.x = target.x; water.position.z = target.z; }
     },
     dispose(): void {
-      envRT.dispose();
+      envRT?.dispose();
       renderer.toneMappingExposure = prevExposure;
       U.rimBoost.value = 1; U.wind.value = 1; U.wet.value = 0;
       scene.remove(sky.object, sun, sun.target, hemi);

@@ -2,10 +2,10 @@
 // Kinds: normal (gauge), team, start, item (Turbo Token), pad, instant; plus a pilot flicker at speed and an
 // afterburn tail when a boost ends. Two nested cones (core + outer) in one geometry; colours per instance.
 import * as THREE from 'three/webgpu';
-import { attribute, uv, time, float, vec3, mix, smoothstep, sin, mx_noise_float, clamp } from 'three/tsl';
+import { attribute, uv, time, float, vec3, mix, smoothstep, sin, clamp } from 'three/tsl';
 import { Boost } from '@cr/sim';
 import { MaterialLibrary } from '../materials/library.ts';
-import { setEmissive } from '../materials/tsl.ts';
+import { setEmissive, vnoise } from '../materials/tsl.ts';
 
 type N = any;
 
@@ -49,7 +49,7 @@ function flameMaterial(): THREE.MeshBasicNodeMaterial {
     const U = uv();
     const along = U.y;
     const flick = sin(time.mul(43).add(along.mul(14)).add(heat.mul(9))).mul(0.12).add(0.88);
-    const n = mx_noise_float(vec3(U.x.mul(4), along.mul(5).sub(time.mul(11)), heat.mul(3))).mul(0.5).add(0.5);
+    const n = vnoise(vec3(U.x.mul(4), along.mul(5).sub(time.mul(11)), heat.mul(3)));
     const c: N = mix(core, edge, smoothstep(0.05, 0.8, along).add(layer.mul(0.35)).clamp(0, 1));
     const body = float(1).sub(along).mul(smoothstep(0.0, 0.05, along).mul(0.6).add(0.4));
     const a = body.mul(n.mul(0.7).add(0.45)).mul(flick).mul(mix(float(1.25), float(0.7), layer)).clamp(0, 1);
