@@ -7,8 +7,8 @@ export default defineTrack({
   laps: 2,
   modes: ['speed', 'item'],
   topology: 'circuit',
-  lapLengthM: 1950,
-  refLapTicks: 0,
+  lapLengthM: 1920,
+  refLapTicks: 3441, // §12 reference lap (speed); the baked .ctrk carries the ghost value
   nameKey: 'tracks.sandglass_canyon.name',
   onRoster: true,
 });

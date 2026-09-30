@@ -1,0 +1,49 @@
+.queue { padding: 5.8rem 2.2rem 1.4rem; display: flex; flex-direction: column; }
+.q-scrim { position: absolute; inset: 0; background: radial-gradient(ellipse 60% 70% at 50% 55%, rgba(20, 20, 19, 0.35), rgba(20, 20, 19, 0.82)); pointer-events: none; }
+.q-setup { display: flex; gap: 0.6rem; }
+.q-setup .seg { background: rgba(250, 249, 245, 0.12); }
+.q-setup .seg > button { color: rgba(250, 249, 245, 0.75); }
+.q-setup .seg > button.on { background: var(--ivory); color: var(--ink); }
+.q-body { position: relative; flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; }
+.q-card { width: min(34rem, 92vw); padding: 1.8rem 2rem; display: flex; flex-direction: column; align-items: center; gap: 1rem; text-align: center; animation: screenIn 260ms var(--ease-out) both; }
+.q-card h2 { font-size: 1.4rem; font-weight: 800; color: var(--ink); }
+.q-card p { color: var(--ink-2); font-size: 0.95rem; line-height: 1.45; max-width: 26rem; }
+.q-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; margin-top: 0.4rem; }
+.q-offline-ico { position: relative; width: 4.5rem; height: 4.5rem; border-radius: 50%; background: var(--sand); color: var(--ink-3); display: flex; align-items: center; justify-content: center; }
+.q-offline-ico i { position: absolute; width: 3.6rem; height: 3px; background: var(--error); transform: rotate(-45deg); border-radius: 3px; box-shadow: 0 0 0 2px var(--sand); }
+.q-spinner { width: 3.4rem; height: 3.4rem; border-radius: 50%; border: 4px solid var(--sand); border-top-color: var(--coral); animation: spin 0.9s linear infinite; }
+.q-mode { display: flex; gap: 0.4rem; }
+.q-ring { position: relative; width: 8.5rem; height: 8.5rem; }
+.q-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.q-ring-bg { fill: none; stroke: var(--sand); stroke-width: 8; }
+.q-ring-fg { fill: none; stroke: var(--coral); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 200ms linear; }
+.q-ring-inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--ink); }
+.q-ring-inner b { font-size: 3rem; font-weight: 900; line-height: 1; }
+.q-ring-inner small { font-size: 0.72rem; color: var(--ink-3); font-weight: 700; }
+.q-slots { display: flex; gap: 0.4rem; }
+.q-slots i { width: 2.2rem; height: 2.2rem; border-radius: 10px; background: var(--sand); display: flex; align-items: center; justify-content: center; color: #fff; transition: background 200ms; }
+.q-slots i.on { background: linear-gradient(135deg, var(--terracotta), var(--coral)); animation: slotPop 260ms var(--ease-out-back) both; }
+@keyframes slotPop { from { transform: scale(0.6); } to { transform: scale(1); } }
+.q-note { display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem !important; color: var(--ink-3) !important; }
+
+.q-stage { width: min(44rem, 94vw); align-items: stretch; text-align: left; gap: 0.9rem; }
+.q-stage-head { display: flex; align-items: center; justify-content: space-between; }
+.q-stage-head .eyebrow { color: var(--terracotta); opacity: 1; }
+.q-stage .q-ring { width: 5.2rem; height: 5.2rem; }
+.q-stage .q-ring-inner b { font-size: 1.9rem; }
+.q-track { display: flex; gap: 1rem; align-items: center; }
+.q-track-art { width: 11rem; aspect-ratio: 16 / 9; border-radius: 14px; flex: none; }
+.q-track-name { font-size: 1.8rem; color: var(--ink); }
+.q-track-meta { display: flex; gap: 0.4rem; align-items: center; margin-top: 0.4rem; }
+.q-loadout { display: grid; grid-template-columns: auto 1fr 1fr; gap: 0.6rem; align-items: center; padding: 0.7rem; border-radius: 16px; background: var(--parchment); }
+.q-loadout .eyebrow { color: var(--ink-3); padding: 0 0.3rem; }
+.q-pick { display: flex; align-items: center; gap: 0.4rem; background: #fff; border-radius: 14px; padding: 0.3rem; box-shadow: 0 0 0 1px var(--line); color: var(--ink); }
+.q-pick .portrait { border-radius: 12px; background: var(--sand); }
+.q-pick .ico { color: var(--terracotta); }
+.q-pick-name { flex: 1; font-weight: 800; font-size: 0.9rem; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.q-pick .btn.icon { width: 2rem; height: 2rem; color: var(--ink-2); }
+.q-chat { display: flex; flex-direction: column; gap: 0.5rem; }
+.q-chat .eyebrow { color: var(--ink-3); }
+.q-qc { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.q-log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.84rem; color: var(--ink-2); }
+.q-log b { margin-right: 0.5rem; color: var(--ink); }
