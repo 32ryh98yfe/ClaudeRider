@@ -2,8 +2,7 @@
 # pumpkin-patch corner, scarecrows, a deep graveyard S between smiling tombstones (or the shortcut straight through),
 # the creek-bridge hop, the mill, the parade street under lantern gates, the bat tree, candle alley, a hayride S, the
 # orchard sweepers and the chapel.
-@signature branch, jump
-@fallback hazard:swinger -> "parade gates fixed open (static lantern arches over the parade street)" when=F5
+@signature branch, jump, hazard:swinger
 TRACK pumpkin_lane name="Pumpkin Lane" theme=lantern_hollow diff=2 laps=3 topo=circuit
 DEFAULTS w=17 surf=cobble wall=barrier:1.1 shoulders=1.5:grass blend=16
 START pos=(0,0,0) hdg=0
@@ -20,8 +19,8 @@ S ?c wall=barrier:1.1                             @parade_street
 C R40 90 L bank=6                                 @bat_tree
 WIGGLE R35 36/59/52 L bank=4 wall=barrier:1.1:soft   @candle_s
 S 56 wall=barrier:1.1                              @candle_alley
-WIGGLE R60 30/47/45 L bank=3 dy=2.5               @hayride_s
-C R80 44 R bank=-3 dy=-2.5                        @orchard_in
+WIGGLE R60 30/47/45 L bank=3 dy=2.5 wall=barrier:1.1:soft   @hayride_s
+C R80 44 R bank=-3 dy=-2.5 wall=barrier:1.1       @orchard_in
 C R80 60 L bank=3                                 @orchard_out
 C R60 26 R bank=-2                                @chapel_kink
 C R35 98 L bank=6                                 @chapel_corner
@@ -30,13 +29,17 @@ CLOSE solve=[?a,?b,?c] length=1300
 LINE start at=0
 
 # Graveyard shortcut: a straight dirt path between the tombstones, cutting the deep S (≈ 20 m, ≈ 0.5 s)
-BRANCH graveyard from=@graveyard_s to=@creek_approach kind=shortcut aiMin=0.4 w=8 surf=dirt wall=fence:1.0 shoulders=0.5:grass {
+BRANCH graveyard from=@graveyard_s to=@creek_approach kind=shortcut aiMin=0.4 w=8 surf=dirt wall=fence:1.0:soft shoulders=0.5:grass {
   C R60 8 L ; S ?x dy=-1.5 ; C R60 16 R ; S ?y dy=-1.5 ; C R60 8 L
 }
 
 # 5 rows ≈ L/250: lantern lane, creek approach, parade street, candle alley, orchard
 ITEMS at=@lantern_lane+100,@creek_approach+15,@parade_street+30,@candle_alley+28,@orchard_out+30 n=5
 PAD at=@home+8,@lantern_lane+15 d=0 len=6 w=4
+
+# the parade street: giant paper lanterns swing across the road under the first and last arch (always live)
+HAZ swinger lantern1 at=@parade_street+12 d=0 capsule=(0.8,2.0) arm=7 amp=45 plane=across period=4 offset=0 prop=hazard_lantern
+HAZ swinger lantern2 at=@parade_street+48 d=0 capsule=(0.8,2.0) arm=7 amp=45 plane=across period=4 offset=2 prop=hazard_lantern
 KEYS @lantern_lane+150,@scarecrow_row+20,@mill_corner+20,@parade_street+20,@candle_alley+20,@orchard_in+20,@chapel_corner+20
 
 # --- dressing
