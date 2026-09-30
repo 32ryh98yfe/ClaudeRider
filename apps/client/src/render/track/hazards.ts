@@ -127,7 +127,7 @@ export class TrackHazards {
       const rr = meta.shape === 'box' ? Math.max(s0, s1) * 0.6 : s0 * 1.25;
       ring.scale.setScalar(rr); ring.position.y = 0.05; ring.visible = false;
       root.add(ring);
-      // swinger arm: a rod from the bob back to the pivot (−u for vertical swings, −f for a flat sweep)
+      // swinger arm: a rod from the bob to the pivot (+u for vertical swings: u is up at rest; −f for a flat sweep)
       const mo = def?.motion;
       const flat = mo?.plane === 'flat';
       let arm: THREE.Mesh | null = null, armLen = 0;
@@ -135,7 +135,7 @@ export class TrackHazards {
         armLen = mo.arm ?? 5;
         arm = new THREE.Mesh(cylUnit(), MaterialLibrary.vertexLit(0.4, 0.6));
         if (flat) { arm.rotation.x = Math.PI / 2; arm.position.z = -armLen / 2; arm.scale.set(0.12, armLen, 0.12); }
-        else { arm.position.y = -armLen / 2; arm.scale.set(0.12, armLen, 0.12); }
+        else { arm.position.y = armLen / 2; arm.scale.set(0.12, armLen, 0.12); } // u points from the bob to the pivot
         root.add(arm);
       }
       this.root.add(root);
