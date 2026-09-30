@@ -552,23 +552,28 @@ export class RaceRoom {
 
   // ------------------------------------------------------------ result
 
-  result(): RaceResult {
-    const w = this.world, cfg = this.config;
-    const pts = [10, 8, 6, 5, 4, 3, 2, 1];
-    const rows: RaceResultRow[] = w.karts.filter((k) => k.active).map((k) => ({
-      slot: k.slot, rank: k.race.rank, name: cfg.slots[k.slot]!.name, team: k.team, finished: k.race.finishTick >= 0,
-      raceTicks: k.race.finishTick >= 0 ? k.race.finishTick - 1 + k.race.finishFrac - w.goTick : -1,
-      bestLapTicks: k.race.bestLapTicks, kind: cfg.slots[k.slot]!.kind, points: k.race.finishTick >= 0 ? (pts[k.race.rank - 1] ?? 0) : 0,
-    })).sort((a, b) => a.rank - b.rank);
-    let winnerTeam = rows[0]?.team ?? 0;
-    if (cfg.teams !== 'solo') {
-      const sums = new Map<number, { p: number; best: number }>();
-      for (const r of rows) { const s = sums.get(r.team) ?? { p: 0, best: 99 }; s.p += r.points; s.best = Math.min(s.best, r.rank); sums.set(r.team, s); }
-      if (cfg.mode === 'item') winnerTeam = rows.find((r) => r.finished)?.team ?? winnerTeam;
-      else winnerTeam = [...sums.entries()].sort((a, b) => b[1].p - a[1].p || a[1].best - b[1].best)[0]?.[0] ?? 0;
-    }
-    return { trackId: cfg.trackId, mode: cfg.mode, rows, winnerTeam, endTick: w.endTick };
+  result(): RaceResult { return raceResult(this.world, this.config); }
+}
+
+/**
+ * The result table of a finished world (pure; the same on the authority and on a client holding the authoritative
+ * world, which is how a client recovers the result if the raceEnd message is lost).
+ */
+export function raceResult(w: Readonly<WorldState>, cfg: Readonly<RaceConfig>): RaceResult {
+  const pts = [10, 8, 6, 5, 4, 3, 2, 1];
+  const rows: RaceResultRow[] = w.karts.filter((k) => k.active).map((k) => ({
+    slot: k.slot, rank: k.race.rank, name: cfg.slots[k.slot]!.name, team: k.team, finished: k.race.finishTick >= 0,
+    raceTicks: k.race.finishTick >= 0 ? k.race.finishTick - 1 + k.race.finishFrac - w.goTick : -1,
+    bestLapTicks: k.race.bestLapTicks, kind: cfg.slots[k.slot]!.kind, points: k.race.finishTick >= 0 ? (pts[k.race.rank - 1] ?? 0) : 0,
+  })).sort((a, b) => a.rank - b.rank);
+  let winnerTeam = rows[0]?.team ?? 0;
+  if (cfg.teams !== 'solo') {
+    const sums = new Map<number, { p: number; best: number }>();
+    for (const r of rows) { const s = sums.get(r.team) ?? { p: 0, best: 99 }; s.p += r.points; s.best = Math.min(s.best, r.rank); sums.set(r.team, s); }
+    if (cfg.mode === 'item') winnerTeam = rows.find((r) => r.finished)?.team ?? winnerTeam;
+    else winnerTeam = [...sums.entries()].sort((a, b) => b[1].p - a[1].p || a[1].best - b[1].best)[0]?.[0] ?? 0;
   }
+  return { trackId: cfg.trackId, mode: cfg.mode, rows, winnerTeam, endTick: w.endTick };
 }
 
 /** Per-room secret for keyed item rolls (4 words). Uses Web Crypto (Node ≥ 19 and browsers). */

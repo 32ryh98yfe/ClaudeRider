@@ -63,6 +63,9 @@ export class LobbyConnection {
     return this.clock.serverMs(performance.now(), this.tickEpochMs) - Date.now();
   }
 
+  /** Drops the socket and reconnects (resuming the session) — used when the race stream stalls. */
+  forceReconnect(): void { if (this.transport && this.wanted) this.transport.close(4006, 'stalled'); }
+
   close(): void {
     this.wanted = false;
     if (this.retryTimer) clearTimeout(this.retryTimer);
