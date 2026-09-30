@@ -1,0 +1,26 @@
+# F2 fixture (L4): a real jump gap (ramp, lip, gap with kill floor, landing face), an open ledge with no wall and a
+# lava KILL plane below it, drivable shoulders. Rectangle circuit; the jump's −2 m drop is balanced by the climb.
+TRACK f2_jumps name="F2 Jump Fixture" theme=frostbyte_glacier diff=2 laps=3 topo=circuit
+DEFAULTS w=16 surf=asphalt wall=barrier:1.0 shoulders=2:grass blend=15
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=6 stagger=3 d=4
+S ?a                                              @home
+C R40 90 L                                        @t1
+S 60 dy=+2                                        @climb
+S 40                                              @runup
+J ramp=10@8 gap=10 drop=2 land=45 vmin=22 vmax=46 @jump
+S 30
+C R40 90 L                                        @t2
+S ?a wallR=none shoulderR=0 kill=lava             @ledge
+C R40 90 L wallR=barrier:1.0 shoulderR=2          @t3
+S 195 shoulders=4:snow                            @snowfield
+C R40 90 L shoulders=2:grass                      @t4
+CLOSE solve=[?a] length=1300
+LINE start at=@home+120
+KILL lava belowY=-6 aabb=(-200,-400 .. 500,120)
+
+PAD at=@home+150,@home+210 d=0 len=6 w=4
+ITEMS at=@home+290,@climb+10,@ledge+60,@ledge+240,@snowfield+100 n=5
+KEYS @home+250,@t1+30,@t2+30,@ledge+150,@t3+30,@snowfield+60,@t4+30
+PROPS kind=pine along=main side=both every=25 offset=3
+THEME scatter=pine,rock density=4 hills=5 sky=overcast
