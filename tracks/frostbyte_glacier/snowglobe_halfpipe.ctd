@@ -2,8 +2,7 @@
 # Bright overcast under the snow-globe dome: the penguin-village straight, the igloo corner, the halfpipe run,
 # the crystal-cave tunnel and its S-bends, the ice-rink sweeper (ice 0.75), the sled run, the snowman S and the
 # snow-fort corner home. Snow shoulders (0.90 grip / ×0.95) mark the off-road.
-@signature halfpipe, surfaces
-@fallback hazard:traffic -> "cosmetic penguin sleds beside the snowman lane" when=F5
+@signature halfpipe, surfaces, hazard:traffic
 TRACK snowglobe_halfpipe name="Snowglobe Halfpipe" theme=frostbyte_glacier diff=2 laps=3 topo=circuit
 DEFAULTS w=17 surf=asphalt wall=barrier:1.1 shoulder=2 shoulderSurf=snow blend=22
 START pos=(0,0,0) hdg=0
@@ -32,6 +31,8 @@ LINE start at=0
 ITEMS at=140,290,460,640,880,1060 n=5
 PAD at=50,100 d=0 len=6 w=4
 KEYS 200,390,560,780,1000,1180
+# penguin sled trains on the run-in's right lane (clear of the start grid and every item row)
+HAZ traffic sleds at=@run_in+5 to=@run_in+70 lanes=[(d 5, speed 8, count 2, spacing 32)] prop=hazard_sled_train
 # ice on the inside of each cave S-bend, and the whole rink sweeper is ice (0.75)
 ZONE surface from=@cave_s+4 to=@cave_s+26 d=[1,8] surf=ice
 ZONE surface from=@cave_s+34 to=@cave_s+88 d=[-8,-1] surf=ice

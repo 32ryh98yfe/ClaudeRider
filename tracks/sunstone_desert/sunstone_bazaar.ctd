@@ -2,8 +2,7 @@
 # 16:00 heat haze over a caravan town: the awning market street, the oasis-pond corner, palm S-bends, the dune
 # hump, the camel-statue corner, the caravan road, the well-plaza sweeper, the rug market and the gate chicane.
 # Sand shoulders on the oasis and dune sections teach the off-road slowdown (sand 0.85 grip / ×0.92).
-@signature branch, surfaces, jump
-@fallback hazard:traffic -> "static pot-cart prop" when=F5
+@signature branch, surfaces, jump, hazard:traffic
 TRACK sunstone_bazaar name="Sunstone Bazaar" theme=sunstone_desert diff=1 laps=3 topo=circuit
 DEFAULTS w=18 surf=stone wall=building:2.5 shoulder=1 shoulderSurf=sand blend=16
 START pos=(0,0,0) hdg=0
@@ -31,6 +30,8 @@ LINE start at=0
 ITEMS at=170,443,790,1120,1300 n=5
 PAD at=40,100 d=0 len=6 w=4
 KEYS 230,480,800,1000,1150,1380
+# pot-cart traffic trundling down the rug market's left lane; the right two thirds of the street stay clear
+HAZ traffic carts at=@rug_market+32 to=@rug_market+98 lanes=[(d -5, speed 7, count 2, spacing 33)] prop=hazard_pot_cart
 # sand on the inside of the oasis corner (the pond side)
 ZONE surface from=@oasis to=@oasis+55 d=[-12.5,-5] surf=sand
 # the awning shortcut: a caravanserai lane under market awnings, cutting inside the camel-statue corner
