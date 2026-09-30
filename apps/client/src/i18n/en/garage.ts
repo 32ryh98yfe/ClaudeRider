@@ -1,0 +1,28 @@
+export default {
+  character: 'Character', kart: 'Kart', livery: 'Livery', palette: 'Palette', emotes: 'Emotes', equip: 'Equip', equipped: 'Equipped',
+  locked: 'Unlocks at Lv.{n}', buy: 'Buy for {price} Sparks', notEnough: 'Not enough Sparks',
+  archetype: { speed: 'Speed', balance: 'Balance', drift: 'Drift' },
+  stat: { topSpeed: 'Top speed', accel: 'Acceleration', drift: 'Drift', gauge: 'Gauge charge', weight: 'Weight' },
+  plate: 'Plate', flame: 'Boost flame',
+  title: 'Garage', sub: 'Pick a character and kart, then make them yours', preview: 'Previewing', bought: 'Bought {name}!', buyTitle: 'Buy this?',
+  buyBody: '{name} · {price} Sparks', primary: 'Main colour', secondary: 'Accent colour', pattern: 'Pattern', number: 'Race number', plateText: 'Plate text',
+  owned: 'Owned', free: 'Free', teamFlameNote: 'The team booster flame is always blue.', name: 'Racer name', rename: 'Rename', nameHint: 'Up to 12 characters',
+  cosmeticNote: 'Characters and liveries are cosmetic. Performance depends on the kart.', statsOf: 'Kart performance',
+  patternName: { stripes: 'Stripes', sparkle: 'Sparkle Stickers', checker: 'Checker', flames: 'Flame Decals', circuit: 'Circuit Traces', wave: 'Wave', filigree: 'Royal Filigree', aurora: 'Aurora Gradient', chrome: 'Gold Chrome', legend: 'Legend' },
+  paletteName: { classic: 'Classic', midnight: 'Midnight', parchment: 'Parchment', sage: 'Sage', sky: 'Sky' },
+  flameName: { coral: 'Coral', violet: 'Violet', teal: 'Teal', gold: 'Gold', white: 'White-hot' },
+  emotePack2: 'Emote pack 2', titleLegend: 'Title: Legend Rider', titleName: { legend: 'Legend Rider' },
+  emote: { win: 'Victory', podium: 'Podium', lose: 'So close', attackLanded: 'Direct hit', gotHit: 'Ouch', lobby: 'Idle' },
+  emoteNote: 'Use emotes with keys 1–4 during a race.',
+  charDesc: {
+    clay: 'The calm, helpful original Clawd. Known for an ivory racing scarf.', pixel: 'A cheeky retro racer built from real voxels.', turbo: 'Competitive to the core. Helmet number 01.',
+    anchor: 'A boisterous pirate captain with a sparkle parrot.', rune: 'A dreamy wizard who never leaves the sparkle staff behind.', nova: 'A curious astronaut in a shiny bubble helmet.',
+    kage: 'A stoic ninja with long scarf tails.', bisque: 'A warm but fussy chef who solves everything with a ladle.', frost: 'A shy ice-crystal racer with an icicle crown.',
+    glitch: 'A hyper neon cyber racer behind a holo visor.', bolt: 'A literal-minded copper robot with a wind-up key.', duke: 'A dignified (and slightly vain) royal racer.',
+  },
+  kartDesc: {
+    pebble: 'A starter tube-frame go-kart. Easy and predictable.', clay_comet: 'A capsule car with a sparkle tail fin.', arrowhead: 'A low open-wheel wedge. Strong on straights.',
+    tugboat: 'A chunky retro buggy on balloon tyres. Hard to push around.', glacier_sled: 'A ski-front hover kart with silky drifts.', neon_blade: 'A cyber hypercar with underglow. High top speed.',
+    jet_kettle: 'A twin-stack steampunk boiler. Charges the gauge fast.', crown_cruiser: 'A gilded royal chariot. Fast but heavy.',
+  },
+};
