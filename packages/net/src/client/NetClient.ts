@@ -7,7 +7,7 @@
 import type { ContentTables } from '@cr/content';
 import {
   applyDecision, copyInput, copyWorld, createWorld, cloneWorld, makeContext, makeInput, step, ArraySink, MAX_KARTS,
-  type BakedTrack, type DecisionLog, type InputFrame, type RaceConfig, type SimEvent, type StepContext, type Tick, type WorldState,
+  type BakedTrack, type Decision, type DecisionLog, type InputFrame, type RaceConfig, type SimEvent, type StepContext, type Tick, type WorldState,
 } from '@cr/sim';
 import { ByteReader, ByteWriter, ProtocolError, hexU32 } from '../protocol/bytes.ts';
 import { C2S, NET, NetFlag, S2C } from '../protocol/ids.ts';
@@ -57,6 +57,8 @@ export interface NetClientOptions {
   onLobby?: (msg: unknown) => void;
   /** Called after each decoded snapshot (metrics, tests). */
   onSnapshot?: (meta: Readonly<SnapshotMeta>, auth: Readonly<WorldState>) => void;
+  /** Called for every authority decision as it arrives, with the tick the client had predicted to (metrics). */
+  onDecision?: (d: Decision, predTick: Tick) => void;
   /** Called after each reconciliation with the drawn-pose correction per kart (m, 0 = none) and whether it replayed. */
   onReconcile?: (corrections: Readonly<Float64Array>, replayed: boolean) => void;
 }
@@ -79,6 +81,7 @@ export class NetClient {
   private readonly onLobby: NetClientOptions['onLobby'];
   private readonly onSnap: NetClientOptions['onSnapshot'];
   private readonly onRec: NetClientOptions['onReconcile'];
+  private readonly onDec: NetClientOptions['onDecision'];
   private readonly corr = new Float64Array(MAX_KARTS);
   private readonly token: Uint32Array | null;
 
@@ -140,6 +143,7 @@ export class NetClient {
     this.onLobby = o.onLobby;
     this.onSnap = o.onSnapshot;
     this.onRec = o.onReconcile;
+    this.onDec = o.onDecision;
     this.ownClock = !o.clock;
     this.clock = o.clock ?? new ClockSync();
     this.token = o.resumeToken ? hexU32(o.resumeToken) : null;
@@ -175,6 +179,8 @@ export class NetClient {
   /** Latest authoritative world (decoded snapshot). */
   get auth(): Readonly<WorldState> { return this.dec.world; }
   get rate(): number { return this.rateV; }
+  /** Every authority decision received so far, in seq order (the log the predictor reads). */
+  get decisions(): readonly Decision[] { return this.log.items; }
 
   /** Latest sampled input; analog values persist, edges are latched until the next predicted tick consumes them. */
   submit(f: Readonly<InputFrame>): void {
@@ -362,6 +368,7 @@ export class NetClient {
       case 'resync': this.resyncWanted = true; return;
       case 'timeAdjust': case 'mash': case 'unknown': return;
       default: {
+        this.onDec?.(e, this.pred.tick);
         const t = applyDecision(this.pred, e);
         if (t !== null) this.markDirty(t);
       }

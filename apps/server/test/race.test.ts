@@ -11,7 +11,7 @@ const track = memoryTracks().get('proving_ring');
 
 function netClientFor(c: TestClient, rs: Extract<S2CLobby, { t: 'raceStart' }>, w: World): NetClient {
   const ch = c.mux.channel((t) => t === S2C.SNAPSHOT || t === S2C.EVENTS || t === S2C.INPUT_RELAY || t === S2C.PONG);
-  const d = createAiDriver(track, content, rs.yourSlot, AI_TIERS.pro, {}, 11 + rs.yourSlot);
+  const d = createAiDriver(track, content, rs.yourSlot, AI_TIERS.pro, {}, 11 + rs.yourSlot, rs.config);
   return new NetClient({
     transport: ch, track, content, cfg: rs.config, slot: rs.yourSlot, nowMs: () => w.clock.now, startTick: rs.startTick, mode: 'synced',
     ...(rs.resumeToken ? { resumeToken: rs.resumeToken } : {}), inputProvider: (world, out) => d.decide(world, out),

@@ -104,7 +104,7 @@ export class Session {
       this.config = this.offlineConfig(track);
       this.simRate = Math.max(1, Math.min(16, this.opts.simRate ?? 1));
     }
-    if (this.opts.autopilot) this.autopilot = createAiDriver(track, this.content, this.localSlot, AI_TIERS.pro, {}, 4242);
+    if (this.opts.autopilot) this.autopilot = createAiDriver(track, this.content, this.localSlot, AI_TIERS.pro, {}, 4242, this.config);
     progress(0.5, t('common.loading'));
     const lv = save.get().profile.livery;
     const visuals: KartSlotVisual[] = this.config.slots.map((s, i) => ({

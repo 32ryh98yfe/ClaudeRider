@@ -153,11 +153,14 @@ export class RaceRoom {
     }
   }
 
-  private makeDriver(slot: number, tier: keyof typeof AI_TIERS): AiDriver {
+  /**
+   * Bots and takeover drivers (14-ai §10): the character's personality, the race config (item brain, team rules) and
+   * the lookahead, so the driver aims its frame at the tick it will be applied (applyTick = w.tick + 1 + lookaheadTicks).
+   */
+  private makeDriver(slot: number, tier: keyof typeof AI_TIERS, role: 'racer' | 'takeover' = 'racer'): AiDriver {
     const s = this.config.slots[slot]!;
-    const cm = this.content.characters.byId.get(s.characterId);
-    const pers = cm ? { aggression: cm.personality.aggression } : {};
-    return createAiDriver(this.track, this.content, slot, AI_TIERS[tier], pers, (this.config.seed ^ (slot * 7919)) >>> 0);
+    return createAiDriver(this.track, this.content, slot, AI_TIERS[tier], { character: s.characterId, role, lookaheadTicks: Math.max(0, this.lookahead - 1) },
+      (this.config.seed ^ (slot * 7919)) >>> 0, this.config);
   }
 
   get tickNo(): number { return this.world.tick; }
@@ -392,7 +395,7 @@ export class RaceRoom {
       const st = this.slots[s]!, kind = this.config.slots[s]?.kind;
       if (kind === 'human' && !st.aiActive && N - st.lastRealTick >= NET.TAKEOVER_TICKS) {
         // a silent human (disconnected, or still loading) is driven by a Racer-profile AI with its personality
-        st.takeover ??= this.makeDriver(s, 'racer');
+        st.takeover ??= this.makeDriver(s, 'racer', 'takeover');
         st.aiActive = true;
         this.log(`slot ${s}: AI takeover at ${N}`);
       }
