@@ -117,6 +117,10 @@ export class RaceRoom {
   private rd = new ByteReader();
   private inMsg: InputMsgT = { firstTick: 0, ackEventSeq: 0, frames: [] };
   private tmp = makeInput();
+  private evCache = new Map<number, { bytes: Uint8Array; last: number }>();
+  private relayCache = new Map<number, Uint8Array[]>();
+  private peerList: Peer[] = [];
+  private relayScratch: { slot: number; tick: Tick; frame: InputFrame }[] = [];
 
   constructor(o: RaceRoomOptions) {
     this.config = o.config;
@@ -457,7 +461,9 @@ export class RaceRoom {
 
   private writeRelays(entries: ReadonlyArray<{ slot: number; tick: Tick; frame: InputFrame }>, exclude: number, out: Uint8Array[]): void {
     let i = 0;
-    const list = entries.filter((e) => e.slot !== exclude);
+    const list = this.relayScratch;
+    list.length = 0;
+    for (const e of entries) if (e.slot !== exclude) list.push(e);
     while (i < list.length) {
       let lo = list[i]!.tick, hi = lo, j = i;
       while (j < list.length && j - i < RELAY_MAX) {
@@ -497,11 +503,15 @@ export class RaceRoom {
   private flush(N: Tick): void {
     const snapTick = N % this.snapEvery === 0;
     if (this.peers.size === 0) { this.recycleRelay(); return; }
-    const evCache = new Map<number, { bytes: Uint8Array; last: number }>();
-    const relayCache = new Map<number, Uint8Array[]>();
+    const evCache = this.evCache, relayCache = this.relayCache;
+    evCache.clear(); relayCache.clear();
     let captured = false;
     const now = this.clock?.nowMs() ?? 0;
-    for (const p of [...this.peers.values()]) {
+    // a kick inside the loop removes from `peers`; iterate a reused snapshot of it
+    const list = this.peerList;
+    list.length = 0;
+    for (const p of this.peers.values()) list.push(p);
+    for (const p of list) {
       // backpressure (§9): skip SNAPSHOT/RELAY above 32 KB until below 16 KB; EVENTS always go out
       const buffered = p.transport.bufferedAmount();
       if (p.skipping ? buffered < NET.BP_LOW : buffered > NET.BP_HIGH) p.skipping = !p.skipping;
