@@ -51,28 +51,40 @@ export const CLAYHILL_PROPS: Record<string, PropFactory> = {
   bell_tower: {
     maxInstances: 2,
     build: () => {
+      // a round campanile: the drum (r 10.4) encloses the plaza's `tower=cyl(r=10,h=38)` collider walls, so the
+      // collider never shows; arcade tiers, a clock, an open belfry and a terracotta cone roof above it (≈ 54 m).
+      const R0 = 10.4;
       const p: THREE.BufferGeometry[] = [
-        part(box(8, 4, 8), STONE_DK, 0, 0, 0),                                   // plinth (+ foundation)
-        part(rbox(7, 24, 7, 0.25, 2), STONE, 0, 13.5, 0),
-        part(box(7.4, 0.5, 7.4), STONE_DK, 0, 25.6, 0),
-        part(rbox(7.2, 6, 7.2, 0.3, 2), CREAM, 0, 28.9, 0),                       // belfry
-        part(box(7.6, 0.6, 7.6), STONE_DK, 0, 32.1, 0),
-        part(cone(5.6, 6.2, 4), TERRACOTTA, 0, 35.5, 0, 0, Math.PI / 4, 0),       // pyramid roof → 38.6 m
-        part(sph(1.1, 10, 8), GOLD, 0, 28.4, 0),                                   // the bell
+        part(cyl(R0 + 0.8, R0 + 1.0, 4, 32), STONE_DK, 0, 0.4, 0),               // plinth (+ foundation)
+        part(cyl(R0, R0, 36, 32), STONE, 0, 20, 0),                               // drum → 38 m
+        part(cyl(8.4, 8.4, 7, 24), CREAM, 0, 41.5, 0),                            // belfry
+        part(cyl(9.2, 9.2, 0.8, 24), STONE_DK, 0, 45.3, 0),
+        part(cone(9, 8.5, 24), TERRACOTTA, 0, 49.9, 0),                           // roof → 54 m
+        part(sph(1.6, 10, 8), GOLD, 0, 41.2, 0),                                  // the bell
       ];
-      for (let k = 0; k < 4; k++) {
-        const ry = (k * Math.PI) / 2;
-        const dx = Math.cos(ry), dz = -Math.sin(ry);
-        // belfry arches (dark insets) and clock faces on every side
-        p.push(part(box(0.2, 3.6, 2.4), INK, dx * 3.55, 28.6, dz * 3.55, 0, ry, 0));
-        p.push(part(cyl(1.9, 1.9, 0.25, 20), IVORY, dx * 3.62, 21.5, dz * 3.62, 0, ry, Math.PI / 2));
-        p.push(part(cyl(2.1, 2.1, 0.18, 20), GOLD, dx * 3.56, 21.5, dz * 3.56, 0, ry, Math.PI / 2));
-        p.push(part(box(0.1, 1.5, 0.16), INK, dx * 3.78, 22.1, dz * 3.78, 0, ry, 0));
-        p.push(part(box(0.1, 0.16, 1.1), INK, dx * 3.78, 21.5, dz * 3.78 + 0.4 * dx, 0, ry, 0));
-        for (const yy of [6, 11, 16]) p.push(part(box(0.2, 1.8, 0.9), '#7cb8d8', dx * 3.55, yy, dz * 3.55, 0, ry, 0));
+      // cornices between the arcade tiers, dark arch insets round every tier and the open belfry
+      for (const y of [8, 14, 20, 26, 32, 38]) p.push(part(cyl(R0 + 0.35, R0 + 0.35, 0.6, 32), STONE_DK, 0, y, 0));
+      for (let tier = 0; tier < 5; tier++) {
+        const y = 11 + tier * 6;
+        for (let k = 0; k < 14; k++) {
+          const a = ((k + (tier % 2) * 0.5) / 14) * Math.PI * 2;
+          p.push(part(rbox(0.3, 3.6, 2.2, 0.12, 1), tier === 2 ? '#7cb8d8' : INK, Math.cos(a) * (R0 + 0.05), y, -Math.sin(a) * (R0 + 0.05), 0, a, 0));
+        }
       }
-      p.push(paint(place(sparkleGeometry(1.4, 0.2, 11), 0, 40.2, 0, 0, Math.PI / 2, 0), GOLD));
-      p.push(part(cyl(0.08, 0.08, 1.8, 6), GOLD, 0, 39.2, 0));
+      for (let k = 0; k < 8; k++) {
+        const a = (k / 8) * Math.PI * 2;
+        p.push(part(rbox(0.3, 4.4, 2.6, 0.15, 1), INK, Math.cos(a) * 8.35, 41.4, -Math.sin(a) * 8.35, 0, a, 0));
+      }
+      // four clock faces on the drum just under the belfry
+      for (let k = 0; k < 4; k++) {
+        const ry = (k * Math.PI) / 2 + Math.PI / 4;
+        const dx = Math.cos(ry), dz = -Math.sin(ry);
+        p.push(part(cyl(2.3, 2.3, 0.3, 20), IVORY, dx * (R0 + 0.2), 35, dz * (R0 + 0.2), 0, ry, Math.PI / 2));
+        p.push(part(cyl(2.55, 2.55, 0.2, 20), GOLD, dx * (R0 + 0.1), 35, dz * (R0 + 0.1), 0, ry, Math.PI / 2));
+        p.push(part(box(0.12, 1.7, 0.2), INK, dx * (R0 + 0.4), 35.7, dz * (R0 + 0.4), 0, ry, 0));
+      }
+      p.push(paint(place(sparkleGeometry(1.8, 0.25, 11), 0, 56.4, 0, 0, Math.PI / 2, 0), GOLD));
+      p.push(part(cyl(0.1, 0.1, 2.2, 6), GOLD, 0, 55, 0));
       return { geometry: merge(p), material: lit(), castShadow: true };
     },
   },
