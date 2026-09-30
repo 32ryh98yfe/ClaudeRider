@@ -17,6 +17,14 @@ import type { AiRole } from './hooks.ts';
 import type { AiPersonality } from './profiles.ts';
 import { InputDelayLine } from './lookahead.ts';
 
+/** Tier pace bands vs the noise-free Legend ghost (ADR-009 targets; tools/balance/tiers.ts and ai-pace.test.ts). */
+export const PACE_BANDS: Readonly<Record<AiTier, { lo: number; hi: number; target: string }>> = {
+  rookie: { lo: 0.86, hi: 0.90, target: '88 ± 2%' },
+  racer: { lo: 0.92, hi: 0.96, target: '94 ± 2%' },
+  pro: { lo: 0.965, hi: 0.995, target: '98 ± 1.5%' },
+  legend: { lo: 0.995, hi: 1.02, target: '≥ 99.5%' },
+};
+
 export interface BotSetup { tier: AiTier; character?: CharacterId; personality?: AiPersonality; kart?: KartBodyId; role?: AiRole; noJitter?: boolean; overrides?: Partial<AiProfile>; startOffset?: number }
 
 export interface RaceSetup {
@@ -39,10 +47,10 @@ export interface RaceSetup {
 export interface KartResult {
   slot: number; tier: AiTier; character: CharacterId | undefined; finished: boolean; raceTicks: number; bestLapTicks: number;
   drifts: number; instantBoosts: number; boostsUsed: number; wallHits: number; hardHits: number; respawns: number; startTier: number;
-  draftBursts: number; driftMeters: number; bumps: number; maxStuckTicks: number; hazardHits: number; ai: AiDriverStats;
+  draftBursts: number; driftMeters: number; bumps: number; hardBumps: number; maxStuckTicks: number; hazardHits: number; ai: AiDriverStats;
 }
 
-export interface RaceOutcome { ticks: number; karts: KartResult[]; bumps: number; aiMs: number; stepMs: number; decides: number; drivers: readonly AiDriverEx[] }
+export interface RaceOutcome { ticks: number; karts: KartResult[]; bumps: number; hardBumps: number; /** hard bumps in the first 5 s after GO (start pile-ups) */ startHardBumps: number; aiMs: number; stepMs: number; decides: number; drivers: readonly AiDriverEx[] }
 
 export function runRace(o: RaceSetup): RaceOutcome {
   const { track, content } = o;
@@ -65,10 +73,10 @@ export function runRace(o: RaceSetup): RaceOutcome {
   const decided: InputFrame[] = o.bots.map(() => makeInput());
   const inputs: InputFrame[] = o.bots.map(() => makeInput());
   const n = o.bots.length;
-  const lastDist = new Float64Array(n).fill(-1e9), lastMove = new Int32Array(n), maxStuck = new Int32Array(n), bumps = new Int32Array(n), hazHits = new Int32Array(n);
+  const lastDist = new Float64Array(n).fill(-1e9), lastMove = new Int32Array(n), maxStuck = new Int32Array(n), bumps = new Int32Array(n), hardB = new Int32Array(n), hazHits = new Int32Array(n);
   const evs: SimEvent[] = [];
   const now = o.now;
-  let aiMs = 0, stepMs = 0, decides = 0, totalBumps = 0;
+  let aiMs = 0, stepMs = 0, decides = 0, totalBumps = 0, totalHard = 0, startHard = 0;
   const cap = o.maxTicks ?? 60 * 60 * 8;
   while (w.phase !== Phase.DONE && w.tick < w.goTick + cap) {
     const t0 = now ? now() : 0;
@@ -80,7 +88,11 @@ export function runRace(o: RaceSetup): RaceOutcome {
     aiMs += t1 - t0; stepMs += t2 - t1; decides += n;
     sink.drain(evs);
     for (const e of evs) {
-      if (e.t === 'bump') { totalBumps++; if (e.a < n) bumps[e.a]!++; if (e.b < n) bumps[e.b]!++; }
+      if (e.t === 'bump') {
+        // every tick two overlapping karts close on each other emits one: a hard bump closes at ≥ 2 m/s (J ≥ 1.3)
+        totalBumps++; if (e.a < n) bumps[e.a]!++; if (e.b < n) bumps[e.b]!++;
+        if (e.impulse >= 1.3) { totalHard++; if (w.tick <= w.goTick + 300) startHard++; if (e.a < n) hardB[e.a]!++; if (e.b < n) hardB[e.b]!++; }
+      }
       else if (e.t === 'effect' && e.source === 255 && e.result === 'hit' && e.victim < n) hazHits[e.victim]!++;
     }
     evs.length = 0;
@@ -100,10 +112,10 @@ export function runRace(o: RaceSetup): RaceOutcome {
       slot: i, tier: b.tier, character: b.character, finished: k.race.finishTick >= 0, raceTicks: raceTicksOf(w, k), bestLapTicks: k.race.bestLapTicks,
       drifts: k.stats.drifts, instantBoosts: k.stats.instantBoosts, boostsUsed: k.stats.boostsUsed, wallHits: k.stats.wallHits, hardHits: k.stats.hardHits,
       respawns: k.stats.respawns, startTier: k.stats.startTier, draftBursts: k.stats.draftBursts, driftMeters: k.stats.driftMeters,
-      bumps: bumps[i]!, maxStuckTicks: maxStuck[i]!, hazardHits: hazHits[i]!, ai: drivers[i]!.stats,
+      bumps: bumps[i]!, hardBumps: hardB[i]!, maxStuckTicks: maxStuck[i]!, hazardHits: hazHits[i]!, ai: drivers[i]!.stats,
     };
   });
-  return { ticks: w.tick - w.goTick, karts, bumps: totalBumps, aiMs, stepMs, decides, drivers };
+  return { ticks: w.tick - w.goTick, karts, bumps: totalBumps, hardBumps: totalHard, startHardBumps: startHard, aiMs, stepMs, decides, drivers };
 }
 
 /**

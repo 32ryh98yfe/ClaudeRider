@@ -7,18 +7,13 @@ import { readFileSync, readdirSync, writeFileSync, existsSync } from 'node:fs';
 import { performance } from 'node:perf_hooks';
 import { loadContent, CHARACTER_IDS, type AiTier, type CharacterId } from '@cr/content';
 import { loadCtrk, toArrayBuffer, type BakedTrack } from '@cr/sim';
-import { runRace, ghostRaceSec, soloPace } from '@cr/sim/ai/balance.ts';
+import { runRace, ghostRaceSec, soloPace, PACE_BANDS } from '@cr/sim/ai/balance.ts';
 import { AI_TIERS } from '@cr/sim';
 import { AI_EXECUTION } from '@cr/sim';
 import { AI_TUNING } from '@cr/sim/ai/driver.ts';
 import { buildTrack } from '@cr/trackc/build.ts';
 
-export const PACE_TARGETS: Readonly<Record<AiTier, { lo: number; hi: number; target: string }>> = {
-  rookie: { lo: 0.86, hi: 0.90, target: '88 ± 2%' },
-  racer: { lo: 0.92, hi: 0.96, target: '94 ± 2%' },
-  pro: { lo: 0.965, hi: 0.995, target: '98 ± 1.5%' },
-  legend: { lo: 0.995, hi: 1.02, target: '≥ 99.5%' },
-};
+export const PACE_TARGETS = PACE_BANDS;
 const TIERS: readonly AiTier[] = ['rookie', 'racer', 'pro', 'legend'];
 const ROOT = new URL('../../', import.meta.url);
 

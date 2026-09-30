@@ -174,7 +174,7 @@ function relaxInto(pp: PathPlan): void {
 
 const wrapI = (pp: PathPlan, i: number): number => (pp.closed ? ((i % pp.n) + pp.n) % pp.n : i < 0 ? 0 : i >= pp.n ? pp.n - 1 : i);
 
-function derive(pp: PathPlan, track: BakedTrack): void {
+function derive(pp: PathPlan, _track: BakedTrack): void {
   const n = pp.n, ds = pp.ds;
   const KEFF = pp.KEFF as Float64Array, LK = pp.LK as Float64Array, STRAIGHT = pp.STRAIGHT as Float64Array, CORNER = pp.CORNER as Int16Array;
   for (let i = 0; i < n; i++) { const k = pp.KAP[i]!; KEFF[i] = k / (1 + R_BIAS * pp.HW[i]! * Math.abs(k)); }
@@ -402,7 +402,7 @@ function widenAhead(a: Uint8Array, closed: boolean, ahead: number): Uint8Array {
   for (let i = 0; i < n; i++) if (a[i]) for (let k = 1; k <= ahead; k++) { const j = closed ? (i - k + n) % n : i - k; if (j >= 0) out[j] = 1; }
   return out;
 }
-function inSpan(s: number, s0: number, s1: number, L: number): boolean {
+function inSpan(s: number, s0: number, s1: number, _L: number): boolean {
   if (s1 >= s0) return s >= s0 && s <= s1;
   return s >= s0 || s <= s1; // wraps the line
 }
