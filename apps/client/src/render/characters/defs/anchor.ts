@@ -6,7 +6,6 @@ import { rbox, box, cyl, ribbon, band, sph, cone, extrude, sparkle } from '../..
 import { sleeves } from '../parts.ts';
 import { wave } from '../../mascot/emotes.ts';
 
-const GOLD = '#E0B04B';
 const TRI: [number, number][] = [[0, 0.44], [0.58, -0.3], [-0.58, -0.3]]; // tricorn corners in plan (x, z)
 
 const def: CharacterDef = {

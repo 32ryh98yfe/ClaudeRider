@@ -9,7 +9,7 @@ import * as THREE from 'three/webgpu';
 import { ModelBuilder, SURF, FIXED_SLOT, recolorSlot, triCount, type SkinFn, type Surface, type SurfName } from './builder.ts';
 import { rbox, box, sparkle, voxels, type V3 } from './shapes.ts';
 import { mascotVinyl, mascotEyes, mascotGlass, EYE_CELLS, EYE_ATLAS, EYE_QUAD, type EyeCell } from './materials.ts';
-import { BASE_EMOTES, compileEmote, ARM_CHANNELS, type EmoteSlot, type EmoteSpec, type EmoteBuilder, type CompiledEmote, type EyeExpr, type Channel } from './emotes.ts';
+import { BASE_EMOTES, compileEmote, type EmoteSlot, type EmoteSpec, type EmoteBuilder, type CompiledEmote, type EyeExpr, type Channel } from './emotes.ts';
 
 export type { EmoteSlot, EyeExpr, EmoteSpec, EmoteBuilder };
 export type { V3 };
@@ -113,8 +113,7 @@ export interface MascotInstance {
 }
 
 // ------------------------------------------------------------------------------------------------------------
-const BASE_BONES = ['root', 'body', 'head', 'armL', 'armR', 'eyes', 'sparkle'] as const;
-const B_ROOT = 0, B_BODY = 1, B_HEAD = 2, B_ARML = 3, B_ARMR = 4, B_EYES = 5, B_SPARK = 6;
+const B_ROOT = 0, B_BODY = 1, B_HEAD = 2, B_ARML = 3, B_ARMR = 4, B_EYES = 5; // custom bones (sparkle, props, chains) follow
 const IDENTITY = new THREE.Matrix4();
 
 interface ChainSim {
