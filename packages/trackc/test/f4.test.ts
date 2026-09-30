@@ -5,7 +5,6 @@ import { bake, bakeSrc, frame, hit, locateWalk, reload, sweep } from './helpers.
 
 const r = bake('_test/f4_rails.ctd');
 const t = reload(r);
-const L = (name: string): number => r.model.toMain(r.model.paths[0]!.labels.get(name)!);
 
 describe('F4 rail and warp fixture', () => {
   it('bakes with zero errors; one rail path mapped onto the main line', () => {
