@@ -13,6 +13,7 @@ import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import { fxaa } from 'three/addons/tsl/display/FXAANode.js';
 import { smaa } from 'three/addons/tsl/display/SMAANode.js';
 import { ao } from 'three/addons/tsl/display/GTAONode.js';
+import { compileInContext } from '../engine/warm.ts';
 import type { TierSettings } from '../quality.ts';
 
 type N = any;
@@ -177,13 +178,7 @@ export function createPost(renderer: THREE.WebGPURenderer, scene: THREE.Scene, c
     setResolutionScale(s: number): void { scenePass?.setResolutionScale(s); },
     async warm(): Promise<void> {
       if (!scenePass) return;
-      const prevRT = renderer.getRenderTarget(), prevMRT = renderer.getMRT();
-      renderer.setRenderTarget(scenePass.renderTarget);
-      renderer.setMRT(scenePass.getMRT());
-      try { await renderer.compileAsync(scenePass.scene, scenePass.camera); } finally {
-        renderer.setRenderTarget(prevRT);
-        renderer.setMRT(prevMRT);
-      }
+      await compileInContext(renderer, scenePass.renderTarget, scenePass.getMRT(), () => renderer.compileAsync(scenePass.scene, scenePass.camera));
     },
     dispose(): void { pipeline.dispose(); bloomNode?.dispose?.(); },
   };

@@ -78,10 +78,10 @@ function kartPaint(p?: string | { livery?: unknown; map?: THREE.Texture }): THRE
 /** Shared mascot body (vertex palette + `surf` attribute), eyes (atlas decal) and glass. */
 function mascotVinyl(): THREE.MeshStandardNodeMaterial { return memo(pk('mascotVinyl'), () => buildMascotVinyl(profile.hq)); }
 function mascotGlass(): THREE.MeshStandardNodeMaterial { return memo(pk('mascotGlass'), () => buildMascotGlass(profile.hq)); }
-function mascotEyes(): THREE.MeshStandardNodeMaterial { return memo('mascotEyes', () => buildMascotEyes(eyeAtlas(), EYE_ATLAS)); }
+function mascotEyes(): THREE.MeshStandardNodeMaterial { return memo(pk('mascotEyes'), () => buildMascotEyes(eyeAtlas(), EYE_ATLAS, profile.hq)); }
 /** Shared kart body with the 12 livery patterns (attributes `pcol`, `pat`, `surf`) and the transparent decal overlay. */
 function kartLivery(): THREE.MeshStandardNodeMaterial { return memo(pk('kartLivery'), () => buildKartLivery(profile.hq)); }
-function kartOverlay(): THREE.MeshStandardNodeMaterial { return memo('kartOverlay', () => buildKartOverlay(kartAtlas())); }
+function kartOverlay(): THREE.MeshStandardNodeMaterial { return memo(pk('kartOverlay'), () => buildKartOverlay(kartAtlas(), profile.hq)); }
 function emissive(c: string, intensity: number): THREE.MeshBasicNodeMaterial { return memo(keyOf('emissive', [c, intensity]), () => buildEmissive(c, intensity)); }
 function emissiveVertex(intensity = 3): THREE.MeshBasicNodeMaterial { return memo(keyOf('emissiveV', intensity), () => buildEmissiveVertex(intensity)); }
 function neon(c: string, intensity = 4, flicker = 0): THREE.MeshBasicNodeMaterial { return memo(keyOf('neon', [c, intensity, flicker]), () => buildNeon(c, intensity, flicker)); }

@@ -11,6 +11,7 @@ import type { ThemeKit } from './themes/kit.ts';
 import { buildEnvironment, type Environment } from './env/environment.ts';
 import { buildTrackView, type TrackView, type VisMeta } from './track/TrackView.ts';
 import { createPost, type Post } from './post/pipeline.ts';
+import { withEverythingVisible } from './engine/warm.ts';
 import { CameraDirector } from './camera/CameraDirector.ts';
 import type { ChaseCamera } from './camera/ChaseCamera.ts';
 import { buildMascot, type MascotInstance } from './mascot/rig.ts';
@@ -146,18 +147,10 @@ export class RaceRenderer {
    * programs. Without this, SwiftShader stalls for seconds whenever a new item or chunk first appears.
    */
   private async warmShaders(): Promise<void> {
-    const shown: THREE.Object3D[] = [], unculled: THREE.Object3D[] = [];
-    this.scene.traverse((o) => {
-      if (!o.visible && !(o as THREE.Light).isLight) { o.visible = true; shown.push(o); }
-      if (o.frustumCulled) { o.frustumCulled = false; unculled.push(o); }
-    });
-    try {
+    await withEverythingVisible(this.scene, async () => {
       await this.post.warm();
       this.post.render();
-    } finally {
-      for (const o of shown) o.visible = false;
-      for (const o of unculled) o.frustumCulled = true;
-    }
+    });
     this.renderer.info.reset();
   }
 

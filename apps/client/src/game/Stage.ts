@@ -5,6 +5,8 @@ import * as THREE from 'three/webgpu';
 import { signal } from '@preact/signals';
 import { createRenderer, type Backend } from '../render/engine/createRenderer.ts';
 import { Showcase } from '../render/showcase/Showcase.ts';
+import { navigate } from '../ui/store/route.ts';
+import { isWarming, warmPassPrograms } from '../render/engine/warm.ts';
 import { pickTier, tierSettings, type QualityTier } from '../render/quality.ts';
 import { MaterialLibrary } from '../render/materials/library.ts';
 import { Audio } from '../audio/engine.ts';
@@ -16,6 +18,7 @@ class StageImpl {
   renderer: THREE.WebGPURenderer | null = null;
   tier: QualityTier = 'medium';
   showcase: Showcase | null = null;
+  private warming: Promise<void> | null = null;
   private mode: 'none' | 'showcase' | 'race' = 'none';
   private raf = 0;
   private last = 0;
@@ -43,7 +46,7 @@ class StageImpl {
     const q = new URLSearchParams(location.search);
     if (q.has('debug')) void import('../dev/overlay.ts').then((m) => m.installOverlay());
     // dev shortcut for visual checks: ?race=<trackId>[&mode=item&tier=pro] jumps straight into a race
-    if (q.has('race')) setTimeout(() => { void import('../ui/store/route.ts').then((r) => r.navigate('loading', { track: q.get('race')!, mode: q.get('mode') ?? 'speed', tier: q.get('tier') ?? 'racer' })); }, 300);
+    if (q.has('race')) setTimeout(() => { navigate('loading', { track: q.get('race')!, mode: q.get('mode') ?? 'speed', tier: q.get('tier') ?? 'racer' }); }, 300);
   }
 
   resize(): void {
@@ -55,9 +58,16 @@ class StageImpl {
 
   showShowcase(characterId: string, kartBodyId: string): void {
     if (!this.renderer) return;
+    const first = !this.showcase;
     if (!this.showcase) this.showcase = new Showcase(this.renderer);
     const lv = save.get().profile.livery;
     this.showcase.setLoadout(characterId, kartBodyId, lv);
+    if (first) {
+      // compile the lobby scene off the critical path (compileAsync yields between objects): on software GL each
+      // program link blocks for up to seconds, and a synchronous first frame would freeze the title and menus
+      const sc = this.showcase;
+      this.warming = warmPassPrograms(this.renderer, sc.scene, sc.camera).catch(() => undefined).finally(() => { this.warming = null; });
+    }
     if (this.mode !== 'showcase') {
       this.mode = 'showcase';
       cancelAnimationFrame(this.raf);
@@ -67,6 +77,7 @@ class StageImpl {
         this.raf = requestAnimationFrame(loop);
         const dt = Math.min(0.1, (now - this.last) / 1000); this.last = now;
         this.fps(dt);
+        if (this.warming || isWarming()) return;
         this.renderer!.info.reset();
         this.showcase!.frame(dt);
       };

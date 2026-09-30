@@ -12,6 +12,15 @@ import { fresnel, fxUniforms, vnoise } from './tsl.ts';
 
 type N = any;
 
+/**
+ * Low: ignore `scene.environment`. PMREM sampling (cube-UV face selection, mip blending) roughly doubles these
+ * skinned shaders, and each one then links for seconds on SwiftShader. Hemisphere light still fills the shadow side.
+ */
+function lowEnv<T extends THREE.Material>(m: T, hq: boolean): T {
+  if (!hq) (m as unknown as { setupEnvironment: () => null }).setupEnvironment = () => null;
+  return m;
+}
+
 /** Signed noise −1..1: Perlin on Medium+, value noise on Low. */
 const snoise = (p: N, hq: boolean): N => (hq ? mx_noise_float(p) : vnoise(p).mul(2).sub(1));
 
@@ -30,7 +39,7 @@ export function buildMascotVinyl(hq: boolean): THREE.MeshStandardNodeMaterial {
   // metals keep a cooler, weaker rim so copper reads as metal rather than plastic; rimBoost lifts it at night
   const rim = color('#ffd9c7').mul(fresnel(2.5)).mul(float(0.36).mul(float(1).sub(s.y.mul(0.55)))).mul(fxUniforms.rimBoost);
   m.emissiveNode = base.mul(s.z).add(rim);
-  return m;
+  return lowEnv(m, hq);
 }
 
 /** Transparent glass (helmets, shards, visors): Fresnel-weighted opacity. */
@@ -45,11 +54,11 @@ export function buildMascotGlass(hq: boolean): THREE.MeshStandardNodeMaterial {
   m.roughnessNode = s.x;
   m.opacityNode = mix(float(0.05), float(0.78), fres).add(s.z.mul(0.15)).clamp(0, 1);
   m.emissiveNode = base.mul(s.z).add(vec3(1, 1, 1).mul(fres.mul(0.22)));
-  return m;
+  return lowEnv(m, hq);
 }
 
 /** Eye decals: alpha-tested atlas (opaque pass, so they compose under glass), LED dot-matrix flag, glint. */
-export function buildMascotEyes(atlas: THREE.Texture, cells: { cols: number; rows: number }): THREE.MeshStandardNodeMaterial {
+export function buildMascotEyes(atlas: THREE.Texture, cells: { cols: number; rows: number }, hq = true): THREE.MeshStandardNodeMaterial {
   const m = new THREE.MeshStandardNodeMaterial({ roughness: 0.18, metalness: 0, alphaTest: 0.5, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   const t: N = texture(atlas, uv());
   const fx: N = attribute('eyeFx', 'vec2');
@@ -63,7 +72,7 @@ export function buildMascotEyes(atlas: THREE.Texture, cells: { cols: number; row
   m.colorNode = mix(base, vec3(1, 1, 1), gl);
   m.opacityNode = max(shape.mul(led), gl);
   m.emissiveNode = base.mul(fx.x).mul(shape).add(vec3(1, 1, 1).mul(gl.mul(0.35)));
-  return m;
+  return lowEnv(m, hq);
 }
 
 /**
@@ -119,11 +128,11 @@ export function buildKartLivery(hq: boolean): THREE.MeshStandardNodeMaterial {
   m.metalnessNode = s.y;
   if (hq) m.clearcoatNode = s.w;
   m.emissiveNode = paint.mul(s.z).add(vec3(1, 0.96, 0.92).mul(fresnel(3).mul(0.1).mul(s.w).mul(fxUniforms.rimBoost)));
-  return m;
+  return lowEnv(m, hq);
 }
 
 /** Transparent kart overlay: race numbers, stickers, crests, glass, underglow. surf.x = opacity, surf.y = roughness, surf.z = glow. */
-export function buildKartOverlay(atlas: THREE.Texture): THREE.MeshStandardNodeMaterial {
+export function buildKartOverlay(atlas: THREE.Texture, hq = true): THREE.MeshStandardNodeMaterial {
   const m = new THREE.MeshStandardNodeMaterial({ transparent: true, depthWrite: false, roughness: 0.25, metalness: 0, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3, side: THREE.DoubleSide });
   const t: N = texture(atlas, uv());
   const s: N = attribute('surf', 'vec4');
@@ -132,5 +141,5 @@ export function buildKartOverlay(atlas: THREE.Texture): THREE.MeshStandardNodeMa
   m.opacityNode = t.a.mul(s.x);
   m.roughnessNode = s.y;
   m.emissiveNode = c.mul(s.z);
-  return m;
+  return lowEnv(m, hq);
 }
