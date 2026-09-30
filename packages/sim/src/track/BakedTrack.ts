@@ -243,7 +243,11 @@ class BakedTrackImpl implements BakedTrack {
     if (this.topology === 'circuit' && out.sMain >= L) out.sMain -= L;
     const wL = S[a + SMP.WL]!, wR = S[a + SMP.WR]!;
     const lateralOk = out.u <= wR + 3 && out.u >= -wL - 3;
-    const heightOk = out.h >= -2 && out.h <= 6;
+    // a kart flying a jump sits well above (or, falling short, below) the gap chord and the landing: widen the
+    // stacked-deck window there so progress tracks the flight instead of snapping back onto the ramp
+    const fj = (pd.flg[i]! | pd.flg[i + 1]!) & (SFLAG.JUMP | SFLAG.NO_GROUND);
+    const hLo = fj === (SFLAG.JUMP | SFLAG.NO_GROUND) ? -30 : -2, hHi = fj === (SFLAG.JUMP | SFLAG.NO_GROUND) ? 30 : fj === SFLAG.JUMP ? 20 : 6;
+    const heightOk = out.h >= hLo && out.h <= hHi;
     out.valid = lateralOk && heightOk ? 1 : 0;
     return dx * dx + dy * dy + dz * dz;
   }
@@ -454,6 +458,16 @@ class BakedTrackImpl implements BakedTrack {
       else { detSinCos(TAU * (ph / P), this.sc); th = ((mo.ampDeg ?? 60) * 0.017453292519943295) * this.sc.s; }
       detSinCos(th, this.sc);
       const arm = mo.arm ?? 5, piv = mo.pivotH ?? arm + 1.5;
+      if (mo.plane === 'flat') {
+        // horizontal sweep at pivot height: θ = 0 points down the track, + turns towards the right
+        const cx = f.tx * this.sc.c + f.rx * this.sc.s, cy = f.ty * this.sc.c + f.ry * this.sc.s, cz = f.tz * this.sc.c + f.rz * this.sc.s;
+        out.x = f.px + f.rx * u + f.ux * piv + cx * arm;
+        out.y = f.py + f.ry * u + f.uy * piv + cy * arm;
+        out.z = f.pz + f.rz * u + f.uz * piv + cz * arm;
+        // forward = the arm direction (pivot → tip); up stays the track up
+        out.fx = cx; out.fy = cy; out.fz = cz; out.ux = f.ux; out.uy = f.uy; out.uz = f.uz;
+        return;
+      }
       // swing plane: across the road (right/up) or along it (forward/up)
       const ax = mo.plane === 'along' ? f.tx : f.rx, ay = mo.plane === 'along' ? f.ty : f.ry, az = mo.plane === 'along' ? f.tz : f.rz;
       const lat = arm * this.sc.s, dn = arm * this.sc.c;

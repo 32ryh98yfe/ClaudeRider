@@ -72,7 +72,7 @@ export interface HazardMotion {
   type: 'static' | 'piston' | 'pendulum' | 'rotate' | 'lane' | 'cross';
   rise?: number; rampTicks?: number;                 // piston: raised by `rise` m outside the active phase, eased over rampTicks
   pivotH?: number; arm?: number; ampDeg?: number;    // pendulum / rotate: pivot height above the road, arm length, swing amplitude
-  plane?: 'across' | 'along';                        // pendulum swing plane relative to the track
+  plane?: 'across' | 'along' | 'flat';               // swing plane: across/along the track (vertical) or flat (horizontal sweep)
   speed?: number; s0?: number; s1?: number;           // lane: travels s0 → s1 on the path at `speed` m/s (wraps)
   halfSpan?: number;                                   // cross: travels across the road from −halfSpan to +halfSpan
 }
