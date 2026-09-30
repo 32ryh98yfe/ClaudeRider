@@ -161,7 +161,7 @@ function RoomView({ room, onLeave }: { room: RoomView; onLeave: () => void }) {
               <div class="rs-row"><span>{t('room.botTier')}</span><Seg label={t('room.botTier')} value={st.botTier} onChange={(v) => setS({ botTier: v })} options={(['rookie', 'racer', 'pro', 'legend'] as AiTier[]).map((x) => ({ value: x, label: t(`common.tier.${x}`) }))} /></div>
               <div class="rs-row"><span>{t('room.fillBots')}</span><Toggle label={t('room.fillBots')} on={st.fillBots} onChange={(v) => setS({ fillBots: v })} /></div>
               <div class="rs-row"><span>{t('room.private')}</span><Toggle label={t('room.private')} on={st.isPrivate} onChange={(v) => setS({ isPrivate: v })} /></div>
-              <button class="btn ghost small rs-more" type="button" aria-expanded={more} onClick={() => setMore(!more)}><Icon name={more ? 'minus' : 'plus'} size={14} />{t('room.settings.more')}</button>
+              <button class="btn small rs-more" type="button" aria-expanded={more} onClick={() => setMore(!more)}><Icon name={more ? 'minus' : 'plus'} size={14} />{t('room.settings.more')}</button>
               {more ? (
                 <div class="rs-more-body">
                   <div class="rs-row"><span>{t('room.settings.retire')}</span><Seg label={t('room.settings.retire')} value={retireSec} onChange={(v) => setS({ retireSec: v })}
