@@ -1,0 +1,61 @@
+# Geode Rail Quarry — Ember Mine D3 (both modes). A crystal cavern quarry: timber trestles over the pit, two ore-rail
+# lines, a 300° geode spiral down into the amethyst chamber and a conveyor lift back up to the headframe yard.
+# @signature rail, conveyor, hazard:traffic
+# @fallback rail -> "banked trestle ribbon with a conveyor_fwd x1.15 lane at the rail line" when=F4
+# @fallback hazard:traffic -> "cart tunnel always open" when=F5
+# @fallback branch -> "cart_tunnel omitted (no BRANCH in the M1 DSL): main line only" when=F1
+TRACK geode_rail_quarry name="Geode Rail Quarry" theme=ember_mine diff=3 laps=3 topo=circuit
+DEFAULTS w=15 surf=stone wall=rock:1.4 shoulder=0 shoulderSurf=gravel blend=16
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=7 stagger=3.5 d=3.5
+S ?a=75                                    @cavern_straight
+C R20 90 L bank=6                          @cavern_corner
+S 12
+WIGGLE R20 40/80/40 R w=15 wall=fence:1.2  @trestle_s
+S 90 surf=wood w=14                             @ore_rail_1
+C R30 120 L surf=stone w=15 wall=rock:1.4 bank=5 @rail_exit
+S ?b=60                                    @tunnel_split
+C R24 300 R dy=-10 bank=-6 w=16                @geode_spiral
+S 70 w=15                                  @geode_chamber
+C R16 150 L w=15 bank=6                    @amethyst_hairpin
+WIGGLE R22 40/80/40 L w=16                 @crystal_s
+C R35 95 L bank=5                   @lantern_corner
+S 20                                       @cart_crossing
+S 58 dy=5 surf=conveyor_fwd                @conveyor_lift
+S 80 dy=5 surf=wood wall=fence:1.2         @ore_rail_2
+C R30 120 L surf=stone wall=rock:1.4 bank=6 @headframe_hairpin
+C R40 45 R bank=-4                  @headframe_kink
+WIGGLE R60 30/60/30 R                      @ore_yard_s
+C R90 80 L bank=4                  @winch_corner
+S ?c=240                                   @winch_run
+C R80 50 L bank=3                   @headframe_exit
+S 87                                       @to_line
+CLOSE solve=[?a,?b,?c] length=1375
+LINE start at=0
+ITEMS at=75,235,505,820,1140 n=5
+PAD at=40,62,726,760 d=0 len=6 w=4
+KEYS 150,300,505,700,900,1100,1300
+# --- dressing: ledge road above the pit (terrain sits at the pit floor), timber trestles, ore rails, lanterns, geodes
+PROPS kind=timber_arch along=25-85 side=L every=30 offset=-7.5
+PROPS kind=timber_arch along=880-1280 side=L every=80 offset=-7.5
+PROPS kind=trestle_bent along=128-218 side=L every=9 offset=-7
+PROPS kind=trestle_bent along=782-858 side=L every=9 offset=-7.5
+PROPS kind=rock_bank along=0-125 side=both every=7 offset=0
+PROPS kind=rock_bank along=360-470 side=R every=7 offset=0
+PROPS kind=rock_bank along=862-1375 side=both every=7 offset=0
+PROPS kind=ore_rail along=190-276 side=L every=8 offset=-4
+PROPS kind=ore_rail along=782-856 side=L every=8 offset=-4.5
+PROPS kind=lantern along=0-1375 side=both every=26 offset=0.22
+PROPS kind=geode_cyan along=20-340 side=both every=41 offset=4
+PROPS kind=geode_violet along=380-720 side=both every=33 offset=4
+PROPS kind=geode_cyan along=880-1360 side=both every=47 offset=4.2
+PROPS kind=mine_cart along=500-700 side=R every=95 offset=5
+PROPS kind=mine_cart along=1000-1300 side=L every=110 offset=5
+PROPS kind=ore_pile along=560-700 side=L every=70 offset=7
+PROPS kind=ore_pile along=900-1250 side=R every=120 offset=8
+PROPS kind=headframe along=1320-1320 side=L every=100 offset=38
+PROPS kind=crystal_spire along=520-520 side=L every=100 offset=26
+PROPS kind=crystal_spire along=1180-1180 side=R every=100 offset=34
+PROPS kind=lava_pool along=640-640 side=L every=100 offset=14
+PROPS kind=cave_roof along=0-1375 side=L every=46 offset=-7.5
+THEME scatter=stalagmite,basalt_column,stalagmite density=10 hills=28 sky=underground
