@@ -14,3 +14,4 @@ playwright-report/
 coverage/
 shots/
 tools/scratch/
+.claude/worktrees/
