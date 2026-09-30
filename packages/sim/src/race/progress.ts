@@ -9,7 +9,7 @@ import { SFLAG } from '../track/format.ts';
 import { copyLoc } from '../track/BakedTrack.ts';
 import { evKey } from '../kart/evkey.ts';
 import { KILL_FLAG } from '../kart/motion.ts';
-import { inKillZone } from '../kart/zones.ts';
+import { inKillZone, sampleFlags } from '../kart/zones.ts';
 import { railLoc, tryCaptureRail } from '../kart/rail.ts';
 import { tryEnterWarp, updateWarp } from '../kart/warp.ts';
 import { trackInfo } from '../kart/trackinfo.ts';
@@ -31,8 +31,14 @@ export function inJumpSpan(T: BakedTrack, loc: Readonly<TrackLoc>): boolean {
     if (j.path === loc.path && loc.s >= j.lipS - 5 && loc.s <= j.landS1 + 10) return true;
   }
   if (!J.length) return false;
-  T.frameAt(loc.path, loc.s, FR);
-  return (FR.flags & SFLAG.JUMP) !== 0;
+  return (sampleFlags(T, loc.path, loc.s) & SFLAG.JUMP) !== 0;
+}
+
+/** Anti-cut is exempt inside declared jump, rail and warp spans (ADR-006). */
+function exemptSpan(T: BakedTrack, loc: Readonly<TrackLoc>, info: { rails: boolean; warps: boolean }): boolean {
+  if (inJumpSpan(T, loc)) return true;
+  if (!info.rails && !info.warps) return false;
+  return (sampleFlags(T, loc.path, loc.s) & (SFLAG.RAIL | SFLAG.WARP)) !== 0;
 }
 
 export function updateProgress(w: WorldState, k: KartState, ctx: StepContext): void {
@@ -62,7 +68,8 @@ export function updateProgress(w: WorldState, k: KartState, ctx: StepContext): v
   }
 
   const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
-  const exemptPrev = inJumpSpan(T, r.loc);
+  const info = trackInfo(T);
+  const exemptPrev = exemptSpan(T, r.loc, info);
   let ok = T.locate(b.px, b.py, b.pz, r.loc, loc) && onSample(T, k, loc);
   if (!ok && (r.offGraphTicks >= GLOBAL_SEARCH_AFTER || exemptPrev)) ok = T.locateGlobal(b.px, b.py, b.pz, loc) && onSample(T, k, loc);
   let accepted = false;
@@ -70,7 +77,7 @@ export function updateProgress(w: WorldState, k: KartState, ctx: StepContext): v
     let dS = loc.sMain - prevS;
     if (T.topology === 'circuit') { if (dS > L / 2) dS -= L; else if (dS < -L / 2) dS += L; }
     const lim = speed * DT * (1 + r.offGraphTicks) + CUT_SLACK;
-    accepted = (dS <= lim && dS >= -lim) || exemptPrev || inJumpSpan(T, loc);
+    accepted = (dS <= lim && dS >= -lim) || exemptPrev || exemptSpan(T, loc, info);
   }
   if (accepted) {
     const newS = loc.sMain;
@@ -78,7 +85,6 @@ export function updateProgress(w: WorldState, k: KartState, ctx: StepContext): v
     if (b.grounded && loc.path === 0 && !kill && respawnSafe(T, loc)) copyLoc(r.lastValid, loc);
     r.offGraphTicks = 0;
     advanceLaps(w, k, ctx, prevS, newS, L);
-    const info = trackInfo(T);
     if (info.warps && tryEnterWarp(w, k, ctx, prevPath, prevPathS)) return;
     if (info.rails) tryCaptureRail(w, k, ctx);
   } else {

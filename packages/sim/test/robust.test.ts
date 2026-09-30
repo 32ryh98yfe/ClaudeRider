@@ -83,6 +83,8 @@ describe('robustness: random drops (§14.8)', () => {
     ['halfpipe 60°', () => halfpipe(60).track],
     ['stacked helix', () => helixKit(10, 2.5).track],
     ['jump', () => jumpKit(2, true).track],
+    ['f1_branch (DSL)', () => bakedTrack('_test/f1_branch')],
+    ['f2_jumps (DSL)', () => bakedTrack('_test/f2_jumps')],
     ['meadow_loop', () => bakedTrack('clayhill_village/meadow_loop')],
     ['proving_ring', () => bakedTrack('spark_circuit/proving_ring')],
   ];

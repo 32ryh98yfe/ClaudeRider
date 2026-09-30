@@ -165,7 +165,7 @@ describe('zones (§13.2)', () => {
   });
 
   it('gravity zone (low, scale 0.5) halves the fall acceleration', () => {
-    const t = strip('asphalt', { key: 'lowg', zones: [Z('gravity', 400, 600, { surf: 2, speedMul: 0.5 })] }).track;
+    const t = strip('asphalt', { key: 'lowg', zones: [Z('gravity', 400, 600, { gravMode: 2, gravScale: 0.5 })] }).track;
     const fall = (s: number): number => {
       const rig = racingRig(t);
       place(rig, 0, { s, h: 10, speed: 0 });

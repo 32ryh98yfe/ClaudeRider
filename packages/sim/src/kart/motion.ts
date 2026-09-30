@@ -168,7 +168,7 @@ function walls(w: WorldState, k: KartState, P: KartParams, ctx: StepContext, ms:
     const hl = Math.sqrt(hx * hx + hy * hy + hz * hz);
     if (hl < 0.3) continue;
     hx /= hl; hy /= hl; hz /= hl;
-    wallResponse(w, k, P, ctx, ms, hx, hy, hz);
+    wallResponse(w, k, P, ctx, ms, hx, hy, hz, (c.flags & (TFLAG.SOFT | TFLAG.GORE)) !== 0);
   }
   applyBounce(k);
 }
@@ -181,7 +181,11 @@ function applyBounce(k: KartState): void {
   bounceV = 0;
 }
 
-function wallResponse(w: WorldState, k: KartState, P: KartParams, ctx: StepContext, ms: MotionState, nx: number, ny: number, nz: number): void {
+/**
+ * Wall response for one contact (§10.4). Soft walls (junction gore cushions, TFLAG.SOFT/GORE) never count as an
+ * impact: the kart grinds along them whatever the angle [P].
+ */
+function wallResponse(w: WorldState, k: KartState, P: KartParams, ctx: StepContext, ms: MotionState, nx: number, ny: number, nz: number, soft: boolean): void {
   const b = k.body, d = k.drive;
   const vn = b.vx * nx + b.vy * ny + b.vz * nz;
   if (vn >= 0) return;
@@ -191,7 +195,7 @@ function wallResponse(w: WorldState, k: KartState, P: KartParams, ctx: StepConte
   let tx = b.vx - vn * nx, ty = b.vy - vn * ny, tz = b.vz - vn * nz;
   const tsp = Math.sqrt(tx * tx + ty * ty + tz * tz);
   const fresh = !b.wallContact && !ms.impactThisTick;
-  if (fresh && sinT >= SIN.d15) {
+  if (fresh && sinT >= SIN.d15 && !soft) {
     ms.impactThisTick = true;
     k.stats.wallHits++;
     const f = sinT < SIN.d45 ? P.wallF15 + (P.wallF45 - P.wallF15) * (sinT - SIN.d15) / (SIN.d45 - SIN.d15) : P.wallF90;
@@ -237,7 +241,7 @@ function wallResponse(w: WorldState, k: KartState, P: KartParams, ctx: StepConte
       ms.impactThisTick = true;
     }
   }
-  if (sinT < SIN.d45) {
+  if (sinT < SIN.d45 || soft) {
     // glancing: the nose is turned parallel to the wall (projected heading, no trig)
     const hn = b.fx * nx + b.fy * ny + b.fz * nz;
     if (hn < 0) {

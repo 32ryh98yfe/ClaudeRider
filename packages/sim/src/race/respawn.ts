@@ -52,7 +52,8 @@ export function updateRespawn(w: WorldState, k: KartState, ctx: StepContext): vo
     d.drift = 0; d.driftDir = 1; d.driftTicks = 0; d.driftPeak = 0;
     d.boostTicks = 0; d.boostKind = Boost.NONE; d.instTicks = 0; d.instWindow = 0; d.startTicks = 0; d.stunTicks = 0; d.wheelspinTicks = 0;
     d.draftCharge = 0; d.draftTicks = 0; d.lowSpeedTicks = 0;
-    copyLoc(r.loc, r.lastValid);
+    // the placed sample may be one the track walked back to (respawn-ok slots, .ctrk v2)
+    if (ctx.track.respawnLoc) ctx.track.respawnLoc(r.lastValid, r.loc); else copyLoc(r.loc, r.lastValid);
     r.wrongWayTicks = 0; r.offGraphTicks = 0; r.noGroundTicks = 0;
     r.respawnPhase = 2;
     r.respawnUntil = w.tick + RESPAWN_LOCK;
