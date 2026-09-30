@@ -3,7 +3,7 @@
 import { createNoise2D } from 'simplex-noise';
 import {
   CTRK_MAGIC, CTRK_VERSION, CVIS_MAGIC, CVIS_VERSION, SFLAG, SMP, buildTriHash, writeContainer, loadCtrk, toArrayBuffer,
-  type CtrkMeta, type CtrkPathMeta, type BakedTrack, type TypedArray, type PathLink, type GroundHit, type Contact,
+  type CtrkMeta, type CtrkPathMeta, type BakedTrack, type TypedArray, type PathLink,
 } from '@cr/sim';
 import type { TrackId } from '@cr/content';
 import { parse, type TrackAst } from './dsl.ts';
@@ -21,6 +21,7 @@ import { areaFootprint, buildAreas, resolveAreas, type AreaReport, type AreaMode
 import { portalsToRender, railsMeta, railsToRender, resolveWarps, type WarpModel } from './railwarp.ts';
 import { validate, type Finding } from './validate.ts';
 import { previewSvg } from './preview.ts';
+import { respawnTables } from './respawn.ts';
 
 export const COMPILER_VERSION = 'trackc/2.0';
 
@@ -177,22 +178,6 @@ function f32(a: ArrayLike<number>): TypedArray {
   return Float32Array.from(a);
 }
 
-function respawnTable(m: TrackModel, track: BakedTrack, p: PathModel): Uint8Array {
-  const out = new Uint8Array(p.samples.length);
-  const hit: GroundHit = { t: 0, x: 0, y: 0, z: 0, nx: 0, ny: 1, nz: 0, surf: 0, tri: 0, flags: 0 };
-  const cs: Contact[] = Array.from({ length: 4 }, () => ({ x: 0, y: 0, z: 0, nx: 0, ny: 0, nz: 0, depth: 0, flags: 0, tri: 0 }));
-  p.samples.forEach((s, i) => {
-    if (s.flags & (SFLAG.NO_GROUND | SFLAG.KILL | SFLAG.WARP | SFLAG.RAIL)) return;
-    if (!track.groundRay(s.x + s.ux, s.y + s.uy, s.z + s.uz, -s.ux, -s.uy, -s.uz, 2, hit)) return;
-    if (hit.flags & 4) return;
-    const r = Math.max(0.9, Math.min(3, s.w / 2 - 0.5));
-    if (track.sphereWalls(hit.x + s.ux * 0.6, hit.y + s.uy * 0.6, hit.z + s.uz * 0.6, r, cs, 4) > 0) return;
-    out[i] = 1;
-  });
-  void m;
-  return out;
-}
-
 // ------------------------------------------------------------------------------------------------ build
 export function buildTrack(src: string, file: string, opts: BuildOptions = {}): BuildResult {
   const T: Record<string, number> = {};
@@ -295,7 +280,8 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   );
   // pass 1 → load → respawn tables → final bytes (the hash covers everything but itself)
   const pass1 = loadCtrk(toArrayBuffer(writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays)));
-  m.paths.forEach((p, k) => arrays.push([`p${k}.rok`, respawnTable(m, pass1, p)]));
+  const rc = { closed: m.closed, lapLength: m.lapLength, keyGates, jumps: meta.jumps };
+  m.paths.forEach((p, k) => { const t = respawnTables(pass1, p, rc); arrays.push([`p${k}.rok`, t.ok], [`p${k}.rto`, t.to]); });
   const pre = writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays);
   meta.hash = fnv(pre);
   const ctrk = writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays);

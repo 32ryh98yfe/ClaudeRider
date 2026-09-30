@@ -67,7 +67,7 @@ export interface BakedTrack {
   flagsAt?(path: number, s: number): number;
 }
 
-interface PathData { meta: CtrkPathMeta; smp: Float64Array; flg: Uint16Array; ai: Float64Array | null; grav: Float64Array | null; rok: Uint8Array | null; lineS: number }
+interface PathData { meta: CtrkPathMeta; smp: Float64Array; flg: Uint16Array; ai: Float64Array | null; grav: Float64Array | null; rok: Uint8Array | null; rto: Int32Array | null; lineS: number }
 
 /** Octahedral normals (2 × u16 = (c + 1)·32767.5, y = pole) → unit f64 xyz; arithmetic + sqrt only (deterministic). */
 function decodeOct(e: Uint16Array): Float64Array {
@@ -122,7 +122,8 @@ class BakedTrackImpl implements BakedTrack {
     this.hazards = m.hazards; this.zones = m.zones; this.rails = m.rails; this.warps = m.warps; this.jumps = m.jumps; this.killY = m.killY;
     this.paths = m.paths.map((pm, k) => ({
       meta: pm, smp: f64(A.get(`p${k}.smp`))!, flg: A.get(`p${k}.flg`) as Uint16Array, ai: f64(A.get(`p${k}.ai`)),
-      grav: f64(A.get(`p${k}.grav`)), rok: (A.get(`p${k}.rok`) as Uint8Array | undefined) ?? null, lineS: pm.lineS ?? 0,
+      grav: f64(A.get(`p${k}.grav`)), rok: (A.get(`p${k}.rok`) as Uint8Array | undefined) ?? null,
+      rto: (A.get(`p${k}.rto`) as Int32Array | undefined) ?? null, lineS: pm.lineS ?? 0,
     }));
     this.gPos = f64(A.get('g.pos'))!; this.gNrm = A.has('g.noct') ? decodeOct(A.get('g.noct') as Uint16Array) : f64(A.get('g.nrm'))!; this.gIdx = A.get('g.idx') as Uint32Array | Uint16Array;
     this.gSurf = A.get('g.surf') as Uint8Array; this.gFlg = A.get('g.flg') as Uint8Array;
@@ -369,19 +370,21 @@ class BakedTrackImpl implements BakedTrack {
     return pd.rok ? pd.rok[i] === 1 : true;
   }
 
-  /** Walks back (≤ 15 samples, inside the locate window) from loc to the nearest respawn-ok sample of the same path. */
+  /** The sample a kart whose last valid location is `loc` is placed on, or −1 (respawn in place).
+   *  v2 tracks bake it per sample (p{k}.rto: jump-aware, never across the finish or forwards across a key gate);
+   *  older bakes walk back ≤ 15 samples to the nearest respawn-ok sample of the same path. */
   private respawnIndex(loc: Readonly<TrackLoc>): number {
     const pd = this.paths[loc.path]!;
     const nSeg = pd.meta.n - 1;
-    let i = this.indexAt(pd, loc.s);
+    const i = this.indexAt(pd, loc.s);
+    if (pd.rto) return pd.rto[i]!;
     if (!pd.rok) return -1;
     for (let k = 0; k <= 15; k++) {
       let j = i - k;
       if (pd.meta.closed) { j %= nSeg; if (j < 0) j += nSeg; } else if (j < 0) break;
       if (pd.rok[j] === 1) return j;
     }
-    i = -1;
-    return i;
+    return -1;
   }
 
   respawnLoc(loc: Readonly<TrackLoc>, out: TrackLoc): void {
