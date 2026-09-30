@@ -2,8 +2,7 @@
 // turns sim events into banners, toasts, the item feed and the race-stat collector (challenges, missions, splits).
 import { batch } from '@preact/signals';
 import { EFFECT_IDS, ITEM_IDS, idOf, loadContent } from '@cr/content';
-import { KMH_PER_MPS, Phase, type RaceConfig, type SimEvent, type WorldState } from '@cr/sim';
-import type { RaceRoom } from '@cr/room';
+import { KMH_PER_MPS, Phase, type BakedTrack, type RaceConfig, type SimEvent, type WorldState } from '@cr/sim';
 import { hud, type Standing } from '../ui/store/hud.ts';
 import { hudX, resetHudX, type FeedLine, type RailDot } from '../ui/store/hudExtra.ts';
 import { banner } from '../ui/store/banner.ts';
@@ -13,6 +12,8 @@ import { RaceStatsCollector, setCurrentRace, mission } from '../meta/raceStats.t
 import { itemName } from '../ui/icons/itemIcons.ts';
 
 export type ProjectFn = (slot: number, out: { x: number; y: number; visible: boolean; dist: number }) => void;
+/** What the HUD reads from the race: the (predicted or authoritative) world and the baked track. A RaceRoom fits, and so does a NetClient view. */
+export interface HudSource { readonly world: Readonly<WorldState>; readonly track: BakedTrack }
 export interface NameTag { slot: number; x: number; y: number; visible: boolean; dist: number; name: string; rank: number; me: boolean; team: number }
 export const nameTags: NameTag[] = [];
 /** Per-slot look for HUD icons (standings, feed). */
@@ -45,9 +46,9 @@ export class HudPresenter {
   private prevRank = 0;
   private finishedMe = false;
 
-  private room: RaceRoom; private me: number; private names: string[]; private cfg: RaceConfig; private project: ProjectFn;
+  private room: HudSource; private me: number; private names: string[]; private cfg: RaceConfig; private project: ProjectFn;
 
-  constructor(room: RaceRoom, me: number, names: string[], cfg: RaceConfig, project: ProjectFn) {
+  constructor(room: HudSource, me: number, names: string[], cfg: RaceConfig, project: ProjectFn) {
     this.room = room; this.me = me; this.names = names; this.cfg = cfg; this.project = project;
     const s = save.get();
     hud.visible.value = true;

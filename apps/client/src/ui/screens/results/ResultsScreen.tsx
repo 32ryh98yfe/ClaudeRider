@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'preact/hooks';
 import { navigate } from '../../store/route.ts';
 import { t, locale } from '../../../i18n/index.ts';
-import { getLastResult } from './lastResult.ts';
+import { getLastResult, mySlot } from './lastResult.ts';
 import { fmt } from '../../../game/HudPresenter.ts';
 import { Stage } from '../../../game/Stage.ts';
 import { save } from '../../../meta/save.ts';
@@ -11,7 +11,8 @@ import { Audio } from '../../../audio/engine.ts';
 import { levelProgress, cumulativeXp, xpToNext } from '../../../meta/progression.ts';
 import { challengeDef } from '../../../meta/challenges.ts';
 import { fmtTicks, fmtDelta, medalFor } from '../../../meta/medals.ts';
-import { lobby } from '../../../net/lobby.ts';
+import { lobby, lobbyActions } from '../../../net/lobby.ts';
+import { mockLobby } from '../../dev/demo.ts';
 import { useBack, useNow } from '../../hooks.ts';
 import { trackInfo, refLapTicks } from '../../store/tracks.ts';
 import { Portrait } from '../../components/Portrait.tsx';
@@ -57,18 +58,33 @@ export function ResultsScreen() {
     const p = save.get().profile;
     Stage.showShowcase(p.characterId, p.kartBodyId);
     if (Stage.showcase) Stage.showcase.offsetX = -1.05;
-    const me = last?.r.rows.find((r) => r.kind === 'human');
+    const me = last ? last.r.rows.find((r) => r.slot === mySlot(last)) : undefined;
     // per-result emote (30-art-bible §8): win / podium / lose / retire
     if (me) Stage.showcase?.emote(!me.finished ? 'retire' : me.rank === 1 ? 'win' : me.rank <= 3 ? 'podium' : 'lose');
     Audio.playLoop(100, 60, 'lobby');
   }, []);
   const left = Math.max(0, RESULTS_SEC - Math.floor((now - t0) / 1000));
-  useEffect(() => { if (online && left === 0) navigate(lobby.room.value ? 'room' : 'queue'); }, [left === 0]);
+  // Online the server holds the room in `results` for 12 s: a custom room then returns to `waiting` (ready states reset)
+  // and a quick room dissolves. Follow the room as soon as it reopens; at the timeout a quick match goes to the lobby.
+  const roomPhase = lobby.room.value?.phase;
+  const quick = !lobby.room.value || lobby.room.value.kind === 'quick';
+  useEffect(() => { if (online && !mockLobby.value && roomPhase === 'waiting' && !quick) navigate('room'); }, [roomPhase]);
+  useEffect(() => { if (online && left === 0) navigate(quick ? 'lobby' : 'room'); }, [left === 0]);
+  const leaveOnline = (): void => {
+    if (lobby.room.value && !mockLobby.value) lobbyActions.leave();
+    lobby.room.value = null; lobby.roulette.value = null; lobby.chat.value = [];
+    navigate('lobby');
+  };
+  const searchAgain = (): void => {
+    leaveOnline();
+    navigate('queue', { mode: last?.r.mode ?? 'speed', teams: last?.teams ?? 'solo' });
+  };
   if (!last) {
     return <div class="screen results fade-in" data-testid="results"><div class="res-empty card"><p>{t('results.noResult')}</p><button class="btn primary" type="button" onClick={toLobby}>{t('results.toLobby')}</button></div></div>;
   }
   const { r, report, summary } = last;
-  const me = r.rows.find((x) => x.kind === 'human');
+  const meSlot = mySlot(last);
+  const me = r.rows.find((x) => x.slot === meSlot);
   const ta = r.mode === 'timeAttack';
   const team = last.teams && last.teams !== 'solo';
   const rankText = !me ? '' : !me.finished ? t('results.bannerRetire') : locale.value === 'en' ? `${ordinalEn(me.rank)}!` : t('results.bannerRank', { rank: me.rank });
@@ -128,9 +144,9 @@ export function ResultsScreen() {
               {r.rows.map((row, i) => {
                 const look = last.slots?.[row.slot];
                 return (
-                  <tr key={row.slot} class={`${row.kind === 'human' ? 'me' : ''} ${!row.finished ? 'ret' : ''}`} style={{ animationDelay: `${i * 60}ms` }}>
+                  <tr key={row.slot} class={`${row.slot === meSlot ? 'me' : ''} ${!row.finished ? 'ret' : ''}`} style={{ animationDelay: `${i * 60}ms` }}>
                     <td class="c-rk num">{row.rank}</td>
-                    <td class="c-name"><span class="cn">{look ? <Portrait id={look.characterId} size={30} /> : null}<span class="cn-text">{row.name}</span>{row.kind === 'bot' ? <span class="badge ai">AI</span> : <span class="badge coral">{t('results.you')}</span>}</span></td>
+                    <td class="c-name"><span class="cn">{look ? <Portrait id={look.characterId} size={30} /> : null}<span class="cn-text">{row.name}</span>{row.kind === 'bot' ? <span class="badge ai">AI</span> : row.slot === meSlot ? <span class="badge coral">{t('results.you')}</span> : null}</span></td>
                     <td class="c-kart">{look ? t(`karts.${look.kartBodyId}.name`) : ''}</td>
                     <td class="c-t num">{row.finished ? fmt(row.raceTicks * (1000 / 60)) : <span class="ret-tag">{t('results.retired')}</span>}</td>
                     <td class="c-t num">{row.bestLapTicks ? fmt(row.bestLapTicks * (1000 / 60)) : '—'}</td>
@@ -146,8 +162,10 @@ export function ResultsScreen() {
           {online ? <span class="res-timer num">{t('results.autoReturn', { s: left })}</span> : null}
           {online ? (
             <>
-              <button class="btn quiet" type="button" onClick={() => navigate('lobby')}>{t('results.leave')}</button>
-              <button class="btn primary big" type="button" data-testid="again" data-autofocus onClick={() => navigate(lobby.room.value ? 'room' : 'queue')}>{lobby.room.value ? t('results.toRoom') : t('lobby.queue.searchAgain')}</button>
+              <button class="btn quiet" type="button" onClick={leaveOnline}>{t('results.leave')}</button>
+              {quick
+                ? <button class="btn primary big" type="button" data-testid="again" data-autofocus onClick={searchAgain}><Icon name="refresh" size={18} />{t('lobby.queue.searchAgain')}</button>
+                : <button class="btn primary big" type="button" data-testid="again" data-autofocus onClick={() => navigate('room')}>{t('results.toRoom')}</button>}
             </>
           ) : (
             <>

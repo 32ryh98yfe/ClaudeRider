@@ -7,7 +7,8 @@ import type { SlotConfig } from '@cr/sim';
 import { route, navigate } from '../../store/route.ts';
 import { t } from '../../../i18n/index.ts';
 import { Stage } from '../../../game/Stage.ts';
-import type { Session, SessionOptions } from '../../../game/Session.ts';
+import { Session, type SessionOptions } from '../../../game/Session.ts';
+import { takePendingRace } from '../../../net/online.ts';
 import { createSession } from './sessionFactory.ts';
 import { lobby, lobbyActions } from '../../../net/lobby.ts';
 import { save } from '../../../meta/save.ts';
@@ -32,7 +33,7 @@ type ExtOptions = SessionOptions & { solo?: boolean; teams?: TeamFormat };
 
 const TIP_COUNT = 10;
 
-function Loading({ params, progress, slots }: { params: Record<string, string>; progress: { p: number; label: string }; slots: SlotConfig[] | null }) {
+function Loading({ params, progress, slots, me }: { params: Record<string, string>; progress: { p: number; label: string }; slots: SlotConfig[] | null; me: number }) {
   const track = (params['track'] ?? 'meadow_loop') as TrackId;
   const info = trackInfo(track);
   const mode = params['mode'] ?? 'speed';
@@ -53,13 +54,13 @@ function Loading({ params, progress, slots }: { params: Record<string, string>; 
         </div>
       </div>
       <div class="load-players">
-        {cards.filter((c) => c.kind !== 'empty').map((c, i) => (
-          <div key={i} class={`lp-card ${c.kind === 'human' ? 'me' : ''} ${c.characterId ? '' : 'pending'}`}>
+        {cards.map((c, i) => (c.kind === 'empty' ? null : (
+          <div key={i} class={`lp-card ${i === me ? 'me' : ''} ${c.characterId ? '' : 'pending'}`}>
             {c.characterId ? <Portrait id={c.characterId} size={44} /> : <span class="lp-q"><Icon name="bot" size={22} /></span>}
             <span class="lp-name">{c.name || t('common.ai')}</span>
-            {c.kind === 'bot' ? <span class="badge ai">AI</span> : <span class="badge coral">{t('common.you')}</span>}
+            {c.kind === 'bot' ? <span class="badge ai">AI</span> : i === me ? <span class="badge coral">{t('common.you')}</span> : null}
           </div>
-        ))}
+        )))}
       </div>
       <div class="load-bar"><Bar frac={progress.p} /><span class="load-label">{progress.label || t('common.loading')}</span></div>
     </div>
@@ -88,6 +89,7 @@ export function RaceScreen() {
   const [error, setError] = useState<string | null>(null);
   const [minimap, setMinimap] = useState<Float32Array | null>(null);
   const [slots, setSlots] = useState<SlotConfig[] | null>(null);
+  const [meSlot, setMeSlot] = useState(0);
   const [paused, setPaused] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [settings, setSettings] = useState(false);
@@ -131,7 +133,11 @@ export function RaceScreen() {
       ...(q.get('seed') ? { seed: Number(q.get('seed')) } : {}),
       ...(ta ? { solo: true } : {}),
     };
-    const s = createSession(Stage.renderer!, Stage.tier, opts, params);
+    // Online (routed here by raceStart with online=1): build the Session from the server's race explicitly, and show its
+    // real line-up on the loading card at once. Without a pending race (a reload) this falls back to an offline race.
+    const race = params['online'] === '1' ? takePendingRace() : null;
+    if (race) { setSlots(race.config.slots); setMeSlot(race.yourSlot); }
+    const s = race ? Session.online(Stage.renderer!, Stage.tier, race, { autopilot }) : createSession(Stage.renderer!, Stage.tier, opts, params);
     sessionRef.current = s;
     endedRef.current = false;
     Stage.onResize = (w, h) => s.renderer?.resize(w, h);
@@ -160,7 +166,7 @@ export function RaceScreen() {
         setLastResult(r, s.slotNames, {
           slots: s.config.slots.map((x) => ({ characterId: x.characterId, kartBodyId: x.kartBodyId })),
           ...(summary ? { summary } : {}), ...(report ? { report } : {}),
-          again: { track: opts.trackId, mode, tier: opts.tier, ...(params['laps'] ? { laps: params['laps'] } : {}) }, teams: s.config.teams, online: s.isOnline,
+          again: { track: opts.trackId, mode, tier: opts.tier, ...(params['laps'] ? { laps: params['laps'] } : {}) }, teams: s.config.teams, online: s.isOnline, me: race?.yourSlot ?? 0,
         });
         window.__cr = { ...window.__cr, race: 'done', result: r };
         endedRef.current = true;
@@ -186,7 +192,7 @@ export function RaceScreen() {
       </div>
     );
   }
-  if (!ready) return <Loading params={params} progress={progress} slots={slots} />;
+  if (!ready) return <Loading params={params} progress={progress} slots={slots} me={meSlot} />;
   const offline = !sessionRef.current?.isOnline;
   return (
     <>
