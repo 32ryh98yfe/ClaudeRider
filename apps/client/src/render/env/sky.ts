@@ -71,10 +71,12 @@ function domeMaterial(L: EnvLook, moonDir: THREE.Vector3): THREE.MeshBasicNodeMa
     const rock = n01(dir.mul(9)).mul(0.6).add(n01(dir.mul(23)).mul(0.4));
     c = mix(color('#2a1a14'), color('#0b0807'), smoothstep(-0.1, 0.5, h)).mul(rock.mul(0.6).add(0.55));
     c = c.add(color('#ff6a2b').mul(smoothstep(0.25, -0.05, abs(h)).mul(0.18)));
-    const cell = floor(dir.mul(90));
-    const glint = smoothstep(0.994, 1.0, rand3(cell)).mul(smoothstep(0.0, 0.2, h));
+    // round glints inside sparse cells (a whole lit cell read as a floating square once bloomed)
+    const q = dir.mul(150), cell = floor(q);
+    const spot = smoothstep(0.32, 0.0, fract(q).sub(0.5).length());
+    const glint = smoothstep(0.996, 1.0, rand3(cell)).mul(spot).mul(smoothstep(0.05, 0.3, h));
     const hueK = rand3(cell.add(7.3));
-    glow = mix(color('#7FDBFF'), color('#C77DFF'), hueK).mul(glint.mul(2.5));
+    glow = mix(color('#7FDBFF'), color('#C77DFF'), hueK).mul(glint.mul(1.4));
   }
   if (L.sky.stars > 0) {
     const dens = L.sky.stars;

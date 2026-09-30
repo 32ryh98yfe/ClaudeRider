@@ -53,7 +53,8 @@ export async function buildEnvironment(renderer: THREE.WebGPURenderer, scene: TH
     sun.shadow.intensity = L.kind === 'overcast' ? 0.45 : 0.85;
   }
   scene.add(sun, sun.target);
-  const hemi = new THREE.HemisphereLight(L.hemi.sky, L.hemi.ground, L.hemi.intensity);
+  // without PMREM (Low) the sky's diffuse fill is missing: fold part of it into the hemisphere
+  const hemi = new THREE.HemisphereLight(L.hemi.sky, L.hemi.ground, L.hemi.intensity + (lite ? 0.6 * L.envIntensity : 0));
   scene.add(hemi);
   scene.fog = new THREE.Fog(L.fog.color, L.fog.near, L.fog.far);
 
