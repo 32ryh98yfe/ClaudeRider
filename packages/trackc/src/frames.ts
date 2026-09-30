@@ -6,6 +6,7 @@ export interface FrameSample {
   tx: number; ty: number; tz: number; rx: number; ry: number; rz: number; ux: number; uy: number; uz: number;
   bank: number;       // degrees, + raises the right edge
   frameReq: 0 | 1 | 2; // 0 auto, 1 forced worldUp, 2 forced rmf
+  tanSide?: -1 | 0 | 1; // tangent difference: −1 backward, +1 forward (jump lips / landings), 0 central
   rmf: boolean;        // result: frame built by RMF
 }
 
@@ -54,7 +55,8 @@ export function computeFrames(S: FrameSample[], closed: boolean): void {
   const at = (i: number): number => (closed ? ((i % m) + m) % m : Math.max(0, Math.min(n - 1, i)));
   const T: V[] = [], P: V[] = [];
   for (let i = 0; i < m; i++) {
-    const a = S[at(i - 1)]!, b = S[at(i + 1)]!;
+    const side = S[i]!.tanSide ?? 0;
+    const a = S[at(side > 0 ? i : i - 1)]!, b = S[at(side < 0 ? i : i + 1)]!;
     T.push(norm([b.x - a.x, b.y - a.y, b.z - a.z]));
     P.push([S[i]!.x, S[i]!.y, S[i]!.z]);
   }

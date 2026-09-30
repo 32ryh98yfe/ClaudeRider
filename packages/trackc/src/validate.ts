@@ -331,7 +331,7 @@ function v11(r: BuildResult, push: Push): void {
   for (const j of r.content.jumps) {
     if (j.legacy) continue;
     const p = m.paths[j.path]!;
-    const lip = sampleAt(p, j.lipS - 0.01), land = sampleAt(p, j.landS0 + 0.5);
+    const lip = sampleAt(p, j.lipS), land = sampleAt(p, j.landS0 + 0.5);
     const lipAng = Math.atan2(lip.ty, Math.hypot(lip.tx, lip.tz)) / DEG;
     const drop = lip.y - land.y;
     const lo = j.gapLen + 2, hi = j.gapLen + j.landLen - 5;
