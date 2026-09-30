@@ -16,6 +16,7 @@ import { applyRace } from '../../../meta/rewards.ts';
 import { currentRace, setCurrentRace } from '../../../meta/raceStats.ts';
 import { onUiAction, setGameKeysActive } from '../../../input/keyboard.ts';
 import { Hud } from '../../hud/Hud.tsx';
+import { hudX } from '../../store/hudExtra.ts';
 import { setLastResult } from '../results/lastResult.ts';
 import { trackInfo, loadTrackIndex } from '../../store/tracks.ts';
 import { useBack } from '../../hooks.ts';
@@ -142,6 +143,7 @@ export function RaceScreen() {
     endedRef.current = false;
     Stage.onResize = (w, h) => s.renderer?.resize(w, h);
     let cancelled = false;
+    let netPump: ReturnType<typeof setInterval> | null = null;
     const minShow = autopilot ? 0 : 1400;
     const t0 = performance.now();
     s.load((p, label) => setProgress({ p, label })).then(async () => {
@@ -175,13 +177,15 @@ export function RaceScreen() {
       });
       s.start();
       setGameKeysActive(true);
+      // online: the connection's round trip feeds the HUD signal pill (2 Hz is plenty for a number that jitters)
+      if (s.isOnline) netPump = setInterval(() => { const st = s.net?.stats; if (st) hudX.net.value = { pingMs: Math.round(st.rttMs), late: hudX.net.value?.late ?? 0 }; }, 500);
     }).catch((e: unknown) => { console.error(e); setError(String((e as Error)?.message ?? e)); });
     const offs = [
       onUiAction('pause', () => pause(true)),
       onUiAction('restart', () => { if (!s.isOnline) restart(); }),
       onUiAction('blur', () => { if (!s.isOnline && !endedRef.current && sessionRef.current) pause(true); }),
     ];
-    return () => { cancelled = true; for (const o of offs) o(); if (!endedRef.current && route.value.screen !== 'race' && route.value.screen !== 'loading') stopSession(); };
+    return () => { cancelled = true; if (netPump) clearInterval(netPump); hudX.net.value = null; for (const o of offs) o(); if (!endedRef.current && route.value.screen !== 'race' && route.value.screen !== 'loading') stopSession(); };
   }, []);
 
   if (error) {
