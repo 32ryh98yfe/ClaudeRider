@@ -21,6 +21,8 @@ export interface RecoveryIn {
   sinceRespawn: number;
   /** Race distance (m): an episode only ends after real forward progress. */
   raceDist: number;
+  /** Ticks since the last hard crowd-control effect ended (traps pin the speed to 0; not a stuck kart). */
+  sinceCc: number;
 }
 
 export interface RecoveryOut { steer: number; thr: number; brk: number; reset: boolean }
@@ -42,11 +44,11 @@ export class Recovery {
   /** Returns true when recovery overrides the driving controls this tick (writes `out`). */
   update(r: Readonly<RecoveryIn>, out: RecoveryOut): boolean {
     out.reset = false;
-    if (!r.canAct || r.sinceGo < 90 || r.sinceRespawn < 40) { this.reset(); return false; }
+    if (!r.canAct || r.sinceGo < 90 || r.sinceRespawn < 40 || r.sinceCc < 30) { this.reset(); return false; }
     const slowNow = r.v < SLOW_V;
     this.slow = slowNow ? this.slow + 1 : 0;
-    // wrong way: the nose points > 110° away from the track at low speed (after a spin or a bad bounce)
-    const wrongNow = Math.abs(r.aTrack) > WRONG_DEG && r.v < 12;
+    // wrong way: the nose points > 110° away from the track (after a spin, a bad bounce or a mirrored drift)
+    const wrongNow = Math.abs(r.aTrack) > WRONG_DEG;
     this.wrong = wrongNow ? this.wrong + 1 : 0;
     if (this.episode > 0) {
       this.episode++;
@@ -57,6 +59,7 @@ export class Recovery {
       case RecoveryMode.NONE:
         if (this.slow >= SLOW_TICKS) { this.enter(RecoveryMode.REVERSE); this.begin(r, this.slow); }
         else if (this.wrong >= 12) { this.enter(RecoveryMode.TURN_AROUND); this.begin(r, this.wrong); }
+        else if (r.wrongWayTicks >= 72) { this.enter(RecoveryMode.RESET); this.begin(r, r.wrongWayTicks); }
         break;
       case RecoveryMode.REVERSE:
         if (this.t >= REVERSE_TICKS) this.enter(RecoveryMode.DRIVE_OUT);
@@ -86,7 +89,9 @@ export class Recovery {
         out.steer = Math.abs(r.aTarget) > 0.08 ? toTarget : r.aTarget / 0.08; out.thr = 1; out.brk = 0;
         return true;
       case RecoveryMode.TURN_AROUND:
-        out.steer = r.aTrack > 0 ? 1 : -1; out.thr = 1; out.brk = 0;
+        // shed speed first (a fast wrong-way kart cannot turn on the spot), then full lock toward the track
+        out.steer = r.aTrack > 0 ? 1 : -1;
+        if (r.vFwd > 12) { out.thr = 0; out.brk = 1; } else { out.thr = 1; out.brk = 0; }
         return true;
       case RecoveryMode.RESET:
         // stand still until the sim accepts the manual reset (|v| < 3 m/s for 60 ticks), then press R

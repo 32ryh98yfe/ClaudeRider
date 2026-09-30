@@ -21,6 +21,10 @@ import { Recovery, type RecoveryIn, type RecoveryOut } from './recovery.ts';
 import { SelfPredictor } from './predict.ts';
 import type { AiDriverArgs, AiItemPolicy, AiItemView, AiRole } from './hooks.ts';
 import { createItemBrain, decideItem, type ItemBrain, type ItemEnv } from './items/index.ts';
+import { EF } from '../items/codes.ts';
+
+/** status.modMask bit of the Redaction overlay (perception noise, 14-ai §6). */
+const REDACTION_BIT = 1 << (EF.redaction - 1);
 
 const DEG = Math.PI / 180;
 /** A split this far behind the kart's located s still counts as taken (the sim relocates onto the branch late). */
@@ -64,8 +68,14 @@ export interface AiDriverEx extends AiDriver {
   resync(): void;
 }
 
-export function createAiDriver(track: BakedTrack, content: ContentTables, slot: number, profile: AiProfile = AI_TIERS.pro, personality: AiDriverArgs = {}, seed = 1): AiDriverEx {
-  return new BotDriver(track, content, slot, profile, personality, seed);
+/**
+ * B8 factory. `personality` may carry AiProfile overrides and the driver extras (hooks.ts: character, lookahead,
+ * role, cfg, …). `cfg` may also be passed as a 7th argument (the L2 call-site request's form); with a config the
+ * driver runs L2's item brain at the end of every decide().
+ */
+export function createAiDriver(track: BakedTrack, content: ContentTables, slot: number, profile: AiProfile = AI_TIERS.pro, personality: AiDriverArgs = {}, seed = 1,
+  cfg?: AiDriverArgs['cfg']): AiDriverEx {
+  return new BotDriver(track, content, slot, profile, cfg && !personality.cfg ? { ...personality, cfg } : personality, seed);
 }
 
 class BotDriver implements AiDriverEx {
@@ -118,7 +128,8 @@ class BotDriver implements AiDriverEx {
   private startLaneSet = false;
   // ---- recovery
   private readonly rec = new Recovery();
-  private readonly recIn: RecoveryIn = { sinceGo: 0, v: 0.5, vFwd: 0.5, aTarget: 0.5, aTrack: 0.5, lowSpeedTicks: 0, wrongWayTicks: 0, canAct: false, sinceRespawn: 0, raceDist: 0.5 };
+  private readonly recIn: RecoveryIn = { sinceGo: 0, v: 0.5, vFwd: 0.5, aTarget: 0.5, aTrack: 0.5, lowSpeedTicks: 0, wrongWayTicks: 0, canAct: false, sinceRespawn: 0, raceDist: 0.5, sinceCc: 999 };
+  private lastCcTick = -1000;
   private readonly recOut: RecoveryOut = { steer: 0.5, thr: 0.5, brk: 0.5, reset: false };
   private lastRespawnTick = -1000; private prevRespawns = 0;
   // ---- mash-out
@@ -311,11 +322,23 @@ class BotDriver implements AiDriverEx {
       if (ppS.closed && cornerDist < -ppS.length / 2) cornerDist += ppS.length;
       if (cornerDist <= 0) { inCorner = true; cornerDist = 0; }
     }
+    // ---- next jump on the route (14-ai §4.2): lip distance and the validated lip-speed window
+    let dLip = 1e9, jvMin = 0, jvMax = 99;
+    {
+      const js = ppS.jumps;
+      for (let q = 0; q < js.length; q++) {
+        const j = js[q]!;
+        let d = j.lipS - this.rs;
+        if (ppS.closed && d < -50) d += ppS.length;
+        if (d > -2 && d < dLip) { dLip = d; jvMin = j.vMin; jvMax = j.vMax; }
+      }
+    }
+    const jumpNear = dLip < 60;
     // ---- per-corner execution plan, rolled once per corner per pass
     if (ci !== this.cCorner || ppS.index !== this.cPath) this.rollCorner(ci, ppS, corner, prof);
     // ---- line noise (OU at 20 Hz: dt = 3 ticks, τ = 90 ticks)
     if (highRate) {
-      const sig = prof.lineNoise;
+      const sig = prof.lineNoise * ((k.status.modMask & REDACTION_BIT) !== 0 ? 2 : 1);
       if (sig > 0) {
         const a = 3 / 90;
         this.noise += -a * this.noise + sig * Math.sqrt(2 * a) * this.rng.gauss();
@@ -355,9 +378,16 @@ class BotDriver implements AiDriverEx {
       const ob = cornerDir * A.outBias * (hwT - 1.5) + bias;
       if (ob > 0 ? off < ob : off > ob) off = ob;
     }
-    if (this.cMistake === Mistake.WIDE && inCorner && corner) off += corner.dir * this.wideT;
-    const lim = Math.max(0.3, hwT - 1.2) + (this.cMistake === Mistake.WIDE ? 2 : 0);
-    if (off > lim) off = lim; else if (off < -lim) off = -lim;
+    const ledge = ppT.LEDGE[this.ri]! | ppT.LEDGE[this.rj]!;
+    let limL = this.lerp(ppT.LIM_L), limR = this.lerp(ppT.LIM_R);
+    if (this.cMistake === Mistake.WIDE && inCorner && corner && (ledge & (corner.dir > 0 ? 2 : 1)) === 0) {
+      // running wide (onto the shoulder or into the wall) never toward an open ledge
+      off += corner.dir * this.wideT;
+      if (corner.dir > 0) limR += 2; else limL += 2;
+    }
+    // jump approach: line up on the ramp centre (no lane games, no line bias) over the last 50 m
+    if (jumpNear) { const f = dLip < 10 ? 0 : (dLip - 10) / 40; off *= f < 1 ? f : 1; }
+    if (off > limR) off = limR; else if (off < -limL) off = -limL;
     const gx = cxT + tyT * off, gy = cyT - txT * off; // right = (ty, −tx)
     const exT = gx - kx, eyT = gy - ky;
     const ed = Math.max(1, Math.sqrt(exT * exT + eyT * eyT));
@@ -379,7 +409,7 @@ class BotDriver implements AiDriverEx {
       if (this.tapLeft > 0) {
         // entry tap whose drift the model did not see start (speed or lock): finish the tap anyway
         drift = true; steer = this.tapDir; this.tapLeft--;
-      } else if (planDrift) {
+      } else if (planDrift && !jumpNear) {
         // drift trigger (14-ai §3.4) with the plan's timing
         let lead = v * A.tLead * Math.max(0.3, Math.min(1, A.rLead / cornerR));
         if (this.cPlan === DriftPlan.SLOPPY) lead = Math.max(0, lead - this.cLate);
@@ -404,6 +434,7 @@ class BotDriver implements AiDriverEx {
       const wl = -vx * hy + vy * hx;
       const sb = -dd * wl / Math.max(v, 1);
       const e = eh + A.kLatPos * outside;
+      let e_forceExit = false;
       let sIn = A.kHead * e;
       if (sIn > A.sInMax) sIn = A.sInMax;
       if (sb > A.sbHi || (outside > A.outBite && eh > 0)) { if (sIn > 0.3) sIn = 0.3; }
@@ -411,14 +442,16 @@ class BotDriver implements AiDriverEx {
       const eExit = style === 'long' ? AI_TUNING.eExit + 0.03 : style === 'chain' ? AI_TUNING.eExit - 0.02 : AI_TUNING.eExit;
       // long corner: hold one drag drift through it (soft counter-steer, no cut) instead of chaining short drifts
       const holding = !this.cChain && corner !== null && inCorner && this.remainingTurn(corner, ppS.length) > AI_TUNING.holdTurn;
-      if (e < -eExit) {
+      if (dLip < 30) { this.holdExtra = 0; if (e > -eExit - 0.01) e_forceExit = true; }
+      if (e < -eExit || e_forceExit) {
         if (this.holdExtra > 0) { this.holdExtra--; if (sIn < 0.25) sIn = 0.25; }
-        else if (holding) { if (sIn < AI_TUNING.holdMinSIn) sIn = AI_TUNING.holdMinSIn; }
+        else if (holding && !e_forceExit) { if (sIn < AI_TUNING.holdMinSIn) sIn = AI_TUNING.holdMinSIn; }
         else sIn = -1;
       }
       sIn = sIn > 1 ? 1 : sIn < -1 ? -1 : sIn;
       const ehShift = style === 'long' ? 0.3 : style === 'chain' ? 0.5 : A.ehShift;
-      if (this.tapLeft > 0) { drift = true; this.tapLeft--; if (sIn < 0.6) sIn = 0.6; }
+      if (e_forceExit) { drift = false; this.tapLeft = 0; }
+      else if (this.tapLeft > 0) { drift = true; this.tapLeft--; if (sIn < 0.6) sIn = 0.6; }
       else if (holding && AI_TUNING.holdMode === 1) {
         // drag drift (끌기): keep the key while not over-rotated; the yaw is trimmed with the wheel
         drift = eh > AI_TUNING.holdKeyEh && sb < AI_TUNING.holdSbMax;
@@ -457,6 +490,13 @@ class BotDriver implements AiDriverEx {
       const g = (gt[this.ri]! + (gt[this.rj]! - gt[this.ri]!) * this.rf) * ex.gripSpeedMul;
       if (g < vLim) vLim = g;
     }
+    if (dLip < 150) {
+      // arrive at the lip inside [vMin + 2, vMax − 2]; bold personalities aim nearer the top (14-ai §8 risk)
+      const lipMax = jvMax - 2 - 2 * (1 - prof.personality.risk);
+      const vj = Math.sqrt(Math.max(0, lipMax * lipMax + 2 * 0.8 * P.aBrake * Math.max(0, dLip)));
+      if (vj < vLim) vLim = vj;
+      if (vLim < jvMin + 2) vLim = jvMin + 2; // never brake below the clearing speed before a gap
+    }
     if (cruising) vLim = Math.min(vLim, 0.8 * P.vGrip);
     let wantBrake = v > vLim + 0.5, wantCoast = !wantBrake && v > vLim;
     if (wantBrake && this.cMistake === Mistake.LATE_BRAKE && this.lateBrakeLeft > 0) { this.lateBrakeLeft--; wantBrake = false; wantCoast = false; }
@@ -484,6 +524,8 @@ class BotDriver implements AiDriverEx {
     ri.lowSpeedTicks = d.lowSpeedTicks; ri.wrongWayTicks = k.race.wrongWayTicks;
     ri.canAct = !airborne && k.status.cc === 0 && w.phase >= Phase.RACING;
     ri.sinceRespawn = w.tick - this.lastRespawnTick; ri.raceDist = k.race.raceDist;
+    if (k.status.cc !== 0) this.lastCcTick = w.tick;
+    ri.sinceCc = w.tick - this.lastCcTick;
     const wasRec = this.rec.mode !== 0;
     if (this.rec.update(ri, this.recOut)) {
       if (!wasRec) this.stats.recoveries++;

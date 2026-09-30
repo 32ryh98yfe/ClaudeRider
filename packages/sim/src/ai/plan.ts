@@ -44,7 +44,15 @@ export interface PathPlan {
   readonly next: { path: number; s: number; at: number } | null;
   /** Optional route choices starting on this path (branch splits), sorted by `at`. */
   readonly forks: readonly Fork[];
+  /** Jumps on this path, sorted by lip s. */
+  readonly jumps: readonly JumpPlan[];
+  /** Safe lateral limit per side (m, positive): the paved half-width minus a margin that is larger where the
+   *  side is an open ledge (no ground just past the edge). LEDGE bit 1 = left open, bit 2 = right open. */
+  readonly LIM_L: Float64Array; readonly LIM_R: Float64Array; readonly LEDGE: Uint8Array;
 }
+
+/** A jump as the AI needs it: lip position and the validated lip-speed window (14-ai §4.2). */
+export interface JumpPlan { lipS: number; rampS: number; landS1: number; vMin: number; vMax: number }
 
 /** A branch split: at path-s `at` the bot may continue on path `to` at `toS` (14-ai §4.1). */
 export interface Fork {
@@ -113,7 +121,8 @@ function buildPlan(track: BakedTrack): TrackPlan {
     paths.push({
       index: pi, n, ds, length: L, closed, X, Y, H, TX, TY, HW, WALL, LINE, KAP, VLIM, T40,
       LK: new Float64Array(n), LINEW: new Float64Array(n).fill(1), KEFF: new Float64Array(n), STRAIGHT: new Float64Array(n), CORNER: new Int16Array(n).fill(-1), corners: [],
-      next: null, forks: [],
+      next: null, forks: [], jumps: [],
+      LIM_L: new Float64Array(n), LIM_R: new Float64Array(n), LEDGE: new Uint8Array(n),
     });
   }
   // old bakes carry lineU = 0 everywhere: relax a line here with the same algorithm the bake uses
@@ -122,6 +131,12 @@ function buildPlan(track: BakedTrack): TrackPlan {
   let zones = 0;
   if (paths[0]) for (const c of paths[0].corners) if (c.needsDrift) zones++;
   const forks = linkRoutes(track, paths);
+  for (const pp of paths) {
+    (pp as { jumps: readonly JumpPlan[] }).jumps = track.jumps.filter((j) => j.path === pp.index)
+      .map((j) => ({ lipS: j.lipS, rampS: j.rampS ?? j.lipS - 20, landS1: j.landS1, vMin: j.vMin, vMax: j.vMax }))
+      .sort((a, b) => a.lipS - b.lipS);
+    probeEdges(track, pp);
+  }
   return { paths, forks, zonesPerLap: zones, bakedLine: anyLine, gripCache: new Map() };
 }
 
@@ -259,6 +274,43 @@ function derive(pp: PathPlan, track: BakedTrack): void {
         if (after >= 0 && after < F.after1) wgt = Math.min(wgt, Math.max(0, (after - F.after0) / Math.max(1, F.after1 - F.after0)));
       }
       if (wgt < LINEW[i]!) LINEW[i] = wgt;
+    }
+  }
+}
+
+/**
+ * Probes the ground 1.5 m beyond each paved edge (every sample, both sides): no ground within 3 m below means an
+ * open ledge (drop, lava, void), where the bot keeps a wider margin and never runs wide. Walls and shoulders are safe.
+ */
+function probeEdges(track: BakedTrack, pp: PathPlan): void {
+  const F: FrameSample = { px: 0, py: 0, pz: 0, tx: 0, ty: 0, tz: 0, rx: 0, ry: 0, rz: 0, ux: 0, uy: 0, uz: 0, wL: 0, wR: 0, sMain: 0, flags: 0 };
+  const hit = { t: 0, x: 0, y: 0, z: 0, nx: 0, ny: 0, nz: 0, surf: 0, tri: 0, flags: 0 };
+  const LL = pp.LIM_L as Float64Array, LR = pp.LIM_R as Float64Array, LE = pp.LEDGE as Uint8Array;
+  for (let i = 0; i < pp.n; i++) {
+    track.frameAt(pp.index, i * pp.ds, F);
+    const hw = pp.HW[i]!;
+    let mask = 0;
+    for (let side = -1; side <= 1; side += 2) {
+      // side −1 = left (u < 0), +1 = right
+      const d = side * (hw + 1.5);
+      const ox = F.px + F.rx * d + F.ux * 1.5, oy = F.py + F.ry * d + F.uy * 1.5, oz = F.pz + F.rz * d + F.uz * 1.5;
+      const ground = track.groundRay(ox, oy, oz, -F.ux, -F.uy, -F.uz, 4.5, hit);
+      if (!ground) mask |= side < 0 ? 1 : 2;
+    }
+    LE[i] = mask;
+    LL[i] = Math.max(0.3, hw - ((mask & 1) ? 1.9 : 1.2));
+    LR[i] = Math.max(0.3, hw - ((mask & 2) ? 1.9 : 1.2));
+  }
+  // widen the ledge flag 20 m both ways (the approach and a drift exit need the margin before the edge starts)
+  const src = Uint8Array.from(LE);
+  for (let i = 0; i < pp.n; i++) {
+    if (!src[i]) continue;
+    for (let k = -20; k <= 20; k++) {
+      const j = pp.closed ? (((i + k) % pp.n) + pp.n) % pp.n : i + k;
+      if (j < 0 || j >= pp.n) continue;
+      LE[j] = LE[j]! | src[i]!;
+      if (src[i]! & 1) LL[j] = Math.min(LL[j]!, Math.max(0.3, pp.HW[j]! - 1.9));
+      if (src[i]! & 2) LR[j] = Math.min(LR[j]!, Math.max(0.3, pp.HW[j]! - 1.9));
     }
   }
 }
