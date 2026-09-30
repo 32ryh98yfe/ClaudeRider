@@ -16,14 +16,14 @@ S 120 prof=hp60 wall=rock:1.6             @halfpipe      # hp60 halfpipe: 22.1 m
 S 14 wall=barrier:1.1                     @hp_runout
 C R45 50 L bank=4 w=17                    @hp_exit
 S ?b=52 wall=rock:2.5                     @crystal_cave  # crystal-cave tunnel (arches)
-WIGGLE R40 40/95/30 R bank=5 wall=barrier:1.1 @cave_s    # cave S-bends
-C R140 15 R dy=1 ; C R140 15 L dy=1       @glacier       # item row
+WIGGLE R40 40/95/30 R bank=5 wall=barrier:1.1:soft @cave_s    # cave S-bends (snow-padded barriers)
+C R140 15 R dy=1 wall=barrier:1.1 ; C R140 15 L dy=1       @glacier       # item row
 C R25 150 L bank=10 surf=ice w=18         @rink          # ice-rink sweeper, ice 0.75 (V19)
 C R60 20 R bank=-4 surf=asphalt w=17      @rink_exit
 C R60 55 R bank=-4 dy=-2                  @sled_bend
 WIGGLE R60 40/60/30 L bank=3              @sled_s
-WIGGLE R35 30/70/25 L bank=6              @snowman_s     # (V19)
-S ?c=44                                   @snowman_lane  # penguin sleds (cosmetic)
+WIGGLE R35 30/70/25 L bank=6 wall=barrier:1.1:soft @snowman_s     # (V19) snow-padded
+S ?c=44 wall=barrier:1.1                  @snowman_lane  # penguin sleds (cosmetic)
 C R35 90 L bank=7                         @snow_fort     # (V19)
 C R50 45 L bank=4                         @final_bend
 S ?a=129                                  @run_in
