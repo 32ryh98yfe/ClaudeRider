@@ -8,7 +8,7 @@ import {
   type RoadParams, type RoadStyle, type WallStyle, type WaterParams, type MaterialProfile,
 } from './world.ts';
 import { buildVinyl, buildKartPaint, buildEmissive, buildEmissiveVertex, buildNeon, buildVertexLit, type VinylParams } from './character.ts';
-import { buildFlame, buildFlameShared, buildBubble, buildRingDecal, type FlameUserData } from './fx.ts';
+import { buildFlame, buildFlameShared, buildBubble, buildRingDecal, buildGhost, type FlameUserData } from './fx.ts';
 import { fxUniforms, setNoiseQuality } from './tsl.ts';
 import { buildMascotVinyl, buildMascotGlass, buildMascotEyes, buildKartLivery, buildKartOverlay } from './rigs.ts';
 import { registerLocalMaterial, localMaterials, eyeAtlas, EYE_ATLAS } from '../mascot/materials.ts';
@@ -94,6 +94,8 @@ function foliage(a: string, b: string): THREE.MeshStandardNodeMaterial { return 
 function foliageLit(): THREE.MeshStandardNodeMaterial { return memo('foliageLit', () => buildFoliage('#000', '#000', true)); }
 function vertexLit(roughness = 0.7, metalness = 0): THREE.MeshStandardNodeMaterial { return memo(keyOf('vlit', [roughness, metalness]), () => buildVertexLit(roughness, metalness)); }
 function bubble(c: string, bands = false): THREE.MeshBasicNodeMaterial { return memo(keyOf('bubble', [c, bands]), () => buildBubble(c, bands)); }
+/** Time Attack ghost hologram (shared by every mesh of the ghost kart and mascot). */
+function ghost(): THREE.MeshBasicNodeMaterial { return memo('ghost', buildGhost); }
 function ringDecal(c: string): THREE.MeshBasicNodeMaterial { return memo(keyOf('ring', c), () => buildRingDecal(c)); }
 /** Registry entry for systems that build their own node graph (particles, skids, sky): still counted and shared. */
 function custom<T extends THREE.Material>(key: string, make: () => T): T { return memo(`custom:${key}`, make); }
@@ -104,7 +106,7 @@ const counted = new Set<THREE.Material>();
 export const MaterialLibrary = {
   configure, world, road, kerb, wall, terrain, water, boostPad, killPlane, startLine, vinyl, kartPaint, emissive, emissiveVertex, neon,
   flame, flameShared, foliage, foliageLit, vertexLit, bubble, ringDecal, custom,
-  mascotVinyl, mascotGlass, mascotEyes, kartLivery, kartOverlay,
+  mascotVinyl, mascotGlass, mascotEyes, kartLivery, kartOverlay, ghost,
   /** Look uniforms shared by all library materials (rim boost, wind, wetness, pulse). */
   uniforms: fxUniforms,
   /** Library materials plus any still-local L8 ones (the promoted ones are the same objects, counted once). */

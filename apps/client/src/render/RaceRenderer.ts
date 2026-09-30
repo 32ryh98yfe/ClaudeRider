@@ -369,7 +369,7 @@ export class RaceRenderer {
 
   /** Shows (or with null removes) the ghost kart. No FX, name tag, shadow or collision. */
   setGhost(v: { characterId: string; kartBodyId: string } | null): void {
-    if (this.ghost) { this.scene.remove(this.ghost.root); this.ghost.kart.dispose(); this.ghost.mascot.dispose(); this.ghost.mat.dispose(); this.ghost = null; }
+    if (this.ghost) { this.scene.remove(this.ghost.root); this.ghost.kart.dispose(); this.ghost.mascot.dispose(); this.ghost = null; } // the hologram material is shared (library)
     if (!v) return;
     const root = new THREE.Group();
     root.matrixAutoUpdate = false;
@@ -379,7 +379,7 @@ export class RaceRenderer {
     mascot.root.scale.setScalar(0.62);
     kart.seat.add(mascot.root);
     root.add(kart.root);
-    const mat = new THREE.MeshBasicNodeMaterial({ color: new THREE.Color('#bfe6ff'), transparent: true, opacity: 0.32, depthWrite: false });
+    const mat = MaterialLibrary.ghost();
     root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.material = mat; m.castShadow = false; m.receiveShadow = false; m.renderOrder = 2; } });
     this.scene.add(root);
     this.ghost = { root, kart, mascot, mat };
