@@ -4,7 +4,7 @@
 import type * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
-import { merge, paint, place, rbox, box, cyl, cone, sph, sparkleGeometry } from '../../util/geo.ts';
+import { merge, paint, place, rbox, box, cyl, cone, sph, ico, sparkleGeometry } from '../../util/geo.ts';
 
 // Three shared materials for the whole kit (vertex colour carries the variation): glossy toy paint, matte, metal.
 const gloss = (): THREE.Material => MaterialLibrary.vertexLit(0.42, 0.05);
@@ -232,6 +232,48 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
     },
     maxInstances: 12,
   },
+  /** Stadium tunnel spanning the road (placed on the centreline): portal lintels, ceiling light strips, a stand on the roof. */
+  tunnel: {
+    build: () => {
+      const parts: THREE.BufferGeometry[] = [];
+      for (const x of [-12.8, 12.8]) {
+        parts.push(paint(place(box(1.6, 8.4, 30), x, 4.2, 0), C.concrete));
+        parts.push(paint(place(box(1.7, 0.7, 30.2), x, 1.2, 0), C.kerbRed));
+      }
+      parts.push(paint(place(box(27.2, 1.4, 30), 0, 9.1, 0), C.concreteDark));
+      for (const z of [-15.2, 15.2]) {
+        parts.push(paint(place(box(28.4, 1.2, 0.8), 0, 8.0, z), C.white));
+        for (let k = 0; k < 14; k++) parts.push(paint(place(box(1.0, 0.5, 0.85), -13 + k * 2, 8.8, z), k % 2 ? C.kerbRed : C.white));
+      }
+      for (const x of [-10, 10]) parts.push(paint(place(box(0.5, 0.18, 28), x, 8.3, 0), C.lamp));
+      // the stand on the roof looks into the bowl (+Z); built facing +X, turned a quarter
+      for (const g of stand(26, 4, 41, C.sunset)) parts.push(place(g, 0, 9.8, -2, 0, -Math.PI / 2, 0));
+      return { geometry: merge(parts), material: gloss(), castShadow: true };
+    },
+    maxInstances: 4,
+  },
+  /** Bridge girder under an elevated deck (placed on the centreline, top just under the road). */
+  bridge_span: {
+    build: () => ({
+      geometry: merge([
+        paint(place(box(13, 1.6, 20.4), 0, -1.15, 0), C.concrete),
+        paint(place(box(13.4, 0.45, 20.4), 0, -0.55, 0), C.kerbRed),
+        paint(place(box(11, 0.5, 20.4), 0, -2.1, 0), C.concreteDark),
+      ]), material: gloss(), castShadow: true,
+    }),
+    maxInstances: 24,
+  },
+  /** Bridge pier: a twin column dropping from under the girder to the ground (buried at the foot). */
+  bridge_pier: {
+    build: () => ({
+      geometry: merge([
+        paint(place(rbox(1.8, 13, 2.4, 0.3, 2), -3.2, -8.4, 0), C.concrete),
+        paint(place(rbox(1.8, 13, 2.4, 0.3, 2), 3.2, -8.4, 0), C.concrete),
+        paint(place(box(9.6, 1.4, 2.8), 0, -2.9, 0), C.concreteDark),
+      ]), material: gloss(), castShadow: true,
+    }),
+    maxInstances: 16,
+  },
   /** Round hay bales (rally barriers), two down one up. */
   hay_bale: {
     build: () => ({
@@ -243,6 +285,18 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
     }),
     maxInstances: 200,
   },
+  /** Infield broadleaf tree (overrides the default, whose foliage colour comes from palette[2], white in this theme). */
+  tree_round: {
+    build: () => ({
+      geometry: merge([
+        paint(place(cyl(0.25, 0.35, 2.4, 7), 0, 1.2, 0), C.bark),
+        paint(place(ico(1.9, 1), 0, 3.6, 0, 0, 0, 0, 1, 0.9, 1), '#5f9e45', 0.12, 3),
+        paint(place(ico(1.3, 1), 0.9, 4.4, 0.4), '#72b352', 0.12, 5),
+      ]), material: matte(), castShadow: true,
+    }),
+    maxInstances: 400,
+  },
+  bush: { build: () => ({ geometry: merge([paint(place(ico(0.9, 1), 0, 0.5, 0, 0, 0, 0, 1.3, 0.8, 1.1), '#5a9a44', 0.15, 13)]), material: matte() }), maxInstances: 400 },
   /** Tall rally pine (slimmer and darker than the default pine). */
   pine: {
     build: () => ({
