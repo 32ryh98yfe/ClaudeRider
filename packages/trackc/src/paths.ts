@@ -20,7 +20,7 @@ export interface Sample {
   prof: string; profT: number; crown: number;
   curv: number;          // signed plan curvature (+ left), 1/m
   prim: number; pl: number; // primitive index and offset into it
-  frameReq: 0 | 1 | 2; rmf: boolean;
+  frameReq: 0 | 1 | 2; rmf: boolean; tanSide?: -1 | 0 | 1;
   gravMode: 0 | 1 | 2; grav: number;
   jumpPart: 0 | 1 | 2 | 3; // none, ramp, gap (no ground), landing
   area: string | null; kill: string | null; warp: string | null; noItem: boolean; tag: string | null;
@@ -44,6 +44,8 @@ export interface PathModel {
   turn: number;
   line: number;
   rail?: RailModel;
+  /** baked s + dslShift = DSL s (the main circuit is rotated so the line is at 0) */
+  dslShift?: number;
 }
 
 export interface RailModel {
@@ -189,6 +191,14 @@ function finishSamples(S: Sample[], prims: Prim[], closed: boolean, blend: numbe
       if (profiles.get(b)?.kind !== 'flat') { s.prof = b; break; }
     }
   }
+  // one-sided tangents where a jump changes part (ramp → gap → landing) so lips and landings keep their own slope
+  for (let i = 0; i < S.length; i++) {
+    const cur = S[i]!.jumpPart;
+    if (!cur) continue;
+    const nx = S[i + 1]?.jumpPart ?? cur, pv = S[i - 1]?.jumpPart ?? cur;
+    if (nx !== cur) S[i]!.tanSide = -1;
+    else if (pv !== cur) S[i]!.tanSide = 1;
+  }
   computeFrames(S, closed);
 }
 
@@ -219,7 +229,37 @@ export function sampleAt(p: PathModel, s: number): Sample {
   [out.ux, out.uy, out.uz] = nv(L(a.ux, b.ux), L(a.uy, b.uy), L(a.uz, b.uz));
   out.w = L(a.w, b.w); out.bank = L(a.bank, b.bank); out.shL = L(a.shL, b.shL); out.shR = L(a.shR, b.shR);
   out.profT = L(a.profT, b.profT); out.sMain = L(a.sMain, b.sMain); out.curv = L(a.curv, b.curv); out.grav = L(a.grav, b.grav);
+  if (p.prims.length && (p.prims[a.prim]?.kind === 'jump' || p.prims[b.prim]?.kind === 'jump')) exactJump(p, out);
   return out;
+}
+
+/** Inside a J primitive: exact ramp/gap/landing height and slope (the ramp lip and the landing edge are sharp). */
+function exactJump(p: PathModel, out: Sample): void {
+  let dsl = out.s + (p.dslShift ?? 0);
+  if (p.closed) dsl = ((dsl % p.length) + p.length) % p.length;
+  const pi = primAt(p.prims, dsl);
+  const pr = p.prims[pi]!;
+  if (pr.kind !== 'jump') return;
+  const j = pr.jump!;
+  const pl = Math.min(Math.max(dsl - pr.s0, 0), pr.len);
+  const pt = evalPrim(pr, pl, { x: 0, z: 0, psi: 0, y: 0 });
+  // y is pinned to the raw profile in J spans, so the analytic value matches the stored samples
+  out.x = pt.x; out.z = pt.z; out.y = pt.y;
+  // rows exactly at the lip / landing edge belong to the ramp / landing (tolerance covers the rotation shift's rounding)
+  const slope = pl <= j.rampLen + 1e-4 ? (2 * j.lipH * Math.min(pl, j.rampLen)) / (j.rampLen * j.rampLen) : pl < j.rampLen + j.gapLen - 1e-4 ? (-j.drop - j.lipH) / Math.max(1e-6, j.gapLen) : 0;
+  if (pl <= j.rampLen + 1e-4) out.y = pr.y0 + j.lipH * Math.min(1, pl / j.rampLen) ** 2;
+  else if (pl >= j.rampLen + j.gapLen - 1e-4) out.y = pr.y0 - j.drop;
+  const c = Math.cos(pr.psi0 * DEG), sn = Math.sin(pr.psi0 * DEG);
+  const tl = Math.hypot(1, slope);
+  const tx = c / tl, ty = slope / tl, tz = -sn / tl;
+  let rx = -tz, rz = tx; const rl = Math.hypot(rx, rz) || 1; rx /= rl; rz /= rl;
+  const ux = -rz * ty, uy = rz * tx - rx * tz, uz = rx * ty;
+  const b = (out.bank * Math.PI) / 180, cb = Math.cos(b), sb = Math.sin(b);
+  out.tx = tx; out.ty = ty; out.tz = tz;
+  out.rx = rx * cb + ux * sb; out.ry = uy * sb; out.rz = rz * cb + uz * sb;
+  out.ux = ux * cb - rx * sb; out.uy = uy * cb; out.uz = uz * cb - rz * sb;
+  out.prim = pi; out.pl = pl;
+  out.jumpPart = pl < j.rampLen ? 1 : pl < j.rampLen + j.gapLen ? 2 : 3;
 }
 
 /** sampleAt, with the discrete attributes (walls, surfaces, jump part, warp…) taken from the exact primitive at s
@@ -366,6 +406,7 @@ export function buildModel(ast: TrackAst): TrackModel {
     const last = { ...rot[0]!, s: L };
     main.samples = [...rot, last];
   }
+  main.dslShift = hd.closed ? shift : 0;
   for (const s of main.samples) s.sMain = sMainOfMain(s.s);
   for (const p of paths) {
     if (p.kind === 'main' || !p.map) continue;

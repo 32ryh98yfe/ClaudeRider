@@ -118,6 +118,7 @@ export function groundToRender(rb: RenderBuilder, m: TrackModel, c: Content, gro
   const V = ground.v;
   for (let t = 0; t < ground.count; t++) {
     const surf = ground.surf[t]!, role = ground.role[t]!, path = ground.path[t]!;
+    if (role === ROLE.KILL) continue; // kill floors are collision only; KILL planes render their own surface
     const sn = surfName(surf);
     const o = t * 3 * VS;
     const sMid = (V[o + 6]! + V[o + VS + 6]! + V[o + 2 * VS + 6]!) / 3;
