@@ -6,7 +6,7 @@
 // - box: centred along f and across, standing on the origin along u;
 // - cyl: standing on the origin (a swinger capsule is centred on it along the arm);
 // - sphere: centred.
-// A kit prop `visMeta.hazards[i].prop` replaces the default body. The telegraph (≥ 0.6 s) shows a pulsing ground ring,
+// A kit model (the HAZ `prop=` key, else the theme's `hazard_<kind>`) replaces the default body at real size. The telegraph (≥ 0.6 s) shows a pulsing ground ring,
 // geyser wisps, a press shake and train lights.
 import * as THREE from 'three/webgpu';
 import type { BakedTrack, HazardPose } from '@cr/sim';
@@ -87,8 +87,10 @@ export class TrackHazards {
       const def = track.hazards[meta.id];
       const root = new THREE.Group();
       root.matrixAutoUpdate = false;
-      const kitProp = kit.props[meta.prop];
-      const isDefault = meta.prop === `hazard_${meta.kind === 'traffic' ? 'car' : meta.kind}`;
+      // the HAZ `prop=` key first, then the theme's generic hazard_<kind> model, then the built-in look
+      const generic = `hazard_${meta.kind === 'traffic' ? 'car' : meta.kind}`;
+      const kitProp = kit.props[meta.prop] ?? kit.props[generic];
+      const isDefault = meta.prop === generic;
       let body: THREE.Object3D, glow: THREE.Mesh | null = null;
       if (kitProp) {
         const built = kitProp.build(kit.data.palette);
@@ -112,11 +114,12 @@ export class TrackHazards {
         const bands = body as THREE.Mesh; bands.scale.set(s0, s0, s0); grp.add(bands);
         body = grp;
       }
-      // unit → hazard size, in the hazard frame (x across, y up, z along f)
-      if (meta.shape === 'box') body.scale.set(s1, s2, s0);
+      // built-in looks are unit-sized → scale to the hazard size in its frame (x across, y up, z along f);
+      // kit models (L12-hazard-models.md) are authored at real size in the same frame and are used as they are
+      if (kitProp) { /* real size */ }
+      else if (meta.shape === 'box') body.scale.set(s1, s2, s0);
       else if (meta.shape === 'sphere') body.scale.setScalar(s0);
-      else if (capsule) { if (kitProp) body.scale.set(s0, s1, s0); }
-      else body.scale.set(s0, meta.kind === 'geyser' ? 1 : s1, s0);
+      else if (!capsule) body.scale.set(s0, meta.kind === 'geyser' ? 1 : s1, s0);
       (body as THREE.Mesh).castShadow = meta.kind !== 'geyser';
       root.add(body);
       if (glow) {
@@ -133,7 +136,7 @@ export class TrackHazards {
       const mo = def?.motion;
       const flat = mo?.plane === 'flat';
       let arm: THREE.Mesh | null = null, armLen = 0;
-      if (capsule && mo) {
+      if (capsule && mo && !kitProp) { // kit models carry their own rope / limb
         armLen = mo.arm ?? 5;
         arm = new THREE.Mesh(cylUnit(), MaterialLibrary.vertexLit(0.4, 0.6));
         if (flat) { arm.rotation.x = Math.PI / 2; arm.position.z = -armLen / 2; arm.scale.set(0.12, armLen, 0.12); }
