@@ -1,5 +1,5 @@
 // Attention Tether: needs an aim lock (else consumed, "조준 실패"); schedules tether_pull on the user with the hook
-// flight as its lead (12 ticks). The target slot travels in the effect param (low 4 bits).
+// flight as its lead (the fixed SCE lead of 21 ticks, so remote peers get the schedule before S). The target slot travels in the effect param (low 4 bits).
 import type { ItemBehavior } from '../behavior.ts';
 import { useOut } from '../behavior.ts';
 import { DEFAULT_LEAD, applyTo } from '../applies.ts';

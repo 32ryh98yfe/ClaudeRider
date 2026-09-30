@@ -1,4 +1,4 @@
-// Attention Tether (KRD magnet role): 12-tick hook, then the user is pulled toward the locked target. Unblockable; cleared by the target side's Interrupt Pulse.
+// Attention Tether (KRD magnet role): 21-tick hook (the fixed ADR-007 SCE lead; spec §2.2.2 said 12), then the user is pulled toward the locked target. Unblockable; cleared by the target side's Interrupt Pulse.
 import { defineItem } from '../define.ts';
 
 export default defineItem({
@@ -7,7 +7,7 @@ export default defineItem({
   category: 'speed',
   target: 'aim',
   aim: { coneDeg: 18, rangeMin: 25, rangeMax: 150, lockTicks: 21, allowRear: false, allowTeam: true },
-  applies: [{ effect: 'tether_pull', to: 'self', leadTicks: 12 }],
+  applies: [{ effect: 'tether_pull', to: 'self', leadTicks: 21 }],
   blockedBy: [],
   clearedBy: ['pulse'],
   friendlyFire: 'never',
