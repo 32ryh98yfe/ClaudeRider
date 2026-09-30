@@ -46,22 +46,22 @@ describe('jumps (§10.3, §13.5, V11)', () => {
     expect(air).toBeLessThan(72);
   });
 
-  it('landing: the normal speed is removed and v × (1 − min(0.12, 0.01·(v_imp − 6))); a small rebound, one land event', () => {
+  it('landing: the normal speed is removed and v × (1 − min(0.12, 0.01·(v_imp − 6))); no rebound, one land event', () => {
     const kit = jumpKit(2, true);
     const rig = racingRig(kit.track);
     const k = place(rig, 0, { s: kit.lipS - 30, speed: 31.2 });
-    let before = 0, after = -1, impact = 0, lands = 0, landTick = -1, regrounded = -1;
+    let before = 0, after = -1, impact = 0, lands = 0, landTick = -1, airAfter = 0;
     runUntil(rig, 200, (t, ev) => {
       for (const e of ev) if (e.t === 'land') { lands++; if (landTick < 0) { landTick = t; impact = e.impact; after = Math.hypot(k.body.vx, k.body.vz); } }
       if (landTick < 0) before = Math.hypot(k.body.vx, k.body.vz);
-      if (landTick >= 0 && regrounded < 0 && t > landTick && k.body.grounded) regrounded = t;
+      if (landTick >= 0 && !k.body.grounded) airAfter++;
       return t > 150;
     }, (_w, inp) => { inp[0]!.throttle = 0; });
     const f = Math.min(0.12, 0.01 * (impact - 6));
     expect(after / before).toBeCloseTo(1 - f, 2);
     expect(lands).toBe(1);
-    expect(regrounded - landTick).toBeGreaterThan(0);
-    expect(regrounded - landTick).toBeLessThanOrEqual(8);
+    expect(impact).toBeGreaterThan(6);
+    expect(airAfter).toBe(0); // stays on the ground from the touchdown tick (V11's ballistic touchdown point)
   });
 
   it('no ground for > 72 ticks outside a declared jump span respawns; inside one it does not', () => {

@@ -34,7 +34,7 @@ s.connect();
 await s.post('HeapProfiler.enable');
 await s.post('HeapProfiler.startSampling', { samplingInterval: 256, includeObjectsCollectedByMinorGC: true, includeObjectsCollectedByMajorGC: true });
 for (let t = 600; t < ticks; t++) { for (let i = 0; i < 8; i++) unpackInput(log[t * 8 + i]!, frames[i]!); step(w, frames, ctx); }
-const { profile } = await s.post('HeapProfiler.stopSampling') as { profile: { head: Node; samples: { size: number; nodeId: number }[] } };
+const { profile } = await s.post('HeapProfiler.stopSampling') as unknown as { profile: { head: Node; samples: { size: number; nodeId: number }[] } };
 interface Node { id: number; callFrame: { functionName: string; url: string; lineNumber: number }; children: Node[] }
 const byId = new Map<number, Node>();
 const index = (n: Node): void => { byId.set(n.id, n); for (const c of n.children) index(c); };

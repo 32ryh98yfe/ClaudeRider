@@ -62,7 +62,11 @@ export function halfStep(w: WorldState, k: KartState, P: KartParams, ctx: StepCo
   if (T.groundRay(b.px + ux, b.py + uy, b.pz + uz, -ux, -uy, -uz, 2.0, hit) && hit.nx * ux + hit.ny * uy + hit.nz * uz > COS65) {
     const dd = hit.t - 1.0; // + = kart above the surface
     const vnh = b.vx * hit.nx + b.vy * hit.ny + b.vz * hit.nz;
-    accept = dd <= 0 || (was === 1 && dd <= SNAP && vnh <= 2.0);
+    // Ground is one-sided. The ray starts 1 m above the kart, so an airborne kart rising from underneath a road
+    // edge would otherwise be pulled up onto it; it lands only if half a step ago it was on or above the surface
+    // (its distance along the hit normal was ≥ −5 cm).
+    const fromAbove = was === 1 || dd * (hit.nx * ux + hit.ny * uy + hit.nz * uz) - vnh * dt2 >= -0.05;
+    accept = (dd <= 0 && fromAbove) || (was === 1 && dd <= SNAP && vnh <= 2.0);
     if (accept) {
       if (!was && b.airTicks > 0) land(w, k, P, ctx, vnh, hit.nx, hit.ny, hit.nz);
       else {
@@ -93,8 +97,8 @@ export function halfStep(w: WorldState, k: KartState, P: KartParams, ctx: StepCo
 
 /**
  * Landing (§10.2 step 4): the normal speed is removed; above 6 m/s impact the kart loses up to 12% of its speed.
- * A hard landing also rebounds slightly [P]: 8% of the impact above 6 m/s, at most 1.5 m/s, which the coyote grace
- * covers, so the kart keeps control through the hop.
+ * There is no rebound: the kart stays on the ground from the touchdown tick, so the touchdown point is exactly the
+ * ballistic one trackc's V11 check predicts (pure gravity in the air, no drag).
  */
 function land(w: WorldState, k: KartState, P: KartParams, ctx: StepContext, vnh: number, nx: number, ny: number, nz: number): void {
   const b = k.body;
@@ -104,14 +108,9 @@ function land(w: WorldState, k: KartState, P: KartParams, ctx: StepContext, vnh:
     let f = P.landLossPerMps * (imp - P.landSpeed); if (f > P.landLossMax) f = P.landLossMax;
     b.vx *= 1 - f; b.vy *= 1 - f; b.vz *= 1 - f;
   }
-  // tiny re-landings after a rebound are not reported (the client plays one landing per jump)
-  if (imp >= 2 || b.airTicks > 10) ctx.events.push({ t: 'land', kart: k.slot, impact: imp, tick: w.tick, key: evKey(w.tick, 21, k.slot) });
-  bounceV = imp > P.landSpeed ? Math.min(1.5, 0.08 * (imp - P.landSpeed)) : 0;
-  bnx = nx; bny = ny; bnz = nz;
-  b.airTicks = 0; // the rebound hop is a new (short) air phase
+  ctx.events.push({ t: 'land', kart: k.slot, impact: imp, tick: w.tick, key: evKey(w.tick, 21, k.slot) });
+  b.airTicks = 0;
 }
-// rebound requested by land(), applied after the wall pass of the same half-step (never carried across ticks)
-let bounceV = 0, bnx = 0, bny = 1, bnz = 0;
 
 /** Pad surfaces act when the kart enters them (§7.6, §10.3). Set in phase 4, so durations are written +1. */
 function surfaceEntry(w: WorldState, k: KartState, P: KartParams, ctx: StepContext, def: SurfaceDef | undefined): void {
@@ -136,7 +135,7 @@ function walls(w: WorldState, k: KartState, P: KartParams, ctx: StepContext, ms:
   const b = k.body, T = ctx.track, cs = ctx.scratch.contacts;
   const cx = b.px + b.nx * KART_CY, cy = b.py + b.ny * KART_CY, cz = b.pz + b.nz * KART_CY;
   const n = T.sphereWalls(cx, cy, cz, KART_R, cs, cs.length);
-  if (n === 0) { applyBounce(k); return; }
+  if (n === 0) return;
   ms.contactThisTick = true;
   // process in order of decreasing depth (ties: triangle id), allocation-free insertion sort
   const S = CONTACTS_SORTED;
@@ -170,15 +169,6 @@ function walls(w: WorldState, k: KartState, P: KartParams, ctx: StepContext, ms:
     hx /= hl; hy /= hl; hz /= hl;
     wallResponse(w, k, P, ctx, ms, hx, hy, hz, (c.flags & (TFLAG.SOFT | TFLAG.GORE)) !== 0);
   }
-  applyBounce(k);
-}
-
-function applyBounce(k: KartState): void {
-  if (bounceV <= 0) return;
-  const b = k.body;
-  b.vx += bnx * bounceV; b.vy += bny * bounceV; b.vz += bnz * bounceV;
-  b.grounded = 0;
-  bounceV = 0;
 }
 
 /**
@@ -227,8 +217,11 @@ function wallResponse(w: WorldState, k: KartState, P: KartParams, ctx: StepConte
       hx /= hl; hy /= hl; hz /= hl;
       b.fx = hx; b.fy = hy; b.fz = hz;
       orthoForward(k);
-      const sp2 = Math.sqrt(b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
-      b.vx = b.fx * sp2; b.vy = b.fy * sp2; b.vz = b.fz * sp2;
+      // the in-plane velocity follows the realigned nose; the part along the kart's up (a fall) is kept
+      const vu = b.vx * b.nx + b.vy * b.ny + b.vz * b.nz;
+      const ix = b.vx - vu * b.nx, iy = b.vy - vu * b.ny, iz = b.vz - vu * b.nz;
+      const sp2 = Math.sqrt(ix * ix + iy * iy + iz * iz);
+      b.vx = b.fx * sp2 + vu * b.nx; b.vy = b.fy * sp2 + vu * b.ny; b.vz = b.fz * sp2 + vu * b.nz;
     }
     ctx.events.push({ t: 'wall', kart: k.slot, severity: hard ? 2 : 1, x: b.px, y: b.py, z: b.pz, speed: -vn, tick: w.tick, key: evKey(w.tick, 22, k.slot) });
   } else {
