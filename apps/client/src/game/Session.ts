@@ -1,8 +1,8 @@
 // A race session: loads the track, runs the race through a NetClient (prediction + reconciliation) against an
 // authority — the offline RaceRoom in a module Worker (main-thread fallback), or the game server over WebSocket —
 // renders with interpolation and spring-smoothed corrections, and feeds the HUD/audio/VFX.
-// Constructor path (RaceScreen): `new Session(three, tier, opts)`; a pending online race (raceStart) is picked up
-// automatically. Explicit online entry point: `Session.online(three, tier, race)`.
+// Constructor path (RaceScreen): `new Session(three, tier, opts)` for offline races (or `opts.online`).
+// Online entry point: `Session.online(three, tier, race)` with the race taken from `takePendingRace()`.
 import type * as THREE from 'three/webgpu';
 import { loadContent, type CharacterId, type KartBodyId, type ModeId, type TrackId, type AiTier, type TeamFormat, CHARACTER_IDS, KART_BODY_IDS } from '@cr/content';
 import {
@@ -25,7 +25,7 @@ import { lobby } from '../net/lobby.ts';
 import { GhostRecorder, GhostPlayer, ghostConfig, type Ghost } from '@cr/sim/race/ghost.ts';
 import { loadGhost, saveGhost, type GhostData } from '../meta/ghost.ts';
 import { toast as uiToast } from '../ui/store/uiToast.ts';
-import { conn, registerActiveRace, takePendingRace, takeRaceChannel, latestStartTick, type OnlineRaceInfo } from '../net/online.ts';
+import { conn, registerActiveRace, takeRaceChannel, latestStartTick, type OnlineRaceInfo } from '../net/online.ts';
 
 export interface SessionOptions {
   trackId: TrackId; mode: ModeId; tier: AiTier; laps?: number; characterId: CharacterId; kartBodyId: KartBodyId; autopilot?: boolean; simRate?: number; seed?: number;
@@ -86,7 +86,9 @@ export class Session {
 
   constructor(three: THREE.WebGPURenderer, tier: QualityTier, opts: SessionOptions) {
     this.three = three; this.tier = tier; this.opts = opts;
-    this.onlineRace = opts.online ?? takePendingRace();
+    // online only when asked (opts.online / Session.online): an implicit takePendingRace() here let a stale raceStart
+    // hijack a later offline race (L10 report)
+    this.onlineRace = opts.online ?? null;
   }
 
   /** Explicit online entry point (L10's room/queue screens): a Session for a raceStart. */
