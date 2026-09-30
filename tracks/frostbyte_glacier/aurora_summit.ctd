@@ -80,7 +80,7 @@ PAD at=60,1500,1522 d=0 len=6 w=4
 KEYS 200,500,800,1100,1400,1700,2000,2300,2600,2900,3200,3500
 
 # ---- look & dressing (Frostbyte Glacier kit; art bible: 22:00 under the aurora, headlights on) ----
-THEME frostbyte_glacier sky=aurora time=22:00 headlights=on scatter=pine_snow,snowbank,serac,birch density=4 hills=14
+THEME frostbyte_glacier sky=aurora time=22:00 headlights=on scatter=pine_snow,snowbank,serac density=4 hills=14
 PROPS kind=snow_cabin from=2 to=130 side=L every=20 offset=6 jitter=2 seed=101
 PROPS kind=avalanche_net from=136 to=224 side=R every=8 offset=3 seed=102
 PROPS kind=pine_snow from=211 to=606 side=both every=13 offset=5 jitter=5 seed=103
@@ -96,13 +96,12 @@ PROPS kind=pine_snow from=1485 to=1550 side=both every=10 offset=4 seed=112
 PROPS kind=pine_snow from=1661 to=1890 side=both every=13 offset=5 jitter=5 seed=113
 PROPS kind=pine_snow from=1911 to=2047 side=both every=8 offset=2 jitter=2 seed=114
 PROPS kind=snowbank from=2140 to=2204 side=both every=12 offset=3 seed=115
-PROPS kind=birch from=2205 to=2496 side=both every=12 offset=5 jitter=4 seed=116
+PROPS kind=pine_snow from=2205 to=2496 side=both every=12 offset=5 jitter=4 seed=116
 PROPS kind=pine_snow from=2498 to=2596 side=both every=12 offset=5 jitter=4 seed=117
 PROPS kind=snow_cabin from=2634 to=2920 side=both every=26 offset=7 jitter=3 seed=118
 PROPS kind=pine_snow from=2921 to=3108 side=both every=12 offset=5 jitter=4 seed=119
 PROPS kind=snow_cabin from=3110 to=3292 side=both every=20 offset=6 jitter=3 seed=120
-PROPS kind=penguin from=3110 to=3292 side=both every=14 offset=2 jitter=2 seed=121
-PROPS kind=birch from=3373 to=3630 side=both every=13 offset=5 jitter=4 seed=122
+PROPS kind=pine_snow from=3373 to=3630 side=both every=13 offset=5 jitter=4 seed=122
 PROPS kind=snow_cabin from=3690 to=3830 side=both every=18 offset=6 seed=123
 # landmarks: start-gate fairy lights, the gondola line down the mountain, four aurora curtains in the sky, the glacier
 # hairpin crystals, the gully's crystal arches, ski-jump lights, the frozen-lake igloo, the ski lodge, the chapel and
@@ -126,9 +125,6 @@ PROP kind=crystal_arch at=(868.9,-69.5,-355.4) yaw=64 scale=1
 PROP kind=crystal_arch at=(860.1,-70.3,-360.2) yaw=60 scale=1
 PROP kind=fairy_lights at=(778.1,-76.2,-417.1) yaw=55 scale=1
 PROP kind=fairy_lights at=(753.5,-78.0,-434.3) yaw=55 scale=1
-PROP kind=igloo at=(381.9,-94.3,-232.7) yaw=-165 scale=1.2
-PROP kind=snowman at=(339.4,-94.3,-236.8) yaw=15 scale=1.4
-PROP kind=penguin at=(349.8,-94.3,-213.7) yaw=15 scale=1.5
 PROP kind=ski_lodge at=(618.7,-100.3,-566.5) yaw=-148 scale=1
 PROP kind=chapel at=(484.0,-109.3,-107.7) yaw=147 scale=1
 PROP kind=fairy_lights at=(525.3,-102.3,-525.4) yaw=114 scale=1
