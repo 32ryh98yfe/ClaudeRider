@@ -206,6 +206,28 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
       return { geometry: merge(p), material: lit(), castShadow: true };
     },
   },
+  // ---- hazards (drawn by render/track/hazards.ts at real size: x across, y up, z along travel) ------------------
+  hazard_pot_cart: {
+    // bazaar traffic: a toy donkey-less pot cart matching the 4.4 × 2 × 1.8 m traffic contact box
+    build: () => {
+      const p: THREE.BufferGeometry[] = [
+        part(rbox(1.9, 0.5, 3.2, 0.12, 2), '#8a6340', 0, 0.75, -0.3),                   // bed
+        part(rbox(1.95, 0.6, 0.2, 0.06, 1), '#a57a4c', 0, 1.2, -1.85), part(rbox(1.95, 0.6, 0.2, 0.06, 1), '#a57a4c', 0, 1.2, 1.25),
+        part(cyl(0.55, 0.55, 0.16, 14), INK, 1.05, 0.55, -0.6, 0, 0, Math.PI / 2), part(cyl(0.55, 0.55, 0.16, 14), INK, -1.05, 0.55, -0.6, 0, 0, Math.PI / 2),
+        part(cyl(0.2, 0.2, 0.2, 10), GOLD, 1.12, 0.55, -0.6, 0, 0, Math.PI / 2), part(cyl(0.2, 0.2, 0.2, 10), GOLD, -1.12, 0.55, -0.6, 0, 0, Math.PI / 2),
+        part(box(0.1, 0.1, 1.6), '#6b4a33', 0.5, 0.7, 1.9, -0.25, 0, 0), part(box(0.1, 0.1, 1.6), '#6b4a33', -0.5, 0.7, 1.9, -0.25, 0, 0), // shafts
+        part(box(1.9, 0.12, 0.12), TERRA, 0, 0.55, 2.2),
+      ];
+      // a load of glazed pots and a striped canopy
+      const pots = [[-0.5, -1.2], [0.45, -1.1], [0, -0.3], [-0.5, 0.5], [0.5, 0.55]] as const;
+      pots.forEach(([x, z], i) => p.push(part(lathe([[0, 0], [0.3, 0.05], [0.38, 0.35], [0.22, 0.62], [0.16, 0.75]], 10), i % 2 ? TERRA : OASIS, x, 1.0, z)));
+      p.push(part(box(0.08, 1.2, 0.08), '#6b4a33', 0.9, 1.6, -1.7), part(box(0.08, 1.2, 0.08), '#6b4a33', -0.9, 1.6, -1.7));
+      p.push(part(box(2.1, 0.08, 1.4), CREAM, 0, 2.2, -1.2), part(box(2.1, 0.1, 0.3), RUGS[0]!, 0, 2.22, -1.2));
+      return { geometry: merge(p), material: MaterialLibrary.vinyl({ rim: '#ffe2a0', clearcoat: 0.5, roughness: 0.45 }), castShadow: true };
+    },
+  },
 };
+// the traffic default key (`hazard_car`) resolves to the pot cart too, so a HAZ without `prop=` still fits the theme
+SUNSTONE_PROPS['hazard_car'] = SUNSTONE_PROPS['hazard_pot_cart']!;
 
 export const SUNSTONE_PALETTE = { SAND, SANDSTONE, OASIS, TERRA, CREAM } as const;

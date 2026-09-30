@@ -208,6 +208,29 @@ export const FROSTBYTE_PROPS: Record<string, PropFactory> = {
     maxInstances: 200,
     build: () => ({ geometry: merge([part(rbox(0.3, 1.1, 5.6, 0.08, 2), SNOW, 0, 0.55, 0), part(box(0.34, 0.2, 5.62), DEEP, 0, 1.0, 0), part(box(0.34, 0.12, 5.62), RED, 0, 0.15, 0)]), material: lit() }),
   },
+  // ---- hazards (drawn by render/track/hazards.ts at real size: x across, y up, z along travel) ------------------
+  hazard_sled_train: {
+    // penguin sled train: a little snow-plough sled towing a trailer, inside the 4.4 × 2 × 1.8 m traffic contact box
+    build: () => {
+      const p: THREE.BufferGeometry[] = [];
+      for (const [z0, len] of [[0.9, 2.2], [-1.3, 1.6]] as const) {
+        p.push(part(rbox(1.8, 0.45, len, 0.12, 2), RED, 0, 0.45, z0));
+        for (const x of [-0.75, 0.75]) p.push(part(tubeThrough([[x, 0.1, z0 - len / 2], [x, 0.1, z0 + len / 2 - 0.1], [x, 0.4, z0 + len / 2 + 0.15]], 0.05, 8, 4), INK));
+      }
+      p.push(part(box(0.1, 0.1, 0.5), INK, 0, 0.35, -0.15));                                         // tow bar
+      p.push(part(prism(2, 0.7, 0.35), '#f2c14e', 0, 0.35, 2.15, 0.35, 0, 0));                      // plough blade
+      p.push(part(rbox(1.2, 0.8, 0.9, 0.2, 2), DEEP, 0, 1.05, 0.9));                                // seat back / cowl
+      // penguin driver and a penguin passenger
+      for (const [z, s] of [[0.5, 1], [-1.3, 0.85]] as const) {
+        p.push(part(rbox(0.6, 0.8, 0.55, 0.22, 2), INK, 0, 0.95 + 0.4 * s, z, 0, 0, 0, s, s, s), part(rbox(0.1, 0.6, 0.42, 0.04, 1), SNOW, 0, 0.95 + 0.4 * s, z + 0.28 * s, 0, Math.PI / 2, 0, s, s, s));
+        p.push(part(sph(0.26, 10, 8), INK, 0, 1.55 + 0.35 * s, z, 0, 0, 0, s, s, s), part(cone(0.08, 0.22, 5), CARROT, 0, 1.52 + 0.35 * s, z + 0.3 * s, Math.PI / 2, 0, 0, s, s, s));
+      }
+      p.push(part(cyl(0.2, 0.2, 0.08, 10), AURORA_G, 0, 2.05, 0.5));                                   // driver's beanie pompom
+      return { geometry: merge(p), material: toy(), castShadow: true };
+    },
+  },
 };
+// the traffic default key (`hazard_car`) resolves to the sled train too, so a HAZ without `prop=` still fits the theme
+FROSTBYTE_PROPS['hazard_car'] = FROSTBYTE_PROPS['hazard_sled_train']!;
 
 export const FROSTBYTE_PALETTE = { SNOW, ICE, DEEP, AURORA_G, AURORA_V } as const;
