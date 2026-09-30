@@ -10,6 +10,7 @@ import { getThemeKit } from './themes/registry.ts';
 import type { ThemeKit } from './themes/kit.ts';
 import { buildEnvironment, type Environment } from './env/environment.ts';
 import { buildTrackView, type TrackView, type VisMeta } from './track/TrackView.ts';
+import { TrackHazards } from './track/hazards.ts';
 import { createPost, type Post } from './post/pipeline.ts';
 import { withEverythingVisible, finishReveals } from './engine/warm.ts';
 import { CameraDirector } from './camera/CameraDirector.ts';
@@ -60,6 +61,7 @@ export class RaceRenderer {
   private lineAt = new THREE.Vector3();
   private fxAt = new THREE.Vector3();
   private ccM = new THREE.Matrix4();
+  private hazards: TrackHazards | null = null;
   private cap = new FrameCap();
   private dtBank = 0; private skipFrame = false;
   private unsub: (() => void) | null = null;
@@ -107,6 +109,10 @@ export class RaceRenderer {
     setParticleFog(fog.color, fog.near, fog.far);
     this.view = buildTrackView(this.vis, this.track, this.kit, { mergeChunks: this.tier === 'low' ? 3 : this.tier === 'medium' ? 2 : 1, propFar: ts.propFar, foliage: ts.foliage });
     this.scene.add(this.view.root);
+    if (meta.hazards?.length && this.track.hazards.length) {
+      this.hazards = new TrackHazards(meta.hazards, this.track, this.kit);
+      this.scene.add(this.hazards.root);
+    }
     const line = this.view.meta.line;
     if (line) this.lineAt.set(line.x, line.y, line.z);
     this.driving = new DrivingFx(slots.length, ts.particles);
@@ -265,6 +271,7 @@ export class RaceRenderer {
     }
     this.driving.end();
     this.items.update(prev, curr, alpha, this.poses, fxDt, this.t);
+    this.hazards?.update(curr.tick, alpha, fxDt, this.driving.sparks, this.driving.smoke);
     if (this.lights) this.lights.end();
     // personal item boxes for the local player; props culled against last frame's camera
     this.view.update(this.t, (i) => curr.boxRespawn[i * 8 + this.localSlot]! <= curr.tick, cam);
@@ -433,6 +440,7 @@ export class RaceRenderer {
 
   dispose(): void {
     this.unsub?.(); this.unsub = null;
+    this.hazards?.dispose();
     this.setGhost(null);
     this.post.dispose();
     this.env.dispose();

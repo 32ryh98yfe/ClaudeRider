@@ -8,6 +8,7 @@
 import * as THREE from 'three/webgpu';
 import { CVIS_MAGIC, CVIS_VERSION, readContainer, type BakedTrack } from '@cr/sim';
 import { repairTerrain } from './repair.ts';
+import type { HazardVisMeta } from './hazards.ts';
 import type { ThemeKit } from '../themes/kit.ts';
 import type { RoadStyle, WallStyle } from '../materials/library.ts';
 import { PLACEHOLDER_PROP } from '../props/defaults.ts';
@@ -21,6 +22,8 @@ export interface VisMeta {
   bounds: number[];
   line: { x: number; y: number; z: number; fx: number; fy: number; fz: number; w: number };
   theme: Record<string, string>;
+  /** F5 track hazards (L4-vis-v2 §8), same index as CtrkMeta.hazards. */
+  hazards?: HazardVisMeta[];
   lapLength: number;
 }
 
