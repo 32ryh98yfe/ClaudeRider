@@ -20,8 +20,11 @@ import { planLane, type LaneQuery, type LaneResult } from './avoid.ts';
 import { Recovery, type RecoveryIn, type RecoveryOut } from './recovery.ts';
 import { SelfPredictor } from './predict.ts';
 import type { AiDriverArgs, AiItemPolicy, AiItemView, AiRole } from './hooks.ts';
+import { createItemBrain, decideItem, type ItemBrain, type ItemEnv } from './items/index.ts';
 
 const DEG = Math.PI / 180;
+/** A split this far behind the kart's located s still counts as taken (the sim relocates onto the branch late). */
+const FORK_GRACE = 40;
 /** Validated gap-2 controller constants (docs/research/sim-prototype.md aiDriver). */
 const A = {
   Lk0: 6, Lk1: 0.35, trigDeg: 25, trigLook: 40, gripFrac: 0.9, tLead: 0.5, outBias: 0.6, tHead: 0.45, kHead: 2.5, kLatPos: 0.6,
@@ -46,6 +49,8 @@ export interface AiDriverStats {
   boostsFired: number;
   laneChanges: number; overtakeLanes: number; draftFollows: number;
   recoveries: number; resets: number;
+  /** Branch forks passed / taken (14-ai §4.1). */
+  forksSeen: number; forksTaken: number;
   /** Σ|u − line| and Σ signed personality bias, sampled every tick (line accuracy / style metrics). */
   sumAbsLineDev: number; sumBias: number; samples: number;
 }
@@ -69,7 +74,7 @@ class BotDriver implements AiDriverEx {
   readonly role: AiRole;
   readonly stats: AiDriverStats = {
     plans: [0, 0, 0], mistakes: 0, instRolls: 0, instPlanned: 0, boostsFired: 0, laneChanges: 0, overtakeLanes: 0, draftFollows: 0,
-    recoveries: 0, resets: 0, sumAbsLineDev: 0, sumBias: 0, samples: 0,
+    recoveries: 0, resets: 0, forksSeen: 0, forksTaken: 0, sumAbsLineDev: 0, sumBias: 0, samples: 0,
   };
   private readonly track: BakedTrack;
   private readonly content: ContentTables;
@@ -80,6 +85,12 @@ class BotDriver implements AiDriverEx {
   private readonly wantBoxes: boolean;
   private readonly cruiseProfile: EffectiveProfile;
   private readonly pred: SelfPredictor;
+  private readonly brain: ItemBrain | null;
+  private readonly itemEnv: ItemEnv | null;
+  // ---- route (branch choice): per-fork decision for the current lap, and the origin of route-relative queries
+  private readonly forkTake: Uint8Array;
+  private readonly forkLap: Int32Array;
+  private routePath = -1; private routeS0 = 0.5; private onRiskBranch = false;
   private P: KartParams | null = null;
   private grip: Float64Array[] | null = null;
 
@@ -137,7 +148,12 @@ class BotDriver implements AiDriverEx {
     this.pred = new SelfPredictor(this.LA);
     const ip = args.itemPolicy;
     this.item = typeof ip === 'function' ? ip(slot, this.profile, mixSeed(seed, slot, 0x49544d31)) : ip ?? null;
-    this.wantBoxes = this.item !== null || args.mode === 'item';
+    // L2 item brain (ai/items): needs the race config for team rules
+    this.itemEnv = args.cfg ? { track, content, cfg: args.cfg } : null;
+    this.brain = args.cfg && !ghost ? createItemBrain(slot, this.profile, { itemHoarding: pers.itemHoarding, aggression: pers.aggression }, mixSeed(seed, slot, 0x49544d32)) : null;
+    this.wantBoxes = this.item !== null || args.mode === 'item' || args.cfg?.mode === 'item';
+    this.forkTake = new Uint8Array(this.plan.forks.length);
+    this.forkLap = new Int32Array(this.plan.forks.length).fill(-999);
     this.startOffset = args.startOffsetTicks ?? NaN;
     this.laneOff = 0; this.laneTarget = 0; this.noise = 0; this.laneTtc = Infinity; this.laneClosing = 0;
     this.view = {
@@ -151,11 +167,36 @@ class BotDriver implements AiDriverEx {
   }
 
   // ------------------------------------------------------------------------------------------------ sampling
-  /** Resolves (path, s) to a sample pair on the plan: sets rp/ri/rj/rf/rs. Open paths continue on their successor. */
+  /**
+   * Resolves (path, s) to a sample pair on the plan: sets rp/ri/rj/rf/rs. Queries on the bot's current path are
+   * route-relative: past a fork it chose they continue on the branch; past the end of a branch on its host.
+   */
   private at(path: number, s: number): void {
-    let pp = this.plan.paths[path] ?? this.plan.paths[0]!;
+    const paths = this.plan.paths;
+    let pp = paths[path] ?? paths[0]!;
     let ss = s;
-    if (!pp.closed && ss > pp.length && pp.next) { ss = pp.next.s + (ss - pp.length); pp = this.plan.paths[pp.next.path] ?? pp; }
+    let from = path === this.routePath ? this.routeS0 : NaN;
+    for (let hop = 0; hop < 4; hop++) {
+      let moved = false;
+      if (from === from) {
+        const forks = pp.forks;
+        for (let q = 0; q < forks.length; q++) {
+          const f = forks[q]!;
+          if (this.forkTake[f.id] !== 1) continue;
+          // signed distance from the route origin to the split; the sim keeps locating a kart on the host for a
+          // few metres into the branch, so a split up to FORK_GRACE behind still counts as taken
+          let d = f.at - from;
+          if (pp.closed) { const L = pp.length; if (d < -L / 2) d += L; else if (d >= L / 2) d -= L; }
+          if (d >= -FORK_GRACE && from + d <= ss) {
+            ss = f.toS + (ss - (from + d)); from = f.toS + (d < 0 ? -d : 0); pp = paths[f.to] ?? pp; moved = true; break;
+          }
+        }
+      }
+      if (!moved && !pp.closed && pp.next && ss > pp.next.at) {
+        ss = pp.next.s + (ss - pp.next.at); from = pp.next.s; pp = paths[pp.next.path] ?? pp; moved = true;
+      }
+      if (!moved) break;
+    }
     if (pp.closed) { const L = pp.length; ss -= L * Math.floor(ss / L); }
     else if (ss < 0) ss = 0; else if (ss > pp.length) ss = pp.length;
     const x = ss / pp.ds;
@@ -172,6 +213,16 @@ class BotDriver implements AiDriverEx {
     out.steer = 0; out.throttle = 0; out.brake = 0; out.held = 0; out.edges = 0; out.aim = 255; out.emote = 0;
     const k = w.karts[this.slot];
     if (!k || !k.active) return;
+    this.decideDriving(w, k, out);
+    // L2 item brain: the single item call site, after the driving controls are final (it may add item edges, aim
+    // and LOOK_BACK, and counter-steer under Mirror Mode). Never while cruising after the finish or on a kill-risk branch.
+    if (this.brain && this.itemEnv && k.race.finishTick < 0 && this.role !== 'cruise') {
+      decideItem(this.brain, w, this.itemEnv, out);
+      if (this.onRiskBranch) out.edges &= ~Edge.USE_ITEM;
+    }
+  }
+
+  private decideDriving(w: Readonly<WorldState>, k: KartState, out: InputFrame): void {
     if (!this.P) { this.P = paramsFor(this.content.karts.byCode[k.spec]!); this.grip = gripTable(this.plan, this.P); }
     const applyTick = w.tick + 1 + this.LA;
     if (k.stats.respawns !== this.prevRespawns) { this.prevRespawns = k.stats.respawns; this.lastRespawnTick = w.tick; }
@@ -218,20 +269,29 @@ class BotDriver implements AiDriverEx {
     const hx = pr.hx, hy = pr.hy, vx = pr.vx, vy = pr.vy, kx = pr.px, ky = pr.py;
     const v = Math.sqrt(vx * vx + vy * vy);
     const drifting = pr.drift === 1;
-    const path = loc.path;
-    this.at(path, loc.s);
+    const locPath = loc.path;
+    this.routePath = locPath; this.routeS0 = loc.s;
+    this.decideForks(k, prof);
+    this.at(locPath, loc.s);
     const tX0 = this.lerp(this.rp.TX), tY0 = this.lerp(this.rp.TY);
-    // predicted track coordinates: linear step in the current frame, then one re-projection
-    let s = loc.s, u = loc.u;
+    // predicted track coordinates: a linear step in the current frame, then a projection onto the route path
+    // (past a chosen fork the kart is measured against the branch even while the sim still locates it on main)
+    let path = locPath, s = loc.s, u = loc.u;
     {
       const dx = kx - b.px, dy = ky + b.pz;
       s += dx * tX0 + dy * tY0; u += dx * tY0 - dy * tX0;
-      if (this.LA > 0) {
-        this.at(path, s);
+      this.at(locPath, s);
+      if (this.LA > 0 || this.rp.index !== locPath) {
         const cx = this.lerp(this.rp.X), cy = this.lerp(this.rp.Y), tx = this.lerp(this.rp.TX), ty = this.lerp(this.rp.TY);
-        const px = cx + ty * u, py = cy - tx * u;
-        const e1 = kx - px, e2 = ky - py;
-        s += e1 * tx + e2 * ty; u += e1 * ty - e2 * tx;
+        const e1 = kx - cx, e2 = ky - cy;
+        s = this.rs + e1 * tx + e2 * ty; u = e1 * ty - e2 * tx;
+        if (this.rp.index !== locPath) {
+          if (Math.abs(u) > this.lerp(this.rp.WALL) + 1.5 && this.abandonFork(locPath, this.rp.index)) {
+            // not actually in the branch (blocked or missed the gore): stay on the host this lap
+            this.at(locPath, loc.s);
+            s = loc.s + dx * tX0 + dy * tY0; u = loc.u + dx * tY0 - dy * tX0;
+          } else { path = this.rp.index; this.routePath = path; this.routeS0 = s; }
+        }
       }
     }
     this.at(path, s);
@@ -268,14 +328,11 @@ class BotDriver implements AiDriverEx {
     const gripKap = gripGain(v, P) / Math.max(v, 1);
     let dCorner = 1e9, cornerDir = 0, cornerR = 1e9;
     {
-      const pp = ppS, n = pp.n, step = pp.ds;
-      let i = this.ri;
       const thr = A.gripFrac * gripKap;
-      for (let q = 0; q * step <= A.trigLook; q++) {
-        const ke = pp.KEFF[i]!;
-        if ((ke > 0 ? ke : -ke) > thr) { dCorner = q * step; cornerDir = ke > 0 ? 1 : -1; const kk = pp.KAP[i]!; cornerR = 1 / Math.max(1e-6, kk > 0 ? kk : -kk); break; }
-        i++;
-        if (i >= n) { if (pp.closed) i = 0; else break; }
+      for (let q = 0; q <= A.trigLook; q++) {
+        this.at(path, s + q);
+        const ke = this.rp.KEFF[this.ri]!;
+        if ((ke > 0 ? ke : -ke) > thr) { dCorner = q; cornerDir = ke > 0 ? 1 : -1; const kk = this.rp.KAP[this.ri]!; cornerR = 1 / Math.max(1e-6, kk > 0 ? kk : -kk); break; }
       }
     }
     const planDrift = this.cPlan !== DriftPlan.GRIP;
@@ -353,7 +410,7 @@ class BotDriver implements AiDriverEx {
       const style = prof.personality.driftStyle;
       const eExit = style === 'long' ? AI_TUNING.eExit + 0.03 : style === 'chain' ? AI_TUNING.eExit - 0.02 : AI_TUNING.eExit;
       // long corner: hold one drag drift through it (soft counter-steer, no cut) instead of chaining short drifts
-      const holding = !this.cChain && corner !== null && inCorner && this.remainingTurn(corner) > AI_TUNING.holdTurn;
+      const holding = !this.cChain && corner !== null && inCorner && this.remainingTurn(corner, ppS.length) > AI_TUNING.holdTurn;
       if (e < -eExit) {
         if (this.holdExtra > 0) { this.holdExtra--; if (sIn < 0.25) sIn = 0.25; }
         else if (holding) { if (sIn < AI_TUNING.holdMinSIn) sIn = AI_TUNING.holdMinSIn; }
@@ -416,7 +473,7 @@ class BotDriver implements AiDriverEx {
     this.prevBoost = boost;
 
     // ---- lane choice (avoidance / slipstream / overtakes) at the tier's re-plan rate, slewed ≤ 3 m/s
-    if ((w.tick + this.slot) % ex.laneEvalTicks === 0) this.replanLane(w, k, s, u, vS, vU, tXs, tYs, hwT, lineAbs, straightAhead, t40, corner, cornerDist, inCorner, prof);
+    if ((w.tick + this.slot) % ex.laneEvalTicks === 0) this.replanLane(w, k, path, s, u, vS, vU, tXs, tYs, hwT, lineAbs, straightAhead, t40, corner, cornerDist, inCorner, prof);
     const dl = this.laneTarget - this.laneOff, stepL = 3 * DT;
     this.laneOff += dl > stepL ? stepL : dl < -stepL ? -stepL : dl;
 
@@ -435,7 +492,7 @@ class BotDriver implements AiDriverEx {
     }
 
     // ---- mash-out while trapped (hard CC): alternating taps at mashHz with ±1 tick jitter
-    if (k.status.cc !== 0 && applyTick >= this.nextTap) {
+    if (!this.brain && k.status.cc !== 0 && applyTick >= this.nextTap) {
       out.edges |= this.mashDir > 0 ? Edge.TAP_R : Edge.TAP_L;
       this.mashDir = -this.mashDir;
       this.nextTap = applyTick + Math.max(3, Math.round(60 / Math.max(1, prof.mashHz))) + this.rng.int(-1, 1);
@@ -453,6 +510,44 @@ class BotDriver implements AiDriverEx {
       vw.w = w; vw.applyTick = applyTick; vw.highRate = highRate; vw.s = s; vw.u = u; vw.turnAhead40 = t40; vw.straightAhead = straightAhead;
       vw.busy = this.rec.mode !== 0;
       this.item.decideItem(vw, out);
+    }
+  }
+
+  /** Drops this lap's decision to take a fork from `host` onto `to` (true if one was dropped). */
+  private abandonFork(host: number, to: number): boolean {
+    const forks = this.plan.paths[host]?.forks;
+    if (!forks) return false;
+    let any = false;
+    for (let q = 0; q < forks.length; q++) { const f = forks[q]!; if (f.to === to && this.forkTake[f.id] === 1) { this.forkTake[f.id] = 0; any = true; } }
+    return any;
+  }
+
+  /**
+   * Branch choice (14-ai §4.1): for each fork up to 250 m ahead on the current path, once per lap:
+   * take it if shortcutRisk_eff · (0.8 + 0.4·rng) ≥ the branch's aiMinSkill.
+   */
+  private decideForks(k: KartState, prof: EffectiveProfile): void {
+    const pp = this.plan.paths[k.race.loc.path];
+    this.onRiskBranch = false;
+    if (!pp) return;
+    const lapKey = k.race.lap;
+    const s = k.race.loc.s;
+    for (let q = 0; q < pp.forks.length; q++) {
+      const f = pp.forks[q]!;
+      let ahead = f.at - s;
+      if (pp.closed && ahead < 0) ahead += pp.length;
+      if (ahead < 0 || ahead > 250 || this.forkLap[f.id] === lapKey) continue;
+      this.forkLap[f.id] = lapKey;
+      const roll = prof.ghost ? 1 : 0.8 + 0.4 * this.rng.next();
+      const take = prof.shortcutRiskEff * roll >= f.aiMinSkill;
+      this.forkTake[f.id] = take ? 1 : 0;
+      this.stats.forksSeen++;
+      if (take) this.stats.forksTaken++;
+    }
+    // on a kill-risk branch bots keep their items (14-ai §4.1)
+    for (let q = 0; q < this.plan.forks.length; q++) {
+      const f = this.plan.forks[q]!;
+      if (f.to === pp.index && f.kind === 'risk') { this.onRiskBranch = true; break; }
     }
   }
 
@@ -501,11 +596,11 @@ class BotDriver implements AiDriverEx {
   }
 
   /** Heading change left in the corner from the predicted position (rad). */
-  private remainingTurn(c: Corner): number {
+  private remainingTurn(c: Corner, pathLength: number): number {
     const len = c.s1 - c.s0;
     if (len <= 1) return 0;
     let left = c.s1 - this.rsCur;
-    if (left < 0 && left < -len) left += this.rp.length;
+    if (left < 0 && left < -len) left += pathLength;
     return left <= 0 ? 0 : c.turn * Math.min(1, left / len);
   }
 
@@ -534,9 +629,9 @@ class BotDriver implements AiDriverEx {
     return laps * this.track.lapLength - k.race.raceDist;
   }
 
-  private replanLane(w: Readonly<WorldState>, k: KartState, s: number, u: number, vS: number, vU: number, tX: number, tY: number, hwT: number, lineAbs: number, straight: number, t40: number, corner: Corner | null, cornerDist: number, inCorner: boolean, prof: EffectiveProfile): void {
+  private replanLane(w: Readonly<WorldState>, k: KartState, path: number, s: number, u: number, vS: number, vU: number, tX: number, tY: number, hwT: number, lineAbs: number, straight: number, t40: number, corner: Corner | null, cornerDist: number, inCorner: boolean, prof: EffectiveProfile): void {
     const q = this.lq, loc = k.race.loc;
-    q.slot = this.slot; q.sMain = loc.sMain + (s - loc.s); q.path = loc.path; q.u = u; q.vS = vS; q.vU = vU;
+    q.slot = this.slot; q.sMain = loc.sMain + vS * this.LA * DT; q.path = path; q.u = u; q.vS = vS; q.vU = vU;
     // world x/z of the track tangent and right vector (2D Y = −z)
     q.tx = tX; q.tz = -tY; q.rx = tY; q.rz = tX;
     q.hw = hwT; q.lineAbs = lineAbs; q.laneOff = this.laneOff; q.la = this.LA * DT;
@@ -549,8 +644,8 @@ class BotDriver implements AiDriverEx {
     q.draftActive = k.drive.draftTicks > 0;
     q.wish = NaN;
     if (this.item?.laneWish) { this.view.w = w; const wish = this.item.laneWish(this.view); if (wish === wish) q.wish = wish; }
-    else if (this.wantBoxes) q.wish = this.boxWish(k, loc.path, s);
-    if (q.wish !== q.wish) q.wish = this.padWish(loc.path, s);
+    else if (this.wantBoxes) q.wish = this.boxWish(k, path, s);
+    if (q.wish !== q.wish) q.wish = this.padWish(path, s);
     q.horizon = prof.exec.ttcHorizon;
     planLane(w, this.track, q, prof, this.lr);
     const r = this.lr;

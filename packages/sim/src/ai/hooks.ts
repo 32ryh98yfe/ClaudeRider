@@ -2,7 +2,7 @@
 // item-policy hook that lane L2 (sim/src/ai/items/**) implements. The driver never imports L2 code.
 import type { CharacterId, ModeId } from '@cr/content';
 import type { InputFrame } from '../core/input.ts';
-import type { WorldState } from '../core/state.ts';
+import type { RaceConfig, WorldState } from '../core/state.ts';
 import type { BakedTrack } from '../track/BakedTrack.ts';
 import type { AiProfile } from './api.ts';
 import type { AiPersonality, EffectiveProfile } from './profiles.ts';
@@ -60,6 +60,8 @@ export interface AiDriverExtras {
   startOffsetTicks?: number;
   /** Game mode, when the room knows it (item mode: the lane planner steers toward boxes while a slot is free). */
   mode?: ModeId;
+  /** The race config. When given, the driver runs L2's item brain (ai/items decideItem) at the end of decide(). */
+  cfg?: Readonly<Pick<RaceConfig, 'mode' | 'teams' | 'rules' | 'laps'>>;
 }
 
 export type AiDriverArgs = Partial<AiProfile> & AiDriverExtras;
