@@ -139,7 +139,8 @@ class BotDriver implements AiDriverEx {
     slot: 0, sMain: 0.5, path: 0, u: 0.5, vS: 0.5, vU: 0.5, tx: 0.5, tz: 0.5, rx: 0.5, rz: 0.5, hw: 8.5, lineAbs: 0.5, laneOff: 0.5, la: 0.5,
     straight: false, nextCornerDir: 0, nextCornerDist: 0.5, lineWeight: 1.5, draftActive: false, wish: NaN, horizon: 1.5,
   };
-  private readonly lr: LaneResult = { laneOff: 0.5, ttc: 1e9, closing: 0.5, drafting: false, overtaking: false };
+  private readonly lr: LaneResult = { laneOff: 0.5, ttc: 1e9, closing: 0.5, drafting: false, overtaking: false, urgent: false };
+  private laneUrgent = false;
   private readonly view: { -readonly [K in keyof AiItemView]: AiItemView[K] };
 
   constructor(track: BakedTrack, content: ContentTables, slot: number, profile: AiProfile, args: AiDriverArgs, seed: number) {
@@ -502,7 +503,12 @@ class BotDriver implements AiDriverEx {
     if (wantBrake && this.cMistake === Mistake.LATE_BRAKE && this.lateBrakeLeft > 0) { this.lateBrakeLeft--; wantBrake = false; wantCoast = false; }
     if (this.cMistake === Mistake.PANIC_BRAKE && this.panicLeft > 0 && corner && cornerDist < 12 && v > 12) { this.panicLeft--; wantBrake = true; }
     // traffic: never ram a kart ahead (lift, then brake when contact is imminent and no lane is free)
-    if (this.laneTtc < 0.55 && this.laneClosing > 1.5 && !drifting) { if (this.laneTtc < 0.3 && this.laneClosing > 4) wantBrake = true; else wantCoast = true; }
+    // traffic: never ram a kart ahead — lift when contact is near and no lane is free, brake when it is imminent
+    // (also mid-drift: a drift brakes at 14 m/s² and keeps its slide)
+    if (this.laneTtc < 0.6 && this.laneClosing > 1.5) {
+      if (this.laneTtc < 0.35 && this.laneClosing > 3) wantBrake = true;
+      else if (!drifting) wantCoast = true;
+    }
     if (wantBrake) { brk = 1; if (!keepThrottle) thr = 0; }
     else if (wantCoast && !keepThrottle) thr = 0;
 
@@ -514,7 +520,7 @@ class BotDriver implements AiDriverEx {
 
     // ---- lane choice (avoidance / slipstream / overtakes) at the tier's re-plan rate, slewed ≤ 3 m/s
     if ((w.tick + this.slot) % ex.laneEvalTicks === 0) this.replanLane(w, k, path, s, u, vS, vU, tXs, tYs, hwT, lineAbs, straightAhead, t40, corner, cornerDist, inCorner, prof);
-    const dl = this.laneTarget - this.laneOff, stepL = 3 * DT;
+    const dl = this.laneTarget - this.laneOff, stepL = (this.laneUrgent ? 5 : 3) * DT;
     this.laneOff += dl > stepL ? stepL : dl < -stepL ? -stepL : dl;
 
     // ---- recovery (stuck / wrong way)
@@ -696,7 +702,7 @@ class BotDriver implements AiDriverEx {
     if (r.drafting && !this.laneDrafting) this.stats.draftFollows++;
     this.laneDrafting = r.drafting;
     this.laneTarget = r.laneOff;
-    this.laneTtc = r.ttc; this.laneClosing = r.closing;
+    this.laneTtc = r.ttc; this.laneClosing = r.closing; this.laneUrgent = r.urgent;
   }
 
   /** Lateral offset of a boost pad 5–45 m ahead on this path (NaN = none). */

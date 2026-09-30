@@ -29,6 +29,8 @@ export interface LaneQuery {
 }
 
 export interface LaneResult {
+  /** The best lane still has contact inside the horizon: slew faster and be ready to lift. */
+  urgent: boolean;
   /** Chosen lateral target relative to the line (m). */
   laneOff: number;
   /** Time to contact with the kart ahead in the chosen lane (s, Infinity = clear). */
@@ -48,6 +50,8 @@ const candU = new Float64Array(N_CAND);
 const candOk = new Uint8Array(N_CAND);
 const LANE_RATE = 3.0;
 const KART_W = 2.1;
+/** Nose-to-tail distance (centre to centre, m) below which a kart ahead in the lane is treated as closing. */
+const MIN_GAP = 5;
 // per-kart predicted relative state, filled once per re-plan
 const oDs = new Float64Array(8), oU = new Float64Array(8), oVU = new Float64Array(8), oClose = new Float64Array(8);
 const oUse = new Uint8Array(8);
@@ -75,10 +79,14 @@ export function planLane(w: Readonly<WorldState>, track: BakedTrack, q: Readonly
     const ob = o.body;
     const ovS = ob.vx * q.tx + ob.vz * q.tz, ovU = ob.vx * q.rx + ob.vz * q.rz;
     const ds = gap(o.race.loc.sMain - q.sMain, L, circuit) + (ovS - q.vS) * q.la;
-    if (ds < -4 || ds > 30) continue;
+    // the forward cone grows with closing speed (a boosted kart covers 30 m in under 3 s)
+    const reach = Math.min(60, Math.max(30, (q.vS - ovS) * 2.6));
+    if (ds < -4 || ds > reach) continue;
     oUse[j] = 1; anyNear = true;
     oDs[j] = ds; oU[j] = o.race.loc.u + ovU * q.la; oVU[j] = ovU; oClose[j] = q.vS - ovS;
-    if (ds > 1.5 && oClose[j]! > 0.3 && Math.abs(oU[j]! - cur) < KART_W && (ds - 1.8) / oClose[j]! < horizon) blockedCur = true;
+    const cEff = ds < MIN_GAP ? Math.max(oClose[j]!, 2) : oClose[j]!;
+    oClose[j] = cEff;
+    if (ds > 1.5 && cEff > 0.3 && Math.abs(oU[j]! - cur) < KART_W && (ds - 1.8) / cEff < horizon) blockedCur = true;
     if (prof.useDraft && q.straight && ds >= 5 && ds <= 20 && Math.abs(oU[j]! - q.u) < 3 && ds < draftGap) { draftGap = ds; draftU = oU[j]!; }
   }
   // ---- candidates
@@ -90,7 +98,7 @@ export function planLane(w: Readonly<WorldState>, track: BakedTrack, q: Readonly
   if (candOk[C_WISH]) candU[C_WISH] = clamp(q.wish, lim);
   if (!anyNear && !candOk[C_WISH]) {
     // clear road: back to the line (the driver's slew keeps it smooth)
-    res.laneOff = 0; res.ttc = Infinity; res.closing = 0; res.drafting = false; res.overtaking = false;
+    res.laneOff = 0; res.ttc = Infinity; res.closing = 0; res.drafting = false; res.overtaking = false; res.urgent = false;
     return;
   }
 
@@ -104,8 +112,10 @@ export function planLane(w: Readonly<WorldState>, track: BakedTrack, q: Readonly
       if (!oUse[j]) continue;
       const ds = oDs[j]!, closing = oClose[j]!, ou = oU[j]!;
       if (ds > 1.5) {
-        if (closing <= 0.3 && ds > 4) continue;
-        const T = Math.max(0.05, (ds - 1.8) / Math.max(closing, 0.3));
+        // inside the minimum gap a kart counts as closing at ≥ 2 m/s: bots pull out and pass or lift, never tailgate
+        const closeEff = ds < MIN_GAP ? Math.max(closing, 2) : closing;
+        if (closeEff <= 0.3 && ds > 4) continue;
+        const T = Math.max(0.05, (ds - 1.8) / Math.max(closeEff, 0.3));
         if (T > horizon * 2) continue;
         const du = cu - q.u;
         const tLane = Math.abs(du) / LANE_RATE;
@@ -139,6 +149,7 @@ export function planLane(w: Readonly<WorldState>, track: BakedTrack, q: Readonly
   res.closing = bestClosing;
   res.drafting = best === C_DRAFT;
   res.overtaking = blockedCur && best !== C_CUR && best !== C_DRAFT;
+  res.urgent = blockedCur;
 }
 
 const clamp = (x: number, l: number): number => (x > l ? l : x < -l ? -l : x);
