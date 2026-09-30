@@ -1,0 +1,8 @@
+{
+  "name": "@cr/server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": { ".": "./src/index.ts", "./*": "./src/*" },
+  "dependencies": { "@cr/content": "workspace:*", "@cr/sim": "workspace:*", "@cr/net": "workspace:*", "@cr/room": "workspace:*", "ws": "8.22.0" }
+}

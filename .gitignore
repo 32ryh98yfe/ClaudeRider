@@ -1,0 +1,15 @@
+node_modules/
+dist/
+**/generated/
+apps/client/public/tracks/
+apps/client/public/art/overrides/*
+!apps/client/public/art/overrides/README.md
+!apps/client/public/art/overrides/.gitkeep
+art/codex/refs/
+test-results/
+playwright-report/
+.cache/
+*.log
+.DS_Store
+coverage/
+shots/

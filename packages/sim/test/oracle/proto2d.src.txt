@@ -1,0 +1,756 @@
+// ================= ClaudeRider canonical arcade kart sim (headless) =================
+// step() uses only + - * / Math.sqrt Math.abs Math.min Math.max -> bit-reproducible on IEEE-754 engines.
+// Harness code (track building, drivers, AI) may use Math.sin/cos/atan2 (server-only / offline).
+const DT = 1 / (+(process.env.HZ || 60));
+const QW0 = +(process.env.QW0 || 20), QW1 = +(process.env.QW1 || 60); // wall-query search window (segments)
+const KMH = 5.4; // displayed km/h per m/s (3.6 * 1.5)
+const deg = Math.PI / 180;
+const SIN6 = 0.10452846326765347, SIN8 = 0.13917310096006544, SIN15 = 0.25881904510252074;
+const SIN45 = 0.7071067811865476, SIN55 = 0.8191520442889918;
+
+function decayF(k: number): number { const x = k * DT; return 1 / (1 + x * (1 + x * (0.5 + x / 6))); }
+function rotH(hx: number, hy: number, a: number): number[] {
+  const a2 = a * a;
+  const s = a * (1 - (a2 / 6) * (1 - a2 / 20));
+  const c = 1 - (a2 / 2) * (1 - a2 / 12);
+  const nx = c * hx - s * hy, ny = s * hx + c * hy;
+  const n = Math.sqrt(nx * nx + ny * ny);
+  return [nx / n, ny / n];
+}
+
+const BASE: any = {
+  vGrip: 34, vBoost: 44.4, a0: 18, kOver: 0.9, aCoast: 2.5, aBrake: 24, aBrakeDrift: 14,
+  kBoost: 4, aBoostMax: 25, tBoost: 3.0, aStartMax: 30,
+  vInst: 35.7, tInst: 0.5, aInst: 9, instWindow: 0.30, instMinDrift: 0.25, instMinSlip: SIN8,
+  yGrip: 1.55, gripV0: 4, gripV1: 33.5, kYawGrip: 12, kLatGrip: 18, etaGrip: 0.1,
+  driftMinSteer: 0.3, driftMinSpeed: 10, kickR: 1.2, kickAng: 0.06981317007977318, kickLoss: 0.99,
+  y0: 0.6, y0T: 0.6, y1: 1.2, y2: 0.7, kYawDrift: 6, kLatIn: 3.0, kLatNeutral: 5.5, kLatCounter: 9.0, kLatShift: 0.85, etaDrift: 0.8,
+  aDrift: 5, cBeta: 0.8, sBetaMax: SIN55, exitSin: SIN6, exitMinT: 0.12, reDrift: 0.10,
+  rekickR: 0.8, rekickAng: 0.05235987755982988, rekickMinT: 0.15, rekickLoss: 0.99,
+  g0: 0.7, gSlipRef: 0.5, gTau: 1.5, gRecover: 1.0, slots: 2, gaugeOn: 1,
+  wallE: 0.15, wallGrind: 10, wallF15: 0.95, wallF45: 0.70, wallF90: 0.40, wallStun: 0.25, wallGaugeKeep: 0.5,
+  kartHalfW: 0.8, accelShape: 2,
+};
+const OV: any = JSON.parse(process.env.OV || '{}');
+const P0: any = Object.assign({}, BASE, OV);
+
+function newKart(x: number, y: number, hx: number, hy: number, v: number): any {
+  return { px: x, py: y, hx, hy, vx: hx * v, vy: hy * v, r: 0, drift: 0, dDir: 1, dT: 0, dPeak: 0, reDriftT: 0,
+    gauge: 0, gT: 0, boosters: 0, boostT: 0, startT: 0, instWinT: 0, instT: 0, stunT: 0,
+    prevThr: 1, prevDrift: false, prevBoost: false, wallC: false, hint: 0, s: 0, d: 0,
+    hits: 0, hitSin: 0, gTot: 0, inst: 0, drifts: 0, spinT: 0 };
+}
+
+// ------------------------------------------------------------------ step()
+function step(k: any, inp: any, P: any, trk: any) {
+  const dt = DT;
+  k.boostT = k.boostT > dt ? k.boostT - dt : 0;
+  k.startT = k.startT > dt ? k.startT - dt : 0;
+  k.instT = k.instT > dt ? k.instT - dt : 0;
+  k.instWinT = k.instWinT > dt ? k.instWinT - dt : 0;
+  k.stunT = k.stunT > dt ? k.stunT - dt : 0;
+  k.reDriftT = k.reDriftT > dt ? k.reDriftT - dt : 0;
+  k.spinT = k.spinT > dt ? k.spinT - dt : 0;
+  const stunned = k.stunT > 0;
+  const thrIn = inp.thr > 0 ? 1 : 0;
+  const thr = stunned ? 0 : thrIn;
+  const thrEdge = thrIn === 1 && k.prevThr === 0;
+  const driftEdge = inp.drift && !k.prevDrift;
+  const boostEdge = inp.boost && !k.prevBoost;
+  const steer = inp.steer > 1 ? 1 : inp.steer < -1 ? -1 : inp.steer;
+  let hx = k.hx, hy = k.hy;
+  let u = k.vx * hx + k.vy * hy;
+  if (k.drift === 0) {
+    if (inp.drift && (steer >= P.driftMinSteer || steer <= -P.driftMinSteer) && u >= P.driftMinSpeed && k.reDriftT <= 0 && !stunned) {
+      k.drift = 1; k.dDir = steer > 0 ? 1 : -1; k.dT = 0; k.dPeak = 0; k.drifts++;
+      k.r += k.dDir * P.kickR;
+      const hr = rotH(hx, hy, k.dDir * P.kickAng); hx = hr[0]; hy = hr[1];
+      k.vx *= P.kickLoss; k.vy *= P.kickLoss;
+    }
+  } else if (driftEdge && k.dT >= P.rekickMinT) {
+    k.r += k.dDir * P.rekickR;
+    const hr = rotH(hx, hy, k.dDir * P.rekickAng); hx = hr[0]; hy = hr[1];
+    k.vx *= P.rekickLoss; k.vy *= P.rekickLoss;
+  }
+  u = k.vx * hx + k.vy * hy;
+  let v: number;
+  const sIn = steer * k.dDir;
+  let rT: number;
+  if (k.drift === 0) {
+    const vv = u > 0 ? u : 0; const q = vv / P.gripV1;
+    rT = steer * P.yGrip * vv / (vv + P.gripV0) / (1 + q * q);
+    if (u < -0.5) rT = -steer * P.yGrip * 0.5 * (-u) / (-u + P.gripV0);
+  } else {
+    rT = k.dDir * (P.y0 / (1 + k.dT / P.y0T) + P.y1 * sIn + (inp.drift ? P.y2 : 0));
+  }
+  if (stunned) rT *= 0.3;
+  k.r += (rT - k.r) * (1 - decayF(k.drift === 0 ? P.kYawGrip : P.kYawDrift));
+  { const hr = rotH(hx, hy, k.r * dt); hx = hr[0]; hy = hr[1]; }
+  u = k.vx * hx + k.vy * hy;
+  let w = -k.vx * hy + k.vy * hx;
+  v = Math.sqrt(u * u + w * w);
+  let kL: number, eta: number;
+  if (k.drift === 0) { kL = P.kLatGrip; eta = P.etaGrip; }
+  else {
+    eta = P.etaDrift;
+    if (sIn >= 0.3) kL = P.kLatNeutral + (P.kLatIn - P.kLatNeutral) * ((sIn - 0.3) / 0.7); else if (sIn > -0.3) kL = P.kLatNeutral;
+    else kL = P.kLatNeutral + (P.kLatCounter - P.kLatNeutral) * ((-sIn - 0.3) / 0.7);
+    if (inp.drift) kL *= P.kLatShift;
+  }
+  const w2 = w * decayF(kL);
+  const vRaw = Math.sqrt(u * u + w2 * w2);
+  if (vRaw > 1e-6) { const f = (vRaw + eta * (v - vRaw)) / vRaw; u *= f; w = w2 * f; } else w = w2;
+  v = Math.sqrt(u * u + w * w);
+  if (k.drift === 1) { const sm = P.sBetaMax * v; if (w > sm || w < -sm) { w = w > 0 ? sm : -sm; u = Math.sqrt(v * v - w * w); } }
+  let sb = 0;
+  // gauge fatigue timer: grows while drifting, recovers at gRecover s/s when not -> chopping a corner into many drifts gains nothing
+  if (k.drift === 1) k.gT += dt; else { k.gT -= P.gRecover * dt; if (k.gT < 0) k.gT = 0; }
+  if (k.drift === 1) {
+    sb = v > 0.1 ? -k.dDir * w / v : 0;
+    k.dT += dt; if (sb > k.dPeak) k.dPeak = sb;
+    if (P.gaugeOn > 0 && v >= 10 && sb > 0 && !k.wallC) {
+      let sl = sb / P.gSlipRef; if (sl > 1) sl = 1; sl = Math.sqrt(sl);
+      const dg = P.g0 * sl * (v / P.vGrip) / (1 + k.gT / P.gTau) * dt;
+      k.gauge += dg; k.gTot += dg;
+      if (k.gauge >= 1) { if (k.boosters < P.slots) { k.boosters++; k.gauge -= 1; } else k.gauge = 1; }
+    }
+    if ((k.dT >= P.exitMinT && sb < P.exitSin) || u < 5) {
+      k.drift = 0; k.reDriftT = P.reDrift;
+      if (k.dT >= P.instMinDrift && k.dPeak >= P.instMinSlip) k.instWinT = P.instWindow;
+    }
+  }
+  if (k.instWinT > 0 && thrEdge) { k.instT = P.tInst; k.instWinT = 0; k.inst++; }
+  if (boostEdge && k.boosters > 0 && k.boostT < 0.25) { k.boosters--; k.boostT += P.tBoost; }
+  const boosting = k.boostT > 0 || k.startT > 0;
+  const vT = boosting ? P.vBoost : P.vGrip;
+  let a = 0;
+  const instOn = k.instT > 0 && !boosting && u < P.vInst;
+  if (thr === 1) {
+    if (u < vT) {
+      if (boosting) {
+        a = P.kBoost * (vT - u); const cap = k.startT > 0 ? P.aStartMax : P.aBoostMax; if (a > cap) a = cap;
+        const base = P.a0 * (1 - u / P.vGrip); if (a < base) a = base;
+      } else { const q = u / vT; a = P.a0 * (1 - (P.accelShape === 2 ? q * q : q)); if (k.drift === 1 && a > P.aDrift) a = P.aDrift; }
+      if (instOn && a < P.aInst) a = P.aInst;
+    } else {
+      a = -P.kOver * (u - vT);
+      if (instOn) a = P.aInst;
+    }
+    if (k.spinT > 0) a *= 0.3;
+  } else {
+    a = -P.aCoast; if (u > vT) a -= P.kOver * (u - vT);
+  }
+  if (inp.brk > 0 && u > 0) a = -(k.drift === 1 ? P.aBrakeDrift : P.aBrake);
+  let uN = u + a * dt;
+  if ((thr === 0 || inp.brk > 0) && u >= 0 && uN < 0) uN = 0;
+  u = uN;
+  if (k.drift === 1 && sb > 0) { let f = 1 - P.cBeta * sb * sb * dt; if (f < 0) f = 0; u *= f; w *= f; }
+  k.vx = u * hx - w * hy; k.vy = u * hy + w * hx;
+  k.px += k.vx * dt; k.py += k.vy * dt;
+  k.hx = hx; k.hy = hy;
+  if (trk) wall(k, P, trk);
+  k.prevThr = thrIn; k.prevDrift = inp.drift; k.prevBoost = inp.boost;
+}
+
+function wall(k: any, P: any, trk: any) {
+  const q = trk.query(k.px, k.py, k.hint); k.hint = q.i; k.s = q.s; k.d = q.d;
+  const lim = trk.hw - P.kartHalfW;
+  let contact = false;
+  if (q.d > lim || q.d < -lim) {
+    contact = true;
+    const side = q.d > 0 ? 1 : -1;
+    const nx = side * q.ty, ny = -side * q.tx;
+    const pen = (side > 0 ? q.d : -q.d) - lim;
+    k.px += nx * pen; k.py += ny * pen;
+    const vn = k.vx * nx + k.vy * ny;
+    if (vn < 0) {
+      const sp = Math.sqrt(k.vx * k.vx + k.vy * k.vy);
+      const sinT = -vn / sp;
+      let tx = k.vx - vn * nx, ty = k.vy - vn * ny;
+      const tsp = Math.sqrt(tx * tx + ty * ty);
+      if (!k.wallC && sinT >= SIN15) {
+        k.hits++; k.hitSin = sinT > k.hitSin ? sinT : k.hitSin; if (sinT >= SIN45) k.hard = (k.hard || 0) + 1; else k.mid = (k.mid || 0) + 1;
+        let f: number;
+        if (sinT < SIN45) f = P.wallF15 + (P.wallF45 - P.wallF15) * (sinT - SIN15) / (SIN45 - SIN15); else f = P.wallF90;
+        tx *= f; ty *= f;
+        k.vx = tx - P.wallE * vn * nx; k.vy = ty - P.wallE * vn * ny;
+        if (k.drift === 1) { k.drift = 0; k.gauge *= P.wallGaugeKeep; k.reDriftT = P.reDrift; }
+        k.instT = 0; k.instWinT = 0;
+        if (sinT >= SIN45) {
+          k.stunT = P.wallStun; k.boostT = 0; k.r = 0;
+          // hard hit: nose re-aligned along the wall (track-forward side), slightly away from it
+          const ht = k.hx * q.tx + k.hy * q.ty; const sg = ht >= -0.1 ? 1 : -1;
+          let hx = sg * q.tx + 0.3 * nx, hy = sg * q.ty + 0.3 * ny; const hl = Math.sqrt(hx * hx + hy * hy); k.hx = hx / hl; k.hy = hy / hl;
+          const sp2 = Math.sqrt(k.vx * k.vx + k.vy * k.vy); k.vx = k.hx * sp2; k.vy = k.hy * sp2;
+        }
+      } else {
+        if (!k.wallC) { k.hits++; k.hitSin = sinT > k.hitSin ? sinT : k.hitSin; }
+        let f = tsp > 0.01 ? 1 - P.wallGrind * DT / tsp : 0; if (f < 0) f = 0;
+        k.vx = tx * f; k.vy = ty * f;
+      }
+      if (sinT < SIN45) { // glancing/grind: nose is turned parallel to the wall (no trig: project heading)
+        const hn = k.hx * nx + k.hy * ny;
+        if (hn < 0) { let hx = k.hx - hn * nx, hy = k.hy - hn * ny; const hl = Math.sqrt(hx * hx + hy * hy); if (hl > 1e-6) { k.hx = hx / hl; k.hy = hy / hl; } k.r = 0; }
+      }
+    }
+  }
+  k.wallC = contact;
+}
+
+// ------------------------------------------------------------------ track (polyline corridor)
+class Track {
+  x: Float64Array; y: Float64Array; tx: Float64Array; ty: Float64Array; s: Float64Array; n: number; hw: number;
+  constructor(px: number[], py: number[], hw: number) {
+    const n = px.length; this.n = n; this.hw = hw;
+    this.x = Float64Array.from(px); this.y = Float64Array.from(py);
+    this.tx = new Float64Array(n); this.ty = new Float64Array(n); this.s = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      const j = i < n - 1 ? i + 1 : i, m = i < n - 1 ? i : i - 1;
+      const dx = this.x[j] - this.x[m], dy = this.y[j] - this.y[m]; const L = Math.sqrt(dx * dx + dy * dy);
+      this.tx[i] = dx / L; this.ty[i] = dy / L;
+      if (i > 0) { const ex = this.x[i] - this.x[i - 1], ey = this.y[i] - this.y[i - 1]; this.s[i] = this.s[i - 1] + Math.sqrt(ex * ex + ey * ey); }
+    }
+  }
+  query(px: number, py: number, hint: number) {
+    let best = 0, bd = 1e30, bt = 0;
+    const W0 = QW0, W1 = QW1; const i0 = hint - W0 > 0 ? hint - W0 : 0, i1 = hint + W1 < this.n - 2 ? hint + W1 : this.n - 2;
+    for (let i = i0; i <= i1; i++) {
+      const ax = this.x[i], ay = this.y[i], ex = this.x[i + 1] - ax, ey = this.y[i + 1] - ay;
+      const L2 = ex * ex + ey * ey; let t = ((px - ax) * ex + (py - ay) * ey) / L2; t = t < 0 ? 0 : t > 1 ? 1 : t;
+      const qx = ax + ex * t - px, qy = ay + ey * t - py; const d2 = qx * qx + qy * qy;
+      if (d2 < bd) { bd = d2; best = i; bt = t; }
+    }
+    const i = best; const tx = this.tx[i], ty = this.ty[i];
+    const d = tx * (py - this.y[i]) - ty * (px - this.x[i]);
+    return { i, s: this.s[i] + bt * (this.s[i + 1] - this.s[i]), d, tx, ty };
+  }
+  pointAt(s: number) {
+    if (s <= 0) return { x: this.x[0], y: this.y[0], tx: this.tx[0], ty: this.ty[0] };
+    const n = this.n; if (s >= this.s[n - 1]) return { x: this.x[n - 1], y: this.y[n - 1], tx: this.tx[n - 1], ty: this.ty[n - 1] };
+    let lo = 0, hi = n - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (this.s[m] <= s) lo = m; else hi = m; }
+    const t = (s - this.s[lo]) / (this.s[hi] - this.s[lo]);
+    return { x: this.x[lo] + (this.x[hi] - this.x[lo]) * t, y: this.y[lo] + (this.y[hi] - this.y[lo]) * t, tx: this.tx[lo], ty: this.ty[lo] };
+  }
+  length() { return this.s[this.n - 1]; }
+}
+
+function buildPath(segs: any[], ds = 0.5) {
+  const xs = [0], ys = [0]; let x = 0, y = 0, psi = 0, s = 0; const marks: number[] = [];
+  for (const g of segs) {
+    marks.push(s);
+    if (g.R === undefined) {
+      const n = Math.max(1, Math.round(g.L / ds)), d = g.L / n;
+      for (let i = 0; i < n; i++) { x += Math.cos(psi) * d; y += Math.sin(psi) * d; xs.push(x); ys.push(y); }
+      s += g.L;
+    } else {
+      const ang = g.A * deg, len = Math.abs(ang) * g.R, n = Math.max(2, Math.round(len / ds)), sg = ang > 0 ? 1 : -1;
+      const cx = x - sg * Math.sin(psi) * g.R, cy = y + sg * Math.cos(psi) * g.R;
+      const th0 = Math.atan2(y - cy, x - cx);
+      for (let i = 1; i <= n; i++) { const th = th0 + ang * i / n; x = cx + g.R * Math.cos(th); y = cy + g.R * Math.sin(th); xs.push(x); ys.push(y); }
+      psi += ang; s += len;
+    }
+  }
+  marks.push(s);
+  return { xs, ys, marks };
+}
+
+// racing line (outer -> inner apex -> outer) for a left corner starting at (L1,0) heading +x
+function racingLine(L1: number, Rc: number, D: number, hw: number, m: number) {
+  const Ro = Rc + hw - m, Ri = Rc - hw + m, h = D * deg / 2, c = Math.cos(h);
+  const RL = D >= 179.9 ? Ro : (Ro - Ri * c) / (1 - c);
+  const lam = D >= 179.9 ? (Ro - Ri) : (RL - Ro) / c;
+  const Cx = L1 + lam * -Math.sin(h), Cy = Rc + lam * Math.cos(h);
+  const xs: number[] = [], ys: number[] = [];
+  const y0 = -(hw - m);
+  for (let x = 0; x < Cx; x += 0.5) { xs.push(x); ys.push(y0); }
+  const n = Math.max(4, Math.round(RL * D * deg / 0.5)); let s0 = xs.length * 0.5;
+  for (let i = 0; i <= n; i++) { const th = -Math.PI / 2 + D * deg * i / n; xs.push(Cx + RL * Math.cos(th)); ys.push(Cy + RL * Math.sin(th)); }
+  const ex = Math.cos(D * deg), ey = Math.sin(D * deg); const lx = xs[xs.length - 1], ly = ys[ys.length - 1];
+  for (let i = 1; i <= 600; i++) { xs.push(lx + ex * 0.5 * i); ys.push(ly + ey * 0.5 * i); }
+  const trk = new Track(xs, ys, hw);
+  const qa = trk.query(Cx, Cy - RL, Math.max(0, Math.floor(Cx / 0.5) - 10));
+  return { trk, RL, s0: qa.s, s1: qa.s + RL * D * deg };
+}
+
+// ------------------------------------------------------------------ driver helpers (harness)
+const hyp = (a: number, b: number) => Math.sqrt(a * a + b * b);
+function gripGain(v: number, P: any) { const vv = v > 0 ? v : 0; const q = vv / P.gripV1; return P.yGrip * vv / (vv + P.gripV0) / (1 + q * q); }
+function gripSteer(r: number, v: number, P: any) { const g = gripGain(v, P); const s = g > 1e-3 ? r / g : 0; return s > 1 ? 1 : s < -1 ? -1 : s; }
+function pursuit(k: any, ref: Track, st: any, L: number) {
+  const q = ref.query(k.px, k.py, st.hint); st.hint = q.i;
+  const g = ref.pointAt(q.s + L);
+  const dx = g.x - k.px, dy = g.y - k.py; const dist = hyp(dx, dy);
+  const alpha = Math.atan2(-dx * k.hy + dy * k.hx, dx * k.hx + dy * k.hy);
+  return { kappa: 2 * Math.sin(alpha) / Math.max(dist, 1), q, alpha };
+}
+const inp0 = () => ({ thr: 1, brk: 0, steer: 0, drift: false, boost: false });
+
+// ------------------------------------------------------------------ corner harness
+function makeCorner(Rc: number, D: number, hw: number) {
+  const L1 = 200; const b = buildPath([{ L: L1 }, { R: Rc, A: D }, { L: 260 }]);
+  const trk = new Track(b.xs, b.ys, hw);
+  const rl = racingLine(L1, Rc, D, hw, 1.5);
+  const app = new Track([0, 600], [-(hw - 1.5), -(hw - 1.5)], hw);
+  const appMid = new Track([0, 600], [0, 0], hw);
+  return { trk, rl, app, appMid, arcStart: b.marks[1], arcEnd: b.marks[2], turn: D * deg, Rc, D, hw };
+}
+
+function runCorner(cfg: any, vE: number, driver: any, P: any) {
+  const k = newKart(60, -(cfg.hw - 1.5), 1, 0, vE);
+  const trkq = cfg.trk.query(k.px, k.py, 0); k.hint = trkq.i; k.s = trkq.s;
+  if (vE > P.vGrip + 0.1) k.boostT = 60;
+  const gA = cfg.arcStart - 40, gB = cfg.arcEnd + 60, gX = cfg.arcEnd + 15;
+  let tA = -1, tB = -1, vX = -1, vMin = 1e9, g0 = 0, contact = 0, maxSin = 0;
+  for (let tick = 0; tick < 60 * 40; tick++) {
+    const inp = driver(k, tick);
+    step(k, inp, P, cfg.trk);
+    const v = hyp(k.vx, k.vy);
+    if (k.hits > 0 && !contact) contact = 1;
+    if (tA < 0 && k.s >= gA) { tA = tick; g0 = k.gTot; }
+    if (tA >= 0 && tB < 0) vMin = Math.min(vMin, v);
+    if (vX < 0 && k.s >= gX) vX = v;
+    if (tB < 0 && k.s >= gB) { tB = tick; break; }
+  }
+  return { ok: tB > 0 && k.hits === 0, fin: tB > 0, time: tB > 0 ? (tB - tA) * DT : 99, vX, vMin, gauge: k.gTot - g0, inst: k.inst, hits: k.hits, hitSin: k.hitSin, drifts: k.drifts };
+}
+
+function driftDriver(cfg: any, vE: number, plan: any, P: any) {
+  let ph = 0, t0 = 0, psiAcc = 0, psiPrev = 0; const st = { hint: 0 }, st2 = { hint: 0 }; let rekDone = false;
+  return (k: any, tick: number) => {
+    const t = tick * DT;
+    const psi = Math.atan2(k.hy, k.hx); let dp = psi - psiPrev; if (dp > Math.PI) dp -= 2 * Math.PI; if (dp < -Math.PI) dp += 2 * Math.PI; psiAcc += dp; psiPrev = psi;
+    const v = hyp(k.vx, k.vy);
+    const inp = inp0();
+    if (ph === 0) {
+      const pp = pursuit(k, plan.mid ? cfg.appMid : cfg.app, st, 5 + 0.3 * v); inp.steer = gripSteer(pp.kappa * v, v, P);
+      inp.thr = v < vE ? 1 : 0;
+      const sTr = cfg.arcStart - plan.dTrig;
+      if (plan.vBr < vE - 0.01) {
+        const need = Math.sqrt(plan.vBr * plan.vBr + 2 * 0.9 * P.aBrake * Math.max(0, sTr - k.s));
+        if (v > need) { inp.brk = 1; inp.thr = 0; } else if (v > plan.vBr + 0.2 && sTr - k.s < 30) inp.thr = 0;
+      }
+      if (k.s >= sTr) { ph = 1; t0 = t; }
+    }
+    if (ph >= 1 && ph <= 3) {
+      const rem = cfg.turn - psiAcc;
+      if (ph === 1) { inp.drift = true; inp.steer = plan.sD; if (t - t0 >= plan.tSh) ph = 2; if (t - t0 > 0.3 && k.drift === 0) ph = 4; }
+      else if (ph === 2) {
+        inp.steer = plan.sD;
+        if (plan.rek > 0 && !rekDone && t - t0 >= plan.rek) { inp.drift = true; rekDone = true; }
+        if (rem <= plan.phiCs * deg) ph = 3;
+        if (k.drift === 0) ph = 4;
+      }
+      if (ph === 3) { inp.steer = -plan.cCs; inp.thr = plan.inst ? 0 : 1; if (k.drift === 0) ph = 4; }
+    }
+    if (ph === 4) { const pp = pursuit(k, cfg.trk, st2, 6 + 0.35 * v); inp.steer = gripSteer(pp.kappa * v, v, P); inp.thr = 1; }
+    return inp;
+  };
+}
+
+function gripDriver(cfg: any, vE: number, vC: number, P: any) {
+  const st = { hint: 0 }; const rl = cfg.rl;
+  return (k: any, tick: number) => {
+    const v = hyp(k.vx, k.vy); const inp = inp0();
+    const pp = pursuit(k, rl.trk, st, 4 + 0.25 * v); inp.steer = gripSteer(pp.kappa * v, v, P);
+    const sR = pp.q.s;
+    if (sR < rl.s1) {
+      const allowed = sR < rl.s0 ? Math.sqrt(vC * vC + 2 * 0.85 * P.aBrake * (rl.s0 - sR)) : vC;
+      const lim = Math.min(vE, allowed);
+      if (v > lim + 0.3) { inp.brk = 1; inp.thr = 0; } else inp.thr = v < lim ? 1 : 0;
+    }
+    return inp;
+  };
+}
+
+function bestDrift(cfg: any, vE: number, P: any, allowBrake = true) {
+  const dTr = [-6, -2, 2, 6, 10, 15, 20, 28], tSh = [0.05, 0.1, 0.18, 0.3], sD = [0.45, 0.7, 1.0], phi = [0, 10, 20, 30, 45, 60], cCs = [0.6, 1.0];
+  const reks = cfg.D >= 135 ? [0, 0.3, 0.5] : [0];
+  const brakes = allowBrake ? [1, 0.9, 0.8, 0.7, 0.6] : [1];
+  let best: any = null;
+  for (const bf of brakes) {
+    for (const a of dTr) for (const b of tSh) for (const c of sD) for (const d of phi) for (const e of cCs) for (const r of reks) {
+      const plan = { dTrig: a, tSh: b, sD: c, phiCs: d, cCs: e, rek: r, vBr: vE * bf, inst: true };
+      const res: any = runCorner(cfg, vE, driftDriver(cfg, vE, plan, P), P);
+      if (res.ok && (!best || res.time < best.time)) { best = res; best.plan = plan; }
+    }
+    if (best) break;
+  }
+  return best;
+}
+function bestGrip(cfg: any, vE: number, P: any) {
+  for (let vC = vE; vC >= 6; vC -= 0.5) {
+    const res: any = runCorner(cfg, vE, gripDriver(cfg, vE, vC, P), P);
+    if (res.ok) { res.vC = vC; return res; }
+  }
+  return null;
+}
+const CLUMSY = { dTrig: 0, tSh: 0.6, sD: 1.0, phiCs: 0, cCs: 1.0, rek: 0, vBr: 1e9, inst: false, mid: true };
+// "clumsy long drift": shift held >= 0.5 s, full steer, late counter-steer, no instant boost, no braking.
+// Trigger point / approach line are chosen to stay off the walls when possible (a long drift, not a crash).
+function bestClumsy(cfg: any, vE: number, P: any) {
+  let best: any = null, bestHit: any = null;
+  for (const dTrig of [-4, 0, 4, 8, 12, 16, 20, 25, 30]) for (const tSh of [0.5, 0.7, 0.9]) for (const phiCs of [-10, 0]) for (const mid of [true, false]) {
+    const plan = { dTrig, tSh, sD: 1.0, phiCs, cCs: 1.0, rek: 0, vBr: 1e9, inst: false, mid };
+    const res: any = runCorner(cfg, vE, driftDriver(cfg, vE, plan, P), P); res.plan = plan;
+    if (res.ok) { if (!best || res.time < best.time) best = res; }
+    else if (res.fin && (!bestHit || res.time < bestHit.time)) bestHit = res;
+  }
+  return best || bestHit;
+}
+
+// ------------------------------------------------------------------ AI: pure pursuit + drift trigger + curvature speed profile
+function aiDriver(center: Track, P: any, cfgAI: any = {}) {
+  const A = Object.assign({ Lk0: 6, Lk1: 0.35, trigDeg: 25, trigLook: 40, omegaCap: 1.7, rBias: 0.6, brakeFrac: 0.8, shTap: 0.1, useBoost: true, gripFrac: 0.9,
+    tLead: 0.5, outBias: 0.6, tHead: 0.45, kHead: 2.5, kLatPos: 0.6, eExit: 0.05, ehShift: 0.4, rekT: 0.3, ehRekick: 0.8, sInMax: 0.8, sbHi: 0.42, sbShiftMax: 0.4, outBite: 0.35, hairpinCap: 1.0, hairpinTurn: 2.2, tPred: 0.25, rLead: 25 }, cfgAI);
+  const st = { hint: 0 }; let shT = 0; let prevBoost = false; let rek = 0;
+  return (k: any, tick: number) => {
+    const v = hyp(k.vx, k.vy); const inp = inp0();
+    const q = center.query(k.px, k.py, st.hint); st.hint = q.i;
+    const L = A.Lk0 + A.Lk1 * v;
+    const g = center.pointAt(q.s + L);
+    const dx = g.x - k.px, dy = g.y - k.py; const dist = Math.max(1, hyp(dx, dy));
+    const aH = Math.atan2(-dx * k.hy + dy * k.hx, dx * k.hx + dy * k.hy);
+    const vxn = v > 0.5 ? k.vx / v : k.hx, vyn = v > 0.5 ? k.vy / v : k.hy;
+    const aV = Math.atan2(-dx * vyn + dy * vxn, dx * vxn + dy * vyn);
+    const t0 = center.pointAt(q.s), t1 = center.pointAt(q.s + A.trigLook);
+    const dPsi = Math.atan2(t0.tx * t1.ty - t0.ty * t1.tx, t0.tx * t1.tx + t0.ty * t1.ty);
+    let vLim = 99;
+    const crs: number[] = []; let turnSum = 0;  // |heading change| in the next 90 m: long/hairpin corners get a lower yaw budget
+    for (let s = 0; s <= 90; s += 2) {
+      const a = center.pointAt(q.s + s - 2), b = center.pointAt(q.s + s + 2);
+      const cr = Math.abs(Math.atan2(a.tx * b.ty - a.ty * b.tx, a.tx * b.tx + a.ty * b.ty)) / 4; crs.push(cr); turnSum += cr * 2;
+    }
+    const cap = turnSum > A.hairpinTurn ? A.hairpinCap : A.omegaCap;
+    for (let i = 0; i < crs.length; i++) {
+      const cr = crs[i], s = i * 2;
+      if (cr > 1e-4) { const va = cap * (1 / cr + A.rBias * center.hw); const vr = Math.sqrt(va * va + 2 * A.brakeFrac * P.aBrake * s); if (vr < vLim) vLim = vr; }
+    }
+    // upcoming corner: distance to where the centreline curvature first exceeds grip capability at the current speed
+    let dCorner = 1e9, cornerDir = 0, cornerR = 1e9;
+    const gripKap = gripGain(v, P) / Math.max(v, 1);
+    for (let s = 0; s <= A.trigLook; s += 1) {
+      const a = center.pointAt(q.s + s - 1.5), b = center.pointAt(q.s + s + 1.5);
+      const cr = Math.atan2(a.tx * b.ty - a.ty * b.tx, a.tx * b.tx + a.ty * b.ty) / 3;
+      if (Math.abs(cr) * (1 / (1 + A.rBias * center.hw * Math.abs(cr))) > A.gripFrac * gripKap) { dCorner = s; cornerDir = cr > 0 ? 1 : -1; cornerR = 1 / Math.abs(cr); break; }
+    }
+    if (k.drift === 0) {
+      // approach: bias to the outside of an upcoming corner (pursue an offset point)
+      let off = 0; if (dCorner < 1e8) off = -cornerDir * A.outBias * (center.hw - 1.5);
+      const go = center.pointAt(q.s + L); const gx = go.x - go.ty * off, gy = go.y + go.tx * off;
+      const ex = gx - k.px, ey = gy - k.py; const ed = Math.max(1, hyp(ex, ey));
+      const aH2 = Math.atan2(-ex * k.hy + ey * k.hx, ex * k.hx + ey * k.hy);
+      inp.steer = gripSteer(2 * Math.sin(aH2) / ed * v, v, P);
+      const lead = v * A.tLead * Math.max(0.3, Math.min(1, A.rLead / cornerR));
+      if (Math.abs(dPsi) > A.trigDeg * deg && v > 15 && dCorner <= lead && k.reDriftT <= 0) { inp.drift = true; inp.steer = cornerDir; shT = A.shTap; rek = 0; }
+      if (k.instWinT > 0) inp.thr = k.prevThr === 1 ? 0 : 1;
+    } else {
+      // heading pursuit: aim the nose at the track tangent a short time ahead, corrected by lateral position
+      const d = k.dDir;
+      const tp = center.pointAt(q.s + Math.max(4, v * A.tHead));
+      const eh = Math.atan2(k.hx * tp.ty - k.hy * tp.tx, k.hx * tp.tx + k.hy * tp.ty) * d;   // + = track turns further than nose
+      const dDot = -k.vx * q.ty + k.vy * q.tx;                                               // lateral velocity w.r.t. track
+      const outside = -d * (q.d + dDot * A.tPred) / center.hw;                               // + = kart (predicted) toward outer wall
+      const w = -k.vx * k.hy + k.vy * k.hx; const sb = -d * w / Math.max(v, 1);             // outward slip (sine)
+      const e = eh + A.kLatPos * outside;
+      let sIn = A.kHead * e;
+      if (sIn > A.sInMax) sIn = A.sInMax;
+      if (sb > A.sbHi || (outside > A.outBite && eh > 0)) { if (sIn > 0.3) sIn = 0.3; }   // ease off = bite (more lateral grip)
+      if (e < -A.eExit) sIn = -1;
+      sIn = sIn > 1 ? 1 : sIn < -1 ? -1 : sIn;
+      if (shT > 0) { inp.drift = true; shT -= DT; if (sIn < 0.6) sIn = 0.6; }
+      else if (eh > A.ehShift && sb < A.sbShiftMax) {
+        if (k.dT > A.rekT && eh > A.ehRekick && rek === 0) { rek = 1; inp.drift = false; }   // re-press = double drift
+        else inp.drift = true;
+        if (sIn < 0.6) sIn = 0.6;
+      }
+      inp.steer = sIn * d;
+      if (sIn < -0.3) inp.thr = 0;
+    }
+    if (v > vLim + 0.5) { inp.brk = 1; inp.thr = 0; } else if (v > vLim) inp.thr = 0;
+    if (A.useBoost && k.boosters > 0 && k.drift === 0 && Math.abs(dPsi) < 12 * deg && k.boostT < 0.2 && !prevBoost) inp.boost = true;
+    prevBoost = inp.boost;
+    return inp;
+  };
+}
+function expF(P: any, hw: number, speeds: number[], A: any = {}) {
+  console.log('AI corner test W=' + 2 * hw + ' (entry at speed, AI brakes itself) | D | Rc | vE kmh | clean? | time | vMin kmh | vExit kmh | gauge | hits');
+  let fails = 0;
+  for (const D of [90, 180]) for (const Rc of [9, 12, 16, 22, 30]) for (const vE of speeds) {
+    const cfg = makeCorner(Rc, D, hw);
+    const r: any = runCorner(cfg, vE, aiDriver(cfg.trk, P, A), P);
+    if (!r.ok) fails++;
+    console.log(String(D).padStart(3) + ' | ' + String(Rc).padStart(2) + ' | ' + kmh(vE) + ' | ' + (r.ok ? 'OK ' : 'HIT') + ' | ' + f2(r.time) + ' | ' + kmh(r.vMin) + ' | ' + kmh(r.vX) + ' | ' + f2(r.gauge) + ' | ' + r.hits + (r.hits ? '@' + r.hitSin.toFixed(2) : ''));
+  }
+  console.log('AI wall-contact cases: ' + fails);
+}
+
+const f1 = (x: number) => (x < 0 || x > 98 ? '  -  ' : x.toFixed(1));
+const f2 = (x: number) => x.toFixed(2);
+const kmh = (v: number) => (v * KMH).toFixed(0);
+
+// ------------------------------------------------------------------ experiments
+const EXP = process.env.EXP || 'a';
+function expA(P: any) {
+  const k = newKart(0, 0, 1, 0, 0); const marks = [18.5185, 25, 30, 32, 33, 33.66]; const hit: any = {};
+  let x5 = 0;
+  for (let t = 1; t <= 60 * 12; t++) { step(k, inp0(), P, null); const v = k.vx; for (const m of marks) if (!hit[m] && v >= m) hit[m] = t * DT; if (t === 300) x5 = k.px; }
+  console.log('0->100 km/h disp (18.52 m/s): ' + f2(hit[18.5185]) + ' s | 0->25: ' + f2(hit[25]) + ' | 0->30: ' + f2(hit[30]) + ' | 0->32: ' + f2(hit[32]) + ' | 0->33 (97%): ' + f2(hit[33]) + ' | 0->33.66 (99%): ' + f2(hit[33.66]) + ' | dist@5s ' + x5.toFixed(0) + ' m');
+}
+function expD(P: any) {
+  const rows: string[] = [];
+  const series = (name: string, init: (k: any) => void, inpf: (t: number) => any) => {
+    const k = newKart(0, 0, 1, 0, 0); init(k); const out: string[] = [];
+    for (let t = 0; t <= 60 * 5; t++) { if (t % 15 === 0) out.push(kmh(hyp(k.vx, k.vy))); step(k, inpf(t), P, null); }
+    rows.push(name.padEnd(22) + out.join(' '));
+  };
+  console.log('displayed km/h every 0.25 s, t=0..5 s');
+  series('booster from 34', (k) => { k.vx = 34; k.boosters = 1; }, (t) => ({ ...inp0(), boost: t === 0 }));
+  series('booster from 28', (k) => { k.vx = 28; k.boosters = 1; }, (t) => ({ ...inp0(), boost: t === 0 }));
+  series('2 boosters chained', (k) => { k.vx = 34; k.boosters = 2; }, (t) => ({ ...inp0(), boost: t === 0 || t === 172 }));
+  series('instant from 28', (k) => { k.vx = 28; k.instWinT = 0.3; k.prevThr = 0; }, (t) => inp0());
+  series('instant from 32', (k) => { k.vx = 32; k.instWinT = 0.3; k.prevThr = 0; }, (t) => inp0());
+  series('no instant from 28', (k) => { k.vx = 28; }, (t) => inp0());
+  for (const [nm, dur, spin] of [['start PERFECT 1.5s', 1.5, 1], ['start GREAT 1.1s', 1.1, 1], ['start GOOD 0.7s', 0.7, 1], ['start none', 0, 1], ['false start 0.3s spin', 0, 0.3]] as any[]) {
+    series(nm, (k) => { k.startT = dur; if (spin < 1) { k.spinT = 0.3; } }, (t) => { return inp0(); });
+  }
+  for (const r of rows) console.log(r);
+}
+function expE(P: any) {
+  console.log('angle | v_in km/h | v_after km/h | lost km/h | stun | v+1s km/h | contact type');
+  for (const ang of [10, 30, 60, 90]) {
+    const trk = new Track([-100, 400], [0, 0], 8);
+    const k = newKart(0, 0, Math.cos(ang * deg), Math.sin(ang * deg), 30); k.hint = 0;
+    const st = { hint: 0 };
+    let vAfter = -1, tHit = -1, v1 = -1, stun = 0;
+    for (let t = 0; t < 600; t++) {
+      // no steer until contact, then the driver pursues the centreline; throttle holds <= 30 m/s before contact
+      const v = hyp(k.vx, k.vy); const inp = inp0();
+      if (tHit < 0) inp.thr = v < 30 ? 1 : 0; else { const pp = pursuit(k, trk, st, 6 + 0.35 * v); inp.steer = gripSteer(pp.kappa * v, v, P); }
+      step(k, inp, P, trk);
+      if (tHit < 0 && k.hits > 0) { tHit = t; vAfter = hyp(k.vx, k.vy); stun = k.stunT; }
+      if (tHit >= 0 && t === tHit + 60) { v1 = hyp(k.vx, k.vy); break; }
+    }
+    console.log(String(ang).padStart(5) + ' | ' + kmh(30) + ' | ' + kmh(vAfter) + ' | ' + (30 * KMH - vAfter * KMH).toFixed(0) + ' | ' + stun.toFixed(2) + ' | ' + kmh(v1) + ' | sin=' + k.hitSin.toFixed(2));
+  }
+}
+function expB(P: any, radii: number[], angles: number[], speeds: number[], hw: number) {
+  console.log('W=' + (2 * hw) + ' m | D | Rc | RL(line) | vE(kmh) || OPT: min kmh (drop%) exit t gauge [plan] || CLUMSY: min (dKmh) exit (dKmh) t gauge || GRIP: corner speed, t || AI');
+  for (const D of angles) for (const Rc of radii) {
+    const cfg = makeCorner(Rc, D, hw);
+    for (const vE of speeds) {
+      let o = bestDrift(cfg, vE, P);
+      const ai: any = runCorner(cfg, vE, aiDriver(cfg.trk, P), P);
+      if (ai.ok && (!o || ai.time < o.time)) { o = ai; o.plan = { dTrig: 'AI', tSh: '', sD: '', phiCs: '', cCs: '', rek: '', vBr: vE }; }
+      const c: any = bestClumsy(cfg, vE, P);
+      const g = bestGrip(cfg, vE, P);
+      const vref = Math.min(vE, P.vGrip);
+      const vEk = vE * KMH;
+      const os = o ? 'min ' + kmh(o.vMin) + ' (' + (100 * (1 - o.vMin / vE)).toFixed(1) + '%) ex ' + kmh(o.vX) + ' t ' + f2(o.time) + ' g ' + f2(o.gauge) + ' ' + (o.plan.dTrig === 'AI' ? '[AI]' : '[' + [o.plan.dTrig, o.plan.tSh, o.plan.sD, o.plan.phiCs, o.plan.rek, (o.plan.vBr / vE).toFixed(1)].join(',') + ']') : 'FAIL';
+      const cs = !c ? 'FAIL' : 'min ' + kmh(c.vMin) + ' (' + (c.vMin * KMH - vEk).toFixed(0) + ') ex ' + kmh(c.vX) + ' (' + (c.vX * KMH - vEk).toFixed(0) + ') t ' + f2(c.time) + ' g ' + f2(c.gauge) + (c.hits ? ' HITS ' + c.hits + '@' + c.hitSin.toFixed(2) : '');
+      const gs = g ? 'vC ' + kmh(g.vC) + ' t ' + f2(g.time) : 'FAIL';
+      const ais = ai.ok ? 'AI t ' + f2(ai.time) : 'AI HIT';
+      console.log(String(D).padStart(3) + ' | ' + String(Rc).padStart(2) + ' | ' + cfg.rl.RL.toFixed(1).padStart(5) + ' | ' + kmh(vE) + ' || ' + os + ' || ' + cs + ' || ' + gs + ' || ' + ais);
+    }
+  }
+}
+
+function expTrace(P: any) {
+  const Rc = +(process.env.RC || 12), D = +(process.env.DA || 90), hw = +(process.env.HW || 6), vE = +(process.env.VE || 34);
+  const plan = Object.assign({}, CLUMSY, JSON.parse(process.env.PLAN || '{}'));
+  const cfg = makeCorner(Rc, D, hw);
+  const drv = plan.ai ? aiDriver(cfg.trk, P, JSON.parse(process.env.AI || '{}')) : plan.grip ? gripDriver(cfg, vE, plan.grip, P) : driftDriver(cfg, vE, plan, P);
+  const k = newKart(60, -(hw - 1.5), 1, 0, vE); if (vE > P.vGrip + 0.1) k.boostT = 60;
+  console.log('t | s | d | kmh | slipdeg | r | drift | steer | thr | gauge | hits');
+  for (let tick = 0; tick < 60 * 12; tick++) {
+    const inp = drv(k, tick); step(k, inp, P, cfg.trk);
+    const v = hyp(k.vx, k.vy); const u = k.vx * k.hx + k.vy * k.hy, w = -k.vx * k.hy + k.vy * k.hx;
+    if (k.s > cfg.arcStart - 45 && k.s < cfg.arcEnd + 40 && tick % 3 === 0)
+      console.log([f2(tick * DT), k.s.toFixed(1), k.d.toFixed(2), kmh(v), (Math.asin(Math.max(-1, Math.min(1, w / v))) / deg).toFixed(1), f2(k.r), k.drift, f2(inp.steer), inp.thr + (inp.brk ? 'B' : ''), f2(k.gTot), k.hits].join(' | '));
+    if (k.s > cfg.arcEnd + 40) break;
+  }
+}
+function expGripEnv(P: any) {
+  // steady-state full-steer grip circle: radius and lateral accel per speed
+  const out: string[] = [];
+  for (const v of [10, 15, 20, 25, 30, 34, 40, 44.4]) { const r = gripGain(v, P); out.push(v + ' m/s: r=' + r.toFixed(2) + ' R=' + (v / r).toFixed(1) + ' aLat=' + (v * r).toFixed(1)); }
+  console.log('grip full-steer: ' + out.join(' | '));
+}
+// ------------------------------------------------------------------ stages (lap-time model), CPU, determinism
+function rng(seed: number) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const PROFILES: any = {
+  D1: { dMin: 30, dMax: 90, rMin: 30, rMax: 80, lMin: 60, lMax: 200, hw: 8 },
+  D2: { dMin: 30, dMax: 120, rMin: 22, rMax: 60, lMin: 40, lMax: 160, hw: 7 },
+  D3: { dMin: 45, dMax: 150, rMin: 16, rMax: 50, lMin: 30, lMax: 140, hw: 6.5 },
+  D4: { dMin: 60, dMax: 180, rMin: 12, rMax: 40, lMin: 25, lMax: 120, hw: 6 },
+  D5: { dMin: 60, dMax: 180, rMin: 9, rMax: 30, lMin: 20, lMax: 100, hw: 5.5 },
+};
+function buildStage(prof: any, seed: number, len: number) {
+  const R = rng(seed); const segs: any[] = [{ L: 80 }]; let s = 80; let dir = 1; let first = true;
+  while (s < 80 + len) {
+    const D = prof.dMin + R() * (prof.dMax - prof.dMin); const Rc = first ? prof.rMin : prof.rMin + R() * (prof.rMax - prof.rMin); first = false;
+    if (R() < 0.6) dir = -dir;
+    segs.push({ R: Rc, A: dir * D }); s += Rc * D * deg;
+    const L = prof.lMin + R() * (prof.lMax - prof.lMin); segs.push({ L }); s += L;
+  }
+  segs.push({ L: 200 });
+  const b = buildPath(segs); return { trk: new Track(b.xs, b.ys, prof.hw), s0: 80, s1: s, corners: (segs.length - 2) / 2 };
+}
+function runStage(st: any, P: any, A: any = {}, v0 = 34) {
+  const k = newKart(40, 0, 1, 0, v0); const drv = aiDriver(st.trk, P, A);
+  let t0 = -1, t1 = -1, boostTicks = 0, driftTicks = 0, n = 0;
+  for (let tick = 0; tick < 60 * 600; tick++) {
+    const inp = drv(k, tick); step(k, inp, P, st.trk);
+    if (t0 < 0 && k.s >= st.s0) t0 = tick;
+    if (t0 >= 0 && t1 < 0) { n++; if (k.boostT > 0) boostTicks++; if (k.drift) driftTicks++; }
+    if (t1 < 0 && k.s >= st.s1) { t1 = tick; break; }
+  }
+  const T = (t1 - t0) * DT;
+  return { T, avg: (st.s1 - st.s0) / T, hits: k.hits, hard: k.hard || 0, mid: k.mid || 0, boostFrac: boostTicks / Math.max(1, n), driftFrac: driftTicks / Math.max(1, n), drifts: k.drifts, inst: k.inst };
+}
+function expLap(P: any) {
+  console.log('profile | mode | avg m/s (disp km/h) | s per km | boost% | drift% | wall hits/km | drifts/km');
+  for (const name of Object.keys(PROFILES)) for (const mode of ['speed', 'item']) {
+    const PP = Object.assign({}, P, { gaugeOn: mode === 'speed' ? 1 : 0 });
+    let T = 0, L = 0, hits = 0, bf = 0, df = 0, dr = 0, hard = 0, mid = 0; const N = 6;
+    for (let i = 0; i < N; i++) { const st = buildStage(PROFILES[name], 1000 + i * 7 + name.charCodeAt(1), 2000); const r: any = runStage(st, PP); T += r.T; L += st.s1 - st.s0; hits += r.hits; hard += r.hard; mid += r.mid; bf += r.boostFrac; df += r.driftFrac; dr += r.drifts; }
+    const avg = L / T;
+    console.log(name + ' | ' + mode.padEnd(5) + ' | ' + avg.toFixed(1) + ' (' + kmh(avg) + ') | ' + (1000 / avg).toFixed(1) + ' | ' + (100 * bf / N).toFixed(0) + ' | ' + (100 * df / N).toFixed(0) + ' | ' + (hits / (L / 1000)).toFixed(2) + ' (>45deg ' + (hard / (L / 1000)).toFixed(2) + ', 15-45 ' + (mid / (L / 1000)).toFixed(2) + ') | ' + (dr / (L / 1000)).toFixed(1));
+  }
+}
+function expCpu(P: any) {
+  const st = buildStage(PROFILES.D3, 7, 2000);
+  const karts: any[] = [], drvs: any[] = [];
+  for (let i = 0; i < 8; i++) { karts.push(newKart(40 - i * 3, (i % 2 ? 2 : -2), 1, 0, 30)); drvs.push(aiDriver(st.trk, P)); }
+  // (1) step() only, fixed inputs, 8 karts
+  const inputs: any[] = []; for (let t = 0; t < 3600; t++) for (let i = 0; i < 8; i++) inputs.push(drvs[i](karts[i], t)), step(karts[i], inputs[inputs.length - 1], P, st.trk);
+  const ks = karts.map((k) => Object.assign({}, k));
+  let t0 = process.hrtime.bigint();
+  const REP = 20;
+  for (let r = 0; r < REP; r++) { const kk = ks.map((k) => Object.assign({}, k)); let j = 0; for (let t = 0; t < 3600; t++) for (let i = 0; i < 8; i++) step(kk[i], inputs[j++], P, st.trk); }
+  const nsStep = Number(process.hrtime.bigint() - t0) / (REP * 3600 * 8);
+  // (2) AI decision cost
+  t0 = process.hrtime.bigint(); const kk2 = ks.map((k) => Object.assign({}, k)); const d2 = kk2.map(() => aiDriver(st.trk, P));
+  for (let t = 0; t < 3600; t++) for (let i = 0; i < 8; i++) { const inp = d2[i](kk2[i], t); step(kk2[i], inp, P, st.trk); }
+  const nsAI = Number(process.hrtime.bigint() - t0) / (3600 * 8) - nsStep;
+  console.log('step(): ' + nsStep.toFixed(0) + ' ns/kart-tick (incl. wall query) | AI decision: ' + nsAI.toFixed(0) + ' ns/kart-tick');
+  for (const hz of [30, 60, 120]) {
+    const sim = 8 * hz * nsStep, ai = 7 * hz * nsAI;          // server: 8 karts, up to 7 AI
+    const room = (sim + ai) / 1e9;                              // CPU-seconds per second
+    const rollback = (replay: number) => 8 * replay * (hz / 2) * nsStep / 1e9; // client: full-world replay on every snapshot at hz/2
+    console.log(hz + ' Hz: server room ' + (room * 1e3).toFixed(2) + ' ms CPU/s -> ~' + Math.floor(0.5 / room) + ' rooms/vCPU at 50% budget | client replay 15 ticks/snapshot: ' + (rollback(hz === 120 ? 30 : hz === 60 ? 15 : 8) * 1e3).toFixed(2) + ' ms/s');
+  }
+}
+function hashKart(k: any) {
+  const f = new Float64Array([k.px, k.py, k.hx, k.hy, k.vx, k.vy, k.r, k.gauge, k.boostT]); const u = new Uint32Array(f.buffer);
+  let h = 2166136261; for (let i = 0; i < u.length; i++) { h ^= u[i]; h = Math.imul(h, 16777619); } return (h >>> 0).toString(16);
+}
+function expDet(P: any) {
+  const st = buildStage(PROFILES.D4, 11, 1500);
+  const rec: any[] = []; const k1 = newKart(40, 0, 1, 0, 30); const d1 = aiDriver(st.trk, P);
+  for (let t = 0; t < 60 * 60; t++) { const inp = d1(k1, t); rec.push(inp); step(k1, inp, P, st.trk); }
+  const k2 = newKart(40, 0, 1, 0, 30); for (const inp of rec) step(k2, inp, P, st.trk);
+  console.log('replay of recorded inputs (60 s): hash ' + hashKart(k1) + ' vs ' + hashKart(k2) + (hashKart(k1) === hashKart(k2) ? ' IDENTICAL' : ' DIFFERENT'));
+  // sensitivity: perturb initial heading by 1 ulp-ish and replay same inputs (open loop) -> divergence growth
+  for (const eps of [1e-15, 1e-12, 1e-9]) {
+    const k3 = newKart(40, 0, 1, 0, 30); k3.hy = eps; const n = Math.sqrt(1 + eps * eps); k3.hx = 1 / n; k3.hy = eps / n;
+    const out: string[] = []; let j = 0;
+    const kr = newKart(40, 0, 1, 0, 30);
+    for (let t = 1; t <= 60 * 60; t++) { step(k3, rec[j], P, st.trk); step(kr, rec[j], P, st.trk); j++; if (t % 600 === 0) out.push((t / 60) + 's:' + hyp(k3.px - kr.px, k3.py - kr.py).toExponential(1)); }
+    console.log('heading perturbation ' + eps + ' -> position divergence ' + out.join(' '));
+  }
+  // polynomial rotation accuracy vs Math.sin/cos for |a| <= 0.1 rad
+  let maxErr = 0; for (let i = -1000; i <= 1000; i++) { const a = i * 1e-4; const r = rotH(1, 0, a); maxErr = Math.max(maxErr, Math.abs(r[0] - Math.cos(a)), Math.abs(r[1] - Math.sin(a))); }
+  let maxDec = 0; for (let kk = 0.5; kk <= 30; kk += 0.5) maxDec = Math.max(maxDec, Math.abs(decayF(kk) - Math.exp(-kk * DT)) / Math.exp(-kk * DT));
+  console.log('rotH max abs error vs sin/cos (|a|<=0.1): ' + maxErr.toExponential(2) + ' | decayF max rel error vs exp (k<=30/s): ' + maxDec.toExponential(2));
+}
+// start boost: integer tick offset of the first throttle press relative to GO (60 Hz). Speed-mode durations; item mode x0.67.
+function startTier(dTick: number) {
+  if (dTick >= 0 && dTick <= 6) return { tier: 'PERFECT', boost: 1.5, spin: 0 };
+  if ((dTick >= -6 && dTick < 0) || (dTick > 6 && dTick <= 12)) return { tier: 'GREAT', boost: 1.0, spin: 0 };
+  if ((dTick >= -12 && dTick < -6) || (dTick > 12 && dTick <= 21)) return { tier: 'GOOD', boost: 0.6, spin: 0 };
+  if (dTick < -12 && dTick >= -60) return { tier: 'FALSE', boost: 0, spin: 0.3 };
+  return { tier: 'NONE', boost: 0, spin: 0 };
+}
+function expStart(P: any) {
+  const base = (() => { const k = newKart(0, 0, 1, 0, 0); for (let t = 0; t < 300; t++) step(k, inp0(), P, null); return k.px; })();
+  console.log('press offset (ms) | tier | dist@5s m | gain vs NONE m | ~time gain s');
+  for (const ms of [-400, -150, -50, 0, 50, 100, 150, 250, 400]) {
+    const dt = Math.round(ms / 1000 * 60); const tr = startTier(dt);
+    const k = newKart(0, 0, 1, 0, 0); k.startT = tr.boost; k.spinT = tr.spin; let t = 0;
+    const delay = Math.max(0, dt); // throttle becomes active at press time (late press loses time)
+    for (t = 0; t < 300; t++) step(k, t < delay ? { ...inp0(), thr: 0 } : inp0(), P, null);
+    console.log(String(ms).padStart(5) + ' | ' + tr.tier.padEnd(7) + ' | ' + k.px.toFixed(1) + ' | ' + (k.px - base).toFixed(1) + ' | ' + ((k.px - base) / 34).toFixed(2));
+  }
+}
+const ARCH: any = {
+  Speed:   { vGrip: 34.4, vBoost: 45.0, a0: 16.5, g0: 0.64, kLatIn: 2.8, kLatNeutral: 5.2, yGrip: 1.50, cBeta: 0.85, tBoost: 3.1 },
+  Balance: {},
+  Drift:   { vGrip: 33.6, vBoost: 43.8, a0: 19.5, g0: 0.77, kLatIn: 3.3, kLatNeutral: 5.9, yGrip: 1.60, cBeta: 0.75, tBoost: 2.9 },
+};
+function expArch(P: any) {
+  console.log('archetype | profile | speed-mode stage time (s, 6 stages x 2 km) | item-mode time | hits');
+  for (const prof of ['D1', 'D3', 'D5']) for (const a of Object.keys(ARCH)) {
+    const PA = Object.assign({}, P, ARCH[a]); let Ts = 0, Ti = 0, h = 0;
+    for (let i = 0; i < 6; i++) { const st = buildStage(PROFILES[prof], 1000 + i * 7 + prof.charCodeAt(1), 2000);
+      const r1: any = runStage(st, Object.assign({}, PA, { gaugeOn: 1 })); const r2: any = runStage(st, Object.assign({}, PA, { gaugeOn: 0 })); Ts += r1.T; Ti += r2.T; h += r1.hits + r2.hits; }
+    console.log(a.padEnd(8) + ' | ' + prof + ' | ' + Ts.toFixed(1) + ' | ' + Ti.toFixed(1) + ' | ' + h);
+  }
+}
+// steady-state envelope: sustained speed on a constant-radius circle (W = 8 m), grip-only vs drifting AI
+function expCircle(P: any) {
+  console.log('R path (m) | grip: max clean avg speed m/s (kmh) aLat | drift: max clean avg m/s (kmh) aLat | drift gain');
+  for (const R of [9, 12, 16, 22, 30, 40, 60]) {
+    const b = buildPath([{ L: 60 }, { R, A: 900 }, { L: 80 }]); const trk = new Track(b.xs, b.ys, 4);
+    const s0 = b.marks[1] + R * 2 * Math.PI, s1 = s0 + R * 2 * Math.PI;   // measure the 2nd full lap
+    const best: any = { grip: 0, drift: 0 };
+    for (const mode of ["grip", "drift"]) for (const cap of [3.0, 2.6, 2.3, 2.0, 1.8, 1.6, 1.45, 1.3, 1.15, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5]) {
+      const A = { omegaCap: cap, hairpinCap: cap, rBias: 0, trigDeg: mode === 'grip' ? 999 : 25, useBoost: false };
+      const PP = Object.assign({}, P, { gaugeOn: 0 });
+      const k = newKart(20, 0, 1, 0, 30); const drv = aiDriver(trk, PP, A);
+      let t0 = -1, t1 = -1, h0 = 0;
+      for (let tick = 0; tick < 60 * 120; tick++) { step(k, drv(k, tick), PP, trk); if (t0 < 0 && k.s >= s0) { t0 = tick; h0 = k.hits; } if (t1 < 0 && k.s >= s1) { t1 = tick; break; } }
+      if (t1 > 0 && k.hits === h0) { const avg = (s1 - s0) / ((t1 - t0) * DT); if (avg > best[mode]) best[mode] = avg; }
+    }
+    const g = best.grip, d = best.drift;
+    console.log(String(R).padStart(3) + ' | ' + g.toFixed(1) + ' (' + kmh(g) + ') ' + (g * g / R).toFixed(0) + ' | ' + d.toFixed(1) + ' (' + kmh(d) + ') ' + (d * d / R).toFixed(0) + ' | ' + (g > 0 ? ((d / g - 1) * 100).toFixed(0) + '%' : '-'));
+  }
+}
+// steady drift at a held speed: slip, yaw, path radius and net longitudinal accel per (steer-in, shift)
+function expDriftSS(P: any) {
+  console.log('v m/s | per input: sIn/shift -> slip deg, r rad/s, R m, net accel m/s^2 | Rmin sustainable (net>=0) | Rmin with net>=-8');
+  for (const v of [15, 20, 25, 30, 34]) {
+    let rows: string[] = [], rSus = 1e9, rTr = 1e9;
+    for (const sh of [0, 1]) for (const sIn of [0.3, 0.5, 0.7, 1.0]) {
+      const k = newKart(0, 0, 1, 0, v); k.drift = 1; k.dDir = 1; k.dT = 0; let acc = 0, n = 0, rr = 0, sbs = 0;
+      for (let t = 0; t < 150; t++) {
+        const sp0 = hyp(k.vx, k.vy);
+        step(k, { thr: 1, brk: 0, steer: sIn, drift: sh === 1, boost: false }, P, null);
+        if (k.drift === 0) { k.drift = 1; k.dT = 1; }
+        const sp1 = hyp(k.vx, k.vy);
+        if (t >= 90) { acc += (sp1 - sp0) / DT; rr += k.r; const w = -k.vx * k.hy + k.vy * k.hx; sbs += -w / sp1; n++; }
+        k.vx *= v / sp1; k.vy *= v / sp1; // hold speed
+      }
+      acc /= n; rr /= n; sbs /= n; const R = v / rr;
+      rows.push(sIn + (sh ? 'S' : '') + ':' + (Math.asin(sbs) / deg).toFixed(0) + 'deg r' + rr.toFixed(2) + ' R' + R.toFixed(0) + ' a' + acc.toFixed(1));
+      if (acc >= 0 && R < rSus) rSus = R; if (acc >= -8 && R < rTr) rTr = R;
+    }
+    console.log(v + ' | ' + rows.join(' ') + ' | ' + (rSus < 1e8 ? rSus.toFixed(0) : '-') + ' | ' + (rTr < 1e8 ? rTr.toFixed(0) : '-'));
+  }
+}
+function envList(n: string, d: number[]) { return process.env[n] ? process.env[n]!.split(',').map(Number) : d; }
+if (EXP === 'tr') expTrace(P0);
+if (EXP === 'lap') expLap(P0);
+if (EXP === 'start') expStart(P0);
+if (EXP === 'circle') expCircle(P0);
+if (EXP === 'dss') expDriftSS(P0);
+if (EXP === 'arch') expArch(P0);
+if (EXP === 'cpu') expCpu(P0);
+if (EXP === 'det') expDet(P0);
+if (EXP === 'f') expF(P0, +(process.env.HW || 6), envList('SPEEDS', [34]), JSON.parse(process.env.AI || '{}'));
+if (EXP === 'genv') expGripEnv(P0);
+if (EXP === 'a') expA(P0);
+if (EXP === 'd') expD(P0);
+if (EXP === 'e') expE(P0);
+if (EXP === 'b1') expB(P0, [12], [90], [30], 8);
+if (EXP === 'bq') expB(P0, envList('RADII', [12]), envList('ANG', [90]), envList('SPEEDS', [34]), +(process.env.HW || 6));
+if (EXP === 'b') expB(P0, [9, 12, 16, 22, 30], [90, 180], [25, 30, 34, 40], +(process.env.HW || 8));
