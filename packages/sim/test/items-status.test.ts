@@ -118,6 +118,10 @@ describe('shield, halo and grace', () => {
     scheduleEffect(sc.w, sc.ctx, EF.spin, 0, 255, sc.w.tick + 1, 0, 0, EFlag.BLOCKABLE | EFlag.HAZARD, 77);
     sc.advance(1);
     expect(results(sc, 0, EF.spin)).toEqual(['hit']);
+    expect(sc.w.karts[0]!.status.shieldUntil).toBeGreaterThan(sc.w.tick); // not consumed
+    const st = sc.w.karts[0]!.stats;
+    expect([st.hitsTaken, st.attacksBlocked]).toEqual([0, 0]);               // item stats ignore track hazards
+    expect(sc.decisions.filter((d) => d.k === 'result').at(-1)).toMatchObject({ victim: 0, result: 'hit' });
   });
 
   it('effect ids are deterministic and scheduling is idempotent by id', () => {

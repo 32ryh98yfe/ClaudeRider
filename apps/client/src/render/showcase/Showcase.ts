@@ -68,11 +68,13 @@ export class Showcase {
   private tmpV = new THREE.Vector3();
   private tmpC = new THREE.Color();
 
-  constructor(renderer: THREE.WebGPURenderer, opts: { reflections?: boolean } = {}) {
+  constructor(renderer: THREE.WebGPURenderer, opts: { reflections?: boolean; env?: boolean } = {}) {
     this.renderer = renderer;
     const s = this.scene;
     s.background = new THREE.Color('#2a1d17');
-    this.studio = createStudio(renderer, s, { shadowSize: 2048 });
+    // env: false (Low, via Stage) skips the PMREM studio environment: on software GL its cube render + blur passes
+    // cost ~10 s at boot (L11-showcase-lowtier.md)
+    this.studio = createStudio(renderer, s, { shadowSize: 2048, env: opts.env ?? true });
     // glossy ivory turntable; the top carries a faint planar reflection that fades toward the rim
     const q = typeof location !== 'undefined' ? new URLSearchParams(location.search) : null;
     const reflect = opts.reflections ?? !(q?.get('quality') === 'low' || q?.get('reflect') === '0');

@@ -6,7 +6,7 @@
 import type * as THREE from 'three/webgpu';
 import { loadContent, type CharacterId, type KartBodyId, type ModeId, type TrackId, type AiTier, type TeamFormat, CHARACTER_IDS, KART_BODY_IDS } from '@cr/content';
 import {
-  loadCtrk, toArrayBuffer, AI_TIERS, createAiDriver, makeInput, cloneWorld, copyWorld, createWorld, makeContext, step, raceTicksOf, NULL_SINK, Held, Phase,
+  loadCtrk, toArrayBuffer, AI_TIERS, createAiDriver, fillBotSlots, localizeBotName, makeInput, cloneWorld, copyWorld, createWorld, makeContext, step, raceTicksOf, NULL_SINK, Held, Phase,
   type StepContext, type SlotConfig,
   type RaceConfig, type SimEvent, type InputFrame, type AiDriver, type WorldState, type BakedTrack,
 } from '@cr/sim';
@@ -39,8 +39,6 @@ export interface SessionOptions {
   teams?: TeamFormat;
 }
 
-const BOT_NAMES_KO = ['스파크', '토큰', '프롬프트', '컨텍스트', '벡터', '임베딩', '어텐션', '그래디언트', '로짓', '시드'];
-const BOT_NAMES_EN = ['Spark', 'Token', 'Prompt', 'Context', 'Vector', 'Embed', 'Attention', 'Gradient', 'Logit', 'Seed'];
 
 export class Session {
   readonly content = loadContent();
@@ -114,7 +112,7 @@ export class Session {
     if (online) {
       this.config = online.config;
       this.localSlot = online.yourSlot;
-      this.slotNames = this.config.slots.map((s) => s.name);
+      this.slotNames = this.config.slots.map((s) => localizeBotName(s.name, viewerLocale()));
       this.startTick = latestStartTick(online.raceId, online.startTick);
       if (track.hash !== this.config.trackHash) console.warn(`[net] track hash ${track.hash} ≠ server ${this.config.trackHash}`);
     } else {
@@ -169,8 +167,6 @@ export class Session {
 
   private offlineConfig(track: BakedTrack): RaceConfig {
     const seed = this.opts.seed ?? ((Date.now() & 0x7fffffff) ^ 0x5bd1e995);
-    const ko = document.documentElement.lang !== 'en';
-    const names = ko ? BOT_NAMES_KO : BOT_NAMES_EN;
     // deterministic-ish variety: other characters/karts for bots
     const chars = CHARACTER_IDS.filter((c) => c !== this.opts.characterId);
     const teams: TeamFormat = this.opts.solo ? 'solo' : (this.opts.teams ?? 'solo');
@@ -181,12 +177,14 @@ export class Session {
       if (this.opts.solo) return { kind: 'empty' as const, team: 0, name: '', characterId: 'clay', kartBodyId: 'pebble', vMul: 1 };
       const c = chars[(i * 5 + seed) % chars.length]!;
       const k = KART_BODY_IDS[(i * 3 + seed) % KART_BODY_IDS.length]!;
-      return { kind: 'bot' as const, team: teamOf(i), name: `${names[(i + seed) % names.length]}-${String((seed >> (i + 2)) % 90 + 10)}`, characterId: c, kartBodyId: k, ai: this.opts.tier, vMul: AI_TIERS[this.opts.tier].vMul };
+      return { kind: 'bot' as const, team: teamOf(i), name: '', characterId: c, kartBodyId: k, ai: this.opts.tier, vMul: AI_TIERS[this.opts.tier].vMul };
     });
-    this.slotNames = slots.map((s) => s.name);
+    // one bot identity scheme with the server (14-ai §9): English on the wire, localized for display
+    const filled = fillBotSlots(this.content, slots, { roomSeed: seed, tier: this.opts.tier });
+    this.slotNames = filled.map((s) => localizeBotName(s.name, viewerLocale()));
     return {
       simVersion: 1, mode: this.opts.mode, teams, trackId: this.opts.trackId, trackHash: track.hash, laps: this.opts.laps ?? track.laps,
-      slots, seed: this.opts.solo ? 0 : seed,
+      slots: filled, seed: this.opts.solo ? 0 : seed,
       rules: { retireTicks: this.opts.solo ? 60 * 60 * 60 : 600, friendlyFire: 'area', itemSet: 'standard', rubberBand: !this.opts.solo, instantBoostInItem: true },
       introTicks: 150, countdownTicks: 180,
     };
@@ -417,3 +415,5 @@ async function fetchBuf(url: string): Promise<ArrayBuffer> {
   if (!r.ok) throw new Error(`fetch ${url}: ${r.status}`);
   return toArrayBuffer(new Uint8Array(await r.arrayBuffer()));
 }
+
+function viewerLocale(): 'ko' | 'en' { return document.documentElement.lang === 'en' ? 'en' : 'ko'; }

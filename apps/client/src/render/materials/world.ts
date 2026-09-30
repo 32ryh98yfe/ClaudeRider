@@ -29,10 +29,11 @@ const PAINT: Record<RoadStyle, number> = { asphalt: 1, cobble: 0.5, dirt: 0, ice
 
 export function buildRoad(p: RoadParams, prof: MaterialProfile): THREE.MeshStandardNodeMaterial {
   const m = new THREE.MeshStandardNodeMaterial({ roughness: ROUGH[p.style], metalness: METAL[p.style] ?? 0 });
+  // 3D noise throughout so halfpipes, banks and loops never stretch the texture
   const U = uv(), P = positionWorld;
   const A = color(p.a), B = color(p.b);
-  const macro = n01(P.xz.mul(0.045));
-  const speck = n01(P.xz.mul(2.1));
+  const macro = n01(P.mul(0.045));
+  const speck = n01(P.mul(2.1));
   let base: N = mix(A, B, speck.mul(0.5).add(macro.mul(0.5)));
   let rough: N = float(ROUGH[p.style]);
   let height: N = null;
@@ -44,9 +45,9 @@ export function buildRoad(p: RoadParams, prof: MaterialProfile): THREE.MeshStand
       base = base.mul(wear.mul(-0.09).add(1));
       rough = rough.sub(wear.mul(0.1));
       if (prof.hq) {
-        const patch = smoothstep(0.78, 0.8, n01(P.xz.mul(0.09).add(3.1)));
+        const patch = smoothstep(0.78, 0.8, n01(P.mul(0.09).add(3.1)));
         base = mix(base, base.mul(0.82), patch.mul(0.8));
-        const grit = n01(P.xz.mul(9.0));
+        const grit = n01(P.mul(9.0));
         rough = rough.add(grit.sub(0.5).mul(0.12));
         height = speck.mul(0.55).add(grit.mul(0.45));
       }
@@ -81,13 +82,13 @@ export function buildRoad(p: RoadParams, prof: MaterialProfile): THREE.MeshStand
     }
     case 'dirt': {
       const ruts = smoothstep(0.1, 0.0, abs(U.x.sub(0.3))).add(smoothstep(0.1, 0.0, abs(U.x.sub(0.7))));
-      const pebbles = float(1).sub(cellEdges(P.xz.mul(3.2), 0.18));
+      const pebbles = float(1).sub(cellEdges(P.mul(3.2), 0.18));
       base = base.mul(ruts.mul(-0.16).add(1)).add(pebbles.mul(0.05));
       height = speck.mul(0.6).add(pebbles.mul(0.4)).sub(ruts.mul(0.3));
       break;
     }
     case 'sand': {
-      const warp = n01(P.xz.mul(0.25)).mul(4);
+      const warp = n01(P.mul(0.25)).mul(4);
       const ripple = sin(P.x.mul(1.3).add(P.z.mul(0.6)).add(warp)).mul(0.5).add(0.5);
       base = base.mul(ripple.mul(0.08).add(0.96)).mul(wear.mul(-0.06).add(1));
       height = ripple.mul(0.7).add(speck.mul(0.3));
@@ -101,8 +102,8 @@ export function buildRoad(p: RoadParams, prof: MaterialProfile): THREE.MeshStand
       break;
     }
     case 'ice': {
-      const crack = float(1).sub(cellEdges(P.xz.mul(0.32), 0.06));
-      const frost = n01(P.xz.mul(0.5));
+      const crack = float(1).sub(cellEdges(P.mul(0.32), 0.06));
+      const frost = n01(P.mul(0.5));
       base = mix(base, color('#ffffff'), crack.mul(0.35).add(frost.mul(0.12)));
       rough = float(0.1).add(frost.mul(0.25)).add(crack.mul(0.3));
       height = crack.mul(-1).add(frost.mul(0.3));
@@ -130,21 +131,21 @@ export function buildRoad(p: RoadParams, prof: MaterialProfile): THREE.MeshStand
       break;
     }
     case 'gravel': {
-      const stones = float(1).sub(cellEdges(P.xz.mul(6.5), 0.25));
-      const tone = n01(P.xz.mul(4.1));
+      const stones = float(1).sub(cellEdges(P.mul(6.5), 0.25));
+      const tone = n01(P.mul(4.1));
       base = base.mul(stones.mul(0.22).add(0.86)).mul(tone.mul(0.16).add(0.9));
       height = stones.mul(0.7).add(tone.mul(0.3));
       break;
     }
     case 'basalt': {
-      const cracks = float(1).sub(cellEdges(P.xz.mul(0.7), 0.05));
+      const cracks = float(1).sub(cellEdges(P.mul(0.7), 0.05));
       base = base.mul(cracks.mul(-0.35).add(1)).mul(speck.mul(0.12).add(0.92));
-      emissive = color('#ff6a2b').mul(cracks.mul(smoothstep(0.55, 0.7, n01(P.xz.mul(0.05)))).mul(0.8));
+      emissive = color('#ff6a2b').mul(cracks.mul(smoothstep(0.55, 0.7, n01(P.mul(0.05)))).mul(0.8));
       height = cracks.mul(-1);
       break;
     }
     case 'obsidian': {
-      const facets = cellEdges(P.xz.mul(0.4), 0.12);
+      const facets = cellEdges(P.mul(0.4), 0.12);
       base = base.mul(facets.mul(0.25).add(0.8)).add(fresnel(4).mul(0.15));
       rough = float(0.12).add(facets.oneMinus().mul(0.25));
       break;
@@ -152,7 +153,7 @@ export function buildRoad(p: RoadParams, prof: MaterialProfile): THREE.MeshStand
     case 'lava': {
       // cooled crust plates over glowing flow: the crust drifts slowly, the glow pulses
       const flow = n01(vec2(P.x.mul(0.18).add(time.mul(0.05)), P.z.mul(0.18)));
-      const crust = smoothstep(0.35, 0.55, cellEdges(P.xz.mul(0.35).add(vec2(time.mul(0.03), 0)), 0.4).mul(flow.add(0.4)));
+      const crust = smoothstep(0.35, 0.55, cellEdges(P.mul(0.35).add(vec3(time.mul(0.03), 0, 0)), 0.4).mul(flow.add(0.4)));
       base = mix(color('#ff6a2b'), color('#2b1a14'), crust);
       emissive = mix(color('#ffb347').mul(2.4), color('#ff4a1b').mul(0.6), crust).mul(float(1).sub(crust.mul(0.92))).mul(sin(time.mul(1.7).add(flow.mul(6))).mul(0.15).add(1));
       rough = mix(float(0.4), float(0.9), crust);
@@ -181,13 +182,13 @@ export function buildRoad(p: RoadParams, prof: MaterialProfile): THREE.MeshStand
   const edge = aaLines(U.x.sub(0.03).mul(1), 0.012).mul(step(U.x, 0.06)).add(aaLines(U.x.sub(0.97), 0.012).mul(step(0.94, U.x)));
   const dash = smoothstep(0.009, 0.004, abs(U.x.sub(0.5))).mul(step(fract(U.y.mul(0.5)), 0.45)).mul(p.style === 'asphalt' ? 0.85 : 0.5);
   const paint = clamp(edge.add(dash), 0, 1).mul(p.shoulder ? 0 : PAINT[p.style]);
-  const worn = prof.hq ? n01(P.xz.mul(1.3)).mul(0.35).add(0.65) : float(1);
+  const worn = prof.hq ? n01(P.mul(1.3)).mul(0.35).add(0.65) : float(1);
   const paintK = paint.mul(worn);
   let col: N = mix(base, color(p.line), paintK);
   rough = mix(rough, float(0.55), paintK);
   if (p.wet) {
     // puddles: darker albedo and mirror-smooth where the noise pools
-    const puddle = smoothstep(0.55, 0.62, n01(P.xz.mul(0.12)));
+    const puddle = smoothstep(0.55, 0.62, n01(P.mul(0.12)));
     col = col.mul(mix(float(0.72), float(0.55), puddle));
     rough = mix(float(0.28), float(0.04), puddle);
   } else {

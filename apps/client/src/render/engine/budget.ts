@@ -9,7 +9,7 @@ export interface BudgetSnapshot {
   drawCalls: number; triangles: number; uniqueMaterials: number; libraryMaterials: number;
   textures: number; geometries: number; textureBytes: number; geometryBytes: number;
   frameMs: { p50: number; p95: number }; jsUpdateMs: { p50: number; p95: number }; renderSubmitMs: { p50: number; p95: number };
-  resScale: number; fps: number;
+  resScale: number; fps: number; frames: number; lastSubmitMs: number;
   budget: { draws: number; tris: number; materials: number };
   over: { draws: boolean; tris: boolean; materials: boolean };
   maxDrawCalls: number; maxTriangles: number;
@@ -53,7 +53,7 @@ export class BudgetTracker {
     renderer.info.autoReset = false; // RenderPipeline renders several passes per frame; we reset once per frame
     this.snap = {
       tier, drawCalls: 0, triangles: 0, uniqueMaterials: 0, libraryMaterials: 0, textures: 0, geometries: 0, textureBytes: 0, geometryBytes: 0,
-      frameMs: { p50: 0, p95: 0 }, jsUpdateMs: { p50: 0, p95: 0 }, renderSubmitMs: { p50: 0, p95: 0 }, resScale: 1, fps: 0,
+      frameMs: { p50: 0, p95: 0 }, jsUpdateMs: { p50: 0, p95: 0 }, renderSubmitMs: { p50: 0, p95: 0 }, resScale: 1, fps: 0, frames: 0, lastSubmitMs: 0,
       budget: { draws: ts.drawBudget, tris: ts.triBudget, materials: ts.materialBudget },
       over: { draws: false, tris: false, materials: false }, maxDrawCalls: 0, maxTriangles: 0,
     };
@@ -89,6 +89,7 @@ export class BudgetTracker {
       s.over.draws = s.drawCalls > s.budget.draws; s.over.tris = s.triangles > s.budget.tris; s.over.materials = s.uniqueMaterials > s.budget.materials;
     }
     this.frames++;
+    s.frames = this.frames; s.lastSubmitMs = this.tSub - this.tUpd;
   }
 
   /** p90 frame time (ms) over the recorded window: drives dynamic resolution. */

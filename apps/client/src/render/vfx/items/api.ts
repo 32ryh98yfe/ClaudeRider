@@ -11,7 +11,15 @@ export interface ProjectileView {
   dx: number; dy: number; dz: number;       // unit travel direction (or forward)
   spawn: number; impact: number; tick: number;
 }
-export interface HazardView { id: number; code: number; owner: number; x: number; y: number; z: number; radius: number; arm: number; expire: number; tick: number; armed: boolean }
+export interface HazardView {
+  id: number; code: number; owner: number; x: number; y: number; z: number; radius: number; arm: number; expire: number; tick: number; armed: boolean;
+  /** Owner kart position this frame (lob start for token bombs). */
+  ox: number; oy: number; oz: number;
+  /** Unit ground direction across the road: toward a sibling block of the same drop, else perpendicular to the owner's heading. */
+  ax: number; az: number;
+  /** Where the proxy is drawn this frame (defaults to x, y, z; a proxy may move it, e.g. a lob): hazardFx trails follow it. */
+  px: number; py: number; pz: number;
+}
 
 export interface ProxyInstance {
   root: THREE.Object3D;

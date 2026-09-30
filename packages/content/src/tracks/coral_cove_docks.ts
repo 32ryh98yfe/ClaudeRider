@@ -8,7 +8,7 @@ export default defineTrack({
   modes: ['speed', 'item'],
   topology: 'circuit',
   lapLengthM: 1350,
-  refLapTicks: 0,
+  refLapTicks: 2344, // Legend ghost (39.1 s; roster target 37.5 s ±8%)
   nameKey: 'tracks.coral_cove_docks.name',
   onRoster: true,
 });

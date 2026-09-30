@@ -128,12 +128,16 @@ export function placeProps(m: TrackModel, c: Content, seed: number, gi: GroundIn
     const P = m.paths[pathIdx]!;
     const sides = a.side === 'L' ? [-1] : a.side === 'R' ? [1] : [-1, 1];
     for (let s = s0; s <= s1 + 1e-6; s += every) {
-      const smp = sampleAt(P, s);
+      // ranges that wrap past the line (s1 += L above) must wrap back, or sampleAt clamps them onto the last sample
+      const smp = sampleAt(P, P.closed ? ((s % P.length) + P.length) % P.length : s);
       if (smp.jumpPart === 2 || smp.warp || excluded(pathIdx, smp.s)) continue;
       for (const side of sides) {
-        const u = side * (smp.w / 2 + (side < 0 ? smp.shL : smp.shR) + offset + pr() * jitter);
+        const edge = side * (smp.w / 2 + (side < 0 ? smp.shL : smp.shR));
+        const u = edge + side * (offset + pr() * jitter);
         const x = smp.x + smp.rx * u, z = smp.z + smp.rz * u;
-        const yRoad = smp.y + smp.ry * u;
+        // compare against the road edge, not the banked road plane extended out to u: on the high side of an 8° bank
+        // that plane is 3 m above the ground by ~19 m out and dropped every grandstand and tyre wall there
+        const yRoad = smp.y + smp.ry * edge;
         if (gi.heightAt(x, z, yRoad) !== null) continue;          // never on a road
         const y = groundY(x, z, yRoad - 0.2);
         if (y < yRoad - 3) continue;                              // no floating props beside ledges / bridges

@@ -2,7 +2,6 @@
 # Golden late afternoon in the hill town: canal bridge, a 270° lap of the piazza round the 38 m bell tower,
 # the domed-basilica S, market street, the arcade kink, the fountain hairpin, a tight chicane and the riverside run.
 @signature plaza, branch, pads
-@fallback plaza -> "C R27 270 L w 24 ring road around the tower (ribbon, no AREA)" when=F3
 TRACK belltower_piazza name="Belltower Piazza" theme=clayhill_village diff=2 laps=3 topo=circuit
 DEFAULTS w=16 surf=cobble wall=parapet:1.0 shoulder=0.5 shoulderSurf=stone blend=16
 START pos=(0,0,0) hdg=0
@@ -13,8 +12,8 @@ S 30 dy=2 w=16
 C R40 45 R ; C R40 45 L                   @canal_kink
 S 40 dy=2 w=14 wall=parapet:1.2           @bridge       # canal bridge (key gate)
 C R22 90 R bank=-4 w=18 wall=building:3   @veer_in      # veer into the piazza (V19)
-C R27 270 L w=24 bank=3 wallL=planter:0.9 @piazza      # ring road round the bell tower (plaza fallback)
-C R22 90 R bank=-4 w=18 wallL=building:3 @veer_out    # veer out (V19)
+C R27 270 L w=30 area=piazza             @piazza        # 270° lap of the piazza round the 38 m bell tower (guide arc)
+C R22 90 R bank=-6 w=20 wallL=planter:1.0:soft @veer_out    # veer out (V19); soft planters on the outside take the plaza-exit run-wide
 S 40 dy=-2 w=16 wall=parapet:1.0
 C R55 60 R bank=-3 ; C R55 60 L bank=3    @basilica_s
 S ?a=129 shoulder=1.5 shoulderSurf=grass  @market_st    # market street
@@ -25,17 +24,54 @@ C R36 60 R bank=-4
 S ?b=15 w=14                              @fountain
 C R28 50 R w=14 ; C R28 50 L              @chicane      # (V19)
 S 25                                      @alley_split
-C R42 90 L w=18 bank=5                    @riverside    # riverside corner (V19)
-S 40 w=16
+C R42 90 L w=18 bank=5 wall=parapet:1.0:soft @riverside    # riverside corner (V19); soft river railing
+S 40 w=16 wall=parapet:1.0
 C R90 30 R dy=-1 ; C R90 30 L dy=-1       @river_s
 S ?c=86                                   @run_in
 CLOSE solve=[?a,?b,?c] length=1350
 LINE start at=0
-ITEMS at=165,505,690,855,1185 n=5
-PAD at=640,1290 d=0 len=6 w=4
+ITEMS at=165,335(n=6,span=26),505,690,855,1185 n=5
+PAD at=640,1290 d=0 len=6 w=4   # (a pad on the plaza's outer line always has the ring wall ahead, V10)
 KEYS 243,445,600,764,975,1264
+AREA piazza annulus rIn=12 rOut=42 surf=stone wallIn=curb:0.4 wallOut=planter:0.8 tower=cyl(r=10,h=38)
 
 # the alley: leaves after the chicane, cuts behind the riverside houses, rejoins after the riverside corner
-BRANCH alley from=@alley_split+1 to=@riverside+96 kind=shortcut aiMin=0.45 w=8 wall=building:4 surf=cobble {
-  C R25 45 L ; S ?x surf=gravel@12+30 ; C R25 45 L ; S ?y
+BRANCH alley from=@alley_split+1 to=@riverside+96 kind=shortcut aiMin=0.45 w=9 wall=building:4 surf=cobble {
+  C R30 45 L ; S ?x surf=gravel@12+30 bump=40:0.5x6 ; C R30 45 L ; S ?y
 }
+
+# ---- look & dressing (Clayhill Village kit; art bible: golden hour over the hill town) ----
+THEME clayhill_village sky=goldenHour time=17:30 scatter=cypress,orchard_tree,cottage density=4 hills=5
+PROPS kind=townhouse from=2 to=78 side=both every=13 offset=4 seed=21
+PROPS kind=flower_box from=85 to=205 side=both every=16 offset=0.6 seed=22
+PROPS kind=cottage from=90 to=210 side=R every=22 offset=6 jitter=3 seed=23
+PROPS kind=cypress from=212 to=240 side=both every=10 offset=3 seed=24
+PROPS kind=townhouse from=286 to=316 side=both every=11 offset=4 seed=25
+PROPS kind=townhouse from=320 to=444 side=R every=12 offset=6 seed=26
+PROPS kind=cafe_table from=322 to=442 side=R every=9 offset=1.5 jitter=1 seed=27
+PROPS kind=townhouse from=447 to=520 side=both every=12 offset=4 seed=28
+PROPS kind=cypress from=522 to=633 side=L every=11 offset=4 seed=29
+PROPS kind=market_stall from=640 to=760 side=both every=14 offset=5 seed=30
+PROPS kind=townhouse from=640 to=868 side=both every=12 offset=9 seed=31
+PROPS kind=cafe_table from=870 to=936 side=R every=10 offset=3 seed=32
+PROPS kind=townhouse from=940 to=1035 side=both every=12 offset=4 seed=33
+PROPS kind=cypress from=1066 to=1128 side=R every=10 offset=4 seed=34
+PROPS kind=orchard_tree from=1130 to=1262 side=both every=16 offset=6 jitter=4 seed=35
+PROPS kind=flower_box from=1170 to=1262 side=L every=14 offset=0.6 seed=36
+PROPS kind=townhouse from=1266 to=1348 side=both every=13 offset=4 seed=37
+PROPS kind=townhouse along=alley side=both every=12 offset=5 seed=38
+PROPS kind=flower_box along=alley side=both every=10 offset=0.3 seed=39
+# landmarks: the three home arches, the canal under the bridge, the campanile in the piazza, basilica, market
+# bunting, the fountain in the hairpin square
+PROP kind=stone_arch at=(15.0,-0.3,0.0) yaw=-90 scale=1
+PROP kind=stone_arch at=(40.0,-0.3,0.0) yaw=-90 scale=1
+PROP kind=stone_arch at=(65.0,-0.3,0.0) yaw=-90 scale=1
+PROP kind=creek at=(148.4,3.2,-152.1) yaw=0 scale=1
+PROP kind=canal_boat at=(170.4,0.2,-152.1) yaw=0 scale=1
+PROP kind=bell_tower at=(169.8,3.7,-220.5) yaw=-89 scale=1
+PROP kind=fountain at=(-243.3,1.7,-202.3) yaw=166 scale=1
+PROP kind=basilica at=(73.8,1.7,-240.6) yaw=-120 scale=1
+PROP kind=bunting at=(-58.8,1.7,-253.6) yaw=90 scale=1
+PROP kind=bunting at=(-113.8,1.7,-253.6) yaw=90 scale=1
+PROP kind=weathervane at=(-223.9,1.7,-56.9) yaw=-130 scale=1
+PROP kind=signboard at=(-242.6,1.7,-101.0) yaw=142 scale=1

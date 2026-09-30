@@ -58,7 +58,10 @@ export function buildTerrainField(m: TrackModel, c: Content, bounds: number[], n
       }
       const target = drop ? Math.min(yRef - 7, natural) : yRef - 0.35;
       const edge = bestHalf + 3;
-      if (best < edge) y = Math.min(target, natural);
+      // follow the local (lowest nearby) deck; fall away only where the road is meant to drop (jump gaps, open ledges
+      // over kill planes, rails, warps). `natural` is relative to the track's lowest point, so min(target, natural)
+      // dug a trench as deep as the road's height above it (L5: 12–14 m on a canyon rim, 115 support pillars)
+      if (best < edge) y = drop ? Math.min(target, natural) : target;
       else { const tt = Math.min(1, (best - edge) / 30), sm = tt * tt * (3 - 2 * tt); y = target * (1 - sm) + natural * sm; if (best < edge + 6) y = Math.min(y, target + 0.05); }
     }
     H[iz * (nx + 1) + ix] = y;

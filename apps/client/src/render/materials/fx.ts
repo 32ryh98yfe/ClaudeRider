@@ -1,7 +1,7 @@
 // FX materials shared by the VFX systems: boost flames (per-object colours), glow shells, decals.
 import * as THREE from 'three/webgpu';
-import { color, float, vec3, uv, time, mix, smoothstep, sin, uniform, mx_noise_float, abs, positionLocal } from 'three/tsl';
-import { fresnel, setEmissive } from './tsl.ts';
+import { color, float, vec3, uv, time, mix, smoothstep, sin, uniform, abs, positionLocal } from 'three/tsl';
+import { fresnel, setEmissive, vnoise } from './tsl.ts';
 import type { NodeFrame } from 'three/webgpu';
 
 type N = any;
@@ -32,7 +32,7 @@ function flameGraph(core: N, edge: N, heat: N): THREE.MeshBasicNodeMaterial {
   const U = uv();
   const along = U.y;                                   // 0 at the nozzle → 1 at the tip
   const flick = sin(time.mul(43).add(along.mul(14))).mul(0.12).add(0.88);
-  const n = mx_noise_float(vec3(U.x.mul(4), along.mul(5).sub(time.mul(11)), 0.5)).mul(0.5).add(0.5);
+  const n = vnoise(vec3(U.x.mul(4), along.mul(5).sub(time.mul(11)), 0.5));
   const c = mix(core, edge, smoothstep(0.05, 0.75, along));
   const body = float(1).sub(along).mul(smoothstep(0.0, 0.06, along).mul(0.6).add(0.4));
   const a = body.mul(n.mul(0.7).add(0.45)).mul(flick).clamp(0, 1);
@@ -59,6 +59,21 @@ export function buildBubble(c: string, bands: boolean): THREE.MeshBasicNodeMater
   m.colorNode = col.mul(f.mul(1.4).add(0.08).add(scan));
   m.opacityNode = f.mul(0.85).add(0.1).add(scan).clamp(0, 1);
   setEmissive(m, col.mul(f.mul(0.9).add(scan)));
+  return m;
+}
+
+/**
+ * Time Attack ghost: a cool hologram (translucent body, bright Fresnel rim, faint scanlines) so it reads as a
+ * record rather than a rival. Unlit and fog-free: one draw per ghost mesh, no shadows.
+ */
+export function buildGhost(): THREE.MeshBasicNodeMaterial {
+  const m = new THREE.MeshBasicNodeMaterial({ transparent: true, depthWrite: false, side: THREE.FrontSide, fog: false });
+  const f = fresnel(2.0);
+  const scan = smoothstep(0.35, 0.5, abs(sin(positionLocal.y.mul(26).sub(time.mul(2.2))))).mul(0.12);
+  const body = color('#9fd3f5'), rim = color('#eaf8ff');
+  m.colorNode = mix(body, rim, f).mul(float(0.55).add(scan));
+  m.opacityNode = f.mul(0.55).add(0.16).add(scan).clamp(0, 0.85);
+  setEmissive(m, rim.mul(f.mul(0.6)));
   return m;
 }
 

@@ -8,7 +8,7 @@ export default defineTrack({
   modes: ['speed', 'item'],
   topology: 'circuit',
   lapLengthM: 1300,
-  refLapTicks: 0,
+  refLapTicks: 2167, // §12 reference lap (speed); the baked .ctrk carries the ghost value
   nameKey: 'tracks.pumpkin_lane.name',
   onRoster: true,
 });

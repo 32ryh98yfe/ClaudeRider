@@ -8,11 +8,12 @@ type N = any;
 export interface VinylParams { rim?: string; clearcoat?: number; roughness?: number; tint?: THREE.Color | null; metalness?: number }
 
 /** Vinyl-toy mascot material: vertex-coloured palette, clearcoat, sheen, warm Fresnel rim (TSL, no onBeforeCompile). */
-export function buildVinyl(p: VinylParams): THREE.MeshPhysicalNodeMaterial {
-  const m = new THREE.MeshPhysicalNodeMaterial({
+export function buildVinyl(p: VinylParams, hq = true): THREE.MeshPhysicalNodeMaterial {
+  // Low: standard BRDF (clearcoat + sheen more than double the shader); the Fresnel rim keeps the vinyl read
+  const m = hq ? new THREE.MeshPhysicalNodeMaterial({
     roughness: p.roughness ?? 0.42, metalness: p.metalness ?? 0, clearcoat: p.clearcoat ?? 0.6, clearcoatRoughness: 0.25,
     sheen: 0.2, sheenRoughness: 0.5, sheenColor: new THREE.Color('#ffe9de'),
-  });
+  }) : new THREE.MeshStandardNodeMaterial({ roughness: (p.roughness ?? 0.42) * 0.85, metalness: p.metalness ?? 0 }) as unknown as THREE.MeshPhysicalNodeMaterial;
   const base: N = p.tint ? vertexColor().mul(color(p.tint)) : vertexColor();
   m.colorNode = base;
   // rim (power 2.5) plus a faint body-colour lift so the shadow side never goes dead in dark themes
@@ -22,7 +23,8 @@ export function buildVinyl(p: VinylParams): THREE.MeshPhysicalNodeMaterial {
 
 /** Candy kart paint: vertex-coloured livery, clearcoat 1.0 / 0.1, metallic flake, white Fresnel rim. */
 export function buildKartPaint(hq: boolean, map: THREE.Texture | null): THREE.MeshPhysicalNodeMaterial {
-  const m = new THREE.MeshPhysicalNodeMaterial({ roughness: 0.34, metalness: 0.18, clearcoat: 1, clearcoatRoughness: 0.08 });
+  const m = hq ? new THREE.MeshPhysicalNodeMaterial({ roughness: 0.34, metalness: 0.18, clearcoat: 1, clearcoatRoughness: 0.08 })
+    : new THREE.MeshStandardNodeMaterial({ roughness: 0.28, metalness: 0.2 }) as unknown as THREE.MeshPhysicalNodeMaterial;
   if (map) m.map = map; // livery canvas texture (L8); otherwise the livery lives in vertex colours
   else m.colorNode = vertexColor();
   if (hq) {
