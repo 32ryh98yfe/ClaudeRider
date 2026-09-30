@@ -9,7 +9,7 @@ import { performance } from 'node:perf_hooks';
 import { loadContent, type AiTier, type ModeId } from '@cr/content';
 import { loadCtrk, toArrayBuffer } from '@cr/sim';
 import { runRace } from '@cr/sim/ai/balance.ts';
-import { planFor } from '@cr/sim/ai/plan.ts';
+import { planFor } from '../../packages/sim/src/ai/plan.ts';
 
 const args = process.argv.slice(2);
 const flag = (n: string): boolean => args.includes(n);
