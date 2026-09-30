@@ -78,7 +78,9 @@ export class RaceRenderer {
 
   constructor(renderer: THREE.WebGPURenderer, track: BakedTrack, vis: ArrayBuffer, content: ContentTables, tier: QualityTier) {
     this.renderer = renderer; this.track = track; this.vis = vis; this.tier = tier; this.content = content;
-    this.kit = getThemeKit(track.meta.themeId, content);
+    // per-track lighting (L12-track-env): the kit sees the track's THEME attrs (e.g. sky=sunset on one Spark track)
+    const trackTheme = (readContainer(vis, CVIS_MAGIC, CVIS_VERSION).meta as VisMeta).theme ?? {};
+    this.kit = getThemeKit(track.meta.themeId, content, trackTheme);
     const st = save.get().settings;
     this.ts = withUserPrefs(tierSettings(tier), st);
     this.director = new CameraDirector(renderer.domElement.clientWidth / Math.max(1, renderer.domElement.clientHeight), track);
