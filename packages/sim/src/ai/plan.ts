@@ -230,7 +230,7 @@ function derive(pp: PathPlan, track: BakedTrack): void {
       for (let ci = 0; ci < corners.length; ci++) {
         const c = corners[ci]!;
         const inside = pp.closed ? inSpan(s, c.s0, c.s1, L) : s >= c.s0 && s <= c.s1;
-        if (inside) { best = ci; bestD = -1; break; }
+        if (inside) { best = ci; break; }
         let d = c.s0 - s;
         if (pp.closed && d < 0) d += L;
         if (d >= 0 && d < bestD) { bestD = d; best = ci; }
