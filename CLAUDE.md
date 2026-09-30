@@ -67,3 +67,24 @@ Run commands from the repo root.
 - Relative imports use `.ts` extensions.
 - Name things in plain English. Comments explain *why*.
 - Code in hot paths (sim, render loops) does not allocate per frame or per tick: reuse scratch objects.
+
+## Lanes (parallel agents in git worktrees)
+- **Setup** (once per worktree, from its root): `pnpm install --offline && pnpm gen && pnpm bake`. The pnpm store is local, so this takes seconds.
+- **Ports.** Never use the defaults (5173 / 8787) inside a lane; another agent may own them.
+  - Pick your lane's ports: L1 = 5201/8801, L2 = 5202/8802, … L11 = 5211/8811.
+  - Dev server: `DEV_PORT=52NN SERVER_PORT=88NN pnpm dev`, or `npx vite apps/client --port 52NN --strictPort`.
+  - E2E: `E2E_PORT=88NN pnpm e2e` (after `pnpm build`).
+- **Visual checks.** Render in headless Chromium with `?renderer=webgl2`:
+  - `node tools/shots/shot.mjs "<url>" <out-prefix> 4000 key:Enter 4000 …`, then look at the PNGs.
+  - SwiftShader is a CPU rasterizer and very slow (≈1–3 fps). Add `&quality=low&dpr=0.5` for flow tests; use `&autopilot=1&simRate=20&laps=1` to finish a race quickly.
+  - Other dev query flags: `bloom=0|1`, `shadows=<size>`, `debug`.
+- **Ownership.** Edit only the paths your lane owns (listed in your brief).
+  - If you need a change elsewhere, write `docs/design/contract-requests/<lane>-<topic>.md`: what, why, and the exact diff.
+  - Where your brief grants additive edits to a frozen file (new optional fields or sections only), make the edit, run `node tools/check-frozen.mjs --update`, and also write the request file. The orchestrator reviews it at merge.
+- **Commits.** Commit to your worktree branch in small, coherent steps. Messages look like `L<n>: <what>`. Never push, rebase or merge other branches.
+- **Done means** all of these pass:
+  - `pnpm check:frozen`, `pnpm check:deps`, `pnpm typecheck` and `pnpm lint`;
+  - your projects' tests;
+  - `pnpm build`.
+
+  End with a short report: what shipped, the test evidence, known gaps, and any contract requests.

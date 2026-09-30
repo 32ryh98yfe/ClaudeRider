@@ -1,5 +1,8 @@
 import { defineConfig } from '@playwright/test';
 
+// Lanes run e2e concurrently: each uses its own E2E_PORT (CLAUDE.md → Lanes).
+const PORT = Number(process.env['E2E_PORT'] ?? 8787);
+
 const SWIFTSHADER = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'];
 
 export default defineConfig({
@@ -11,15 +14,15 @@ export default defineConfig({
   retries: 0,
   reporter: [['list']],
   use: {
-    baseURL: 'http://127.0.0.1:8787',
+    baseURL: `http://127.0.0.1:${PORT}`,
     viewport: { width: 960, height: 540 },
     launchOptions: { args: SWIFTSHADER },
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'node apps/server/src/main.ts --port 8787 --static apps/client/dist',
-    url: 'http://127.0.0.1:8787/health',
-    reuseExistingServer: true,
+    command: `node apps/server/src/main.ts --port ${PORT} --static apps/client/dist`,
+    url: `http://127.0.0.1:${PORT}/health`,
+    reuseExistingServer: !process.env['CI'],
     timeout: 60_000,
   },
 });
