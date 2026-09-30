@@ -375,13 +375,13 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
     },
     maxInstances: 6,
   },
-  /** Compiler-placed support under an elevated deck (only on tracks with terrain): a wooden pier trestle, 3.4 m so it
-   *  stays under the lowest possible deck (the instance carries no deck height yet). */
+  /** Compiler-placed support under an elevated deck (only on tracks with terrain): a wooden pier trestle. TrackView
+   *  stretches it in Y by (1 + height class); a 2.7 m base stays under the lowest deck of every class. */
   pillar: {
     build: () => ({
       geometry: merge([
-        paint(place(cyl(0.35, 0.4, 3.3, 8), -1.6, 1.65, 0), C.woodLight), paint(place(cyl(0.35, 0.4, 3.3, 8), 1.6, 1.65, 0), C.woodLight),
-        paint(place(box(4.2, 0.45, 0.8), 0, 3.15, 0), C.wood), paint(place(box(3.4, 0.2, 0.2), 0, 1.6, 0, 0, 0, 0.6), C.wood),
+        paint(place(cyl(0.35, 0.4, 2.6, 8), -1.6, 1.3, 0), C.woodLight), paint(place(cyl(0.35, 0.4, 2.6, 8), 1.6, 1.3, 0), C.woodLight),
+        paint(place(box(4.2, 0.35, 0.8), 0, 2.52, 0), C.wood), paint(place(box(3.4, 0.2, 0.2), 0, 1.3, 0, 0, 0, 0.6), C.wood),
       ]), material: matte(), castShadow: true,
     }),
     maxInstances: 120,
