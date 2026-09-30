@@ -22,6 +22,7 @@ import { portalsToRender, railsMeta, railsToRender, resolveWarps, type WarpModel
 import { validate, type Finding } from './validate.ts';
 import { previewSvg } from './preview.ts';
 import { respawnTables } from './respawn.ts';
+import { assertFinite } from './finite.ts';
 
 export const COMPILER_VERSION = 'trackc/2.0';
 
@@ -286,6 +287,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   m.paths.forEach((p, k) => { const t = respawnTables(pass1, p, rc); arrays.push([`p${k}.rok`, t.ok], [`p${k}.rto`, t.to]); });
   const pre = writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays);
   meta.hash = fnv(pre);
+  assertFinite('.ctrk', meta, arrays);
   const ctrk = writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays);
   const track = loadCtrk(toArrayBuffer(ctrk));
   tick('ctrk');
@@ -356,6 +358,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     const l = p.samples[p.samples.length - 1]!; q.push(l.x, l.z);
     visArrays.push([`minimap.${p.id}`, f32(q)]);
   }
+  assertFinite('.vis', visMeta, visArrays);
   const vis = writeContainer(CVIS_MAGIC, CVIS_VERSION, visMeta, visArrays);
   tick('vis');
 

@@ -19,18 +19,13 @@ room and settings.
 - `livery.flame?`: `'coral' | 'violet' | 'teal' | 'gold' | 'white'` for the gauge-booster flame. The team booster stays blue.
 - `livery.plate?`: up to 8 characters of plate text. `livery.number`: 0–99.
 
-## 3. Emotes
-`Showcase.emote()` plays `win`. The garage's emote tab wants `emote(name: 'win' | 'podium' | 'lose' | 'attackLanded' | 'gotHit' | 'lobby')`.
-Results would play `podium` for ranks 2 and 3 and `lose` or `retire` otherwise.
+## 3. Done (no longer needed)
+- Emotes: `Showcase.emote(slot)` is used by the garage emote tiles, and results play `win` / `podium` / `lose` / `retire`.
+- Portraits: `ui/components/Portrait.tsx` uses `getPortrait` on the medium tier and above, falling back to the SVG.
+  The low tier keeps the SVG, because first-time head renders stall SwiftShader for seconds.
 
-## 4. Portraits (`getPortrait(characterId, size)`)
-L10's art loader (`apps/client/src/art/slots.ts`) exposes `registerRenderFallback(kind, fn)`. Register the studio
-renders there:
-```ts
-import { registerRenderFallback } from '../art/loader.ts';
-registerRenderFallback('portrait', async (slot) => getPortrait(slot.id.slice('portrait.'.length), slot.w));
-registerRenderFallback('hero', …); registerRenderFallback('kart', …);
-```
-Until then, `ui/components/Portrait.tsx` draws an original SVG Clawd with each character's costume cue. Once a
-portrait provider exists, the component should prefer it. That needs a small hook in Portrait (L10 will add it at C2
-if you expose `getPortrait`).
+## 4. Still open
+- The `beside` layout (§1).
+- Palette skins in the showcase: forward `profile.palette` to `mascot.setBodyColor(PALETTE_SKIN[p].body)` in
+  `Showcase.setLoadout`.
+- `livery.flame` in the kart flame VFX.

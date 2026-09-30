@@ -55,7 +55,7 @@ html.cb .sc-team { background: repeating-linear-gradient(0deg, var(--team) 0 6px
 .team-dot { width: 0.8rem; height: 0.8rem; border-radius: 50%; display: inline-block; }
 
 .room-side { display: flex; flex-direction: column; gap: 0.8rem; min-height: 0; }
-.room-settings { padding: 0.9rem 1rem; }
+.room-settings { padding: 0.9rem 1rem; flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .room-settings header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; }
 .room-settings h3 { font-size: 1rem; font-weight: 800; color: var(--ink); }
 .room-settings fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.45rem; }
@@ -63,8 +63,11 @@ html.cb .sc-team { background: repeating-linear-gradient(0deg, var(--team) 0 6px
 .rs-row { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; font-size: 0.82rem; font-weight: 700; color: var(--ink-2); }
 .rs-row .seg { padding: 3px; }
 .rs-row .seg > button { padding: 0.32rem 0.55rem; font-size: 0.76rem; }
+.rs-more { align-self: flex-start; gap: 0.3rem; font-size: 0.78rem; padding: 0.3rem 0.6rem; background: transparent; color: var(--terracotta); box-shadow: none; backdrop-filter: none; }
+.rs-more:hover { background: var(--coral-soft); }
+.rs-more-body { display: flex; flex-direction: column; gap: 0.45rem; padding-top: 0.45rem; border-top: 1px solid var(--line); }
 .rs-select { padding: 0.4rem 0.6rem; font-size: 0.82rem; max-width: 12rem; }
-.room-chat { flex: 1; min-height: 0; padding: 0.8rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.room-chat { flex: 1 1 0; min-height: 7.5rem; padding: 0.8rem; display: flex; flex-direction: column; gap: 0.5rem; }
 .chat-log { flex: 1; min-height: 3rem; overflow: auto; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.86rem; color: var(--ink-2); }
 .chat-log b { margin-right: 0.5rem; color: var(--terracotta); }
 .chat-log .empty { color: var(--ink-3); font-style: italic; }
