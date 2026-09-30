@@ -1,0 +1,77 @@
+# Coral Cove Docks — Coral Cove D2, item-built (3 x ~1350 m). A harbour lap over the turquoise cove at noon:
+# the beach straight past the lifeguard tower, out along the pier boardwalk and its S, up the gangway and straight
+# through a moored galleon (sails overhead), down the gangplank into the fish market, the net-shed S and market lane,
+# round the crane corner, down the palm S and the dune-grass S, then the lighthouse corner and the beach sweepers home
+# with the striped lighthouse on its islet across the bay. No baked terrain: the sea is open water right up to the
+# road, and every beach, dune and headland is a prop.
+# @signature surfaces, jump
+# @fallback jump -> "continuous gangplank ramp (S 50, -3 m) off the galleon deck" when=F2
+# @fallback hazard:traffic -> "cosmetic cargo stacks on the pier S (no rolling barrels)" when=F5
+# @fallback hazard:swinger -> "static dock crane with a hanging net at the market lane" when=F5
+# @fallback branch -> "net-shed shortcut omitted; net sheds line the S" when=F1
+TRACK coral_cove_docks name="Coral Cove Docks" theme=coral_cove diff=2 laps=3 topo=circuit
+DEFAULTS w=17 surf=asphalt wall=barrier:1.0 shoulder=2 shoulderSurf=sand blend=16
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=7 stagger=3.5 d=4
+S 100                                              @beach_straight
+C R30 90 L bank=5                                  @lifeguard_corner
+S 90 surf=wood shoulder=0                          @pier_boardwalk
+WIGGLE R40 40/80/40 R dy=3                         @pier_s
+S 68                                               @galleon_deck
+S 50 dy=-3                                         @gangplank
+C R25 90 L bank=5 surf=cobble shoulder=2           @fish_market_corner
+WIGGLE R35 45/90/45 R                              @net_shed_s
+S ?b                                               @market_lane
+C R35 90 L bank=4                                  @crane_corner
+WIGGLE R40 45/90/45 L surf=asphalt                 @palm_s
+S ?c                                               @palm_loop
+WIGGLE R60 30/60/30 R                              @dune_grass_s
+C R40 90 L bank=5                                  @lighthouse_corner
+C R90 45 R ; C R90 45 L                            @beach_sweepers
+S ?a                                               @to_the_line
+CLOSE solve=[?a,?b,?c] length=1350
+LINE start at=0
+ITEMS at=60,220,390,660,1000,1230 n=5
+PAD at=1325,35 d=0 len=6 w=4
+KEYS 80,300,540,720,900,1100,1250
+# segment map (s from the line): beach 0-100 | lifeguard 100-147 | pier 147-237 | pier S 237-349 | galleon deck 349-417
+#   gangplank 417-467 | fish market 467-506 | net-shed S 506-616 | market lane 616-795 | crane 795-850 | palm S 850-975
+#   dune-grass S 980-1106 | lighthouse corner 1106-1169 | beach sweepers 1169-1310 | to the line 1310-1350
+# The infield (always on the left) is a lagoon; the outside is beach, town waterfront and open sea.
+PROPS kind=sea along=50-50 side=R every=100 offset=200
+# beach straight and the sweepers home: a sand spit with palms and the lifeguard tower
+PROPS kind=beach along=0-152 side=both every=14 offset=0
+PROPS kind=beach along=1166-1350 side=both every=14 offset=0
+PROPS kind=palm along=4-96 side=R every=15 offset=5 jitter=10
+PROPS kind=palm along=10-140 side=L every=24 offset=4 jitter=6
+PROPS kind=palm along=1172-1346 side=both every=17 offset=5 jitter=9
+PROPS kind=lifeguard_tower along=124-124 side=R every=10 offset=6
+# the pier over open water: pilings, boats and buoys, the moored galleon, and the drive-through galleon on the deck
+PROPS kind=pier_post along=150-466 side=both every=6 offset=0.2
+PROPS kind=galleon_deck along=383-383 side=R every=100 offset=-8.5
+PROPS kind=galleon along=270-270 side=R every=100 offset=34
+PROPS kind=boat along=160-460 side=R every=48 offset=20 jitter=34
+PROPS kind=buoy along=150-470 side=both every=32 offset=10 jitter=22
+# fish market, net sheds and the market lane waterfront (outside), a lagoon shore (inside)
+PROPS kind=beach along=464-1170 side=both every=14 offset=0
+PROPS kind=market_stall along=470-500 side=R every=10 offset=4
+PROPS kind=net_shed along=512-612 side=R every=24 offset=4
+PROPS kind=net_shed along=530-600 side=L every=35 offset=4
+PROPS kind=market_stall along=622-790 side=both every=16 offset=3
+PROPS kind=cargo along=630-790 side=R every=20 offset=13 jitter=6
+PROPS kind=dock_crane along=704-704 side=R every=100 offset=11
+PROPS kind=cannon along=640-760 side=L every=40 offset=6
+# the west side: palm S and dune-grass S
+PROPS kind=palm along=796-1170 side=both every=11 offset=4 jitter=9
+PROPS kind=bush along=980-1106 side=both every=7 offset=2 jitter=6
+# the lagoon: coral heads, islets, a few boats
+PROPS kind=coral along=150-470 side=L every=24 offset=26 jitter=50
+PROPS kind=coral along=620-1300 side=L every=40 offset=30 jitter=60
+PROPS kind=islet along=300-300 side=L every=100 offset=75
+PROPS kind=islet along=1000-1000 side=L every=100 offset=95
+PROPS kind=boat along=700-900 side=L every=60 offset=45 jitter=30
+# the far water: lighthouse islet across the bay, sea stacks, a kraken cameo
+PROPS kind=lighthouse along=1250-1250 side=R every=100 offset=150
+PROPS kind=sea_stack along=0-1350 side=R every=120 offset=95 jitter=120
+PROPS kind=kraken_tentacle along=430-430 side=R every=100 offset=125
+THEME terrain=none scatter=sea_stack density=0 sky=day time=12:30

@@ -7,9 +7,10 @@ import type { PropFactory } from '../../props/defaults.ts';
 import { merge, paint, place, rbox, box, cyl, cone, sph, ico, sparkleGeometry } from '../../util/geo.ts';
 
 // Three shared materials for the whole kit (vertex colour carries the variation): glossy toy paint, matte, metal.
-const gloss = (): THREE.Material => MaterialLibrary.vertexLit(0.42, 0.05);
+// The parameter sets match ones the scene already uses (chevrons, default props, kart parts), so the kit adds no materials.
+const gloss = (): THREE.Material => MaterialLibrary.vertexLit(0.4, 0);
 const matte = (): THREE.Material => MaterialLibrary.vertexLit(0.8, 0);
-const metal = (): THREE.Material => MaterialLibrary.vertexLit(0.35, 0.55);
+const metal = (): THREE.Material => MaterialLibrary.vertexLit(0.5, 0.2);
 
 const C = {
   tarmac: '#3a3d42', graphite: '#2b2d33', kerbRed: '#e63946', white: '#fafafa', ivory: '#f5f4ed', concrete: '#c9c6bf',
