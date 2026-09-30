@@ -11,6 +11,7 @@ import { App } from './App.tsx';
 import { Stage } from './game/Stage.ts';
 import { installKeyboard } from './input/keyboard.ts';
 import { locale } from './i18n/index.ts';
+import { navigate } from './ui/store/route.ts';
 
 declare global { interface Window { __cr?: Record<string, unknown> } }
 
@@ -30,5 +31,8 @@ async function boot(): Promise<void> {
   }
   render(<App />, document.getElementById('app')!);
   window.__cr = { ...window.__cr, booting: false, ready: true };
+  // Dev deep link: ?go=1&track=<id>&mode=speed|item&tier=<ai tier> jumps straight into a race (screenshots, track review).
+  const q = new URLSearchParams(location.search);
+  if (q.get('go') === '1') navigate('loading', { track: q.get('track') ?? 'meadow_loop', mode: q.get('mode') ?? 'speed', tier: q.get('tier') ?? 'racer' });
 }
 void boot();
