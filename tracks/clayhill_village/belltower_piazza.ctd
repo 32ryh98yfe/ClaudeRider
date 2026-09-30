@@ -1,0 +1,38 @@
+# Belltower Piazza / 종탑 광장 — Clayhill Village, D2, 3 × 1350 m, both modes (reference-screenshot track), §12.2.
+# Golden late afternoon in the hill town: canal bridge, a 270° lap of the piazza round the 38 m bell tower,
+# the domed-basilica S, market street, the arcade kink, the fountain hairpin, a tight chicane and the riverside run.
+# @signature plaza, branch, pads
+# @fallback plaza -> "C R27 270 L w 24 ring road around the tower (ribbon, no AREA)" when=F3
+# @fallback branch -> "alley shortcut omitted; cafe tables mark its entrance" when=F1
+TRACK belltower_piazza name="Belltower Piazza" theme=clayhill_village diff=2 laps=3 topo=circuit
+DEFAULTS w=16 surf=cobble wall=parapet:1.0 shoulder=0.5 shoulderSurf=stone blend=16
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=7 stagger=3.5 d=4
+S 80 w=20                                 @home         # home straight under the three stone arches
+C R45 90 L bank=6 w=18                    @t1           # T1 (V19)
+S 30 dy=2 w=16
+C R40 45 R ; C R40 45 L                   @canal_kink
+S 40 dy=2 w=14 wall=parapet:1.2           @bridge       # canal bridge (key gate)
+C R22 90 R bank=-4 w=18 wall=building:3   @veer_in      # veer into the piazza (V19)
+C R27 270 L w=24 bank=3 wallL=planter:0.9 @piazza      # ring road round the bell tower (plaza fallback)
+C R22 90 R bank=-4 w=18 wallL=building:3 @veer_out    # veer out (V19)
+S 40 dy=-2 w=16 wall=parapet:1.0
+C R55 60 R bank=-3 ; C R55 60 L bank=3    @basilica_s
+S ?a=129 shoulder=1.5 shoulderSurf=grass  @market_st    # market street
+C R70 35 L shoulder=0.5 shoulderSurf=stone ; C R70 35 R
+S 20                                      @arcade
+C R26 150 L w=16 bank=8                   @hairpin      # fountain-square hairpin (V19)
+C R36 60 R bank=-4
+S ?b=15 w=14                              @fountain
+C R28 50 R w=14 ; C R28 50 L              @chicane      # (V19)
+S 25                                      @alley_split
+C R42 90 L w=18 bank=5                    @riverside    # riverside corner (V19)
+S 40 w=16
+C R90 30 R dy=-1 ; C R90 30 L dy=-1       @river_s
+S ?c=86                                   @run_in
+CLOSE solve=[?a,?b,?c] length=1350
+LINE start at=0
+ITEMS at=165,335(n=6,span=18),505,690,855,1185 n=5
+PAD at=400 d=5 len=6 w=4
+PAD at=1290 d=0 len=6 w=4
+KEYS 243,445,600,764,975,1264
