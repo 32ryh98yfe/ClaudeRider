@@ -5,21 +5,22 @@
 # lodge hairpin and S, the birch and village S, the chapel hairpin and the valley mouth to the finish gate.
 # Summit-to-valley descent −120 m, no stretch steeper than 15%. Connecting-corner angles re-balanced so the
 # descent never crosses itself (stacked levels arrive with F6).
-# @signature jump, ledge, kill, helix, stacked
-# @fallback helix -> "2 × C R16 170° switchback hairpins with the same −24 m drop" when=F6
-# @fallback stacked -> "switchback hairpins stay on one level (no overlap)" when=F6
-# @fallback jump -> "ski-jump down-ramp (no air): S 110 dy -10" when=F2
-# @fallback ledge -> "ice-shelf and cornice S keep low snow walls" when=F2
-# @fallback kill -> "no kill planes; walls everywhere" when=F2
-TRACK aurora_summit name="Aurora Summit" theme=frostbyte_glacier diff=5 laps=1 topo=p2p finishBefore=170
-DEFAULTS w=12 surf=asphalt wall=barrier:1.1 shoulder=0.5 shoulderSurf=snow blend=16
+@signature jump, ledge, kill, helix, stacked
+@fallback helix -> "2 × C R16 170° switchback hairpins with the same −24 m drop" when=F6
+@fallback stacked -> "switchback hairpins stay on one level (no overlap)" when=F6
+@fallback jump -> "ski-jump down-ramp (no air): S 110 dy -10" when=F2
+@fallback ledge -> "ice-shelf and cornice S keep low snow walls" when=F2
+@fallback kill -> "no kill planes; walls everywhere" when=F2
+TRACK aurora_summit name="Aurora Summit" theme=frostbyte_glacier diff=5 laps=1 topo=p2p finishBefore=182
+DEFAULTS w=12 surf=asphalt wall=barrier:1.1 shoulder=0.5 shoulderSurf=snow blend=20
 START pos=(0,0,0) hdg=0
 GRID rows=4 cols=2 pitch=7 stagger=3.5 d=3
 S 46 w=13                                 @grid          # grid lead-in behind the start gate
-S 41                                      @summit_gate   # start gate; pad
+S 90                                      @summit_gate   # start gate; pad
 C R30 90 L dy=-4 bank=6 w=12              @summit_drop   # (V19)
 C R20 120 R dy=-4 bank=-8                 @cornice_bend  # (V19)
-S 59 dy=-6                                @chute         # steep chute (10%)
+C R140 12 L dy=-3                         @chute         # steep chute (10%)
+C R140 12 R dy=-3
 WIGGLE R60 30/60/30 L dy=-6 bank=4        @upper_s
 C R120 95 L dy=-8                         @upper_sweeper
 S 25 w=13                                 @shelf_brake
@@ -31,11 +32,13 @@ S 50 dy=-5 w=12                           @spiral_a      # spiral descent fallba
 C R16 170 R dy=-5 bank=-6 w=14            @spiral_1      # (V19)
 S 50 dy=-5 w=12                           @spiral_b
 C R16 170 L dy=-5 bank=6 w=14             @spiral_2      # (V19)
-S 51 dy=-2 w=12                           @spiral_exit
+C R140 10 R dy=-1 w=12                    @spiral_exit
+C R140 10 L dy=-1
 WIGGLE R60 35/60/30 R dy=-4 bank=4        @moraine_s
 C R100 95 R dy=-6                         @moraine_sweeper
 C R12 180 L bank=6 w=14                   @glacier_hairpin # R12 (V19)
-S 58 dy=-5 w=12 wall=rock:3               @gully         # avalanche-gully tunnel
+C R140 12 L dy=-2.5 w=12 wall=rock:3      @gully         # avalanche-gully tunnel
+C R140 12 R dy=-2.5
 WIGGLE R18 35/70/35 R dy=-2 w=13 wall=barrier:1.1 @gully_s   # (V19 ×2)
 WIGGLE R16 30/60/30 L dy=-2              @serac_s       # (V19 ×2)
 S 68 dy=-4 w=13                           @ski_runup     # pads before the lip
@@ -55,7 +58,8 @@ WIGGLE R30 40/70/40 R dy=-2 bank=4        @aurora_s
 S 20 w=13                                 @lodge_brake
 C R12 180 L bank=6 w=14                   @lodge_hairpin # (V19)
 WIGGLE R20 30/60/30 R dy=-2 bank=5 w=13   @lodge_s       # (V19)
-S 64 w=12                                 @lodge_straight # pad
+C R140 13 R w=12                          @lodge_straight
+C R140 13 L
 WIGGLE R80 30/60/40 R dy=-2               @lodge_road_s
 C R90 120 L dy=-2                         @lodge_sweeper
 WIGGLE R60 30/60/30 R dy=-2               @birch_s
@@ -64,12 +68,14 @@ S 20 w=13                                 @chapel_brake
 C R14 180 R bank=-6 w=14                  @chapel_hairpin # (V19)
 S 15 w=13                                 @chapel_exit
 WIGGLE R18 35/65/35 L dy=-1 bank=6        @chapel_s      # (V19)
-S 57 dy=-2                                @final_descent
+C R140 12 L dy=-1                         @final_descent
+C R140 12 R dy=-1
 C R100 90 L dy=-2                         @valley_mouth
 C R35 90 R bank=-5                        @final_corner
 S 132 w=13                                @finish        # finish gate; long run-off after it
 C R80 60 L w=14 wall=barrier:1.4          @runoff
+S 12
 LINE start at=46
-ITEMS at=205,420,690,844,1005,1175,1340,1570,1770,2020,2225,2380,2660,2965,3125,3390 n=4
-PAD at=62,190,1455,1480,1530,2635 d=0 len=6 w=4
+ITEMS at=250,480,745,900,1080,1240,1390,1610,1800,2075,2290,2440,2725,3000,3170,3450 n=4
+PAD at=60,1500,1525,1575 d=0 len=6 w=4
 KEYS 200,500,800,1100,1400,1700,2000,2300,2600,2900,3200,3500

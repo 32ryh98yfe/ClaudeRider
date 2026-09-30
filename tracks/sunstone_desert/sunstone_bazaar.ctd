@@ -2,10 +2,9 @@
 # 16:00 heat haze over a caravan town: the awning market street, the oasis-pond corner, palm S-bends, the dune
 # hump, the camel-statue corner, the caravan road, the well-plaza sweeper, the rug market and the gate chicane.
 # Sand shoulders on the oasis and dune sections teach the off-road slowdown (sand 0.85 grip / ×0.92).
-# @signature branch, surfaces, jump
-# @fallback jump -> "dune hump (no air)" when=F2
-# @fallback branch -> "awning shortcut omitted; sweeper widened to 20 m with sand inside" when=F1
-# @fallback hazard:traffic -> "static pot-cart prop" when=F5
+@signature branch, surfaces, jump
+@fallback jump -> "dune hump (no air)" when=F2
+@fallback hazard:traffic -> "static pot-cart prop" when=F5
 TRACK sunstone_bazaar name="Sunstone Bazaar" theme=sunstone_desert diff=1 laps=3 topo=circuit
 DEFAULTS w=18 surf=stone wall=building:2.5 shoulder=1 shoulderSurf=sand blend=16
 START pos=(0,0,0) hdg=0
@@ -15,9 +14,10 @@ C R35 90 L bank=6 w=19 shoulder=3 wall=rock:1.0 @oasis   # oasis-pond corner, sa
 S 63 w=18 shoulder=2                      @palms
 WIGGLE R50 30/65/30 R bank=3              @palm_s
 C R80 25 L                                @dune_approach
-S ?b=75 dy=3 shoulder=3                   @dune_climb    # item row
+S 30 dy=1.5 shoulder=3                    @dune_climb
 S 25 dy=2 w=19                            @dune          # dune hump (jump fallback)
-S 40 dy=-2
+S 30 dy=-2
+S ?b=69 dy=1.5 w=18                       @dune_top      # item row; the awning lane splits here
 C R45 80 L bank=6 w=18                    @camel         # camel-statue corner (V19)
 S ?c=155 dy=-3 shoulder=1.5 wall=building:2.5 @caravan
 C R60 60 R bank=-4
@@ -30,6 +30,12 @@ C R70 25 R ; C R70 40 L                   @gate_chicane
 S ?a=98                                   @run_in
 CLOSE solve=[?a,?b,?c] length=1450
 LINE start at=0
-ITEMS at=60,285,510,720,967,1160 n=5
-PAD at=90,140 d=0 len=6 w=4
-KEYS 230,480,700,900,1100,1330
+ITEMS at=170,443,600,790,1120,1300 n=5
+PAD at=40,100 d=0 len=6 w=4
+KEYS 230,480,800,1000,1150,1380
+# sand on the inside of the oasis corner (the pond side)
+ZONE surface from=@oasis to=@oasis+55 d=[-12.5,-5] surf=sand
+# the awning shortcut: a caravanserai lane under market awnings, cutting inside the camel-statue corner
+BRANCH awning from=@dune_top+9 to=@caravan+80 kind=shortcut aiMin=0.2 w=9 wall=building:3 surf=cobble {
+  C R25 40 L ; S ?x ; C R25 40 L ; S ?y
+}

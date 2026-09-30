@@ -2,20 +2,20 @@
 # Bright overcast under the snow-globe dome: the penguin-village straight, the igloo corner, the halfpipe run,
 # the crystal-cave tunnel and its S-bends, the ice-rink sweeper (ice 0.75), the sled run, the snowman S and the
 # snow-fort corner home. Snow shoulders (0.90 grip / ×0.95) mark the off-road.
-# @signature halfpipe, surfaces
-# @fallback halfpipe -> "flat section W 20, bank 18° both ways (S-bank chicane)" when=F3
-# @fallback hazard:traffic -> "cosmetic penguin sleds beside the snowman lane" when=F5
+@signature halfpipe, surfaces
+@fallback halfpipe -> "flat section W 20, bank 16° both ways (S-bank chicane)" when=F3
+@fallback hazard:traffic -> "cosmetic penguin sleds beside the snowman lane" when=F5
 TRACK snowglobe_halfpipe name="Snowglobe Halfpipe" theme=frostbyte_glacier diff=2 laps=3 topo=circuit
-DEFAULTS w=17 surf=asphalt wall=barrier:1.1 shoulder=2 shoulderSurf=snow blend=16
+DEFAULTS w=17 surf=asphalt wall=barrier:1.1 shoulder=2 shoulderSurf=snow blend=22
 START pos=(0,0,0) hdg=0
 GRID rows=4 cols=2 pitch=7 stagger=3.5 d=4
 S 174                                     @village       # penguin-village straight; pads +90/+130
 C R30 80 L bank=8                         @igloo         # igloo corner (V19)
 S 38                                      @hp_entry
-C R95 35 L bank=18 w=20 wall=rock:1.6     @halfpipe      # halfpipe fallback: S-bank chicane (W 20)
+C R95 35 L bank=16 w=20 wall=rock:1.6     @halfpipe      # halfpipe fallback: S-bank chicane (W 20)
 S 12
-C R95 40 R bank=-18
-C R45 55 L bank=6 w=17 wall=barrier:1.1   @hp_exit
+C R95 40 R bank=-16
+C R45 55 L bank=1 w=17 wall=barrier:1.1   @hp_exit
 S ?b=52 wall=rock:2.5                     @crystal_cave  # crystal-cave tunnel (arches)
 WIGGLE R40 40/95/30 R bank=5 wall=barrier:1.1 @cave_s    # cave S-bends
 S 76 dy=2                                 @glacier       # item row
@@ -30,6 +30,10 @@ C R50 45 L bank=4                         @final_bend
 S ?a=129                                  @run_in
 CLOSE solve=[?a,?b,?c] length=1300
 LINE start at=0
-ITEMS at=60,290,460,640,880,1060 n=5
-PAD at=90,130 d=0 len=6 w=4
+ITEMS at=140,290,460,640,880,1060 n=5
+PAD at=50,100 d=0 len=6 w=4
 KEYS 200,390,560,780,1000,1180
+# ice on the inside of each cave S-bend, and the whole rink sweeper is ice (0.75)
+ZONE surface from=@cave_s+4 to=@cave_s+26 d=[1,8] surf=ice
+ZONE surface from=@cave_s+34 to=@cave_s+88 d=[-8,-1] surf=ice
+ZONE surface from=@cave_s+96 to=@cave_s+114 d=[1,8] surf=ice

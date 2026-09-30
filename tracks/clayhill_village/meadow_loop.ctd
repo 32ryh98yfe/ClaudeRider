@@ -3,8 +3,8 @@
 # over the creek, the village-green hairpin round the bandstand, the market lane and the hay-bale S home.
 # Tutorial signboards: drift → boost → instant boost. Block-out angles re-balanced for exact closure (T1 110°,
 # hairpin 175°, kinks 40/45°); every named section keeps its order, radius and role.
-# @signature pads, surfaces, jump
-# @fallback jump -> "hay-bale hump (no air, S 54 dy +1.5/-1.5)" when=F2
+@signature pads, surfaces, jump
+@fallback jump -> "hay-bale hump (no air, S 54 dy +1.5/-1.5)" when=F2
 TRACK meadow_loop name="Meadow Loop" theme=clayhill_village diff=1 laps=3 topo=circuit
 DEFAULTS w=18 surf=asphalt wall=fence:1.0 shoulder=3 shoulderSurf=grass blend=16
 START pos=(0,0,0) hdg=0
@@ -21,12 +21,12 @@ C R40 175 L bank=7                        @green        # village-green hairpin 
 C R70 45 R bank=-3                        @market_kink
 S ?c=118 dy=-2                            @market_lane  # item row, stalls and bunting
 C R60 80 L bank=5                         @windmill_corner
-WIGGLE R60 25/70/25 L bank=3              @hay_s        # hay-bale S
-S 72                                      @hay_straight
-C R45 90 L bank=6                         @last_corner  # onto the home straight (V19)
+WIGGLE R60 25/70/25 L bank=3 wall=fence:1.0:soft @hay_s  # hay-bale S (soft bales)
+S 72 wall=fence:1.0:soft                 @hay_straight
+C R45 90 L bank=6 wall=fence:1.0          @last_corner  # onto the home straight (V19)
 S ?a=93                                   @run_in
 CLOSE solve=[?a,?b,?c] length=1400
 LINE start at=0
-ITEMS at=70,300,545,870,1040,1200 n=5
-PAD at=110,160 d=0 len=6 w=4
+ITEMS at=160,320,545,870,1040,1200 n=5
+PAD at=55,105 d=0 len=6 w=4
 KEYS 240,460,660,860,1070,1280

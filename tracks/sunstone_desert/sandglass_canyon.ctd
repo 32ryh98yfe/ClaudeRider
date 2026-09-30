@@ -5,9 +5,9 @@
 # Layout re-balanced for a planar exact closure (the block-out folds back on itself): the switchback runs L-R-L,
 # the U-turn is a right-hander paired with the left mesa sweeper; every named section keeps its radius.
 # Grades are spread over the S-chains and hairpins so no stretch exceeds the D4 12% cap.
-# @signature warp, jump, surfaces
-# @fallback warp -> "ledge branch 7 m, no walls, kill below (F2)" when=F4
-# @fallback jump -> "canyon-mouth drop (no air): S 80 dy -4 down-ramp" when=F2
+@signature warp, jump, surfaces
+@fallback warp -> "ledge branch 7 m, no walls, kill below (F2)" when=F4
+@fallback jump -> "canyon-mouth drop (no air): S 80 dy -4 down-ramp" when=F2
 TRACK sandglass_canyon name="Sandglass Canyon" theme=sunstone_desert diff=4 laps=2 topo=circuit
 DEFAULTS w=13 surf=stone wall=rock:1.4 shoulder=0.5 shoulderSurf=sand blend=16
 START pos=(0,0,0) hdg=0
@@ -47,6 +47,10 @@ C R60 80 L bank=4 dy=2                    @rim_return
 S ?a=59 w=14 dy=1                         @run_in
 CLOSE solve=[?a,?b,?c] length=1920
 LINE start at=0
-ITEMS at=65,400,675,850,1080,1290,1640,1830 n=4
-PAD at=35,650,880 d=0 len=6 w=4
+ITEMS at=65,400,675,900,1080,1290,1640,1830 n=4
+PAD at=1886,10,826 d=0 len=6 w=4
 KEYS 200,450,700,900,1100,1300,1500,1730
+# sandfalls: clip the pour on the outside of each S-chain and the sand steals grip (0.85 / ×0.92)
+ZONE surface from=@sandfall_1+8 to=@sandfall_1+24 d=[2,7] surf=sand
+ZONE surface from=@sandfall_1+40 to=@sandfall_1+54 d=[-7,-2] surf=sand
+ZONE surface from=@sandfall_2+10 to=@sandfall_2+24 d=[-7,-2] surf=sand

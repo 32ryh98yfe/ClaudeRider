@@ -1,9 +1,8 @@
 # Belltower Piazza / 종탑 광장 — Clayhill Village, D2, 3 × 1350 m, both modes (reference-screenshot track), §12.2.
 # Golden late afternoon in the hill town: canal bridge, a 270° lap of the piazza round the 38 m bell tower,
 # the domed-basilica S, market street, the arcade kink, the fountain hairpin, a tight chicane and the riverside run.
-# @signature plaza, branch, pads
-# @fallback plaza -> "C R27 270 L w 24 ring road around the tower (ribbon, no AREA)" when=F3
-# @fallback branch -> "alley shortcut omitted; cafe tables mark its entrance" when=F1
+@signature plaza, branch, pads
+@fallback plaza -> "C R27 270 L w 24 ring road around the tower (ribbon, no AREA)" when=F3
 TRACK belltower_piazza name="Belltower Piazza" theme=clayhill_village diff=2 laps=3 topo=circuit
 DEFAULTS w=16 surf=cobble wall=parapet:1.0 shoulder=0.5 shoulderSurf=stone blend=16
 START pos=(0,0,0) hdg=0
@@ -32,7 +31,11 @@ C R90 30 R dy=-1 ; C R90 30 L dy=-1       @river_s
 S ?c=86                                   @run_in
 CLOSE solve=[?a,?b,?c] length=1350
 LINE start at=0
-ITEMS at=165,335(n=6,span=18),505,690,855,1185 n=5
-PAD at=400 d=5 len=6 w=4
-PAD at=1290 d=0 len=6 w=4
+ITEMS at=165,505,690,855,1185 n=5
+PAD at=640,1290 d=0 len=6 w=4
 KEYS 243,445,600,764,975,1264
+
+# the alley: leaves after the chicane, cuts behind the riverside houses, rejoins after the riverside corner
+BRANCH alley from=@alley_split+1 to=@riverside+96 kind=shortcut aiMin=0.45 w=8 wall=building:4 surf=cobble {
+  C R25 45 L ; S ?x surf=gravel@12+30 ; C R25 45 L ; S ?y
+}
