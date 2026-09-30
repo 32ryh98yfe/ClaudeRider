@@ -56,7 +56,7 @@
   "canopy_forest/fernwood_hollow": {
    "src": "bb3ce417d4da255d",
    "ctrk": "d1a23e7f",
-   "vis": "1f898562"
+   "vis": "c7c81e6b"
   },
   "clayhill_village/belltower_piazza": {
    "src": "8b9f3be6820461ec",
@@ -66,32 +66,32 @@
   "clayhill_village/meadow_loop": {
    "src": "76d4f8eeb757122d",
    "ctrk": "60566780",
-   "vis": "806142c4"
+   "vis": "5dadc388"
   },
   "coral_cove/coral_cove_docks": {
    "src": "695f8b7b92449499",
    "ctrk": "145eb431",
-   "vis": "08daba35"
+   "vis": "651c4d48"
   },
   "ember_mine/geode_rail_quarry": {
    "src": "278817c2fd3c6caa",
    "ctrk": "686f3204",
-   "vis": "23cd39c8"
+   "vis": "856a6d25"
   },
   "ember_mine/magma_switchback": {
    "src": "c3f3118ee7072baa",
    "ctrk": "077d1552",
-   "vis": "8c840812"
+   "vis": "9b8e0de9"
   },
   "frostbyte_glacier/aurora_summit": {
    "src": "75dd9daa1d695e54",
    "ctrk": "9de3996f",
-   "vis": "8b8f7ab5"
+   "vis": "d0f1bd6e"
   },
   "frostbyte_glacier/snowglobe_halfpipe": {
    "src": "e5aea9971918a450",
    "ctrk": "83e11bcf",
-   "vis": "367137d8"
+   "vis": "ffaf93af"
   },
   "lantern_hollow/manor_catacombs": {
    "src": "55cb71f1d02b92a5",
@@ -101,32 +101,32 @@
   "lantern_hollow/pumpkin_lane": {
    "src": "096887c18dcfecc9",
    "ctrk": "5fc06cb5",
-   "vis": "f6d1b47c"
+   "vis": "d99f2125"
   },
   "spark_circuit/proving_ring": {
    "src": "567d041c2710cbba",
    "ctrk": "f1dc8d90",
-   "vis": "7365fa14"
+   "vis": "24c7474e"
   },
   "spark_circuit/spark_grand_circuit": {
    "src": "639386d52c38f220",
    "ctrk": "588927f0",
-   "vis": "f2d3576c"
+   "vis": "d27a31b1"
   },
   "spark_circuit/sunset_arena_rally": {
    "src": "bed64362aebd2ccf",
    "ctrk": "3b66d10e",
-   "vis": "8588289d"
+   "vis": "053e62f7"
   },
   "sunstone_desert/sandglass_canyon": {
    "src": "e2ba99d1ed618787",
    "ctrk": "579046c1",
-   "vis": "65011215"
+   "vis": "25815b01"
   },
   "sunstone_desert/sunstone_bazaar": {
    "src": "0a3c78128edd7337",
    "ctrk": "202de28a",
-   "vis": "017b100f"
+   "vis": "d08b933a"
   }
  }
 }
