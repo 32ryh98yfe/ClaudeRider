@@ -51,3 +51,32 @@ expose `lookFor?(visTheme: Record<string,string>): Partial<ThemeLook>` (or read 
 ## 6. L4 — `.ctrk` size for the 3.8 km point-to-point
 `trackc build.test.ts` caps roster `.ctrk` at 1.5 MB. orbital_express (3800 m, 11–12 m wide) will be close; if it goes
 over, please size the cap by length (≈ 0.4 KB/m) or store positions as f32 offsets.
+
+## Status after the F4–F6 / hazard-render merges (L6 final)
+- §4 per-track look overrides: done upstream (L12-track-env). §5 `emissiveVertex` / `neon`: done upstream; the neon and
+  orbital kits use them. §6: `orbital_express` bakes to 1095 KB (3896 m), inside the 1.5 MB cap, once it has no global
+  `KILL` plane (see §8).
+- §1 (terrain height near roads) is still open: side props on decks > 3 m above the terrain are dropped, so the
+  elevated parts of skyway_interchange and orbital_express carry almost no roadside dressing.
+
+## 7. L3 — boosts fired into S-bends; hard hits on the first arc after a straight
+**What.** Across the L6 tracks most hard wall hits come from Pro/Racer bots firing a boost on a straight and arriving
+at the first arc of a wiggle (R28–R60) at 32–35 m/s. They then drift into the outside wall (magma north-run S, orbital
+holo S and arch S, skyway service S, rainline sodium S). The boost gate looks at the net `turnAhead40`, which is ≈ 0 for
+a symmetric S-bend, so the S reads as a straight.
+**Ask.** Gate boosts on the *maximum* |κ| (or the summed |Δheading|) over the next 60–80 m rather than the net turn,
+and take the VLIM of the first arc into account. **Mitigation used meanwhile:** softer wiggles and `:soft` walls at the
+hot spots (orbital holo/arch/glass/plaza/laser S, magma north run and geyser field), as L5 did.
+
+## 8. L4 — compiler findings from orbital_express (worked around)
+- A global `KILL void belowY=…` builds collision strips under every path, which added ≈ 600 KB of `.ctrk` on a 3.9 km
+  track (1648 KB → 1050 KB without it). Could the strips be limited to the declared `aabb`, or to paths that have open
+  ledges or jump gaps?
+- A risk BRANCH laid as the chord of a symmetric host WIGGLE (branch and host only ~1 m apart at the split) produced a
+  point at branch s ≈ 26 where a Legend kart stopped dead against something solid and the respawn slot was placed on
+  the same spot → a respawn loop (the ghost never finished). A second variant let a kart fall through the jump landing
+  where the landing overlapped the host road. The shipped track uses a main-line `J` instead; the repro is
+  `BRANCH rail_gap from=@laser_s to=@laser_s+83.78 … { S 17 ; J ramp=8@10 gap=10 drop=1 land=42 wland=10 ; S 0.13 }`
+  on `WIGGLE R30 40/80/40 L` (commit 66146dc).
+- A p2p path has no end cap: finished karts cruise off the end and respawn. orbital_express adds 246 m of run-off
+  (`finishBefore=266`); an automatic end wall or run-off would help every p2p track.
