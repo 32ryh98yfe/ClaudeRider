@@ -3,7 +3,6 @@
 # down under its own deck into the noodle-bar market and home along the canal and the plaza.
 @signature hazard:traffic, surfaces, branch, stacked
 @fallback hazard:traffic -> "parked cars as static obstacles lining lanes 1 and 6" when=F5   (visual only until F5)
-@fallback branch -> "alley shortcut omitted (no BRANCH in the M1 DSL)" when=F1
 TRACK rainline_blvd name="Rainline Boulevard" theme=neon_harbor diff=3 laps=3 topo=circuit
 DEFAULTS w=14 surf=wet wall=barrier:1.1 shoulder=0 shoulderSurf=asphalt blend=16
 START pos=(0,0,0) hdg=0
@@ -17,17 +16,20 @@ S ?b                                        @container_row
 WIGGLE R70 30/60/30 L                       @tram_s
 C R16 150 L bank=6                          @crane_hairpin
 S 35 dy=9 wall=parapet:1.1                  @overpass_ramp
-C R40 60 R bank=-4 adj=20                   @overpass_bend
+C R40 40 R bank=-4                          @overpass_bend
 S ?c                                        @elevated_deck
 C R30 270 L dy=-9 bank=6                    @spiral_exit
-S 44 wall=building:1.4                      @market_street
-WIGGLE R30 40/80/40 R                       @sodium_s
+S 44 wall=building:1.4 surf=cobble          @market_street
+WIGGLE R30 40/80/40 R surf=wet wall=barrier:1.1 @sodium_s
 S 40                                        @sodium_straight
 C R20 120 R bank=-6                         @noodle_corner
-C R90 40 L adj=30                           @canal_in
-C R90 40 R adj=30                           @canal_out
-C R40 60 R bank=-4 adj=30                   @plaza_kink
+C R90 50 R                                  @canal
+C R40 30 R bank=-4                          @plaza_kink
 S 53 w=16                                   @to_line
 CLOSE solve=[?a,?b,?c] length=1350
-LINE start at=0
+LINE start at=@boulevard+40
+# the neon alley: a 7 m shortcut cutting inside the harbour-crane corner
+BRANCH alley from=@alley_split+4 to=@container_row+30 kind=shortcut aiMin=0.5 w=8 wall=building:3.5 surf=cobble {
+  C R20 45 L ; S ?x ; C R20 45 L ; S ?y
+}
 THEME scatter=tower_a,tower_b density=6 hills=0 sky=night
