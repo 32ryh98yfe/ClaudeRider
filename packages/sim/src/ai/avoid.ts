@@ -4,6 +4,7 @@
 import type { WorldState } from '../core/state.ts';
 import type { BakedTrack } from '../track/BakedTrack.ts';
 import type { EffectiveProfile } from './profiles.ts';
+import type { HazardBlocks } from './hazards.ts';
 
 /** Inputs the driver fills before each re-plan (a reused scratch object: no allocation). */
 export interface LaneQuery {
@@ -26,6 +27,8 @@ export interface LaneQuery {
   wish: number;
   /** TTC horizon (s). */
   horizon: number;
+  /** Track-hazard footprints ahead (blocked lateral intervals), or null. */
+  blocks: HazardBlocks | null;
 }
 
 export interface LaneResult {
@@ -96,7 +99,8 @@ export function planLane(w: Readonly<WorldState>, track: BakedTrack, q: Readonly
   if (candOk[C_DRAFT]) candU[C_DRAFT] = clamp(draftU, lim);
   candOk[C_WISH] = q.wish === q.wish ? 1 : 0;
   if (candOk[C_WISH]) candU[C_WISH] = clamp(q.wish, lim);
-  if (!anyNear && !candOk[C_WISH]) {
+  const nBlk = q.blocks ? q.blocks.n : 0;
+  if (!anyNear && !candOk[C_WISH] && nBlk === 0) {
     // clear road: back to the line (the driver's slew keeps it smooth)
     res.laneOff = 0; res.ttc = Infinity; res.closing = 0; res.drafting = false; res.overtaking = false; res.urgent = false;
     return;
@@ -137,6 +141,11 @@ export function planLane(w: Readonly<WorldState>, track: BakedTrack, q: Readonly
     }
     if (c === C_DRAFT) cost -= 1.5;   // slipstream follow
     if (c === C_WISH) cost -= 2.0;    // wanted target (pad / item box / policy wish)
+    for (let b = 0; b < nBlk; b++) {
+      // an active / telegraphing hazard at our arrival: that lane is out (14-ai §4.7, +50·hazard)
+      const B = q.blocks!;
+      if (cu > B.u0[b]! && cu < B.u1[b]!) cost += 50;
+    }
     if (blockedCur && q.nextCornerDir !== 0 && q.nextCornerDist < 80) {
       // overtaking: prefer the inside of the next corner
       const inside = -cu * q.nextCornerDir / usable;

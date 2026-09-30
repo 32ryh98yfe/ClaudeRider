@@ -17,6 +17,7 @@ import { AiRng, mixSeed } from './rng.ts';
 import { planFor, gripTable, type PathPlan, type TrackPlan, type Corner } from './plan.ts';
 import { AI_GHOST_PROFILE, personalityOf, resolveProfile, type EffectiveProfile } from './profiles.ts';
 import { planLane, type LaneQuery, type LaneResult } from './avoid.ts';
+import { makeBlocks, scanHazards } from './hazards.ts';
 import { Recovery, type RecoveryIn, type RecoveryOut } from './recovery.ts';
 import { SelfPredictor } from './predict.ts';
 import type { AiDriverArgs, AiItemPolicy, AiItemView, AiRole } from './hooks.ts';
@@ -41,7 +42,7 @@ const A = {
 } as const;
 
 /** Controller knobs shared by every bot (mutable only for tools/balance experiments; never per bot). */
-export const AI_TUNING = { lineClampFrac: 9, holdTurn: 0.5, holdMinSIn: -0.3, holdMode: 0, holdKeyEh: -0.05, holdSbMax: 0.45, minZones: 6, eExit: 0.05 };
+export const AI_TUNING = { lineClampFrac: 9, holdTurn: 0.5, holdMinSIn: -0.3, holdMode: 0, holdKeyEh: -0.05, holdSbMax: 0.45, minZones: 6, eExit: 0.05, hazards: 1 };
 
 /** Drift execution plan for one corner on one lap (14-ai §3.9). */
 export const DriftPlan = { OPTIMAL: 0, SLOPPY: 1, GRIP: 2 } as const;
@@ -143,8 +144,10 @@ class BotDriver implements AiDriverEx {
   // ---- avoidance scratch
   private readonly lq: LaneQuery = {
     slot: 0, sMain: 0.5, path: 0, u: 0.5, vS: 0.5, vU: 0.5, tx: 0.5, tz: 0.5, rx: 0.5, rz: 0.5, hw: 8.5, lineAbs: 0.5, laneOff: 0.5, la: 0.5,
-    straight: false, nextCornerDir: 0, nextCornerDist: 0.5, lineWeight: 1.5, draftActive: false, wish: NaN, horizon: 1.5,
+    straight: false, nextCornerDir: 0, nextCornerDist: 0.5, lineWeight: 1.5, draftActive: false, wish: NaN, horizon: 1.5, blocks: null,
   };
+  private readonly blocks = makeBlocks();
+  private hazardCap = 99;
   private readonly lr: LaneResult = { laneOff: 0.5, ttc: 1e9, closing: 0.5, drafting: false, overtaking: false, urgent: false };
   private laneUrgent = false;
   private readonly view: { -readonly [K in keyof AiItemView]: AiItemView[K] };
@@ -544,6 +547,7 @@ class BotDriver implements AiDriverEx {
       if (vLim < jvMin + 2) vLim = jvMin + 2; // never brake below the clearing speed before a gap
     }
     if (narrowLedge) { const cap = 26 + 6 * prof.personality.risk; if (cap < vLim) vLim = cap; }
+    if (this.hazardCap < vLim) vLim = this.hazardCap;
     if (this.forkNearRailVMin > 0 && vLim < this.forkNearRailVMin + 3) vLim = this.forkNearRailVMin + 3; // rail capture speed
     if (ledgeHere) {
       // beside an open drop a failed drift must still stay on the road: corners at grip speed (+ a risk margin)
@@ -797,7 +801,19 @@ class BotDriver implements AiDriverEx {
     else if (this.wantBoxes) q.wish = this.boxWish(k, path, s);
     if (q.wish !== q.wish) q.wish = this.padWish(path, s);
     q.horizon = prof.exec.ttcHorizon;
+    // track hazards ahead, sampled at our arrival (analytic hazardPose)
+    const ppH = this.plan.paths[path]!;
+    if (AI_TUNING.hazards) scanHazards(this.track, ppH, s, Math.max(vS, 1), w.tick + 1 + this.LA, this.blocks); else this.blocks.n = 0;
+    q.blocks = this.blocks.n > 0 ? this.blocks : null;
     planLane(w, this.track, q, prof, this.lr);
+    // no free lane through an active hazard: arrive after it clears (presses, crossing trains, geysers)
+    this.hazardCap = 99;
+    const B = this.blocks, chosen = lineAbs + this.lr.laneOff;
+    for (let b = 0; b < B.n; b++) {
+      if (chosen <= B.u0[b]! || chosen >= B.u1[b]! || B.ds[b]! > 70 || B.clearTicks[b]! <= 0) continue;
+      const vReq = Math.max(6, (B.ds[b]! - 2) / (B.clearTicks[b]! / 60));
+      if (vReq < this.hazardCap) this.hazardCap = vReq;
+    }
     const r = this.lr;
     if (Math.abs(r.laneOff - this.laneTarget) > 0.6) this.stats.laneChanges++;
     if (r.overtaking) this.stats.overtakeLanes++;
