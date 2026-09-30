@@ -1,0 +1,1 @@
+export default { title: 'Race Results', rank: 'Rank', racer: 'Racer', time: 'Time', bestLap: 'Best lap', points: 'Pts', retire: 'RETIRE', again: 'Race again', lobby: 'Lobby', win: 'Victory!', lose: 'Defeat', you: 'YOU', ai: 'AI' };

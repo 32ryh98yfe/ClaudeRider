@@ -1,0 +1,29 @@
+# Meadow Loop — Clayhill Village D1 (item-focused starter). Wide loop: windmill turn, a gentle S through the meadow,
+# a hump bridge over the creek, the long "village road" west, a flowing S past the market and a last sweeper home.
+# Teaches: drift → gauge → boost.
+TRACK meadow_loop name="Meadow Loop" theme=clayhill_village diff=1 laps=3 topo=circuit
+DEFAULTS w=17 surf=asphalt wall=barrier:1.0 shoulder=3 shoulderSurf=grass blend=16
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=7 stagger=3.5 d=4
+S ?a                                      @home
+C R40 90 L bank=6                         @windmill_turn
+S 60
+C R60 45 R bank=-3 ; C R60 45 L bank=3    @meadow_s
+S ?b dy=4                                 @bridge_up
+S 50 w=16 wall=parapet:1.0                @bridge
+S 40 dy=-4 w=17 wall=barrier:1.0
+C R35 90 L bank=6                         @church_turn
+S 150                                     @village_road
+C R35 90 L bank=6                         @well_turn
+S ?c
+C R50 60 R bank=-4 ; C R50 60 L bank=4    @market_s
+S 50
+C R45 90 L bank=5                         @last_corner
+CLOSE solve=[?a,?b,?c] length=1400
+LINE start at=100
+ITEMS at=260,480,800,1050,1300 n=5
+PAD at=130,780 d=0 len=6 w=4
+KEYS 220,470,700,900,1100,1300
+PROPS kind=fence along=all side=both every=12 offset=2.5
+PROPS kind=lamp along=0-150 side=both every=30 offset=3
+THEME scatter=tree_round,tree_pine,bush,windmill_small,house density=7 hills=8 sky=goldenHour

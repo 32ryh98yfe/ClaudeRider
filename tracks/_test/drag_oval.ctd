@@ -1,0 +1,12 @@
+# Drag Oval — physics test fixture (never shipped). Two ~1 km flat straights, no items/pads/bank.
+TRACK drag_oval name="Drag Oval" theme=spark_circuit diff=1 laps=1 topo=circuit
+DEFAULTS w=20 surf=asphalt wall=barrier:1.0 shoulder=2 shoulderSurf=grass blend=15
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=7 stagger=3.5 d=4
+S ?a                      @home
+C R60 180 L               @turn1
+S ?a                      @back
+C R60 180 L               @turn2
+CLOSE solve=[?a] length=2400
+LINE start at=60
+THEME scatter=none density=0 hills=0 sky=noon

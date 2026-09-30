@@ -1,0 +1,18 @@
+@import './tokens.css';
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--ink); color: var(--ivory); font-family: var(--font-ui); -webkit-font-smoothing: antialiased; user-select: none; }
+#stage { position: fixed; inset: 0; z-index: 0; }
+#stage canvas { display: block; width: 100%; height: 100%; }
+#app { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+#app > * { pointer-events: auto; }
+button { font-family: inherit; }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-style: italic; }
+.btn { appearance: none; border: 0; border-radius: var(--radius-m); padding: 14px 26px; font-size: 18px; font-weight: 800; cursor: pointer; color: var(--ink); background: var(--ivory); box-shadow: 0 0 0 1px rgba(20,20,19,.12), 0 6px 18px rgba(20,20,19,.18); transition: transform .12s var(--ease-out), box-shadow .12s, background .12s; }
+.btn:hover, .btn:focus-visible { transform: translateY(-2px); outline: none; box-shadow: 0 0 0 2px var(--coral), 0 10px 24px rgba(20,20,19,.25); }
+.btn:active { transform: translateY(0) scale(.98); }
+.btn.primary { background: linear-gradient(135deg, var(--terracotta), var(--coral)); color: #fff; }
+.btn.ghost { background: rgba(250,249,245,.12); color: var(--ivory); box-shadow: 0 0 0 1px rgba(250,249,245,.25); }
+.kbd { display: inline-block; min-width: 1.6em; padding: 1px 6px; border-radius: 6px; background: rgba(250,249,245,.14); box-shadow: inset 0 -2px 0 rgba(0,0,0,.35); font-size: .82em; font-weight: 700; text-align: center; }
+.fade-in { animation: fadeIn .35s var(--ease-out) both; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }

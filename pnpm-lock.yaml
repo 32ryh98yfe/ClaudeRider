@@ -11,6 +11,21 @@ importers:
       '@babel/core':
         specifier: 7.29.7
         version: 7.29.7
+      '@cr/content':
+        specifier: workspace:*
+        version: link:packages/content
+      '@cr/net':
+        specifier: workspace:*
+        version: link:packages/net
+      '@cr/room':
+        specifier: workspace:*
+        version: link:packages/room
+      '@cr/sim':
+        specifier: workspace:*
+        version: link:packages/sim
+      '@cr/trackc':
+        specifier: workspace:*
+        version: link:packages/trackc
       '@eslint/js':
         specifier: 10.0.1
         version: 10.0.1(eslint@10.11.0)

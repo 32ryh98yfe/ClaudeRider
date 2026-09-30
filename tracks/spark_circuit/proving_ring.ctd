@@ -1,0 +1,14 @@
+# Proving Ring — off-roster tutorial / CI oval (5 x ~700 m). Wide, flat, forgiving.
+TRACK proving_ring name="Proving Ring" theme=spark_circuit diff=1 laps=5 topo=circuit
+DEFAULTS w=18 surf=asphalt wall=barrier:1.0 shoulder=2 shoulderSurf=grass blend=15
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=7 stagger=3.5 d=4
+S ?a                      @home
+C R40 180 L bank=6        @turn1
+S ?a                      @back
+C R40 180 L bank=6        @turn2
+CLOSE solve=[?a] length=700
+LINE start at=120
+ITEMS at=40,220(n=6),390,560 n=5
+PAD at=60,410 d=0 len=6 w=4
+THEME scatter=tree_round,bush density=5 hills=4 sky=sunset

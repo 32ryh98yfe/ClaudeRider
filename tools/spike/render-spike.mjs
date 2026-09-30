@@ -1,4 +1,5 @@
 // Spike S1/S2: render the WebGPU spike page in headless Chromium and measure non-black pixels.
+/* global window, document, Image */
 import { chromium } from '@playwright/test';
 const url = process.argv[2] ?? 'http://127.0.0.1:5173/spike.html';
 const variants = [

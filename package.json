@@ -2,10 +2,12 @@
   "name": "clauderider",
   "private": true,
   "version": "0.1.0",
-  "description": "ClaudeRider — an unofficial, non-commercial fan kart racer inspired by KartRider: Drift, starring Clawd.",
+  "description": "ClaudeRider \u2014 an unofficial, non-commercial fan kart racer inspired by KartRider: Drift, starring Clawd.",
   "type": "module",
   "packageManager": "pnpm@10.33.0",
-  "engines": { "node": ">=22.18" },
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "gen": "node tools/gen-registries.mjs",
     "check:frozen": "node tools/check-frozen.mjs",
@@ -26,6 +28,11 @@
   },
   "devDependencies": {
     "@babel/core": "7.29.7",
+    "@cr/content": "workspace:*",
+    "@cr/net": "workspace:*",
+    "@cr/room": "workspace:*",
+    "@cr/sim": "workspace:*",
+    "@cr/trackc": "workspace:*",
     "@eslint/js": "10.0.1",
     "@playwright/test": "1.56.1",
     "@preact/preset-vite": "2.10.6",
