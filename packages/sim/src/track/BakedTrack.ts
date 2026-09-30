@@ -419,7 +419,10 @@ class BakedTrackImpl implements BakedTrack {
     const P = hz.periodTicks > 0 ? hz.periodTicks : 1;
     const ph = ((tick + hz.offsetTicks) % P + P) % P;
     out.active = ph >= hz.activeFrom && ph < hz.activeTo ? 1 : 0;
-    out.telegraph = !out.active && ph >= hz.activeFrom - hz.telegraphTicks && ph < hz.activeFrom ? 1 : 0;
+    // the telegraph window ends where the active one starts and may wrap back over phase 0
+    let lead = hz.activeFrom - ph;
+    if (lead <= 0) lead += P;
+    out.telegraph = !out.active && lead <= hz.telegraphTicks ? 1 : 0;
     out.phase = ph / P;
     const mo = hz.motion;
     const f = this.tmpFrame;

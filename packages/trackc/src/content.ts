@@ -1,11 +1,12 @@
 // Content statements → baked placement data on paths (items, pads, zones, kill planes, key gates, grid, hazards,
 // warps), per-sample SFLAG bits, and the (path, s, d) → surface lookup used by the mesher.
 import { SURFACE_IDS, type SurfaceId } from '@cr/content';
-import { SFLAG } from '@cr/sim';
+import { SFLAG, type HazardDefBaked } from '@cr/sim';
 import { TrackDslError, num, topList, tuple, type Stmt } from './dsl.ts';
 import { SURF, sampleAt, type Sample, type TrackModel } from './paths.ts';
 import { parseSurf } from './turtle.ts';
 import type { ProfileDef } from './profiles.ts';
+import { parseHazard } from './hazards.ts';
 
 
 export interface PadDef { path: number; s0: number; s1: number; d0: number; d1: number; kind: 'boost' | 'jump'; line: number }
@@ -25,6 +26,8 @@ export interface Content {
   pads: PadDef[]; zones: ZoneDef[]; killPlanes: KillPlane[]; items: ItemRow[]; boxes: BoxDef[];
   keyGates: number[]; keysDeclared: boolean; grid: GridSlot[]; props: PropCmd[]; theme: Record<string, string>;
   jumps: JumpDef[]; killY: number | null;
+  /** F5 analytic hazards (ids in declaration order; traffic lines expand to one per vehicle) and their kit props */
+  hazards: HazardDefBaked[]; hazardProps: string[];
   signature: string[]; fallbacks: { feature: string; substitute: string; when: string }[];
 }
 
@@ -60,7 +63,7 @@ export function resolveContent(m: TrackModel): Content {
   const main = m.paths[0]!;
   const c: Content = {
     pads: [], zones: [], killPlanes: [], items: [], boxes: [], keyGates: [], keysDeclared: false, grid: [], props: [], theme: {},
-    jumps: [], killY: null, signature: [...ast.signature], fallbacks: [...ast.fallbacks],
+    jumps: [], killY: null, hazards: [], hazardProps: [], signature: [...ast.signature], fallbacks: [...ast.fallbacks],
   };
   const fail = (line: number, msg: string): never => { throw new TrackDslError({ file, line, col: 1, msg }); };
 
@@ -134,6 +137,11 @@ export function resolveContent(m: TrackModel): Content {
         break;
       }
       case 'KILLY': c.killY = Number(st.args[0]); break;
+      case 'HAZ': {
+        const hl = parseHazard(st, m, (id) => pathIndex(m, id, ln), c.hazards.length, file);
+        c.hazards.push(...hl.hazards); c.hazardProps.push(...hl.props);
+        break;
+      }
       case 'KEYS': {
         c.keysDeclared = true;
         for (const e of topList(st.args.join(','))) c.keyGates.push(m.sRef(e, 0, ln));

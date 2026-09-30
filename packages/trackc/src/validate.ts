@@ -367,8 +367,11 @@ function v12(r: BuildResult, push: Push): void {
       for (let u = -smp.w / 2 + 1.5; u <= smp.w / 2 - 1.5; u += 0.25) if (lanes.every((l) => Math.abs(u - l.u) > l.half + 1.5)) { clear = true; break; }
       if (!clear) push('V12', `hazard ${h.name ?? h.id}: traffic leaves no safe lane`, h.s, p.id);
     }
-    for (const row of r.content.items) if (row.path === h.path && circDist(m, row.s, h.s) < 15) { push('V12', `hazard ${h.name ?? h.id} within ±15 m of an item row`, h.s, p.id); break; }
-    for (const j of r.content.jumps) if (j.path === h.path && circDist(m, j.lipS, h.s) < 20) { push('V12', `hazard ${h.name ?? h.id} within ±20 m of a jump lip`, h.s, p.id); break; }
+    // lane traffic occupies its whole run, everything else its own s
+    const s0 = h.motion?.type === 'lane' ? h.motion.s0 ?? h.s : h.s, s1 = h.motion?.type === 'lane' ? h.motion.s1 ?? h.s : h.s;
+    const near = (s: number, pad: number): boolean => inS(m, h.path, s, s0 - pad, s1 + pad);
+    for (const row of r.content.items) if (row.path === h.path && near(row.s, 15)) { push('V12', `hazard ${h.name ?? h.id} within ±15 m of an item row`, h.s, p.id); break; }
+    for (const j of r.content.jumps) if (j.path === h.path && near(j.lipS, 20)) { push('V12', `hazard ${h.name ?? h.id} within ±20 m of a jump lip`, h.s, p.id); break; }
   }
 }
 
