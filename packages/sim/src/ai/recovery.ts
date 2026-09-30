@@ -23,11 +23,13 @@ export interface RecoveryIn {
   raceDist: number;
   /** Ticks since the last hard crowd-control effect ended (traps pin the speed to 0; not a stuck kart). */
   sinceCc: number;
+  /** Ticks since the kart last touched a wall (a kart pinned nose-first on a wall is stuck at once). */
+  sinceWall: number;
 }
 
 export interface RecoveryOut { steer: number; thr: number; brk: number; reset: boolean }
 
-const SLOW_V = 2, SLOW_TICKS = 90, REVERSE_TICKS = 48, DRIVE_OUT_TICKS = 60, RESET_AT = 200, PROGRESS_M = 12, WRONG_DEG = 110 * Math.PI / 180, TURN_LIMIT = 150;
+const SLOW_V = 2, SLOW_TICKS = 90, PIN_TICKS = 24, MAX_TRIES = 2, REVERSE_TICKS = 48, DRIVE_OUT_TICKS = 60, RESET_AT = 200, PROGRESS_M = 12, WRONG_DEG = 110 * Math.PI / 180, TURN_LIMIT = 150;
 
 export class Recovery {
   mode: number = RecoveryMode.NONE;
@@ -36,10 +38,11 @@ export class Recovery {
   private episode = 0;    // ticks since the stuck episode began (0 = none)
   private wrong = 0;      // consecutive ticks pointed the wrong way at low speed
   private startDist = 0;  // race distance when the episode began
+  private tries = 0;      // reverse attempts in this episode
   /** Episodes started / resets pressed (for tests and the balance report). */
   episodes = 0; resets = 0;
 
-  reset(): void { this.mode = RecoveryMode.NONE; this.t = 0; this.slow = 0; this.episode = 0; this.wrong = 0; }
+  reset(): void { this.mode = RecoveryMode.NONE; this.t = 0; this.slow = 0; this.episode = 0; this.wrong = 0; this.tries = 0; }
 
   /** Returns true when recovery overrides the driving controls this tick (writes `out`). */
   update(r: Readonly<RecoveryIn>, out: RecoveryOut): boolean {
@@ -57,7 +60,12 @@ export class Recovery {
 
     switch (this.mode) {
       case RecoveryMode.NONE:
-        if (this.slow >= SLOW_TICKS) { this.enter(RecoveryMode.REVERSE); this.begin(r, this.slow); }
+        // slow for 1.5 s, or 0.4 s while touching a wall (pinned nose-first: waiting only loses time); a second
+        // attempt in the same episode goes straight to the manual reset
+        if (this.slow >= SLOW_TICKS || (this.slow >= PIN_TICKS && r.sinceWall < 10)) {
+          this.begin(r, this.slow);
+          this.enter(++this.tries >= MAX_TRIES ? RecoveryMode.RESET : RecoveryMode.REVERSE);
+        }
         else if (this.wrong >= 12) { this.enter(RecoveryMode.TURN_AROUND); this.begin(r, this.wrong); }
         else if (r.wrongWayTicks >= 72) { this.enter(RecoveryMode.RESET); this.begin(r, r.wrongWayTicks); }
         break;
@@ -104,7 +112,7 @@ export class Recovery {
 
   private enter(m: number): void { this.mode = m; this.t = 0; }
   private begin(r: Readonly<RecoveryIn>, already: number): void {
-    if (this.episode === 0) { this.episode = already; this.startDist = r.raceDist; this.episodes++; }
+    if (this.episode === 0) { this.episode = already; this.startDist = r.raceDist; this.episodes++; this.tries = 0; }
   }
   private finishIfFree(r: Readonly<RecoveryIn>): void {
     this.mode = RecoveryMode.NONE; this.t = 0;

@@ -143,8 +143,8 @@ class BotDriver implements AiDriverEx {
   private startLaneSet = false;
   // ---- recovery
   private readonly rec = new Recovery();
-  private readonly recIn: RecoveryIn = { sinceGo: 0, v: 0.5, vFwd: 0.5, aTarget: 0.5, aTrack: 0.5, lowSpeedTicks: 0, wrongWayTicks: 0, canAct: false, sinceRespawn: 0, raceDist: 0.5, sinceCc: 999 };
-  private lastCcTick = -1000;
+  private readonly recIn: RecoveryIn = { sinceGo: 0, v: 0.5, vFwd: 0.5, aTarget: 0.5, aTrack: 0.5, lowSpeedTicks: 0, wrongWayTicks: 0, canAct: false, sinceRespawn: 0, raceDist: 0.5, sinceCc: 999, sinceWall: 999 };
+  private lastCcTick = -1000; private lastWallTick = -1000;
   private readonly recOut: RecoveryOut = { steer: 0.5, thr: 0.5, brk: 0.5, reset: false };
   private lastRespawnTick = -1000; private prevRespawns = 0;
   // ---- mash-out
@@ -605,6 +605,8 @@ class BotDriver implements AiDriverEx {
     ri.sinceRespawn = w.tick - this.lastRespawnTick; ri.raceDist = k.race.raceDist;
     if (k.status.cc !== 0) this.lastCcTick = w.tick;
     ri.sinceCc = w.tick - this.lastCcTick;
+    if (b.wallContact !== 0) this.lastWallTick = w.tick;
+    ri.sinceWall = w.tick - this.lastWallTick;
     const wasRec = this.rec.mode !== 0;
     if (this.rec.update(ri, this.recOut)) {
       if (!wasRec) this.stats.recoveries++;
