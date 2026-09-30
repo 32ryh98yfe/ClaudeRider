@@ -10,7 +10,7 @@ export default defineKart({
   archetype: 'drift',
   dims: { length: 1.9, width: 1.15, height: 0.55, wheelR: 0.2 },
   livery: { primary: '#BEE9F7', secondary: '#6A9BCC', pattern: 9, number: 5 },
-  seat: [0, 0.6, -0.14],
+  seat: [0, 0.68, -0.14],
   build(k) {
     // sled hull: a smooth wedge with a raised tail housing the thrusters
     k.add(sideProfile(k, [[0.86, 0.28], [0.7, 0.4], [0.3, 0.46], [0.1, 0.44], [-0.4, 0.46], [-0.6, 0.56], [-0.9, 0.52], [-0.94, 0.26], [0.2, 0.2]], 0.8, 0.04), { color: 'paint' });
@@ -25,10 +25,11 @@ export default defineKart({
     }
     // low wraparound windscreen (glass, stays below the driver's eyes)
     const ws = new THREE.CylinderGeometry(0.52, 0.52, 0.16, k.q(16, 8, 4), 1, true, -0.9, 1.8);
-    ws.rotateX(0.35).translate(0, 0.53, -0.18);
+    ws.rotateX(0.35).translate(0, 0.54, -0.2);
     k.overlay(ws, { color: 'glass', cell: 'white', opacity: 0.35, glow: 0.15 });
     if (k.lod < 2) k.add(torus(0.52, 0.012, 4, k.q(24, 12, 6), 1.8).rotateX(Math.PI / 2).rotateY(Math.PI / 2 - 0.9 + Math.PI / 2).translate(0, 0.61, -0.18), { color: 'chrome', surf: 'chrome' });
-    k.add(k.rb(0.5, 0.32, 0.1, 0.04).rotateX(-0.2).translate(0, 0.72, -0.44), { color: 'seat', surf: 'matte' });
+    k.add(k.rb(0.48, 0.1, 0.4, 0.04).translate(0, 0.5, -0.14), { color: 'seat', surf: 'matte' });
+    k.add(k.rb(0.5, 0.14, 0.1, 0.04).rotateX(-0.2).translate(0, 0.57, -0.42), { color: 'seat', surf: 'matte' });
     // thrusters (cyan glow cores flare on boost)
     for (const s of [1, -1]) {
       k.add(cyl(0.1, 0.12, 0.2, k.q(16, 10, 6)).rotateX(Math.PI / 2).translate(s * 0.22, 0.42, -0.9), { color: 'metal', surf: 'metal' });

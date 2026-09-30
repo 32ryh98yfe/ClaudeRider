@@ -39,7 +39,7 @@ const def: CharacterDef = {
           trim.push([x + S.x * h, 0.36 + S.y * h, z + S.z * h]);
           wMin = Math.min(wMin, h);
         }
-        k.add(ribbon(wall, 1, 0.035, n + 4, [S.x, S.y, S.z], 1, (t) => hAt(t)), { color: 'detail', bone: 'head', surf: 'matte' });
+        k.add(ribbon(wall, 1, 0.035, k.lod === 2 ? 2 : n + 4, [S.x, S.y, S.z], 1, (t) => hAt(t)), { color: 'detail', bone: 'head', surf: 'matte' });
         if (k.lod === 0) k.add(ribbon(trim, 0.03, 0.03, 10, [nx, 0, nz]), { color: 'gold', bone: 'head', surf: 'gold' });
         void wMin;
       }
