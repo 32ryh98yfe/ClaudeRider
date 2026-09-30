@@ -572,6 +572,18 @@ export class GameServer {
   tick(G: number): void {
     const now = this.clock.nowMs();
     for (const r of [...this.active]) {
+      try { this.tickRoom(r, G, now); } catch (e) {
+        // isolate a failing room: its players get an error and the room is closed; every other room keeps running
+        this.log(`room ${r.code || r.queueKey} failed: ${String((e as Error)?.stack ?? e)}`);
+        for (const s of r.humans()) this.send(s, { t: 'error', code: 'internal' });
+        this.closeRoom(r);
+      }
+    }
+    if (G % 60 === 0) this.housekeeping(now);
+  }
+
+  private tickRoom(r: LobbyRoom, G: number, now: number): void {
+    {
       const race = r.race;
       if (race) {
         race.tick(G, () => this.clock.nowMs());
@@ -583,7 +595,6 @@ export class GameServer {
       if (r.phase === 'results' && now >= r.resultsUntil) this.afterResults(r);
       if (r.deadline && now >= r.deadline) this.onDeadline(r);
     }
-    if (G % 60 === 0) this.housekeeping(now);
   }
 
   private onDeadline(r: LobbyRoom): void {

@@ -7,6 +7,7 @@ import type { Channel, Loadout, RaceResultWire, S2CLobby, Transport } from '@cr/
 import { lobby, lobbyActions, handleServer, installSender, setConnectImpl, connect } from './lobby.ts';
 import { LobbyConnection } from './connection.ts';
 import { navigate } from '../ui/store/route.ts';
+import { workerSelftest } from './workerSelftest.ts';
 
 export interface OnlineRaceInfo {
   raceId: string;
@@ -120,4 +121,4 @@ export function latestStartTick(raceId: string, fallback: Tick): Tick {
 }
 
 // Dev/test hook (e2e drives the lobby before the real screens exist). Harmless in production builds.
-(window as unknown as { __crNet?: unknown }).__crNet = { lobby, actions: lobbyActions, connect: (name: string, loadout: Loadout) => connect(name, loadout), conn, pendingRace };
+(window as unknown as { __crNet?: unknown }).__crNet = { lobby, actions: lobbyActions, connect: (name: string, loadout: Loadout) => connect(name, loadout), conn, pendingRace, workerSelftest };
