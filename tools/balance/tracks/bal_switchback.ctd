@@ -1,0 +1,23 @@
+# Balance Switchback — AI balance fixture (never shipped). D3-like: 13 m road, two R14 hairpins back to back,
+# a 90° R18 entry, a fast chicane and two sweepers. Checks that tier pace holds on technical corners too.
+TRACK bal_switchback name="Balance Switchback" theme=spark_circuit diff=3 laps=3 topo=circuit
+DEFAULTS w=13 surf=asphalt wall=barrier:1.0 shoulder=1 shoulderSurf=grass blend=12
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=7 stagger=3.5 d=3
+S ?a                      @home
+C R18 90 L                @entry
+S 60
+HAIRPIN R14 R             @hairpin1
+S 50
+HAIRPIN R14 L             @hairpin2
+S ?b                      @back
+C R20 90 L                @drop
+S ?c                      @west
+CHICANE R40 30/60/30 L    @chicane
+S 60
+C R24 90 L                @south
+S 100
+C R30 90 L                @last
+CLOSE solve=[?a,?b,?c] length=1100
+LINE start at=120
+THEME scatter=none density=0 hills=0 sky=noon

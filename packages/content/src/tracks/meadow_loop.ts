@@ -8,7 +8,7 @@ export default defineTrack({
   modes: ['speed', 'item'],
   topology: 'circuit',
   lapLengthM: 1400,
-  refLapTicks: 0,
+  refLapTicks: 2270, // §12 reference lap (speed); the baked .ctrk carries the ghost value
   nameKey: 'tracks.meadow_loop.name',
   onRoster: true,
 });
