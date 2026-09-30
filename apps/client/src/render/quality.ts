@@ -76,6 +76,49 @@ function baseSettings(t: QualityTier): TierSettings {
   }
 }
 
+/** Player overrides from Settings → Graphics (31-ui-spec §9; SettingsV1 L10 fields). */
+export interface UserRenderPrefs {
+  renderScale?: number; fpsCap?: number;
+  shadows?: 'tier' | 'off' | 'on'; particles?: 'tier' | 'low' | 'high'; bloom?: 'tier' | 'off' | 'on'; motionBlur?: boolean;
+}
+
+/**
+ * Tier settings with the player's overrides applied. `shadows`/`bloom`/`particles` fall back to the tier on 'tier';
+ * `motionBlur` toggles the boost radial blur (speed lines and the FOV kick stay). Dev query flags still apply first.
+ */
+export function withUserPrefs(ts: TierSettings, p: UserRenderPrefs): TierSettings {
+  const out: TierSettings = { ...ts };
+  if (p.shadows === 'off') out.shadowSize = 0;
+  else if (p.shadows === 'on' && out.shadowSize === 0) out.shadowSize = 1024;
+  if (p.bloom === 'off') out.bloom = false;
+  else if (p.bloom === 'on') out.bloom = true;
+  if (p.particles === 'low') out.particles = Math.max(0.15, ts.particles * 0.5);
+  else if (p.particles === 'high') out.particles = Math.max(1, ts.particles);
+  if (p.motionBlur === false) out.blurTaps = 0;
+  else if (p.motionBlur === true) out.blurTaps = Math.max(16, ts.blurTaps);
+  return out;
+}
+
+/** Device pixel ratio for the canvas: the tier cap times the player's render scale (0.5–1). */
+export function pixelRatioFor(ts: TierSettings, p: UserRenderPrefs): number {
+  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+  const scale = Math.min(1, Math.max(0.5, p.renderScale ?? 1));
+  return Math.min(dpr, ts.dprCap) * scale;
+}
+
+/** Frame limiter for rAF loops: true when a frame should render at `now` under `cap` fps (0 = unlimited). */
+export class FrameCap {
+  private last = -1e9;
+  cap = 0;
+  ready(now: number): boolean {
+    if (this.cap <= 0) return true;
+    const step = 1000 / this.cap;
+    if (now - this.last < step - 2) return false;      // 2 ms slack: a 60 cap on a 60 Hz display never drops frames
+    this.last = now - Math.min(step, Math.max(0, now - this.last - step)); // keep cadence without drifting
+    return true;
+  }
+}
+
 export function pickTier(setting: string, backend: 'webgpu' | 'webgl2'): QualityTier {
   const q = new URLSearchParams(location.search).get('quality');
   if (q === 'low' || q === 'medium' || q === 'high' || q === 'ultra') return q;

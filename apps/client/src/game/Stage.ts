@@ -7,7 +7,7 @@ import { createRenderer, type Backend } from '../render/engine/createRenderer.ts
 import { Showcase } from '../render/showcase/Showcase.ts';
 import { navigate } from '../ui/store/route.ts';
 import { isWarming, warmPassPrograms } from '../render/engine/warm.ts';
-import { pickTier, tierSettings, type QualityTier } from '../render/quality.ts';
+import { pickTier, tierSettings, withUserPrefs, pixelRatioFor, FrameCap, type QualityTier, type TierSettings } from '../render/quality.ts';
 import { MaterialLibrary } from '../render/materials/library.ts';
 import { Audio } from '../audio/engine.ts';
 import { save } from '../meta/save.ts';
@@ -19,6 +19,9 @@ class StageImpl {
   tier: QualityTier = 'medium';
   showcase: Showcase | null = null;
   private warming: Promise<void> | null = null;
+  private ts: TierSettings | null = null;
+  /** Settings → frame cap, shared by the lobby loop and the race renderer. */
+  readonly cap = new FrameCap();
   private mode: 'none' | 'showcase' | 'race' = 'none';
   private raf = 0;
   private last = 0;
@@ -30,8 +33,11 @@ class StageImpl {
     const info = await createRenderer(canvas);
     const r = info.renderer;
     this.tier = pickTier(save.get().settings.quality, info.backend);
-    const ts = tierSettings(this.tier);
-    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, ts.dprCap));
+    const st = save.get().settings;
+    const ts = withUserPrefs(tierSettings(this.tier), st);
+    this.ts = ts;
+    r.setPixelRatio(pixelRatioFor(ts, st));
+    this.cap.cap = st.fpsCap ?? 60;
     r.setSize(window.innerWidth, window.innerHeight, false);
     r.toneMapping = THREE.NeutralToneMapping;
     r.toneMappingExposure = 1.0;
@@ -43,6 +49,13 @@ class StageImpl {
     stageInfo.value = { backend: info.backend, tier: this.tier, reason: info.reason, fps: 0 };
     (window as unknown as { __cr: Record<string, unknown> }).__cr = { ...(window as unknown as { __cr?: Record<string, unknown> }).__cr, backend: info.backend, tier: this.tier };
     window.addEventListener('resize', () => this.resize());
+    // live Settings: render scale and frame cap apply at once; shadows / bloom / particles on the next scene build
+    save.subscribe((sv) => {
+      if (!this.renderer || !this.ts) return;
+      const pr = pixelRatioFor(this.ts, sv.settings);
+      if (Math.abs(pr - this.renderer.getPixelRatio()) > 1e-3) { this.renderer.setPixelRatio(pr); this.resize(); }
+      this.cap.cap = sv.settings.fpsCap ?? 60;
+    });
     const q = new URLSearchParams(location.search);
     if (q.has('debug')) void import('../dev/overlay.ts').then((m) => m.installOverlay());
     // dev shortcut for visual checks: ?race=<trackId>[&mode=item&tier=pro] jumps straight into a race
@@ -75,9 +88,10 @@ class StageImpl {
       const loop = (now: number): void => {
         if (this.mode !== 'showcase') return;
         this.raf = requestAnimationFrame(loop);
+        if (this.warming || isWarming()) { this.last = now; return; }
+        if (!this.cap.ready(now)) return;
         const dt = Math.min(0.1, (now - this.last) / 1000); this.last = now;
         this.fps(dt);
-        if (this.warming || isWarming()) return;
         this.renderer!.info.reset();
         this.showcase!.frame(dt);
       };
