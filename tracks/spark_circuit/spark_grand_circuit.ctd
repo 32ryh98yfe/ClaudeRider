@@ -1,0 +1,84 @@
+# Spark Grand Circuit — Spark Circuit D1, speed-built racing-line tutorial (3 x ~1500 m).
+# A pro GP layout: the 390 m pit/start straight, a left Turn 1, climbing esses up the east side, the R30 hairpin with a
+# huge gravel run-off, the back straight down past the stadium, a west-bound run of kinks and the sponsor S, then the
+# tower and final corners onto the straight. Everything is wide (17 m) and forgiving; rideable kerbs on every corner.
+@signature branch, pads
+TRACK spark_grand_circuit name="Spark Grand Circuit" theme=spark_circuit diff=1 laps=3 topo=circuit
+DEFAULTS w=17 surf=asphalt wall=barrier:1.0 shoulder=3 shoulderSurf=grass blend=16
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=7 stagger=3.5 d=4
+S 258 w=19                                        @pit_straight
+C R40 90 L bank=6 w=17                            @turn1
+S 64                                              @grandstand_run
+WIGGLE R60 40/80/40 R dy=6 bank=4                 @esses
+S ?b                                              @esses_exit
+C R30 180 L bank=8 shoulder=9 shoulderSurf=gravel @hairpin
+S 129 dy=-6 shoulder=3 shoulderSurf=grass         @back_straight
+C R50 90 R bank=-6                                @stadium_corner
+C R80 40 R ; C R80 40 L                           @kinks
+WIGGLE R55 35/70/35 R bank=4                      @sponsor_s
+S ?c                                              @sponsor_straight
+C R45 90 L bank=6                                 @tower_corner
+S 60                                              @tower_run
+C R45 90 L bank=6                                 @final_corner
+S ?a w=19                                         @to_the_line
+CLOSE solve=[?a,?b,?c] length=1500
+LINE start at=0
+# the pit lane: an alternative line alongside the pit straight (9 m, its own two pads), behind the pit wall
+BRANCH pit_lane from=@pit_straight+14 to=@pit_straight+236 kind=alt aiMin=0.2 w=9 wall=barrier:1.0 shoulder=0 {
+  C R25 30 L ; S ?x ; C R25 30 R ; S ?y ; C R25 30 R ; S 30 ; C R25 30 L
+}
+PAD at=66 d=-2.2 len=6 w=4 path=pit_lane
+PAD at=66 d=2.2 len=6 w=4 path=pit_lane
+ITEMS at=80,350,572,760,950,1165 n=5
+PAD at=60,130 d=0 len=6 w=4
+KEYS 250,450,700,900,1100,1300
+# segment map (s from the line): pit 0-258 | T1 258-321 | run 321-385 | esses 385-553 | exit 553-586 | hairpin 586-680
+#   back 680-809 | stadium 809-888 | kinks 888-1000 | sponsor S 1000-1134 | sponsor straight 1134-1196 | tower 1196-1266
+#   tower run 1266-1326 | final 1326-1397 | to the line 1397-1500
+# pit row (fallback for the pit-lane branch): pit wall, garages and race control on the infield side
+PROPS kind=pit_wall along=36-214 side=L every=20 offset=2.3
+PROPS kind=pit_garage along=pit_lane side=L every=21 offset=1.5 from=40 to=190
+PROPS kind=pit_wall along=1405-1495 side=L every=20 offset=3
+PROPS kind=pit_garage along=1407-1492 side=L every=21 offset=13
+PROPS kind=control_tower along=252-252 side=L every=10 offset=16
+# main grandstands opposite the pits, around the line
+PROPS kind=grandstand along=22-240 side=R every=27 offset=6
+PROPS kind=grandstand along=1402-1490 side=R every=27 offset=6
+PROPS kind=floodlight along=10-250 side=R every=54 offset=20
+# Turn 1 and the esses
+PROPS kind=tyre_wall along=256-326 side=R every=4 offset=1.2
+PROPS kind=marshal_post along=334-334 side=R every=10 offset=4
+PROPS kind=banner along=326-382 side=both every=11 offset=1.4
+PROPS kind=banner along=390-550 side=both every=12 offset=1.4
+PROPS kind=grandstand along=440-510 side=L every=35 offset=10
+# the hairpin: gravel run-off, tyre wall, a stand and a TV camera
+PROPS kind=tyre_wall along=584-684 side=R every=5 offset=9
+PROPS kind=grandstand along=600-668 side=R every=34 offset=16
+PROPS kind=camera_tower along=634-634 side=R every=10 offset=30
+# back straight: the overhead chevron bridge, boards
+PROPS kind=footbridge along=745-745 side=R every=10 offset=-11.5
+PROPS kind=banner along=690-800 side=both every=14 offset=1.4
+# stadium corner (right-hander: outside on the left)
+PROPS kind=stadium along=814-884 side=L every=33 offset=7
+PROPS kind=tyre_wall along=806-892 side=L every=4 offset=1.2
+PROPS kind=floodlight along=820-880 side=L every=30 offset=42
+PROPS kind=marshal_post along=940-940 side=L every=10 offset=4
+# kinks: tree belts both sides, boards on the apexes, a stand on the outside of the second kink
+PROPS kind=banner along=890-1000 side=both every=13 offset=1.4
+PROPS kind=tree_round along=880-1130 side=R every=16 offset=16 jitter=18
+PROPS kind=pine along=880-1130 side=L every=15 offset=14 jitter=16
+PROPS kind=grandstand along=955-990 side=R every=30 offset=8
+# sponsor S and straight
+PROPS kind=banner along=1002-1192 side=both every=11 offset=1.4
+PROPS kind=grandstand along=1140-1190 side=R every=30 offset=8
+# tower and final corners
+PROPS kind=tyre_wall along=1194-1270 side=R every=4 offset=1.2
+PROPS kind=camera_tower along=1232-1232 side=R every=10 offset=10
+PROPS kind=floodlight along=1270-1326 side=both every=28 offset=12
+PROPS kind=banner along=1268-1326 side=both every=12 offset=1.4
+PROPS kind=pine along=1190-1400 side=R every=14 offset=24 jitter=18
+PROPS kind=tree_round along=1250-1340 side=L every=18 offset=14 jitter=10
+PROPS kind=tyre_wall along=1324-1400 side=R every=4 offset=1.2
+PROPS kind=marshal_post along=1362-1362 side=R every=10 offset=5
+THEME scatter=tree_round,bush,pine density=4 hills=5 sky=day time=13:00
