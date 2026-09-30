@@ -18,6 +18,7 @@ import { GroundIndex, exclusions, placeProps, type PropSet } from './props.ts';
 import { bakeAi } from './aibake.ts';
 import { buildFeatures, jumpFacesToRender, killPlanesToRender } from './features.ts';
 import { areaFootprint, buildAreas, resolveAreas, type AreaReport, type AreaModel } from './area.ts';
+import { portalsToRender, railsMeta, railsToRender, resolveWarps, type WarpModel } from './railwarp.ts';
 import { validate, type Finding } from './validate.ts';
 import { previewSvg } from './preview.ts';
 
@@ -37,6 +38,7 @@ export interface VisMeta {
   chunks?: (ChunkInfo & { groups: { slot: number; i0: number; n: number }[]; tris: number })[];
   junctions?: { kind: string; gore: { x: number; y: number; z: number; fx: number; fy: number; fz: number } | null }[];
   killPlanes?: { id: string; y: number; surf: string; aabb: number[] }[];
+  portals?: { id: string; kind: 'entry' | 'exit'; x: number; y: number; z: number; fx: number; fy: number; fz: number; w: number; h: number }[];
   areas?: { id: string; kind: string; y: number; surf: number; center: [number, number] | null; rIn: number; rOut: number; from: number; sweep: number; obstacles: unknown[] }[];
   minimapPaths?: { id: string; kind: string; array: string }[];
   materials?: string[];
@@ -60,7 +62,7 @@ export interface BuildResult {
   slots: RenderSlot[];
   /** @deprecated M1 name: the main path's geometry summary */
   geometry: { closed: boolean; length: number; samples: Sample[]; closure: TrackModel['closure']; prims: PathModel['prims'] };
-  areas: AreaModel[]; areaReports: AreaReport[];
+  areas: AreaModel[]; areaReports: AreaReport[]; warps: WarpModel[];
   timings: Record<string, number>;
 }
 
@@ -82,8 +84,10 @@ function forbiddenSpans(m: TrackModel, js: Junction[]): [number, number][] {
   for (const p of m.paths) if (p.map && p.map.host === 0) { const a = p.hostFrom; let b = p.hostTo; if (m.closed && b < a) b += L; out.push([a - 3, b + 3]); }
   for (const j of js) if (j.host === 0) out.push([j.hostS0, j.hostS1]);
   for (const s of m.paths[0]!.samples) if (s.warp) out.push([s.s - 1, s.s + 1]);
+  for (const w of warpsFor.get(m) ?? []) if (w.path === 0 && w.exitPath === 0) { const a = w.s; let b = w.exitS; if (m.closed && b < a) b += m.paths[0]!.length; out.push([a - 3, b + 3]); }
   return out;
 }
+const warpsFor = new WeakMap<TrackModel, WarpModel[]>();
 export function inSpans(m: TrackModel, s: number, spans: [number, number][]): boolean {
   return spans.some(([a, b]) => inS(m, 0, s, a, b));
 }
@@ -197,6 +201,8 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     for (const s of h.samples) if (inS(m, h.index, s.s, j.hostS0, j.hostS1)) s.flags |= SFLAG.BLEND;
     for (const s of b.samples) if (s.s >= j.branchS0 && s.s <= j.branchS1) s.flags |= SFLAG.BLEND;
   }
+  const warps = resolveWarps(m);
+  warpsFor.set(m, warps);
   const areas = resolveAreas(m);
   const ar = buildAreas(m, areas, ground, kerbs, walls);
   walls = ar.walls;
@@ -250,7 +256,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
       if (z.camera !== undefined) o.camera = z.camera;
       return o;
     }).concat(c.killPlanes.map((k) => ({ kind: 'kill' as const, path: 0, s0: 0, s1: 0, u0: -1e3, u1: 1e3, belowY: k.y, ...(k.aabb ? { aabb: k.aabb } : {}) }))),
-    rails: [], warps: [],
+    rails: railsMeta(m), warps: warps.map(({ entryPose: _e, exitPose: _x, span: _s, line: _l, ...w }) => w),
     jumps: c.jumps.map((j) => ({ path: j.path, lipS: j.lipS, landS0: j.landS0, landS1: j.landS1, vMin: j.vMin, vMax: j.vMax, rampS: j.s0, lipDeg: j.lipDeg, gapLen: j.gapLen, drop: j.drop, lipH: j.lipH, landW: j.landW })),
     hazards: [],
     keyGates,
@@ -298,6 +304,8 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   for (const p of m.paths) undersideToRender(rb, m, p, rows.get(p.index)!, (x, y, z) => (tf ? y - tf.height(x, z) : 0.6));
   startLineToRender(rb, m);
   jumpFacesToRender(rb, m, c);
+  railsToRender(rb, m, tf);
+  portalsToRender(rb, m, warps);
   killPlanesToRender(rb, c, meta.bounds);
   if (tf) terrainToRender(rb, tf, nf, ao);
   const slots = rb.finalise();
@@ -321,6 +329,9 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     chunks: chunkGroups.filter((g) => g.groups.length),
     junctions: junctions.map((j) => ({ kind: j.kind, gore: j.gore })),
     minimapPaths: m.paths.filter((p) => p.kind !== 'main').map((p) => ({ id: p.id, kind: p.kind, array: `minimap.${p.id}` })),
+    portals: warps.flatMap((w) => [
+      { id: w.id, kind: 'entry' as const, x: w.entryPose[0], y: w.entryPose[1], z: w.entryPose[2], fx: w.entryPose[3], fy: w.entryPose[4], fz: w.entryPose[5], w: w.u1 - w.u0, h: 5 },
+      { id: w.id, kind: 'exit' as const, x: w.exitPose[0], y: w.exitPose[1], z: w.exitPose[2], fx: w.exitPose[3], fy: w.exitPose[4], fz: w.exitPose[5], w: 6, h: 5 }]),
     areas: areas.map((a) => ({ id: a.id, kind: a.kind, y: a.y, surf: a.surf, center: a.center, rIn: a.rIn, rOut: a.rOut, from: a.from, sweep: a.sweep, obstacles: a.obstacles })),
     killPlanes: c.killPlanes.map((k) => ({ id: k.id, y: k.y, surf: k.surf, aabb: k.aabb ?? [meta.bounds[0]! - 120, meta.bounds[2]! - 120, meta.bounds[3]! + 120, meta.bounds[5]! + 120] })),
     materials: [...new Set(slots.map((s) => s.material))],
@@ -349,7 +360,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     slots: slots.length, chunks: visMeta.chunks!.length, clippedTris: jr.touched, killTris: feat.kills, jumpFaces: feat.faces,
   };
   const result: BuildResult = {
-    id: ast.id, ctrk, vis, meta, visMeta, findings: [], stats, previewSvg: '', track, model: m, content: c, junctions, slots, areas, areaReports: ar.reports,
+    id: ast.id, ctrk, vis, meta, visMeta, findings: [], stats, previewSvg: '', track, model: m, content: c, junctions, slots, areas, areaReports: ar.reports, warps,
     geometry: { closed: m.closed, length: main.length, samples: main.samples, closure: m.closure, prims: main.prims }, timings: T,
   };
   result.findings = validate(result, { strict: opts.strict ?? ast.signature.length > 0 });

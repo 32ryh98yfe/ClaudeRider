@@ -83,6 +83,8 @@ function hashFrom(arrays: Map<string, unknown>, prefix: string, cells: { cs: num
 }
 
 const G_WORLD = 28;
+/** Barycentric slack of the ground ray: covers f32-rounded T-junction seams (µm cracks) of clipped meshes. */
+const BARY_EPS = 1e-5;
 const DT = 1 / 60;
 
 class BakedTrackImpl implements BakedTrack {
@@ -146,10 +148,10 @@ class BakedTrackImpl implements BakedTrack {
         const inv = 1 / det;
         const sx = ox - ax, sy = oy - ay, sz = oz - az;
         const u = (sx * px + sy * py + sz * pz) * inv;
-        if (u < -1e-9 || u > 1 + 1e-9) continue;
+        if (u < -BARY_EPS || u > 1 + BARY_EPS) continue;
         const qx = sy * e1z - sz * e1y, qy = sz * e1x - sx * e1z, qz = sx * e1y - sy * e1x;
         const v = (dx * qx + dy * qy + dz * qz) * inv;
-        if (v < -1e-9 || u + v > 1 + 1e-9) continue;
+        if (v < -BARY_EPS || u + v > 1 + BARY_EPS) continue;
         const tt = (e2x * qx + e2y * qy + e2z * qz) * inv;
         if (tt < 0 || tt >= best) continue;
         best = tt; found = true;
