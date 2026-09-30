@@ -1,0 +1,72 @@
+# Kraken Lighthouse — Coral Cove D3, both modes (3 x ~1400 m), late-afternoon cliffs. From the harbour the road climbs
+# the cliffs and the R18 cliff S, spirals a full turn up around the striped lighthouse (a stacked 360-degree helix,
+# +11 m), runs the open cliff edge (no wall on the seaward left: fall and you respawn), turns along the cannon-fort straight
+# under cannonball fire, drops through the fort corner and the rampart S down the cove, and threads the sea cave where
+# the kraken's tentacles sweep the road before the grotto S, the harbour return and the breakwater home.
+# No baked terrain: open sea everywhere; cliffs and headlands are props.
+@signature helix, hazard:swinger, hazard:geyser
+TRACK kraken_lighthouse name="Kraken Lighthouse" theme=coral_cove diff=3 laps=3 topo=circuit
+DEFAULTS w=14 surf=asphalt wall=barrier:1.0 shoulder=1 shoulderSurf=sand blend=16
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=7 stagger=3.5 d=3
+S 89                                               @harbour_straight
+C R24 90 L bank=6                                  @harbour_corner
+S 47 dy=3                                          @cliffside_climb
+WIGGLE R30 35/70/35 R dy=3 surf=stone              @cliff_s
+S 30                                               @lighthouse_approach
+HELIX R36 360 L dy=11 bank=8 wallOut=rock:1.2      @lighthouse_helix
+S 47 wallL=none:0:ledgeKill shoulderL=0             @cliff_edge
+WIGGLE R30 35/70/35 L wallL=barrier:1.0 shoulderL=1 @cliff_edge_s
+S 20
+C R30 90 L bank=6                                  @headland_corner
+S ?c                                               @cannon_fort
+C R16 90 L bank=6                                  @fort_corner
+WIGGLE R30 40/80/40 R dy=-3                        @rampart_s
+WIGGLE R120 10/20/10 R dy=-6                       @cove_descent
+C R40 90 R bank=-5                                 @tide_pool_corner
+S 47 surf=wet                                      @sea_cave
+WIGGLE R60 15/30/15 R surf=asphalt dy=-4           @grotto_s
+C R28 90 L bank=6                                  @cave_exit
+S ?b dy=-2                                         @harbour_return
+C R40 90 L bank=5 dy=-2                            @quay_corner
+C R100 15 L ; C R100 15 R                          @breakwater
+S ?a                                               @to_the_line
+CLOSE solve=[?a,?b,?c] length=1400
+LINE start at=0
+ITEMS at=@harbour_straight+60,@lighthouse_approach+20,@cliff_edge+25,@cove_descent+70,@grotto_s+32 n=5
+PAD at=@to_the_line+5 d=0 len=6 w=4
+PAD at=@harbour_straight+2 d=0 len=6 w=4
+KEYS @cliffside_climb+20,@lighthouse_approach+10,@cliff_edge+20,@cannon_fort+5,@cove_descent+40,@grotto_s+30,@harbour_return+10,@breakwater+20
+# cannonballs from the fort: three staggered impact circles (launch), telegraphed 1 s ahead
+HAZ geyser ball1 at=@cannon_fort+14 d=-3 r=2.6 period=4 on=0-0.35 tele=1.0 offset=0 prop=hazard_cannonball
+HAZ geyser ball2 at=@cannon_fort+30 d=3 r=2.6 period=4 on=0-0.35 tele=1.0 offset=1.3 prop=hazard_cannonball
+HAZ geyser ball3 at=@cannon_fort+46 d=-1 r=2.6 period=4 on=0-0.35 tele=1.0 offset=2.6 prop=hazard_cannonball
+# the kraken: two tentacles sweeping across the sea-cave road out of phase
+HAZ swinger tentacle1 at=@sea_cave+14 d=0 capsule=(0.9,2.5) arm=6 amp=55 plane=across period=5 offset=0 prop=hazard_tentacle
+HAZ swinger tentacle2 at=@sea_cave+36 d=0 capsule=(0.9,2.5) arm=6 amp=55 plane=across period=5 offset=2.5 prop=hazard_tentacle
+PROPS kind=sea along=main from=@harbour_straight+40 to=@harbour_straight+40 side=R every=100 offset=200 scale=1-1
+# the harbour: quay pilings, cargo and boats, the breakwater
+PROPS kind=pier_post along=main from=@harbour_straight to=@harbour_corner side=R every=6 offset=0.2
+PROPS kind=beach along=main from=@quay_corner to=@to_the_line+72 side=L every=14 offset=0.3
+PROPS kind=beach along=main from=@harbour_straight to=@harbour_corner side=L every=14 offset=0.3
+PROPS kind=cargo along=main from=@harbour_straight+10 to=@harbour_straight+80 side=L every=18 offset=3
+PROPS kind=market_stall along=main from=@to_the_line+10 to=@to_the_line+60 side=L every=16 offset=3
+PROPS kind=boat along=main from=@harbour_return to=@harbour_corner side=R every=40 offset=18 jitter=30
+PROPS kind=pier_post along=main from=@breakwater to=@to_the_line+70 side=R every=6 offset=0.2
+PROPS kind=buoy along=main from=@quay_corner to=@to_the_line+72 side=R every=30 offset=12 jitter=25
+# the cliffs: rock masses under both edges wherever the road stands above the sea
+PROPS kind=cliff along=main from=@cliffside_climb to=@harbour_return side=both every=9 offset=0.3 scale=0.9-1.2
+PROPS kind=palm along=main from=@cliffside_climb to=@lighthouse_approach side=both every=18 offset=3 jitter=5
+# the lighthouse on its rock inside the helix
+PROP kind=lighthouse at=(68.09,1.11,-169.58) yaw=-179.6 scale=1   # helix centre (s=277, u=-36)
+# the cannon fort: guns along the ramparts (the cannonballs themselves are HAZ geysers)
+PROPS kind=cannon along=main from=@cannon_fort to=@fort_corner side=both every=10 offset=1.5
+PROPS kind=cannon along=main from=@rampart_s to=@cove_descent side=R every=16 offset=1.5
+# the sea cave: the kraken rising around the cave road (its sweeping tentacles are HAZ swingers)
+PROPS kind=kraken_tentacle along=main from=@tide_pool_corner+30 to=@grotto_s+20 side=both every=14 offset=6 jitter=4
+PROPS kind=coral along=main from=@sea_cave to=@cave_exit side=both every=20 offset=14 jitter=20
+# the far water
+PROPS kind=sea_stack along=main side=R every=90 offset=70 jitter=90
+PROPS kind=sea_stack along=main side=L every=130 offset=60 jitter=60
+PROPS kind=islet along=main from=@grotto_s to=@grotto_s side=L every=100 offset=90
+THEME terrain=none scatter=sea_stack density=0 sky=sunset time=18:30

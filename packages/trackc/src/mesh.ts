@@ -1,305 +1,229 @@
-// Builds collision meshes (ground + walls) and render slots (road, kerbs, shoulders, walls, terrain, decals) from samples.
-import { SURFACE_IDS } from '@cr/content';
-import type { Geometry, Sample, WallDef } from './geometry.ts';
+// Ribbon mesher: adaptive rows along each path, profile-aware cross-sections, zipper triangulation between rows with
+// different vertex sets (width changes, profile blends, pad/zone lateral boundaries), and walls as clippable quads.
+// Ground vs wall is decided here, semantically (docs/design/11-track-spec.md §5.1): profile slopes up to 60° are ground.
+import { TFLAG } from '@cr/sim';
+import { SURF, exactAt, sampleAt, type PathModel, type Sample, type TrackModel } from './paths.ts';
+import { inS, profileHeight, surfAt, type Content } from './content.ts';
+import { PROFILE_VERTS } from './profiles.ts';
+import { TriSoup, VS, type WallQuad } from './soup.ts';
+import type { WallDef } from './turtle.ts';
 
-export interface CollisionMesh { pos: number[]; nrm: number[]; idx: number[]; surf: number[]; flg: number[] }
-export interface RenderSlot { name: string; material: string; pos: number[]; nrm: number[]; uv: number[]; col: number[]; idx: number[]; chunks: { i0: number; n: number; bbox: number[] }[] }
+export const ROLE = { ROAD: 0, SHOULDER: 1, SLOPE: 2, AREA: 3, KILL: 4, KERB: 5, CLIFF: 6, LANDING: 7, GORE: 8, OBSTACLE: 9 } as const;
 
-export interface PadRegion { s0: number; s1: number; u0: number; u1: number; kind: 'boost' | 'jump' }
+const SOLID = (w: WallDef): boolean => w.type !== 'none' && w.type !== 'curb';
+const LAVA = SURF('lava');
 
-const SURF = (id: (typeof SURFACE_IDS)[number]): number => SURFACE_IDS.indexOf(id) + 1;
+export interface MeshOptions { tol: number; maxStep: number; colSpacing: number }
+export const DEFAULT_MESH: MeshOptions = { tol: 0.02, maxStep: 6, colSpacing: 2.5 };
 
-function newSlot(name: string, material: string): RenderSlot { return { name, material, pos: [], nrm: [], uv: [], col: [], idx: [], chunks: [] }; }
+interface XV { key: string; d: number; h: number; x: number; y: number; z: number; nx: number; ny: number; nz: number; s: number }
 
-/** Pointwise position at lateral offset u (+ right) and height h above the sample. */
-function at(S: Sample, u: number, h: number): [number, number, number] {
-  return [S.x + S.rx * u + S.ux * h, S.y + S.ry * u + S.uy * h, S.z + S.rz * u + S.uz * h];
-}
-
-function roadCols(w: number): number[] {
-  const nc = Math.max(2, Math.ceil(w / 2.5));
-  const out: number[] = [];
-  for (let k = 0; k <= nc; k++) out.push(-w / 2 + (k * w) / nc);
-  return out;
-}
-
-function sStepIndices(n: number, every: number): number[] {
-  const out: number[] = [];
-  for (let i = 0; i < n; i += every) out.push(i);
-  if (out[out.length - 1] !== n - 1) out.push(n - 1);
-  return out;
-}
-
-export function buildCollision(g: Geometry, pads: PadRegion[], sMainOf: (s: number) => number): { ground: CollisionMesh; walls: CollisionMesh } {
-  const S = g.samples;
-  const ground: CollisionMesh = { pos: [], nrm: [], idx: [], surf: [], flg: [] };
-  const walls: CollisionMesh = { pos: [], nrm: [], idx: [], surf: [], flg: [] };
-  const rows = sStepIndices(S.length, 2);
-  // ground: fixed column count per row (max over track) so rows connect; columns scale with local width
-  const maxW = Math.max(...S.map((s) => s.w));
-  const baseCols = roadCols(maxW).length;
-  const colsAt = (smp: Sample): number[] => {
-    const wl = smp.w / 2;
-    const cols: number[] = [];
-    cols.push(-wl - Math.max(0.01, smp.shoulder));
-    for (let k = 0; k < baseCols; k++) cols.push(-wl + (k * smp.w) / (baseCols - 1));
-    cols.push(wl + Math.max(0.01, smp.shoulder));
-    return cols;
-  };
-  const ncol = baseCols + 2;
-  for (const ri of rows) {
-    const smp = S[ri]!;
-    for (const u of colsAt(smp)) {
-      const p = at(smp, u, 0);
-      ground.pos.push(p[0], p[1], p[2]);
-      ground.nrm.push(smp.ux, smp.uy, smp.uz);
-    }
+// ------------------------------------------------------------------------------------------------ rows
+/** Forced row positions: primitive boundaries, jump parts, pads, zones, surface sub-ranges. */
+function forcedRows(m: TrackModel, c: Content, p: PathModel): number[] {
+  const out: number[] = [0, p.length];
+  const toPath = (dsl: number): number => (p.index === 0 ? m.toMain(dsl) : dsl);
+  for (const pr of p.prims) {
+    out.push(toPath(pr.s0));
+    for (const sub of pr.attr.surfSub) { out.push(toPath(pr.s0 + sub.from), toPath(pr.s0 + sub.from + sub.len)); }
   }
-  for (let r = 0; r < rows.length - 1; r++) {
-    const a = S[rows[r]!]!, b = S[rows[r + 1]!]!;
-    const sMid = (a.s + b.s) / 2, sm = sMainOf(sMid);
-    for (let c = 0; c < ncol - 1; c++) {
-      const i00 = r * ncol + c, i01 = r * ncol + c + 1, i10 = (r + 1) * ncol + c, i11 = (r + 1) * ncol + c + 1;
-      // CCW seen from above: (A, B=right neighbour, C=forward)
-      ground.idx.push(i00, i01, i10, i01, i11, i10);
-      const shoulderQuad = c === 0 || c === ncol - 2;
-      let surf = shoulderQuad ? a.shoulderSurf : a.surf;
-      if (!shoulderQuad) {
-        const colsA = colsAt(a);
-        const uMid = (colsA[c]! + colsA[c + 1]!) / 2;
-        for (const p of pads) if (sm >= p.s0 && sm <= p.s1 && uMid >= p.u0 && uMid <= p.u1) surf = p.kind === 'boost' ? SURF('boost_pad') : SURF('jump_pad');
-      }
-      ground.surf.push(surf, surf);
-      ground.flg.push(0, 0);
-    }
-  }
-  // walls: vertical strips facing the road, from 0.6 m below ground up to the wall height
-  const addWall = (side: -1 | 1): void => {
-    let start = -1;
-    const flush = (i0: number, i1: number): void => {
-      if (i1 <= i0) return;
-      const base = walls.pos.length / 3;
-      const seq = rows.filter((ri) => ri >= i0 && ri <= i1);
-      for (const ri of seq) {
-        const smp = S[ri]!;
-        const wd: WallDef = side < 0 ? smp.wallL : smp.wallR;
-        const u = side * (smp.w / 2 + smp.shoulder);
-        const lo = at(smp, u, -0.6), hi = at(smp, u, Math.max(0.6, wd.h));
-        walls.pos.push(lo[0], lo[1], lo[2], hi[0], hi[1], hi[2]);
-        walls.nrm.push(-side * smp.rx, -side * smp.ry, -side * smp.rz, -side * smp.rx, -side * smp.ry, -side * smp.rz);
-      }
-      for (let k = 0; k < seq.length - 1; k++) {
-        const a0 = base + k * 2, a1 = a0 + 1, b0 = a0 + 2, b1 = a0 + 3;
-        walls.idx.push(a0, b0, a1, a1, b0, b1);
-        walls.surf.push(0, 0); walls.flg.push(0, 0);
-      }
-    };
-    for (const ri of rows) {
-      const smp = S[ri]!;
-      const wd = side < 0 ? smp.wallL : smp.wallR;
-      const solid = wd.type !== 'none' && wd.type !== 'curb';
-      if (solid && start < 0) start = ri;
-      if (!solid && start >= 0) { flush(start, ri); start = -1; }
-    }
-    if (start >= 0) flush(start, rows[rows.length - 1]!);
-  };
-  addWall(-1); addWall(1);
-  return { ground, walls };
+  for (const j of c.jumps) if (j.path === p.index && !j.legacy) out.push(j.s0, j.lipS, j.landS0, j.landS1);
+  for (const pd of c.pads) if (pd.path === p.index) out.push(pd.s0, pd.s1);
+  for (const z of c.zones) if (z.path === p.index && (z.surf !== undefined || !z.full)) out.push(z.s0, z.s1);
+  const L = p.length;
+  const norm = out.map((s) => (p.closed ? ((s % L) + L) % L : Math.max(0, Math.min(L, s))));
+  if (p.closed) norm.push(L);
+  return [...new Set(norm.map((s) => Math.round(s * 1e6) / 1e6))].sort((a, b) => a - b);
 }
 
-// ------------------------------------------------------------------------------------------------ render
-export function buildRender(g: Geometry, pads: PadRegion[], sMainOf: (s: number) => number, lineS: number, seed: number): RenderSlot[] {
-  const S = g.samples;
-  const road = newSlot('road', 'road'), kerb = newSlot('kerb', 'kerb'), shoulder = newSlot('shoulder', 'shoulder');
-  const wall = newSlot('wall', 'wall'), line = newSlot('startline', 'startline'), pad = newSlot('pad', 'boostpad'), under = newSlot('underside', 'underside');
-  const CH = 50; // chunk length (m)
-  const rows = sStepIndices(S.length, 1);
-  const chunkOf = (s: number): number => Math.floor(s / CH);
-  const pushChunk = (slot: RenderSlot, chunk: number, i0: number, bbox: number[]): void => {
-    const last = slot.chunks[slot.chunks.length - 1];
-    if (last && (last as { chunk?: number }).chunk === chunk) { last.n = slot.idx.length - last.i0; mergeBox(last.bbox, bbox); return; }
-    slot.chunks.push(Object.assign({ i0, n: slot.idx.length - i0, bbox }, { chunk }));
-  };
+function edgeProbe(m: TrackModel, smp: Sample): [number, number, number][] {
+  const W = smp.w / 2;
+  const ds = [-(W + smp.shL), -W, 0, W, W + smp.shR];
+  return ds.map((d) => { const h = profileHeight(m.profiles.get(smp.prof), smp, d); return [smp.x + smp.rx * d + smp.ux * h, smp.y + smp.ry * d + smp.uy * h, smp.z + smp.rz * d + smp.uz * h]; });
+}
 
-  // road ribbon (1 m rows), uv.x across road 0..1, uv.y = s / 4
-  const roadStrip = (slot: RenderSlot, uFrom: (smp: Sample) => number, uTo: (smp: Sample) => number, cols: number, h: number, vScale: number, colFn: (smp: Sample, t: number) => [number, number, number], filter?: (smp: Sample) => boolean): void => {
-    let prevRowBase = -1, prevOk = false;
-    for (const ri of rows) {
-      const smp = S[ri]!;
-      const ok = filter ? filter(smp) : true;
-      const base = slot.pos.length / 3;
-      for (let c = 0; c <= cols; c++) {
-        const t = c / cols;
-        const u = uFrom(smp) + (uTo(smp) - uFrom(smp)) * t;
-        const p = at(smp, u, h);
-        slot.pos.push(p[0], p[1], p[2]);
-        slot.nrm.push(smp.ux, smp.uy, smp.uz);
-        slot.uv.push(t, smp.s / vScale);
-        const cc = colFn(smp, t);
-        slot.col.push(cc[0], cc[1], cc[2]);
-      }
-      if (prevRowBase >= 0 && ok && prevOk) {
-        const i0 = slot.idx.length;
-        for (let c = 0; c < cols; c++) {
-          const a = prevRowBase + c, b = prevRowBase + c + 1, d = base + c, e = base + c + 1;
-          slot.idx.push(a, b, d, b, e, d);
+/** Greedy adaptive row selection: longest steps (≤ maxStep) whose chord error stays under tol, never skipping a forced row. */
+export function ribbonRows(m: TrackModel, c: Content, p: PathModel, o: MeshOptions): number[] {
+  const forced = forcedRows(m, c, p);
+  const fset = new Set(forced);
+  const cand = [...new Set([...p.samples.map((s) => Math.round(s.s * 1e6) / 1e6), ...forced])].sort((a, b) => a - b);
+  const probes = cand.map((s) => edgeProbe(m, sampleAt(p, s)));
+  const rows: number[] = [cand[0]!];
+  let i = 0;
+  while (i < cand.length - 1) {
+    let best = i + 1;
+    for (let j = i + 2; j < cand.length; j++) {
+      if (cand[j]! - cand[i]! > o.maxStep) break;
+      if (fset.has(cand[j - 1]!)) break;
+      let ok = true;
+      for (let k = i + 1; k < j && ok; k++) {
+        const t = (cand[k]! - cand[i]!) / (cand[j]! - cand[i]!);
+        for (let e = 0; e < 5; e++) {
+          const A = probes[i]![e]!, B = probes[j]![e]!, P = probes[k]![e]!;
+          const dx = A[0] + (B[0] - A[0]) * t - P[0], dy = A[1] + (B[1] - A[1]) * t - P[1], dz = A[2] + (B[2] - A[2]) * t - P[2];
+          if (dx * dx + dy * dy + dz * dz > o.tol * o.tol) { ok = false; break; }
         }
-        const bb = bboxOf(slot.pos, prevRowBase, base + cols);
-        pushChunk(slot, chunkOf(smp.s), i0, bb);
       }
-      prevRowBase = base; prevOk = ok;
+      if (!ok) break;
+      best = j;
     }
-  };
-  const edgeAO = (smp: Sample, t: number): [number, number, number] => {
-    const nearL = smp.wallL.type !== 'none' && smp.shoulder < 0.5 ? Math.max(0, 1 - t * 12) : 0;
-    const nearR = smp.wallR.type !== 'none' && smp.shoulder < 0.5 ? Math.max(0, 1 - (1 - t) * 12) : 0;
-    const ao = 1 - 0.35 * Math.max(nearL, nearR);
-    return [ao, ao, ao];
-  };
-  roadStrip(road, (s) => -s.w / 2, (s) => s.w / 2, 8, 0.0, 4, edgeAO);
-  // kerbs on corners (|curvature| > 1/70), on both edges, 1.1 m wide, slightly raised
-  const isCorner = (s: Sample): boolean => Math.abs(s.curv) > 1 / 70;
-  roadStrip(kerb, (s) => -s.w / 2, (s) => -s.w / 2 + 1.1, 1, 0.03, 2, () => [1, 1, 1], isCorner);
-  roadStrip(kerb, (s) => s.w / 2 - 1.1, (s) => s.w / 2, 1, 0.03, 2, () => [1, 1, 1], isCorner);
-  roadStrip(shoulder, (s) => -s.w / 2 - s.shoulder, (s) => -s.w / 2, 1, -0.01, 6, () => [1, 1, 1], (s) => s.shoulder > 0.2);
-  roadStrip(shoulder, (s) => s.w / 2, (s) => s.w / 2 + s.shoulder, 1, -0.01, 6, () => [1, 1, 1], (s) => s.shoulder > 0.2);
-  // underside skirt (so elevated roads look solid)
-  roadStrip(under, (s) => -s.w / 2 - s.shoulder, (s) => s.w / 2 + s.shoulder, 1, -0.6, 8, () => [0.55, 0.55, 0.55]);
-  flipWinding(under);
+    rows.push(cand[best]!);
+    i = best;
+  }
+  return rows;
+}
 
-  // walls: inner face + top + outer face per side
-  for (const side of [-1, 1] as const) {
-    let prev = -1, prevOk = false;
-    for (const ri of rows) {
-      const smp = S[ri]!;
-      const wd = side < 0 ? smp.wallL : smp.wallR;
-      const ok = wd.type !== 'none' && wd.type !== 'invisible' && wd.type !== 'curb';
-      const h = Math.max(0.5, wd.h);
-      const u0 = side * (smp.w / 2 + smp.shoulder), u1 = u0 + side * 0.45;
-      const base = wall.pos.length / 3;
-      const pts: [number, number][] = [[u0, -0.6], [u0, h], [u1, h], [u1, -0.6]];
-      const nrms = [[-side, 0], [0, 1], [0, 1], [side, 0]];
-      pts.forEach(([u, hh], i) => {
-        const p = at(smp, u, hh);
-        wall.pos.push(p[0], p[1], p[2]);
-        const [nr, nu] = nrms[i]!;
-        wall.nrm.push(smp.rx * nr! + smp.ux * nu!, smp.ry * nr! + smp.uy * nu!, smp.rz * nr! + smp.uz * nu!);
-        wall.uv.push(i / 3, smp.s / 3);
-        const tint = wd.type === 'rock' ? 0.8 : wd.type === 'building' ? 0.9 : 1;
-        wall.col.push(tint, tint, tint);
+// ------------------------------------------------------------------------------------------------ cross-sections
+function pushXV(out: XV[], smp: Sample, key: string, d: number, h: number, slope: number): void {
+  let nx = smp.ux - smp.rx * slope, ny = smp.uy - smp.ry * slope, nz = smp.uz - smp.rz * slope;
+  const l = Math.hypot(nx, ny, nz) || 1; nx /= l; ny /= l; nz /= l;
+  out.push({ key, d, h, x: smp.x + smp.rx * d + smp.ux * h, y: smp.y + smp.ry * d + smp.uy * h, z: smp.z + smp.rz * d + smp.uz * h, nx, ny, nz, s: smp.s });
+}
+
+/** Cross-section vertices left → right: [shoulder L] road (profile or columns) [shoulder R]; keys mark anchors. */
+export function crossSection(m: TrackModel, c: Content, p: PathModel, smp: Sample, o: MeshOptions): XV[] {
+  const W = smp.w / 2;
+  const prof = m.profiles.get(smp.prof);
+  const pts: { key: string; d: number }[] = [];
+  const profiled = !!prof && prof.kind !== 'flat' && smp.profT > 1e-4;
+  if (smp.shL > 0.05) pts.push({ key: 'shL', d: -(W + smp.shL) });
+  if (profiled) {
+    const f = prof!.width > 0 ? smp.w / prof!.width : 1;
+    for (let i = 0; i < PROFILE_VERTS; i++) pts.push({ key: i === 0 ? 'eL' : i === PROFILE_VERTS - 1 ? 'eR' : `p${i}`, d: prof!.pts[i]!.d * f });
+  } else {
+    const nc = Math.max(1, Math.ceil(smp.w / o.colSpacing));
+    pts.push({ key: 'eL', d: -W });
+    for (let k = 1; k < nc; k++) pts.push({ key: `c${k}/${nc}`, d: -W + (k * smp.w) / nc });
+    pts.push({ key: 'eR', d: W });
+  }
+  if (smp.shR > 0.05) pts.push({ key: 'shR', d: W + smp.shR });
+  // lateral surface boundaries (pads, partial-width zones) active at this s
+  const extra: { key: string; d: number }[] = [];
+  c.pads.forEach((pd, i) => { if (pd.path === p.index && inS(m, p.index, smp.s, pd.s0 - 1e-3, pd.s1 + 1e-3)) extra.push({ key: `pad${i}a`, d: pd.d0 }, { key: `pad${i}b`, d: pd.d1 }); });
+  c.zones.forEach((z) => { if (z.path === p.index && !z.full && (z.surf !== undefined || z.kind === 'kill') && inS(m, p.index, smp.s, z.s0 - 1e-3, z.s1 + 1e-3)) extra.push({ key: `z${z.id}a`, d: z.d0 }, { key: `z${z.id}b`, d: z.d1 }); });
+  const lo = pts[0]!.d, hi = pts[pts.length - 1]!.d;
+  for (const e of extra) {
+    if (e.d <= lo + 1e-3 || e.d >= hi - 1e-3) continue;
+    if (pts.some((q) => Math.abs(q.d - e.d) < 1e-3)) { const q = pts.find((r) => Math.abs(r.d - e.d) < 1e-3)!; if (q.key.startsWith('c')) q.key = e.key; continue; }
+    pts.push(e);
+  }
+  pts.sort((a, b) => a.d - b.d);
+  const H = pts.map((q) => profileHeight(prof, smp, q.d));
+  const out: XV[] = [];
+  for (let i = 0; i < pts.length; i++) {
+    const i0 = Math.max(0, i - 1), i1 = Math.min(pts.length - 1, i + 1);
+    const slope = i1 > i0 ? (H[i1]! - H[i0]!) / (pts[i1]!.d - pts[i0]!.d) : 0;
+    pushXV(out, smp, pts[i]!.key, pts[i]!.d, H[i]!, slope);
+  }
+  return out;
+}
+
+// ------------------------------------------------------------------------------------------------ zipper
+function vtx(v: XV): number[] { return [v.x, v.y, v.z, v.nx, v.ny, v.nz, v.s, v.d]; }
+
+/** Triangulates the strip between rows A (behind) and B (ahead); CCW seen from +U (front face up). */
+function zip(A: XV[], B: XV[], emit: (a: XV, b: XV, c: XV) => void): void {
+  const bIdx = new Map<string, number>();
+  B.forEach((v, i) => bIdx.set(v.key, i));
+  const anchors: [number, number][] = [[0, 0]];
+  let lastB = 0;
+  for (let i = 1; i < A.length - 1; i++) {
+    const j = bIdx.get(A[i]!.key);
+    if (j !== undefined && j > lastB && j < B.length - 1 && !A[i]!.key.startsWith('c')) { anchors.push([i, j]); lastB = j; }
+  }
+  anchors.push([A.length - 1, B.length - 1]);
+  for (let k = 0; k + 1 < anchors.length; k++) {
+    const [a0, b0] = anchors[k]!, [a1, b1] = anchors[k + 1]!;
+    const da = A[a1]!.d - A[a0]!.d || 1, db = B[b1]!.d - B[b0]!.d || 1;
+    let p = a0, q = b0;
+    while (p < a1 || q < b1) {
+      const tp = p < a1 ? (A[p + 1]!.d - A[a0]!.d) / da : Infinity;
+      const tq = q < b1 ? (B[q + 1]!.d - B[b0]!.d) / db : Infinity;
+      if (tp <= tq) { emit(A[p]!, A[p + 1]!, B[q]!); p++; }
+      else { emit(A[p]!, B[q + 1]!, B[q]!); q++; }
+    }
+  }
+}
+
+// ------------------------------------------------------------------------------------------------ ribbons
+export interface RibbonOut { rows: number[]; sections: XV[][]; kerbRows: number }
+
+export function buildRibbon(m: TrackModel, c: Content, p: PathModel, ground: TriSoup, walls: WallQuad[], kerbs: TriSoup, o: MeshOptions): RibbonOut {
+  const rows = ribbonRows(m, c, p, o);
+  if (p.kind === 'rail') return { rows, sections: [], kerbRows: 0 };
+  const smps = rows.map((s) => sampleAt(p, s));
+  const secs = smps.map((smp) => crossSection(m, c, p, smp, o));
+  // closed paths: the closing row must be bit-identical to the first row (no crack at s = 0); keep s = L for uv
+  if (p.closed && secs.length > 1) secs[secs.length - 1] = secs[0]!.map((v) => ({ ...v, s: rows[rows.length - 1]! }));
+  let kerbRows = 0;
+  for (let r = 0; r + 1 < rows.length; r++) {
+    const sa = rows[r]!, sb = rows[r + 1]!;
+    if (sb - sa < 1e-6) continue;
+    const mid = exactAt(m, p, (sa + sb) / 2);
+    if (mid.jumpPart === 2 || mid.warp) continue; // jump gap / warp span: no ground, no walls
+    const A = secs[r]!, B = secs[r + 1]!;
+    // ground
+    zip(A, B, (a, b, cc) => {
+      const dc = (a.d + b.d + cc.d) / 3;
+      const surf = surfAt(m, c, p.index, mid, dc);
+      let flg = 0;
+      if (surf === LAVA) flg |= TFLAG.KILL;
+      for (const z of c.zones) if (z.kind === 'kill' && z.belowY === undefined && z.path === p.index && inS(m, p.index, mid.s, z.s0, z.s1) && dc >= z.d0 && dc <= z.d1) flg |= TFLAG.KILL;
+      const W = mid.w / 2;
+      const nUp = (a.nx + b.nx + cc.nx) * mid.ux + (a.ny + b.ny + cc.ny) * mid.uy + (a.nz + b.nz + cc.nz) * mid.uz;
+      const role = dc < -W - 1e-3 || dc > W + 1e-3 ? ROLE.SHOULDER : nUp < 3 * 0.97 ? ROLE.SLOPE : mid.jumpPart === 3 ? ROLE.LANDING : ROLE.ROAD;
+      ground.push(vtx(a), vtx(b), vtx(cc), surf, role === ROLE.SLOPE ? flg | TFLAG.SLOPE : flg, p.index, role);
+    });
+    // walls (outermost ground vertex of each row, per side)
+    for (const side of [-1, 1] as const) {
+      const wd = side < 0 ? mid.wallL : mid.wallR;
+      if (!SOLID(wd)) continue;
+      const ea = side < 0 ? A[0]! : A[A.length - 1]!, eb = side < 0 ? B[0]! : B[B.length - 1]!;
+      const sA = smps[r]!, sB = smps[r + 1]!;
+      const hTop = Math.max(0.6, wd.h);
+      const up = (smp: Sample, v: XV, h: number): [number, number, number] => [v.x + smp.ux * h, v.y + smp.uy * h, v.z + smp.uz * h];
+      let flg = 0;
+      if (wd.soft) flg |= TFLAG.SOFT;
+      if (wd.type === 'invisible') flg |= TFLAG.INVISIBLE;
+      walls.push({
+        path: p.index, side, flg, kind: wd.type,
+        a0: up(sA, ea, -0.6), a1: up(sA, ea, hTop), b0: up(sB, eb, -0.6), b1: up(sB, eb, hTop), sa, sb,
+        out: [side * mid.rx, side * mid.ry, side * mid.rz], render: wd.type !== 'invisible',
       });
-      if (prev >= 0 && ok && prevOk) {
-        const i0 = wall.idx.length;
-        for (let q = 0; q < 3; q++) {
-          const a = prev + q, b = prev + q + 1, d = base + q, e = base + q + 1;
-          if (side > 0) wall.idx.push(a, b, d, b, e, d); else wall.idx.push(a, d, b, b, d, e);
-        }
-        pushChunk(wall, chunkOf(smp.s), i0, bboxOf(wall.pos, prev, base + 3));
-      }
-      prev = base; prevOk = ok;
     }
-  }
-
-  // start/finish line decal (2 m deep)
-  const lineIdx = S.findIndex((s) => s.s >= lineS);
-  if (lineIdx >= 0) {
-    const a = S[Math.max(0, lineIdx - 1)]!, b = S[Math.min(S.length - 1, lineIdx + 1)]!;
-    const base = 0;
-    for (const smp of [a, b]) for (const t of [0, 1]) {
-      const p = at(smp, -smp.w / 2 + t * smp.w, 0.035);
-      line.pos.push(p[0], p[1], p[2]); line.nrm.push(smp.ux, smp.uy, smp.uz); line.uv.push(t, smp === a ? 0 : 1); line.col.push(1, 1, 1);
-    }
-    line.idx.push(base, base + 1, base + 2, base + 1, base + 3, base + 2);
-    line.chunks.push({ i0: 0, n: 6, bbox: bboxOf(line.pos, 0, 3) });
-  }
-  // boost / jump pads
-  for (const pd of pads) {
-    const i0s = S.findIndex((s) => sMainOf(s.s) >= pd.s0);
-    const i1s = S.findIndex((s) => sMainOf(s.s) >= pd.s1);
-    if (i0s < 0 || i1s < 0 || i1s <= i0s) continue;
-    const base = pad.pos.length / 3;
-    for (let i = i0s; i <= i1s; i++) {
-      const smp = S[i]!;
-      for (const t of [0, 1]) {
-        const p = at(smp, pd.u0 + (pd.u1 - pd.u0) * t, 0.04);
-        pad.pos.push(p[0], p[1], p[2]); pad.nrm.push(smp.ux, smp.uy, smp.uz); pad.uv.push(t, (i - i0s) / (i1s - i0s)); pad.col.push(pd.kind === 'boost' ? 1 : 0, 0, 0);
+    // kerbs: on corners (|κ| > 1/70) and wherever a curb wall is declared; flat profiles only
+    const profiled = mid.profT > 1e-3 && m.profiles.get(mid.prof)?.kind !== 'flat';
+    if (!profiled) {
+      const corner = Math.abs(mid.curv) > 1 / 70;
+      for (const side of [-1, 1] as const) {
+        const wd = side < 0 ? mid.wallL : mid.wallR;
+        if (!corner && wd.type !== 'curb') continue;
+        const sA = smps[r]!, sB = smps[r + 1]!;
+        const e0 = side * sA.w / 2, e1 = side * sB.w / 2;
+        const i0 = e0 - side * 1.1, i1 = e1 - side * 1.1;
+        const P = (smp: Sample, d: number): number[] => {
+          const h = profileHeight(m.profiles.get(smp.prof), smp, d) + 0.03;
+          return [smp.x + smp.rx * d + smp.ux * h, smp.y + smp.ry * d + smp.uy * h, smp.z + smp.rz * d + smp.uz * h, smp.ux, smp.uy, smp.uz, smp.s, d];
+        };
+        const a0 = P(sA, side < 0 ? e0 : i0), a1 = P(sA, side < 0 ? i0 : e0), b0 = P(sB, side < 0 ? e1 : i1), b1 = P(sB, side < 0 ? i1 : e1);
+        kerbs.push(a0, a1, b0, 0, 0, p.index, ROLE.KERB);
+        kerbs.push(a1, b1, b0, 0, 0, p.index, ROLE.KERB);
+        kerbRows++;
       }
     }
-    const i0 = pad.idx.length;
-    for (let k = 0; k < i1s - i0s; k++) { const a = base + k * 2; pad.idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
-    pad.chunks.push({ i0, n: pad.idx.length - i0, bbox: bboxOf(pad.pos, base, pad.pos.length / 3 - 1) });
   }
-  void seed;
-  return [road, kerb, shoulder, wall, under, line, pad].filter((s) => s.idx.length > 0);
+  return { rows, sections: secs, kerbRows };
 }
 
-function flipWinding(s: RenderSlot): void {
-  for (let i = 0; i < s.idx.length; i += 3) { const t = s.idx[i + 1]!; s.idx[i + 1] = s.idx[i + 2]!; s.idx[i + 2] = t; }
-  for (let i = 0; i < s.nrm.length; i++) s.nrm[i] = -s.nrm[i]!;
+/** Wall quads → triangles (both faces are collidable; the sim resolves by closest point). */
+export function wallTriangles(walls: WallQuad[], out: TriSoup): void {
+  for (const w of walls) {
+    // collision walls need no normals (the sim uses closest points); zero them so neighbouring panels weld
+    const n = [0, 0, 0];
+    const V = (p: [number, number, number], s: number, h: number): number[] => [p[0], p[1], p[2], n[0]!, n[1]!, n[2]!, s, h];
+    out.push(V(w.a0, w.sa, 0), V(w.b0, w.sb, 0), V(w.a1, w.sa, 1), 0, w.flg, w.path, ROLE.CLIFF);
+    out.push(V(w.a1, w.sa, 1), V(w.b0, w.sb, 0), V(w.b1, w.sb, 1), 0, w.flg, w.path, ROLE.CLIFF);
+  }
 }
 
-function bboxOf(pos: number[], v0: number, v1: number): number[] {
-  const b = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
-  for (let v = v0; v <= v1; v++) {
-    for (let k = 0; k < 3; k++) { const x = pos[v * 3 + k]!; if (x < b[k]!) b[k] = x; if (x > b[k + 3]!) b[k + 3] = x; }
-  }
-  return b;
-}
-function mergeBox(a: number[], b: number[]): void {
-  for (let k = 0; k < 3; k++) { if (b[k]! < a[k]!) a[k] = b[k]!; if (b[k + 3]! > a[k + 3]!) a[k + 3] = b[k + 3]!; }
-}
-
-// ------------------------------------------------------------------------------------------------ terrain
-/** Heightfield around the track: gentle noise, flattened under/near the road so it never pokes through. */
-export function buildTerrain(g: Geometry, bounds: number[], noise: (x: number, z: number) => number, amp: number, cell = 8, margin = 180): RenderSlot {
-  const t = newSlot('terrain', 'terrain');
-  const x0 = bounds[0]! - margin, z0 = bounds[2]! - margin, x1 = bounds[3]! + margin, z1 = bounds[5]! + margin;
-  const nx = Math.ceil((x1 - x0) / cell), nz = Math.ceil((z1 - z0) / cell);
-  const S = g.samples;
-  // coarse lookup of track samples for distance queries
-  const grid = new Map<string, number[]>();
-  const GC = 24;
-  S.forEach((s, i) => { const k = `${Math.floor(s.x / GC)},${Math.floor(s.z / GC)}`; let l = grid.get(k); if (!l) grid.set(k, (l = [])); l.push(i); });
-  const baseY = Math.min(...S.map((s) => s.y));
-  for (let iz = 0; iz <= nz; iz++) for (let ix = 0; ix <= nx; ix++) {
-    const x = x0 + ix * cell, z = z0 + iz * cell;
-    let best = Infinity, bestY = baseY, bestW = 8;
-    const gx = Math.floor(x / GC), gz = Math.floor(z / GC);
-    for (let dz = -2; dz <= 2; dz++) for (let dx = -2; dx <= 2; dx++) {
-      const l = grid.get(`${gx + dx},${gz + dz}`);
-      if (!l) continue;
-      for (const i of l) { const s = S[i]!; const d = Math.hypot(s.x - x, s.z - z); if (d < best) { best = d; bestY = s.y; bestW = s.w / 2 + s.shoulder; } }
-    }
-    const natural = baseY - 1.5 + noise(x, z) * amp * Math.min(1, Math.max(0, (best - bestW - 10) / 60));
-    const edge = bestW + 3;
-    let y: number;
-    if (best < edge) y = Math.min(bestY - 0.35, natural);
-    else if (best < edge + 30) { const tt = (best - edge) / 30; const sm = tt * tt * (3 - 2 * tt); y = (bestY - 0.35) * (1 - sm) + natural * sm; y = Math.min(y, best < edge + 6 ? bestY - 0.3 : Infinity); }
-    else y = natural;
-    t.pos.push(x, y, z);
-    t.nrm.push(0, 1, 0);
-    t.uv.push(x / 16, z / 16);
-    const shade = 0.85 + 0.15 * noise(x * 3.1, z * 3.1);
-    t.col.push(shade, shade, shade);
-  }
-  // normals from heights
-  const H = (ix: number, iz: number): number => t.pos[(Math.min(nz, Math.max(0, iz)) * (nx + 1) + Math.min(nx, Math.max(0, ix))) * 3 + 1]!;
-  for (let iz = 0; iz <= nz; iz++) for (let ix = 0; ix <= nx; ix++) {
-    const dx = H(ix + 1, iz) - H(ix - 1, iz), dz = H(ix, iz + 1) - H(ix, iz - 1);
-    const n = [-dx, 2 * cell, -dz]; const l = Math.hypot(n[0]!, n[1]!, n[2]!);
-    const o = (iz * (nx + 1) + ix) * 3;
-    t.nrm[o] = n[0]! / l; t.nrm[o + 1] = n[1]! / l; t.nrm[o + 2] = n[2]! / l;
-  }
-  const CHN = 12;
-  for (let cz = 0; cz < nz; cz += CHN) for (let cx = 0; cx < nx; cx += CHN) {
-    const i0 = t.idx.length;
-    for (let iz = cz; iz < Math.min(nz, cz + CHN); iz++) for (let ix = cx; ix < Math.min(nx, cx + CHN); ix++) {
-      const a = iz * (nx + 1) + ix, b = a + 1, c = a + (nx + 1), d = c + 1;
-      t.idx.push(a, c, b, b, c, d);
-    }
-    const bb = [x0 + cx * cell, Infinity, z0 + cz * cell, x0 + Math.min(nx, cx + CHN) * cell, -Infinity, z0 + Math.min(nz, cz + CHN) * cell];
-    for (let iz = cz; iz <= Math.min(nz, cz + CHN); iz++) for (let ix = cx; ix <= Math.min(nx, cx + CHN); ix++) { const y = H(ix, iz); if (y < bb[1]!) bb[1] = y; if (y > bb[4]!) bb[4] = y; }
-    t.chunks.push({ i0, n: t.idx.length - i0, bbox: bb });
-  }
-  return t;
-}
+export { VS, SOLID };

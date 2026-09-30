@@ -1,63 +1,107 @@
-// Sky, sun (shadow-casting, follows the camera target), hemisphere fill, fog and PMREM environment reflections.
+// Per-theme light rig (30-art-bible §2, §4): sky by kind, PMREM reflections from that sky, sun/moon key light whose
+// shadow frustum follows the player (texel-snapped, biased ahead of the camera), hemisphere fill, fog, exposure,
+// optional water plane, and the shared look uniforms (rim boost, wind, wetness).
 import * as THREE from 'three/webgpu';
-import { color, mix, positionLocal, normalize, smoothstep, mx_noise_float, step } from 'three/tsl';
-import { SkyMesh } from 'three/addons/objects/SkyMesh.js';
 import type { ThemeKit } from '../themes/kit.ts';
+import type { TierSettings } from '../quality.ts';
+import { MaterialLibrary } from '../materials/library.ts';
+import { resolveEnvLook, type EnvLook } from './look.ts';
+import { buildSky } from './sky.ts';
 
-export interface Environment { sun: THREE.DirectionalLight; hemi: THREE.HemisphereLight; sky: THREE.Object3D; follow(target: THREE.Vector3): void; dispose(): void }
+export interface Environment {
+  look: EnvLook;
+  sun: THREE.DirectionalLight; hemi: THREE.HemisphereLight; sky: THREE.Object3D;
+  /** Keeps the sky centred and the shadow frustum on the player. `ahead` biases the frustum toward the view. */
+  follow(target: THREE.Vector3, ahead?: THREE.Vector3): void;
+  dispose(): void;
+}
 
-export async function buildEnvironment(renderer: THREE.WebGPURenderer, scene: THREE.Scene, kit: ThemeKit, shadowSize: number): Promise<Environment> {
-  const L = kit.look, d = kit.data;
-  const elev = THREE.MathUtils.degToRad(L.sky.elevationDeg), az = THREE.MathUtils.degToRad(L.sky.azimuthDeg);
-  const sunDir = new THREE.Vector3().setFromSphericalCoords(1, Math.PI / 2 - elev, az);
-  let sky: THREE.Object3D;
-  if (L.sky.night || d.sky === 'night' || d.sky === 'space' || d.sky === 'underground') {
-    const g = new THREE.SphereGeometry(4000, 32, 16);
-    const m = new THREE.MeshBasicNodeMaterial({ side: THREE.BackSide, fog: false });
-    const h = normalize(positionLocal).y;
-    const stars = step(0.985, mx_noise_float(normalize(positionLocal).mul(220)).mul(0.5).add(0.5)).mul(smoothstep(0.0, 0.3, h));
-    m.colorNode = mix(color(L.sky.bottom ?? '#2a2450'), color(L.sky.top ?? '#070818'), smoothstep(-0.1, 0.6, h)).add(stars.mul(0.9));
-    sky = new THREE.Mesh(g, m);
-  } else {
-    const s = new SkyMesh();
-    s.scale.setScalar(4500);
-    s.turbidity.value = L.sky.turbidity; s.rayleigh.value = L.sky.rayleigh;
-    s.mieCoefficient.value = 0.004; s.mieDirectionalG.value = 0.82;
-    s.sunPosition.value.copy(sunDir);
-    sky = s;
-  }
-  scene.add(sky);
-  // environment reflections from the sky (procedural "HDRI")
+export async function buildEnvironment(renderer: THREE.WebGPURenderer, scene: THREE.Scene, kit: ThemeKit, ts: TierSettings | number, trackTheme: Record<string, string> = {}): Promise<Environment> {
+  const shadowSize = typeof ts === 'number' ? ts : ts.shadowSize;
+  const shadowFar = typeof ts === 'number' ? 120 : ts.shadowFar;
+  const L = resolveEnvLook(kit, trackTheme);
+  const lite = typeof ts !== 'number' && ts.liteEnv;
+  const sky = buildSky(L, lite);
+  scene.add(sky.object);
+  scene.background = new THREE.Color(L.sky.top);
+
+  // environment reflections from the sky itself (procedural "HDRI"), regenerated per race only
   const envScene = new THREE.Scene();
-  const envSky = sky.clone();
-  envScene.add(envSky);
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  const envRT = pmrem.fromScene(envScene, 0.02, 1, 5000);
-  scene.environment = envRT.texture;
-  scene.environmentIntensity = 0.55;
-  pmrem.dispose();
+  envScene.add(sky.object.clone());
+  const hemiEnv = new THREE.HemisphereLight(L.hemi.sky, L.hemi.ground, 0.4);
+  envScene.add(hemiEnv);
+  // Low tier skips PMREM (its cube + blur programs cost more to compile than the reflections are worth there)
+  let envRT: THREE.RenderTarget | null = null;
+  if (!lite) {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    envRT = pmrem.fromScene(envScene, 0.03, 1, 5000);
+    scene.environment = envRT.texture;
+    scene.environmentIntensity = L.envIntensity;
+    pmrem.dispose();
+  }
 
+  const keyDir = sky.moonDir ?? L.sunDir;
   const sun = new THREE.DirectionalLight(L.sun.color, L.sun.intensity);
-  sun.castShadow = shadowSize > 0;
-  if (shadowSize > 0) {
+  sun.name = 'sun';
+  sun.castShadow = shadowSize > 0 && L.sun.shadows;
+  const half = shadowFar * 0.5;
+  if (sun.castShadow) {
     sun.shadow.mapSize.set(shadowSize, shadowSize);
     const c = sun.shadow.camera;
-    c.left = -60; c.right = 60; c.top = 60; c.bottom = -60; c.near = 1; c.far = 400;
-    sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.04;
+    c.left = -half; c.right = half; c.top = half; c.bottom = -half; c.near = 1; c.far = 500;
+    sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.05;
+    sun.shadow.intensity = L.kind === 'overcast' ? 0.45 : 0.85;
   }
   scene.add(sun, sun.target);
-  const hemi = new THREE.HemisphereLight(L.hemi.sky, L.hemi.ground, L.hemi.intensity);
+  // without PMREM (Low) the sky's diffuse fill is missing: fold part of it into the hemisphere
+  const hemi = new THREE.HemisphereLight(L.hemi.sky, L.hemi.ground, L.hemi.intensity + (lite ? 0.6 * L.envIntensity : 0));
   scene.add(hemi);
-  scene.fog = new THREE.Fog(L.fogColor ?? d.fog.color, d.fog.near, d.fog.far);
-  if (!(sky instanceof SkyMesh)) scene.background = new THREE.Color(L.sky.top ?? '#070818');
+  scene.fog = new THREE.Fog(L.fog.color, L.fog.near, L.fog.far);
+
+  let water: THREE.Mesh | null = null;
+  if (L.water) {
+    const w = L.water;
+    water = new THREE.Mesh(new THREE.PlaneGeometry(w.size ?? 3000, w.size ?? 3000, 1, 1).rotateX(-Math.PI / 2), MaterialLibrary.water({ shallow: w.shallow, deep: w.deep, foam: w.foam ?? '#ffffff' }));
+    water.position.y = w.level;
+    water.receiveShadow = true;
+    water.name = 'water';
+    scene.add(water);
+  }
+
+  const prevExposure = renderer.toneMappingExposure;
+  renderer.toneMappingExposure = L.exposure;
+  const U = MaterialLibrary.uniforms;
+  U.rimBoost.value = L.rimBoost; U.wind.value = L.wind; U.wet.value = L.wet;
+
+  // shadow texel snapping: moving the frustum in whole texels stops shadow edges from crawling
+  const texel = shadowSize > 0 ? (half * 2) / shadowSize : 1;
+  const lightRot = new THREE.Matrix4().lookAt(new THREE.Vector3(), keyDir.clone().negate(), new THREE.Vector3(0, 1, 0));
+  const lightRotInv = lightRot.clone().invert();
+  const tmp = new THREE.Vector3(), centre = new THREE.Vector3();
 
   return {
-    sun, hemi, sky,
-    follow(target: THREE.Vector3): void {
-      sun.position.copy(target).addScaledVector(sunDir, 180);
-      sun.target.position.copy(target);
-      sky.position.set(target.x, 0, target.z);
+    look: L, sun, hemi, sky: sky.object,
+    follow(target: THREE.Vector3, ahead?: THREE.Vector3): void {
+      centre.copy(target);
+      if (ahead) centre.addScaledVector(ahead, half * 0.45);
+      if (shadowSize > 0) {
+        tmp.copy(centre).applyMatrix4(lightRotInv);
+        tmp.x = Math.round(tmp.x / texel) * texel; tmp.y = Math.round(tmp.y / texel) * texel;
+        centre.copy(tmp).applyMatrix4(lightRot);
+      }
+      sun.target.position.copy(centre);
+      sun.position.copy(centre).addScaledVector(keyDir, 200);
+      sky.object.position.set(target.x, target.y, target.z);
+      if (water) { water.position.x = target.x; water.position.z = target.z; }
     },
-    dispose(): void { envRT.dispose(); scene.remove(sky, sun, hemi); },
+    dispose(): void {
+      envRT?.dispose();
+      renderer.toneMappingExposure = prevExposure;
+      U.rimBoost.value = 1; U.wind.value = 1; U.wet.value = 0;
+      scene.remove(sky.object, sun, sun.target, hemi);
+      if (water) { scene.remove(water); water.geometry.dispose(); }
+      scene.environment = null; scene.fog = null;
+      if (sky.object instanceof THREE.Mesh) sky.object.geometry.dispose();
+    },
   };
 }

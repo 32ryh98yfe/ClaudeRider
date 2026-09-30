@@ -8,7 +8,7 @@ export default defineTrack({
   modes: ['speed', 'item'],
   topology: 'circuit',
   lapLengthM: 1450,
-  refLapTicks: 0,
+  refLapTicks: 2351, // §12 reference lap (speed); the baked .ctrk carries the ghost value
   nameKey: 'tracks.sunstone_bazaar.name',
   onRoster: true,
 });

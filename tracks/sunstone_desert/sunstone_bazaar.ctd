@@ -1,0 +1,77 @@
+# Sunstone Bazaar / 선스톤 바자르 — Sunstone Desert, D1, 3 × 1450 m, item★ (11-track-spec §12.3).
+# 16:00 heat haze over a caravan town: the awning market street, the oasis-pond corner, palm S-bends, the dune
+# hump, the camel-statue corner, the caravan road, the well-plaza sweeper, the rug market and the gate chicane.
+# Sand shoulders on the oasis and dune sections teach the off-road slowdown (sand 0.85 grip / ×0.92).
+@signature branch, surfaces, jump
+@fallback hazard:traffic -> "static pot-cart prop" when=F5
+TRACK sunstone_bazaar name="Sunstone Bazaar" theme=sunstone_desert diff=1 laps=3 topo=circuit
+DEFAULTS w=18 surf=stone wall=building:2.5 shoulder=1 shoulderSurf=sand blend=16
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=7 stagger=3.5 d=4
+S 199                                     @market_street # awning market street; pads +90/+140
+C R35 90 L bank=6 w=19 shoulder=3 wall=rock:1.0 @oasis   # oasis-pond corner, sand both sides (V19)
+S 63 w=18 shoulder=2                      @palms
+WIGGLE R50 30/65/30 R bank=3              @palm_s
+C R80 25 L                                @dune_approach
+S 30 dy=2 shoulder=3                      @dune_climb
+J ramp=10@8 gap=10 drop=3 land=45 wland=20 vmin=22 vmax=46 @dune  # wide dune jump, generous landing
+S ?b=59 w=18                              @dune_top      # item row; the awning lane splits here
+C R45 80 L bank=6 w=18                    @camel         # camel-statue corner (V19)
+S ?c=155 dy=1 shoulder=1.5 wall=building:2.5 @caravan
+C R60 60 R bank=-4
+C R40 120 L bank=8 w=20 shoulder=3        @well_plaza    # well-plaza sweeper (V19)
+S 20 w=19
+WIGGLE R55 30/65/40 L bank=3 w=18 shoulder=1 @rug_s
+S 101                                     @rug_market
+C R55 80 L bank=5                         @lantern
+C R70 25 R ; C R70 40 L                   @gate_chicane
+S ?a=98                                   @run_in
+CLOSE solve=[?a,?b,?c] length=1450
+LINE start at=0
+ITEMS at=170,443,790,1120,1300 n=5
+PAD at=40,100 d=0 len=6 w=4
+KEYS 230,480,800,1000,1150,1380
+# sand on the inside of the oasis corner (the pond side)
+ZONE surface from=@oasis to=@oasis+55 d=[-12.5,-5] surf=sand
+# the awning shortcut: a caravanserai lane under market awnings, cutting inside the camel-statue corner
+BRANCH awning from=@dune_top+9 to=@caravan+80 kind=shortcut aiMin=0.2 w=9 wall=building:3 surf=cobble {
+  C R25 40 L ; S ?x ; C R25 40 L ; S ?y
+}
+
+# ---- look & dressing (Sunstone Desert kit; art bible: 16:00 heat haze over the caravan town) ----
+THEME sunstone_desert sky=day time=16:00 scatter=palm,cactus,dune,clay_pots,dome_house density=5 hills=8
+PROPS kind=awning_stall from=5 to=195 side=both every=13 offset=5 seed=41
+PROPS kind=dome_house from=5 to=195 side=both every=16 offset=12 jitter=3 seed=42
+PROPS kind=palm from=200 to=252 side=L every=8 offset=3 jitter=2 seed=43
+PROPS kind=reeds from=205 to=250 side=L every=6 offset=1 jitter=2 seed=44
+PROPS kind=palm from=254 to=426 side=both every=14 offset=4 jitter=3 seed=45
+PROPS kind=cactus from=320 to=425 side=R every=18 offset=7 jitter=5 seed=46
+PROPS kind=dune from=426 to=556 side=both every=22 offset=10 jitter=6 scale=0.8-1.3 seed=47
+PROPS kind=clay_pots from=560 to=612 side=R every=12 offset=5 seed=48
+PROPS kind=dome_house from=680 to=830 side=both every=15 offset=6 jitter=2 seed=49
+PROPS kind=clay_pots from=680 to=830 side=L every=16 offset=4 seed=50
+PROPS kind=palm from=835 to=975 side=R every=12 offset=4 jitter=2 seed=51
+PROPS kind=rug_rack from=980 to=1205 side=both every=14 offset=5 seed=52
+PROPS kind=dome_house from=980 to=1205 side=both every=16 offset=12 jitter=3 seed=53
+PROPS kind=cactus from=1210 to=1312 side=R every=16 offset=6 jitter=4 seed=54
+PROPS kind=awning_stall from=1365 to=1448 side=both every=13 offset=5 seed=55
+PROPS kind=awning_stall along=awning side=both every=11 offset=4 seed=56
+PROPS kind=clay_pots along=awning side=both every=9 offset=1 seed=57
+# landmarks: lantern strings over the market street and rug market, the oasis pond, camel statues, the well-plaza
+# token monolith, far pyramids, the two sandstone gates and the finish obelisks
+PROP kind=lantern_string at=(25.0,-0.3,0.0) yaw=-90 scale=1
+PROP kind=lantern_string at=(150.0,-0.3,0.0) yaw=-90 scale=1
+PROP kind=lantern_string at=(190.0,-0.3,0.0) yaw=-90 scale=1
+PROP kind=oasis_pond at=(199.1,0.1,-34.9) yaw=-46 scale=1
+PROP kind=camel_statue at=(108.4,-1.3,-359.1) yaw=69 scale=1.4
+PROP kind=camel_statue at=(181.7,-1.3,-326.8) yaw=-150 scale=1
+PROP kind=token_monolith at=(-125.5,-0.3,-333.3) yaw=111 scale=1
+PROP kind=pyramid at=(336.8,-1.3,-370.2) yaw=-150 scale=1
+PROP kind=pyramid at=(386.1,-1.3,-444.8) yaw=-150 scale=0.7
+PROP kind=pyramid at=(88.4,-0.3,-350.6) yaw=-166 scale=0.8
+PROP kind=lantern_string at=(-194.1,-0.3,-145.2) yaw=175 scale=1
+PROP kind=lantern_string at=(-197.2,-0.3,-110.3) yaw=175 scale=1
+PROP kind=sandstone_arch at=(-123.1,-0.3,-10.2) yaw=-121 scale=1
+PROP kind=sandstone_arch at=(-30.0,-0.3,0.0) yaw=-90 scale=1
+PROP kind=obelisk at=(-65.0,-0.3,16.0) yaw=90 scale=1
+PROP kind=obelisk at=(-65.0,-0.3,-16.0) yaw=-90 scale=1

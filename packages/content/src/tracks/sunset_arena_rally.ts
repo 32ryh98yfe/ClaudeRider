@@ -8,7 +8,7 @@ export default defineTrack({
   modes: ['speed', 'item'],
   topology: 'circuit',
   lapLengthM: 1950,
-  refLapTicks: 0,
+  refLapTicks: 3248, // Legend ghost (54.1 s; roster target 55.7 s ±8%)
   nameKey: 'tracks.sunset_arena_rally.name',
   onRoster: true,
 });
