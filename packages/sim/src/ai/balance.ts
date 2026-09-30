@@ -42,7 +42,7 @@ export interface KartResult {
   draftBursts: number; driftMeters: number; bumps: number; maxStuckTicks: number; hazardHits: number; ai: AiDriverStats;
 }
 
-export interface RaceOutcome { ticks: number; karts: KartResult[]; bumps: number; aiMs: number; stepMs: number; decides: number }
+export interface RaceOutcome { ticks: number; karts: KartResult[]; bumps: number; aiMs: number; stepMs: number; decides: number; drivers: readonly AiDriverEx[] }
 
 export function runRace(o: RaceSetup): RaceOutcome {
   const { track, content } = o;
@@ -103,7 +103,7 @@ export function runRace(o: RaceSetup): RaceOutcome {
       bumps: bumps[i]!, maxStuckTicks: maxStuck[i]!, hazardHits: hazHits[i]!, ai: drivers[i]!.stats,
     };
   });
-  return { ticks: w.tick - w.goTick, karts, bumps: totalBumps, aiMs, stepMs, decides };
+  return { ticks: w.tick - w.goTick, karts, bumps: totalBumps, aiMs, stepMs, decides, drivers };
 }
 
 /**

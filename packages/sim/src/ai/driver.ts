@@ -10,7 +10,7 @@ import { Held, Edge } from '../core/input.ts';
 import { Attach, Phase, type KartState, type WorldState } from '../core/state.ts';
 import { DT } from '../core/units.ts';
 import type { BakedTrack } from '../track/BakedTrack.ts';
-import { gripGain, paramsFor, type KartParams } from '../kart/params.ts';
+import { paramsFor, type KartParams } from '../kart/params.ts';
 import type { AiDriver, AiProfile } from './api.ts';
 import { AI_TIERS } from './api.ts';
 import { AiRng, mixSeed } from './rng.ts';
@@ -113,7 +113,7 @@ class BotDriver implements AiDriverEx {
 
   // ---- sampling scratch (resolved path/index/fraction of the last `at()` call)
   private rp: PathPlan;
-  private ri = 0; private rj = 0; private rf = 0.5; private rs = 0.5; private rsCur = 0.5;
+  private ri = 0; private rj = 0; private rf = 0.5; private rs = 0.5; private rsCur = 0.5; private qs = 0.5;
 
   // ---- start
   private pressAt = -1e9; private startRolled = false; private readonly startOffset: number;
@@ -193,7 +193,9 @@ class BotDriver implements AiDriverEx {
    * Resolves (path, s) to a sample pair on the plan: sets rp/ri/rj/rf/rs. Queries on the bot's current path are
    * route-relative: past a fork it chose they continue on the branch; past the end of a branch on its host.
    */
-  private at(path: number, s: number): void {
+  private at(path: number): void {
+    // the station comes in through a field: a double argument to a non-inlined call is boxed on every call
+    const s = this.qs;
     const paths = this.plan.paths;
     let pp = paths[path] ?? paths[0]!;
     let ss = s;
@@ -229,9 +231,7 @@ class BotDriver implements AiDriverEx {
     else { if (i >= pp.n - 1) { i = pp.n - 1; f = 0; } this.rj = i + 1 < pp.n ? i + 1 : i; }
     this.rp = pp; this.ri = i; this.rf = f; this.rs = ss;
   }
-  private lerp(a: Float64Array): number { const x = a[this.ri]!; return x + (a[this.rj]! - x) * this.rf; }
-  /** Edge limit (0 = left, 1 = right) at (path, s). */
-  private lerpAt(path: number, s: number, side: 0 | 1): number { this.at(path, s); return this.lerp(side === 0 ? this.rp.LIM_L : this.rp.LIM_R); }
+
 
   // ------------------------------------------------------------------------------------------------ decide
   decide(w: Readonly<WorldState>, out: InputFrame): void {
@@ -304,36 +304,36 @@ class BotDriver implements AiDriverEx {
     const locPath = loc.path;
     this.routePath = locPath; this.routeS0 = loc.s;
     this.decideForks(k, prof);
-    this.at(locPath, loc.s);
-    const tX0 = this.lerp(this.rp.TX), tY0 = this.lerp(this.rp.TY);
+    this.qs = loc.s; this.at(locPath);
+    const tX0 = (this.rp.TX[this.ri]! + (this.rp.TX[this.rj]! - this.rp.TX[this.ri]!) * this.rf), tY0 = (this.rp.TY[this.ri]! + (this.rp.TY[this.rj]! - this.rp.TY[this.ri]!) * this.rf);
     // predicted track coordinates: a linear step in the current frame, then a projection onto the route path
     // (past a chosen fork the kart is measured against the branch even while the sim still locates it on main)
     let path = locPath, s = loc.s, u = loc.u;
     {
       const dx = kx - b.px, dy = ky + b.pz;
       s += dx * tX0 + dy * tY0; u += dx * tY0 - dy * tX0;
-      this.at(locPath, s);
+      this.qs = s; this.at(locPath);
       if (this.LA > 0 || this.rp.index !== locPath) {
-        const cx = this.lerp(this.rp.X), cy = this.lerp(this.rp.Y), tx = this.lerp(this.rp.TX), ty = this.lerp(this.rp.TY);
+        const cx = (this.rp.X[this.ri]! + (this.rp.X[this.rj]! - this.rp.X[this.ri]!) * this.rf), cy = (this.rp.Y[this.ri]! + (this.rp.Y[this.rj]! - this.rp.Y[this.ri]!) * this.rf), tx = (this.rp.TX[this.ri]! + (this.rp.TX[this.rj]! - this.rp.TX[this.ri]!) * this.rf), ty = (this.rp.TY[this.ri]! + (this.rp.TY[this.rj]! - this.rp.TY[this.ri]!) * this.rf);
         const e1 = kx - cx, e2 = ky - cy;
         s = this.rs + e1 * tx + e2 * ty; u = e1 * ty - e2 * tx;
         if (this.rp.index !== locPath) {
-          if (Math.abs(u) > this.lerp(this.rp.WALL) + 1.5 && this.abandonFork(locPath, this.rp.index)) {
+          if (Math.abs(u) > (this.rp.WALL[this.ri]! + (this.rp.WALL[this.rj]! - this.rp.WALL[this.ri]!) * this.rf) + 1.5 && this.abandonFork(locPath, this.rp.index)) {
             // not actually in the branch (blocked or missed the gore): stay on the host this lap
-            this.at(locPath, loc.s);
+            this.qs = loc.s; this.at(locPath);
             s = loc.s + dx * tX0 + dy * tY0; u = loc.u + dx * tY0 - dy * tX0;
           } else { path = this.rp.index; this.routePath = path; this.routeS0 = s; }
         }
       }
     }
-    this.at(path, s);
+    this.qs = s; this.at(path);
     const ppS = this.rp;
     this.rsCur = this.rs;
-    const tXs = this.lerp(ppS.TX), tYs = this.lerp(ppS.TY);
+    const tXs = (ppS.TX[this.ri]! + (ppS.TX[this.rj]! - ppS.TX[this.ri]!) * this.rf), tYs = (ppS.TY[this.ri]! + (ppS.TY[this.rj]! - ppS.TY[this.ri]!) * this.rf);
     const vS = vx * tXs + vy * tYs, vU = vx * tYs - vy * tXs; // along-track, right-positive lateral
     const vFwd = vx * hx + vy * hy;
-    const hw = this.lerp(ppS.HW);
-    const t40 = this.lerp(ppS.T40);
+    const hw = (ppS.HW[this.ri]! + (ppS.HW[this.rj]! - ppS.HW[this.ri]!) * this.rf);
+    const t40 = (ppS.T40[this.ri]! + (ppS.T40[this.rj]! - ppS.T40[this.ri]!) * this.rf);
     const straightAhead = ppS.STRAIGHT[this.ri]!;
     const ci = ppS.CORNER[this.ri]!;
     const corner: Corner | null = ci >= 0 ? ppS.corners[ci]! : null;
@@ -370,12 +370,12 @@ class BotDriver implements AiDriverEx {
     }
 
     // ---- upcoming corner at the current speed: first sample in 40 m where the width-allowed curvature beats grip
-    const gripKap = gripGain(v, P) / Math.max(v, 1);
+    const qk = v / P.gripV1, gripKap = (P.yGrip * v) / (v + P.gripV0) / (1 + qk * qk) / (v > 1 ? v : 1);
     let dCorner = 1e9, cornerDir = 0, cornerR = 1e9;
     {
       const thr = A.gripFrac * gripKap;
       for (let q = 0; q <= A.trigLook; q++) {
-        this.at(path, s + q);
+        this.qs = s + q; this.at(path);
         const ke = this.rp.KEFF[this.ri]!;
         if ((ke > 0 ? ke : -ke) > thr) { dCorner = q; cornerDir = ke > 0 ? 1 : -1; const kk = this.rp.KAP[this.ri]!; cornerR = 1 / Math.max(1e-6, kk > 0 ? kk : -kk); break; }
       }
@@ -387,12 +387,12 @@ class BotDriver implements AiDriverEx {
     const ledgeHere = ppS.LEDGE[this.ri] !== 0;
     const narrowLedge = ledgeHere && hw < 5;
     const Lk = ledgeHere ? 4 + 0.22 * v : A.Lk0 + A.Lk1 * v;
-    this.at(path, s + Lk);
+    this.qs = s + Lk; this.at(path);
     const ppT = this.rp;
-    const cxT = this.lerp(ppT.X), cyT = this.lerp(ppT.Y), txT = this.lerp(ppT.TX), tyT = this.lerp(ppT.TY);
-    const hwT = this.lerp(ppT.HW);
+    const cxT = (ppT.X[this.ri]! + (ppT.X[this.rj]! - ppT.X[this.ri]!) * this.rf), cyT = (ppT.Y[this.ri]! + (ppT.Y[this.rj]! - ppT.Y[this.ri]!) * this.rf), txT = (ppT.TX[this.ri]! + (ppT.TX[this.rj]! - ppT.TX[this.ri]!) * this.rf), tyT = (ppT.TY[this.ri]! + (ppT.TY[this.rj]! - ppT.TY[this.ri]!) * this.rf);
+    const hwT = (ppT.HW[this.ri]! + (ppT.HW[this.rj]! - ppT.HW[this.ri]!) * this.rf);
     // on halfpipes the baked line is the guide line (the bake's best wall ride): always follow it
-    let lineAbs = this.lerp(ppT.LINE) * (ppT.PIPE[this.ri] ? 1 : this.lerp(ppT.LINEW)) * ex.lineTrack;
+    let lineAbs = (ppT.LINE[this.ri]! + (ppT.LINE[this.rj]! - ppT.LINE[this.ri]!) * this.rf) * (ppT.PIPE[this.ri] ? 1 : (ppT.LINEW[this.ri]! + (ppT.LINEW[this.rj]! - ppT.LINEW[this.ri]!) * this.rf)) * ex.lineTrack;
     { const lc = AI_TUNING.lineClampFrac * Math.max(0, hwT - 1.5); if (lineAbs > lc) lineAbs = lc; else if (lineAbs < -lc) lineAbs = -lc; }
     // personality line bias: + = outside of the next corner, on straights and before corners (not inside them)
     let bias = 0;
@@ -405,7 +405,7 @@ class BotDriver implements AiDriverEx {
       if (ob > 0 ? off < ob : off > ob) off = ob;
     }
     const ledge = ppT.LEDGE[this.ri]! | ppT.LEDGE[this.rj]!;
-    let limL = this.lerp(ppT.LIM_L), limR = this.lerp(ppT.LIM_R);
+    let limL = (ppT.LIM_L[this.ri]! + (ppT.LIM_L[this.rj]! - ppT.LIM_L[this.ri]!) * this.rf), limR = (ppT.LIM_R[this.ri]! + (ppT.LIM_R[this.rj]! - ppT.LIM_R[this.ri]!) * this.rf);
     if (this.cMistake === Mistake.WIDE && inCorner && corner && (ledge & (corner.dir > 0 ? 2 : 1)) === 0) {
       // running wide (onto the shoulder or into the wall) never toward an open ledge
       off += corner.dir * this.wideT;
@@ -427,7 +427,9 @@ class BotDriver implements AiDriverEx {
     if (ledgeHere || (ledge !== 0)) {
       // hold the line: damp lateral drift and respect the edge limits where the kart is, not only at the target
       off -= vU * 0.3;
-      const lL = this.lerpAt(path, s, 0), lR = this.lerpAt(path, s, 1);
+      this.qs = s; this.at(path);
+      const LLa = this.rp.LIM_L, LRa = this.rp.LIM_R;
+      const lL = LLa[this.ri]! + (LLa[this.rj]! - LLa[this.ri]!) * this.rf, lR = LRa[this.ri]! + (LRa[this.rj]! - LRa[this.ri]!) * this.rf;
       if (lL < limL) limL = lL;
       if (lR < limR) limR = lR;
     }
@@ -436,8 +438,8 @@ class BotDriver implements AiDriverEx {
     const exT = gx - kx, eyT = gy - ky;
     const ed = Math.max(1, Math.sqrt(exT * exT + eyT * eyT));
     const aH = Math.atan2(-exT * hy + eyT * hx, exT * hx + eyT * hy);
-    this.at(path, s);
-    this.stats.sumAbsLineDev += Math.abs(u - this.lerp(this.rp.LINE) * this.lerp(this.rp.LINEW) * ex.lineTrack);
+    this.qs = s; this.at(path);
+    this.stats.sumAbsLineDev += Math.abs(u - (this.rp.LINE[this.ri]! + (this.rp.LINE[this.rj]! - this.rp.LINE[this.ri]!) * this.rf) * (this.rp.LINEW[this.ri]! + (this.rp.LINEW[this.rj]! - this.rp.LINEW[this.ri]!) * this.rf) * ex.lineTrack);
     this.stats.sumBias += bias; this.stats.samples++;
 
     let steer: number, thr = 1, brk = 0, drift = false, boost = false;
@@ -449,7 +451,13 @@ class BotDriver implements AiDriverEx {
       steer = 0;
     } else if (!drifting) {
       this.predDrifting = false;
-      steer = Math.abs(aH) > Math.PI / 2 ? (aH > 0 ? 1 : -1) : clampSteer((2 * Math.sin(aH) / ed) * v, v, P);
+      if (Math.abs(aH) > Math.PI / 2) steer = aH > 0 ? 1 : -1;
+      else {
+        // pure pursuit yaw rate → grip steer (gripGain inlined: helper calls returning doubles box in hot code)
+        const qg = v / P.gripV1, gg = (P.yGrip * v) / (v + P.gripV0) / (1 + qg * qg);
+        const st = gg > 1e-3 ? ((2 * Math.sin(aH) / ed) * v) / gg : 0;
+        steer = st > 1 ? 1 : st < -1 ? -1 : st;
+      }
       if (this.tapLeft > 0) {
         // entry tap whose drift the model did not see start (speed or lock): finish the tap anyway
         drift = true; steer = this.tapDir; this.tapLeft--;
@@ -467,8 +475,8 @@ class BotDriver implements AiDriverEx {
       const dd = pr.dir;
       // a drift we did not start ourselves (takeover mid-drift): roll its instant boost now
       if (!this.predDrifting) { this.predDrifting = true; if (!this.instArmed) this.onDriftStart(prof); this.instArmed = false; }
-      this.at(path, s + Math.max(4, v * A.tHead));
-      const tpx = this.lerp(this.rp.TX), tpy = this.lerp(this.rp.TY);
+      this.qs = s + Math.max(4, v * A.tHead); this.at(path);
+      const tpx = (this.rp.TX[this.ri]! + (this.rp.TX[this.rj]! - this.rp.TX[this.ri]!) * this.rf), tpy = (this.rp.TY[this.ri]! + (this.rp.TY[this.rj]! - this.rp.TY[this.ri]!) * this.rf);
       const eh = Math.atan2(hx * tpy - hy * tpx, hx * tpx + hy * tpy) * dd;
       const dDot = -vU;                        // lateral velocity w.r.t. track, left +
       const dLeft = -u;
@@ -488,7 +496,7 @@ class BotDriver implements AiDriverEx {
       const holding = !this.cChain && corner !== null && inCorner && corner.dir === dd && this.remainingTurn(corner, ppS.length) > AI_TUNING.holdTurn;
       if (dLip < 30 || (this.warpNear && this.warpDist < 30)) { this.holdExtra = 0; if (e > -eExit - 0.01) e_forceExit = true; }
       // S-bends: the next bend turns the other way within 15 m — cut now instead of sliding across it
-      this.at(path, s + 15);
+      this.qs = s + 15; this.at(path);
       { const kn = this.rp.KAP[this.ri]!; if (kn * dd < -1 / 150) { e_forceExit = true; this.holdExtra = 0; } }
       // beside an open drop nobody over-holds a drift (sloppy plans and over-hold mistakes are dropped there)
       if (ledgeHere) this.holdExtra = 0;
@@ -532,8 +540,8 @@ class BotDriver implements AiDriverEx {
     }
 
     // ---- speed control (14-ai §3.3) with the tier's brake points and the corner plan
-    this.at(path, s);
-    let vLim = this.lerp(this.rp.VLIM) * ex.cornerSpeedMul * prof.riskSpeedMul;
+    this.qs = s; this.at(path);
+    let vLim = (this.rp.VLIM[this.ri]! + (this.rp.VLIM[this.rj]! - this.rp.VLIM[this.ri]!) * this.rf) * ex.cornerSpeedMul * prof.riskSpeedMul;
     if (this.cPlan === DriftPlan.GRIP && corner && corner.needsDrift && (cornerDist < 90 || inCorner)) {
       const gt = this.grip![this.rp.index]!;
       const g = (gt[this.ri]! + (gt[this.rj]! - gt[this.ri]!) * this.rf) * ex.gripSpeedMul;
@@ -865,8 +873,3 @@ class BotDriver implements AiDriverEx {
   }
 }
 
-function clampSteer(r: number, v: number, P: KartParams): number {
-  const g = gripGain(v, P);
-  const s = g > 1e-3 ? r / g : 0;
-  return s > 1 ? 1 : s < -1 ? -1 : s;
-}
