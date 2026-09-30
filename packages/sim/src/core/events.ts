@@ -20,6 +20,7 @@ export type SimEventBody =
   | { t: 'effect'; victim: number; effect: number; source: number; result: EffectResult }
   | { t: 'effectEnd'; victim: number; effect: number }
   | { t: 'mash'; kart: number; remaining: number }
+  | { t: 'escape'; kart: number; effect: number; fast: boolean; credits: number } // L2: trap/airborne end ("빠른 탈출!" when fast)
   | { t: 'lap'; kart: number; lap: number; lapTicks: number; best: boolean }
   | { t: 'finish'; kart: number; rank: number; raceTicks: number; frac: number }
   | { t: 'retireTimer'; endsTick: Tick }
