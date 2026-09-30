@@ -1,49 +1,59 @@
 # Manor Catacombs — Lantern Hollow D4 (both modes). Night at the hill-top manor: the garden straight, the fountain,
 # the manor gate, a toy-scale ballroom crossed along the giant table, the chandelier bend, the 12 m corridor, a
 # spiral staircase down 270° into the catacombs (its exit passes under its own entry), a crypt grid of R12 corners,
-# the ossuary, the bat cave, the ramp tunnel back up, the garden terrace over the catacombs, hedges, roses, the
-# hedge maze, the orangery and the gazebo hairpin.
+# the ossuary, the bat cave, the portal back up to the garden terrace (which crosses over the catacombs), hedges,
+# roses, the hedge maze, the orangery and the gazebo hairpin.
 @signature warp, hazard:press, hazard:swinger, stacked
-@fallback warp -> "ramp tunnel climbing back to the garden (S 125, dy +10)" when=F4
 @fallback hazard:press -> "bookcase always open (static bookcase walls in the crypt grid)" when=F5
 @fallback hazard:swinger -> "chandeliers hang still above the chandelier bend" when=F5
 TRACK manor_catacombs name="Manor Catacombs" theme=lantern_hollow diff=4 laps=2 topo=circuit
-DEFAULTS w=13 surf=cobble wall=parapet:1.2 shoulder=0.5 shoulderSurf=stone blend=15
+DEFAULTS w=13 surf=cobble wall=parapet:1.2 shoulders=0:stone blend=15
 START pos=(0,0,0) hdg=0
 GRID rows=4 cols=2 pitch=7 stagger=3.5 d=3.2
 S ?a                                              @garden_straight
-C R30 94 L bank=5                                 @fountain_corner
+C R30 80 L bank=5                                 @fountain_corner
 S ?c                                              @manor_gate
-C R40 62 R bank=-4                                @ballroom_entry
-S 52 surf=wood                                    @ballroom_table
-C R20 97 L bank=6 surf=stone                      @chandelier_bend
-S 27 w=12                                         @corridor
-WIGGLE R16 51/120/33 R bank=4 w=12                @corridor_s
-C R20 270 L dy=-10 bank=6 w=13                    @spiral_stair
-S 40                                              @catacomb_entry
-C R12 82 L bank=4                                 @crypt_1
-S 35                                              @crypt_a
-C R12 72 L bank=4                                 @crypt_2
-S 22                                              @crypt_b
-C R12 96 R bank=4                                 @crypt_3
-S 36                                              @crypt_c
-C R14 131 L bank=6                                @ossuary_hairpin
-WIGGLE R18 41/91/30 L bank=4                      @ossuary_s
-S 45                                              @bat_cave
-C R25 120 R bank=5                                @bat_cave_exit
-S 125 dy=10                                       @ramp_tunnel
-S 55 surf=cobble                                  @garden_terrace
-C R35 103 R bank=5                                @hedge_corner
-C R60 71 R bank=-4                                @rose_corner
-WIGGLE R70 17/47/32 L bank=3                      @rose_s
-WIGGLE R25 29/66/44 R bank=5                      @hedge_maze_s
-S 36                                              @hedge_maze_straight
-C R80 55 R bank=-4                                @orangery_sweeper
+C R40 68 R bank=-4                                @ballroom_entry
+S 52 surf=wood w=14                               @ballroom_table
+C R20 102 L bank=6 surf=stone w=14                @chandelier_bend
+S 26 w=12                                         @corridor
+WIGGLE R18 50/100/30 R bank=4 w=15 wall=parapet:1.2:soft   @corridor_s
+C R20 270 L dy=-10 bank=6 w=14 wall=parapet:1.2   @spiral_stair
+S 38 w=14                                         @catacomb_entry
+C R12 81 L bank=4 w=16                            @crypt_1
+S 22 w=15                                         @crypt_a
+C R12 66 L bank=4 w=16                            @crypt_2
+S 16 w=15                                         @crypt_b
+C R12 101 R bank=4 w=16                           @crypt_3
+S 23 w=15                                         @crypt_c
+C R14 134 L bank=6 w=16                           @ossuary_hairpin
+WIGGLE R18 38/97/36 L bank=4 w=16                 @ossuary_s
+S 32 w=13                                         @bat_cave
+C R25 110 R bank=5                                @bat_cave_exit
+S 125 dy=10 warp=portal                           @portal_warp
+S 28 surf=cobble                                  @garden_terrace
+C R35 107 R bank=5                                @hedge_corner
+C R60 77 R bank=-4                                @rose_corner
+WIGGLE R70 17/51/48 L bank=3                      @rose_s
+WIGGLE R25 27/70/33 R bank=5 w=16                 @hedge_maze_s
+S 24 w=13                                         @hedge_maze_straight
+C R80 54 R bank=-4                                @orangery_sweeper
+WIGGLE R60 19/36/26 R bank=3                      @orangery_s
 C R70 48 R bank=-4                                @greenhouse_corner
 S ?b                                              @greenhouse_walk
-C R30 66 R bank=-4                                @gazebo_kink
-C R30 155 L bank=6                                @gazebo_hairpin
-C R40 69 L bank=4                                 @gazebo_exit
-S 51                                              @home
-CLOSE solve=[?a,?b,?c] length=1850
+C R30 68 R bank=-4                                @gazebo_kink
+C R30 176 L bank=6 w=16                           @gazebo_hairpin
+C R40 72 L bank=4 w=13                            @gazebo_exit
+S 40                                              @home
+CLOSE solve=[?a,?b,?c] length=1800
 LINE start at=0
+
+# the bat-cave portal: a 48-tick warp back up to the garden terrace (the 125 m span has no ground)
+WARP portal transit=0.8 keep
+
+# 7 rows ≈ L/250: garden straight, ballroom table, catacomb entry, bat cave, garden terrace, orangery, greenhouse walk
+ITEMS at=@garden_straight+70,@ballroom_table+26,@catacomb_entry+19,@bat_cave+16,@garden_terrace+14,@orangery_sweeper+32,@greenhouse_walk+12 n=5
+# a pair of pads side by side where the gazebo exit opens onto the home straight
+PAD at=@home+3 d=-3 len=6 w=4
+PAD at=@home+3 d=3 len=6 w=4
+KEYS @garden_straight+50,@ballroom_table+18,@corridor+13,@catacomb_entry+10,@ossuary_s+30,@garden_terrace+20,@rose_s+60,@orangery_s+40,@gazebo_exit+20
