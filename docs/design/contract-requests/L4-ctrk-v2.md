@@ -19,13 +19,17 @@ New file: `packages/sim/src/track/vis-format.ts` (see `L4-vis-v2.md`).
 | `HazardMotion` + `HazardDefBaked.motion / group / name / h`. | F5 analytic hazards; `hazardPose` evaluates the motion from `(tick + offset) mod period` only. | L1 (contacts), L11 (render) |
 | `CtrkMeta.version / gates / junctions / signature / fallbacksTaken`. | Ordinary gates every 30 m (§8.1), junction gores (renderer, AI), bake report. | L3, L10, L11 |
 | Per-path arrays `p{k}.grav` (f32, optional) and `p{k}.rok` (u8 respawn-ok). | Per-span low-gravity scales; respawn slots (§8.6). | BakedTrack |
+| Per-path array `p{k}.rto` (i32, optional): respawn target sample per sample (−1 = in place). `rok` is 0 over every jump's run-up/ramp/gap and within 8 m (+ reach) of fixed hazards. | Jump-aware respawn (L4-respawn-jumps.md). | BakedTrack, L1 respawn.ts |
+| `HazardMotion.plane` gains `'flat'` (horizontal sweep at pivot height). | F5 rotating sweepers. | BakedTrack, L11 |
 
 ### BakedTrack interface (all additions optional, so mocks stay valid)
 - `HazardPose` gains optional `fx fy fz` (shape forward/long axis), `ux uy uz` (shape up / cylinder / arm axis), `phase ∈ [0,1)`.
 - `respawnOk?(path, i)`, `respawnLoc?(loc, out)`, `zonesAt?(path, s, u, out, max)`, `flagsAt?(path, s)`.
 - Behaviour changes (implementation only):
   - `locate` follows `links` near junctions with a 1 m² bias for switching paths (hysteresis through the overlapping junction surface); `railIn` links are not followed (rails are entered by capture). When the ±20/+40 window fails it retries ±90 before reporting failure.
-  - `respawnPose` walks back ≤ 15 samples to the nearest respawn-ok sample on the same path (inside the locate window). **L1:** after placing the kart, copy `respawnLoc(lastValid)` instead of `lastValid` into `race.loc` so the next `locate` starts at the placed sample (optional; the ±90 retry covers it).
+  - `respawnPose`/`respawnLoc` read `p{k}.rto` when present (jump gaps respawn on the landing side, run-ups before a 2× standing-start run-up, never across the finish or forwards over a key gate); older bakes walk back ≤ 15 samples to the nearest respawn-ok sample. **L1 (required since the jump fix):** copy `respawnLoc(lastValid)` into both `race.loc` and `lastValid` after placing the kart, because the progress anti-cut rejects a placement > 10 m from `race.loc` (exact diff in `L4-respawn-jumps.md`).
+  - `locate` widens its stacked-deck height window over jumps: h ∈ [−30, 30] on gap samples (JUMP|NO_GROUND) and h ≤ 20 on ramp/landing samples, so progress follows a kart through the flight.
+  - `hazardPose` telegraph windows wrap over phase 0 (a hazard active from phase 0 is telegraphed at the end of the previous period).
   - `gravityAt` reads per-sample `p{k}.grav` when present.
   - `toMainS(0, s)` subtracts `lineS` on p2p tracks (was identity).
 

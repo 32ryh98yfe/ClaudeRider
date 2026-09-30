@@ -6,7 +6,7 @@
 // ramp or the lip; walking back from there put it on the ramp at v = 0, too slow for vMin, so it fell into the
 // same gap forever. Now anything from the ramp foot to the landing window respawns past the gap (the landing
 // side), and the run-up before the ramp respawns far enough back to reach vMin again.
-import { SFLAG, type BakedTrack, type Contact, type GroundHit, type JumpBaked } from '@cr/sim';
+import { SFLAG, type BakedTrack, type Contact, type GroundHit, type HazardDefBaked, type JumpBaked } from '@cr/sim';
 import type { PathModel } from './paths.ts';
 
 /** Conservative launch acceleration for the run-up rule: about half the slowest kart's a0, which covers the
@@ -22,6 +22,8 @@ export interface RespawnContext {
   lapLength: number;
   keyGates: readonly number[];
   jumps: readonly JumpBaked[];
+  /** hazards at a fixed s (everything but lane traffic) keep respawn slots 8 m clear (11-track-spec §9) */
+  hazards?: readonly HazardDefBaked[];
 }
 
 export interface RespawnTables { ok: Uint8Array; to: Int32Array }
@@ -60,6 +62,11 @@ export function respawnTables(track: BakedTrack, p: PathModel, rc: RespawnContex
     return d < b - a;
   };
   for (let i = 0; i < n; i++) for (const z of zone) if (inSpan(S[i]!.s, z.a, z.land)) ok[i] = 0;
+  for (const h of rc.hazards ?? []) {
+    if (h.path !== p.index || h.motion?.type === 'lane') continue;
+    const reach = 8 + (h.shape === 'box' ? h.size[0] / 2 : h.size[0]) + (h.motion?.arm ?? 0);
+    for (let i = 0; i < n; i++) if (inSpan(S[i]!.s, h.s - reach, h.s + reach)) ok[i] = 0;
+  }
   if (p.closed) ok[n - 1] = ok[0]!;
 
   // ---- progress gates a respawn may not jump over: the finish line either way, key gates forwards

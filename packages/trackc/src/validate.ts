@@ -119,7 +119,8 @@ function overlapScan(r: BuildResult): { n: number; bad: { s: number; path: strin
         if (gd <= Math.max(40, 2 * Math.max(a.s.w, b.s.w))) continue;
         if (a.s.rmf && b.s.rmf && a.p === b.p) continue; // RMF loop, exempt within its own span
         if ((a.s.flags & SFLAG.BLEND) && (b.s.flags & SFLAG.BLEND)) continue;
-        const dy = Math.abs(a.s.y - b.s.y);
+        const dy = deckSeparation(a.s, ha, b.s, hb);
+        if (dy === Infinity) continue; // the ribbons do not actually overlap at this sample pair
         const tag = `${a.p.index}:${Math.floor(a.s.s / 50)}|${b.p.index}:${Math.floor(b.s.s / 50)}`;
         if (dy >= 8) { if (!seen.has('ok' + tag)) { seen.add('ok' + tag); stacked++; } continue; }
         if (!seen.has(tag)) { seen.add(tag); bad.push({ s: a.s.s, path: a.p.id, dy }); }
@@ -130,6 +131,32 @@ function overlapScan(r: BuildResult): { n: number; bad: { s: number; path: strin
   return stackCache;
 }
 function stackedPairs(r: BuildResult): number { return overlapScan(r).n; }
+
+/** Vertical deck separation where two cross-sections overlap in plan, or Infinity if they don't.
+ *  Probes 5 points across each deck and measures to the other deck's centreline height at the same plan point
+ *  (within ±1.25 m along it; the scan samples every 2 m). Bank is left out on purpose: the 8 m rule and the gap-3
+ *  design numbers are centreline separations. Plain centreline-to-centreline dy of nearby samples was too pessimistic
+ *  for helices, where two turns 20° apart are "close" in plan but never stacked at the same plan point. */
+function deckSeparation(a: Sample, ha: number, b: Sample, hb: number): number {
+  let best = Infinity;
+  const probe = (p: Sample, hp: number, q: Sample, hq: number): void => {
+    for (let k = -2; k <= 2; k++) {
+      const u = (hp * k) / 2;
+      const px = p.x + p.rx * u, py = p.y, pz = p.z + p.rz * u;
+      const dx = px - q.x, dz = pz - q.z;
+      // plan coordinates in q's frame (tangent and right projected onto the ground plane)
+      const tl = Math.hypot(q.tx, q.tz) || 1, rl = Math.hypot(q.rx, q.rz) || 1;
+      const along = (dx * q.tx + dz * q.tz) / tl, lat = (dx * q.rx + dz * q.rz) / rl;
+      if (Math.abs(along) > 1.25 || Math.abs(lat) > hq) continue;
+      const qy = q.y + (q.ty / tl) * along;
+      const d = Math.abs(py - qy);
+      if (d < best) best = d;
+    }
+  };
+  probe(a, ha, b, hb);
+  probe(b, hb, a, ha);
+  return best;
+}
 function v2(r: BuildResult, push: Push): void {
   for (const b of overlapScan(r).bad.slice(0, 8)) push('V2', `footprints overlap with only ${b.dy.toFixed(1)} m vertical separation (need ≥ 8 m)`, b.s, b.path);
 }
@@ -367,8 +394,11 @@ function v12(r: BuildResult, push: Push): void {
       for (let u = -smp.w / 2 + 1.5; u <= smp.w / 2 - 1.5; u += 0.25) if (lanes.every((l) => Math.abs(u - l.u) > l.half + 1.5)) { clear = true; break; }
       if (!clear) push('V12', `hazard ${h.name ?? h.id}: traffic leaves no safe lane`, h.s, p.id);
     }
-    for (const row of r.content.items) if (row.path === h.path && circDist(m, row.s, h.s) < 15) { push('V12', `hazard ${h.name ?? h.id} within ±15 m of an item row`, h.s, p.id); break; }
-    for (const j of r.content.jumps) if (j.path === h.path && circDist(m, j.lipS, h.s) < 20) { push('V12', `hazard ${h.name ?? h.id} within ±20 m of a jump lip`, h.s, p.id); break; }
+    // lane traffic occupies its whole run, everything else its own s
+    const s0 = h.motion?.type === 'lane' ? h.motion.s0 ?? h.s : h.s, s1 = h.motion?.type === 'lane' ? h.motion.s1 ?? h.s : h.s;
+    const near = (s: number, pad: number): boolean => inS(m, h.path, s, s0 - pad, s1 + pad);
+    for (const row of r.content.items) if (row.path === h.path && near(row.s, 15)) { push('V12', `hazard ${h.name ?? h.id} within ±15 m of an item row`, h.s, p.id); break; }
+    for (const j of r.content.jumps) if (j.path === h.path && near(j.lipS, 20)) { push('V12', `hazard ${h.name ?? h.id} within ±20 m of a jump lip`, h.s, p.id); break; }
   }
 }
 

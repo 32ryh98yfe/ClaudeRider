@@ -43,6 +43,8 @@ export interface VisMeta {
   areas?: { id: string; kind: string; y: number; surf: number; center: [number, number] | null; rIn: number; rOut: number; from: number; sweep: number; obstacles: unknown[] }[];
   minimapPaths?: { id: string; kind: string; array: string }[];
   materials?: string[];
+  /** F5: one record per baked hazard (same index as CtrkMeta.hazards); the pose comes from BakedTrack.hazardPose */
+  hazards?: { id: number; kind: string; name: string; prop: string; size: [number, number, number]; shape: string; group?: number }[];
 }
 
 export interface BuildOptions { refLapTicks?: number; seed?: number; strict?: boolean; mesh?: Partial<MeshOptions>; terrain?: boolean; props?: boolean }
@@ -260,7 +262,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     }).concat(c.killPlanes.map((k) => ({ kind: 'kill' as const, path: 0, s0: 0, s1: 0, u0: -1e3, u1: 1e3, belowY: k.y, ...(k.aabb ? { aabb: k.aabb } : {}) }))),
     rails: railsMeta(m), warps: warps.map(({ entryPose: _e, exitPose: _x, span: _s, line: _l, ...w }) => w),
     jumps: c.jumps.map((j) => ({ path: j.path, lipS: j.lipS, landS0: j.landS0, landS1: j.landS1, vMin: j.vMin, vMax: j.vMax, rampS: j.s0, lipDeg: j.lipDeg, gapLen: j.gapLen, drop: j.drop, lipH: j.lipH, landW: j.landW })),
-    hazards: [],
+    hazards: c.hazards,
     keyGates,
     refLapTicks: opts.refLapTicks ?? 0,
     hashCells: { cs: gh.cs, cy: gh.cy },
@@ -280,7 +282,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   );
   // pass 1 → load → respawn tables → final bytes (the hash covers everything but itself)
   const pass1 = loadCtrk(toArrayBuffer(writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays)));
-  const rc = { closed: m.closed, lapLength: m.lapLength, keyGates, jumps: meta.jumps };
+  const rc = { closed: m.closed, lapLength: m.lapLength, keyGates, jumps: meta.jumps, hazards: c.hazards };
   m.paths.forEach((p, k) => { const t = respawnTables(pass1, p, rc); arrays.push([`p${k}.rok`, t.ok], [`p${k}.rto`, t.to]); });
   const pre = writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays);
   meta.hash = fnv(pre);
@@ -314,7 +316,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   const slots = rb.finalise();
   tick('render');
   const gi = new GroundIndex(ground);
-  const props: PropSet[] = opts.props === false ? [] : placeProps(m, c, seed, gi, tf, exclusions(m, c, junctions, []), junctions);
+  const props: PropSet[] = opts.props === false ? [] : placeProps(m, c, seed, gi, tf, exclusions(m, c, junctions, c.hazards.filter((h) => h.motion?.type !== 'lane')), junctions);
   tick('props');
 
   const lineSample = sampleAt(main, m.lineS);
@@ -336,6 +338,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
       { id: w.id, kind: 'entry' as const, x: w.entryPose[0], y: w.entryPose[1], z: w.entryPose[2], fx: w.entryPose[3], fy: w.entryPose[4], fz: w.entryPose[5], w: w.u1 - w.u0, h: 5 },
       { id: w.id, kind: 'exit' as const, x: w.exitPose[0], y: w.exitPose[1], z: w.exitPose[2], fx: w.exitPose[3], fy: w.exitPose[4], fz: w.exitPose[5], w: 6, h: 5 }]),
     areas: areas.map((a) => ({ id: a.id, kind: a.kind, y: a.y, surf: a.surf, center: a.center, rIn: a.rIn, rOut: a.rOut, from: a.from, sweep: a.sweep, obstacles: a.obstacles })),
+    hazards: c.hazards.map((h, k) => ({ id: h.id, kind: h.kind, name: h.name ?? `${h.kind}${h.id}`, prop: c.hazardProps[k]!, size: h.size, shape: h.shape, ...(h.group !== undefined ? { group: h.group } : {}) })),
     killPlanes: c.killPlanes.map((k) => ({ id: k.id, y: k.y, surf: k.surf, aabb: k.aabb ?? [meta.bounds[0]! - 120, meta.bounds[2]! - 120, meta.bounds[3]! + 120, meta.bounds[5]! + 120] })),
     materials: [...new Set(slots.map((s) => s.material))],
   };

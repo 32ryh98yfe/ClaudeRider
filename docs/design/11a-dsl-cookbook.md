@@ -139,6 +139,11 @@ S 30                                                   # the landing continues s
   `[gap + 2, gap + land − 5]` past the lip; landing ≥ 40 m, straight, ±10% grade. Tune `vmin` to the slowest
   realistic approach (after the preceding corner) and lengthen `land` for fast approaches.
   Worked numbers: lip 8°, lipH 0.70, drop 2 → 12.2 m at 22 m/s, 33 m at 46 m/s.
+- Respawns around a jump are baked (`.ctrk p{k}.rto`). A kart that dies on the ramp or in the gap comes back 5 m into
+  the landing window. A kart that dies on the approach comes back before a run-up of `2·vmin²/(2·9 m/s²)` metres, so a
+  standing start still clears the gap. No respawn slot lies in between, and a respawn never crosses the finish line or
+  jumps forwards over a key gate. **Leave that run-up (≈ 54 m at vmin 22, 69 m at vmin 25) free of other jumps** where
+  you can; otherwise the respawn skips ahead past the next landing.
 - Tutorial hop / mushroom bounce without a gap: `PAD at=… kind=jump` (the sim launches karts on `jump_pad`).
 
 ### Open ledges and kill planes
@@ -218,6 +223,72 @@ S 60 warp=gate ; WARP gate transit=0.8 keep                          # no-geomet
 - Karts that warp skip everything between entry and exit: **no key gate may lie in that span** (V8), and the time
   saved should stay ≤ 8% of the lap. The renderer draws portal frames (`.vis portals[]`).
 
+## 8a. F5 recipes
+### Analytic hazards (HAZ)
+```
+HAZ geyser vent1 at=@field+10 d=+3 r=3 period=3.6 on=0-1.0 tele=0.8 offset=0.0      # launch column
+HAZ press stamp  at=@hall+40 d=+4 box=(5,7,3) period=4 on=0-1.5 tele=0.8 rise=4       # squash block, up when idle
+HAZ swinger log  at=@gorge+20 d=0 capsule=(0.9,2.5) arm=6 amp=60 plane=across period=3 # pendulum across the road
+HAZ swinger arm  at=@turn+30 d=0 capsule=(0.6,1) motion=rotate plane=flat arm=6 pivot=1 period=4   # sweeper
+HAZ train freight at=@yard+80 d=0 box=(24,3.4,4) period=12 on=0-3 tele=1.5 offset=4 span=25     # level crossing
+HAZ traffic cars at=@blvd+50 to=@blvd+350 lanes=[(d -6, speed 14, count 3, spacing 45),(d 6, speed 11, count 2, spacing 60)]
+```
+- Times are **seconds** (baked to ticks). The hazard is live while `on=a-b` holds for `(tick + offset) mod period`,
+  and it is telegraphed for `tele` seconds before that (the telegraph window may wrap back over phase 0).
+  Use `offset` to stagger a field so there is always a way through.
+- Shapes: `r=` (+`hgt=`) cylinder, `box=(along,across,up)`, `sphere=`, `capsule=(r,len)`. `h=` lifts the base,
+  `effect=spin|launch|squash|block` overrides the kind default (geyser launch, press squash, others spin), and
+  `prop=` names the kit model (default `hazard_<kind>`, e.g. `hazard_geyser`, `hazard_car`).
+- Motions (defaults by kind): geyser `static`, press `piston` (`rise`, `ramp` s), swinger `pendulum` (`arm`, `pivot`,
+  `amp`°, `plane=across|along|flat`) or `rotate` (one turn per period), train `cross` (crosses the road ±`span` m
+  during `on`), traffic `lane` (`at → to` at `speed`, wrapping; its period is the lane lap time).
+- Traffic becomes one hazard per vehicle, all in one group. Keep at least one lane clear (V12) and keep item rows
+  out of the whole `at → to` run.
+- **V12:** period ≥ 2 s, active ≤ 50% of it and telegraph ≥ 0.6 s (except traffic, swingers and rotors, which are
+  always live and must be dodged by line). No item row within ±15 m, and no jump lip within ±20 m.
+- Respawn slots keep ≥ 8 m (plus the hazard's reach) clear of every fixed hazard, and props keep ±8 m.
+
+## 8b. F6 recipes
+### Helix with stacked decks
+```
+S 280                                          @helixIn   # approach: leave room, the lower turn passes under it
+HELIX R30 540 L dy=-16 bank=10 wallOut=barrier:1.5        # 1.5 turns, 10.7 m per turn
+S 60 dy=-1                                                # exit runs under the first turn
+```
+- `HELIX R<r> <deg> L|R dy=<m>` is an arc with a climb or drop spread along it. From 360° up it stacks on itself.
+  The track's turning number becomes 2, which V1 accepts only when every crossing is stacked.
+- **V2:** where two decks overlap in plan, their centrelines must be ≥ 8 m apart vertically. That separation is
+  measured at the same plan point; bank is not counted.
+  - Per turn: `|dy|·360/deg`. Leave a margin, because the vertical blend at the helix ends flattens the first and last
+    few metres.
+  - Also check the approach and the exit: they cross the helix's other turns. The f6 fixture needed 10.7 m per turn
+    because of this.
+- Locate keeps each kart on its own deck through the stacked-deck height window (h ∈ [−2, 6] m); decks ≥ 8 m apart
+  never alias.
+
+### Loop (RMF frames, track gravity)
+```
+LOOP R12 shift=18 ease=15          # vertical loop; the exit is shifted 18 m sideways so it passes beside the entry
+```
+- The loop gets `frame=rmf` and `gravity=track` automatically: gravity pulls into the road, so a loop has no minimum
+  entry speed.
+- Use `shift ≥ w + 4`. V2 exempts the loop's own RMF span, but the entry and exit roads are checked against it.
+- **V7:** `frame=worldUp` is an error wherever |T·Y| > 0.9. Leave `frame` on auto, or use `rmf`.
+
+### Gravity
+`S 120 gravity=low:0.5` scales gravity to 50% on that segment (zeroG, moon hops). `gravity=track` pulls along
+−up, and `gravity=world` is the default. `ZONE gravity from=… to=… mode=low|track|world scale=…` does the same over
+any span (`path=` for branches). Low gravity lengthens jumps: V11 still uses world G, so keep low-g spans off jump landings.
+
+### Cloverleaf
+```
+CLOVERLEAF levels=0/9/18 R=35 [side=L] [link=41/33] [Rc=20]
+```
+- It expands to 270° helix ramps between consecutive levels, joined by deck legs (`S link1 ; C Rc 90 <other side> ;
+  S link2`).
+- Each ramp crosses its own entry one level up, so every level step must be ≥ 8 m (V2).
+- It turns the track by +90° net, plus one full turn; close it with ordinary corners.
+
 ## 9. Validators and common errors
 Severity: structural rules are always errors. **V5 V6 V9 V10 V13 V14 V19 V20 are errors only in strict mode** (tracks
 with `@signature`, or `--strict`); M1-era tracks see them as warnings.
@@ -228,7 +299,8 @@ with `@signature`, or `--strict`); M1-era tracks see them as warnings.
 | V1 `elevation does not close (Σdy = …)` | Balance the `dy` values (a J segment contributes −drop). |
 | V1 `turning number 2` | Only allowed with stacked crossings (helix); otherwise fix the turns. |
 | V0 `@signature X is missing` | Build the feature or add `@fallback X -> "…" when=Fn`. |
-| V2 `footprints overlap with only … m vertical separation` | Separate crossing decks by ≥ 8 m (dy on the approach) or move them apart in plan. |
+| V2 `footprints overlap with only … m vertical separation` | Separate crossing decks by ≥ 8 m (dy on the approach, more dy per helix turn) or move them apart in plan. |
+| V7 `frame=worldUp where \|T·Y\| > 0.9` | Loops and near-vertical spans need `frame=rmf` (the default for LOOP). |
 | V3 `radius … below the D… minimum` | Rmin D1–D5 = 30/22/16/12/9 m (branches −20%). |
 | V3 `inner edge radius … < 3 m` | Radius − w/2 must stay ≥ 3 m; widen R or narrow w. |
 | V4 `corner width … < 11 m` | Corners need ≥ 11 m and the D band minimum (15/14/12/12/11). 9–10 m only on straights < 60 m. |
@@ -242,6 +314,9 @@ with `@signature`, or `--strict`); M1-era tracks see them as warnings.
 | V10 `wall … straight ahead of the boost pad` | Move the pad earlier on the straight. |
 | V11 `at N m/s the kart lands … past the lip` | Shorten the gap, raise `lip`, add `drop`, lengthen `land`, or narrow [vmin, vmax]. |
 | V11 `landing zone … < 40 m` | `land=` ≥ 40. |
+| V12 `period … < 120` / `active … (> 50%)` / `telegraph … < 36` | Lengthen `period`, shorten `on`, raise `tele` (≥ 0.6 s). |
+| V12 `traffic leaves no safe lane` | Drop or move a lane so one ≥ 3 m corridor stays clear across the road. |
+| V12 `within ±15 m of an item row` / `±20 m of a jump lip` | Move the row, the lip or the hazard (traffic counts its whole run). |
 | V14 `straight ratio …` | Adjust straights vs corners toward the D band (R ≥ 150 counts as straight). |
 | V16 `AREA … guide path leaves the area` / `height differs` | Put the guide arc (`area=<id>`) inside the plaza and at its `y`. |
 | V15 `samples have no ground` | Something removed the road: check `warp=`, jump spans, area clipping. |
