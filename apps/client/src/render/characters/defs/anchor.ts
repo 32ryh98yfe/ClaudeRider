@@ -14,31 +14,36 @@ const def: CharacterDef = {
   palette: { body: '#C96442', shade: '#A8533A', accent: '#B53333', detail: '#30302E', eye: '#141413' },
   eyeStyle: 'slot',
   eyes: { hide: 'R' },
-  sparkle: { at: [0, 0.76, 0.02], color: 'gold' },
+  sparkle: { at: [0, 0.74, -0.02], color: 'gold' },
   tiltBias: -0.03,
   accessories: [
-    // tricorn hat
+    // tricorn hat: domed crown, three flared walls that peak at the corners, gold trim along the rim
     (k) => {
-      k.add((k.lod === 2 ? box(0.62, 0.24, 0.5) : rbox(0.62, 0.24, 0.5, 0.1, k.q(2, 1, 1))).translate(0, 0.46, -0.02), { color: 'detail', bone: 'head', surf: 'matte' });
+      k.add((k.lod === 2 ? box(0.56, 0.26, 0.46) : rbox(0.56, 0.26, 0.46, 0.12, k.q(2, 1, 1))).translate(0, 0.47, -0.02), { color: 'detail', bone: 'head', surf: 'matte' });
       const outline = TRI.map(([x, z]) => [x, -z] as [number, number]);
-      k.add(extrude(outline, 0.03, k.q(0.012, 0, 0)).rotateX(-Math.PI / 2).translate(0, 0.36, 0), { color: 'detail', bone: 'head', surf: 'matte' });
-      const cx = 0, cz = (TRI[0]![1] + TRI[1]![1] + TRI[2]![1]) / 3;
+      k.add(extrude(outline, 0.03, k.q(0.012, 0, 0)).rotateX(-Math.PI / 2).translate(0, 0.35, 0), { color: 'detail', bone: 'head', surf: 'matte' });
+      const cz = (TRI[0]![1] + TRI[1]![1] + TRI[2]![1]) / 3;
+      const n = k.q(8, 4, 2);
       for (let e = 0; e < 3; e++) {
         const A = TRI[e]!, B = TRI[(e + 1) % 3]!;
-        const mx = (A[0] + B[0]) / 2 - cx, mz = (A[1] + B[1]) / 2 - cz, ml = Math.hypot(mx, mz);
+        const mx = (A[0] + B[0]) / 2, mz = (A[1] + B[1]) / 2 - cz, ml = Math.hypot(mx, mz);
         const nx = mx / ml, nz = mz / ml;
+        const S = new THREE.Vector3(nx * 0.55, 1, nz * 0.55).normalize();
         const wall: V3[] = [], trim: V3[] = [];
-        for (let i = 0; i <= 6; i++) {
-          const t = i / 6, bulge = Math.sin(Math.PI * t) * 0.07;
-          const x = A[0] + (B[0] - A[0]) * t + nx * bulge, z = A[1] + (B[1] - A[1]) * t + nz * bulge;
-          wall.push([x - nx * 0.03, 0.48, z - nz * 0.03]);
-          trim.push([x - nx * 0.075, 0.6 + Math.sin(Math.PI * t) * 0.015, z - nz * 0.075]);
+        let wMin = Infinity;
+        const hAt = (t: number): number => 0.15 + 0.17 * Math.pow(1 - Math.sin(Math.PI * t), 1.4);
+        for (let i = 0; i <= n; i++) {
+          const t = i / n, bulge = Math.sin(Math.PI * t) * 0.06, h = hAt(t);
+          const x = A[0] + (B[0] - A[0]) * t + nx * bulge - nx * 0.02, z = A[1] + (B[1] - A[1]) * t + nz * bulge - nz * 0.02;
+          wall.push([x + S.x * h / 2, 0.36 + S.y * h / 2, z + S.z * h / 2]);
+          trim.push([x + S.x * h, 0.36 + S.y * h, z + S.z * h]);
+          wMin = Math.min(wMin, h);
         }
-        const side: V3 = [nx * 0.45, 1, nz * 0.45];
-        k.add(ribbon(wall, 0.25, 0.035, k.q(8, 3, 2), side), { color: 'detail', bone: 'head', surf: 'matte' });
-        if (k.lod === 0) k.add(ribbon(trim, 0.035, 0.03, 8, [nx, 0, nz]), { color: GOLD as `#${string}`, bone: 'head', surf: 'gold' });
+        k.add(ribbon(wall, 1, 0.035, n + 4, [S.x, S.y, S.z], 1, (t) => hAt(t)), { color: 'detail', bone: 'head', surf: 'matte' });
+        if (k.lod === 0) k.add(ribbon(trim, 0.03, 0.03, 10, [nx, 0, nz]), { color: 'gold', bone: 'head', surf: 'gold' });
+        void wMin;
       }
-      if (k.lod === 0) for (const [x, z] of TRI) k.add(sph(0.035, 6, 4).translate(x * 0.94, 0.6, z * 0.94 + 0.01), { color: 'gold', bone: 'head', surf: 'gold' });
+      if (k.lod === 0) for (const [x, z] of TRI) k.add(sph(0.034, 6, 4).translate(x * 1.08, 0.66, z * 1.08 + 0.01), { color: 'gold', bone: 'head', surf: 'gold' });
     },
     // eyepatch + strap
     (k) => {

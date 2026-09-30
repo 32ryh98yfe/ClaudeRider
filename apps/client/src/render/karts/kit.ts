@@ -356,10 +356,14 @@ function buildKart(shape: KartShape, livery0: Livery): KartModel {
       const ty = -0.012 * st.speed01 + bump + st.air * 0.02 - kick * 0.015;
       const troll = (-st.steer * 0.035) * (1 - st.drift) - st.steer * 0.07 * st.drift;
       const tpitch = -0.045 * st.boost - kick * 0.05 + st.air * 0.03;
+      // substep at ≤ 1/60 s: explicit springs diverge when C·dt > 2 (a 2–10 fps frame would explode them)
       const K = 260, C = 2 * Math.sqrt(K) * 0.8;
-      vy += (K * (ty - y) - C * vy) * dt; y += vy * dt;
-      vroll += (K * (troll - roll) - C * vroll) * dt; roll += vroll * dt;
-      vpitch += (K * (tpitch - pitch) - C * vpitch) * dt; pitch += vpitch * dt;
+      const n = Math.max(1, Math.ceil(dt * 60)), h = dt / n;
+      for (let i = 0; i < n; i++) {
+        vy += (K * (ty - y) - C * vy) * h; y += vy * h;
+        vroll += (K * (troll - roll) - C * vroll) * h; roll += vroll * h;
+        vpitch += (K * (tpitch - pitch) - C * vpitch) * h; pitch += vpitch * h;
+      }
       chassis.position.set(chassisRest.x, chassisRest.y + clamp(y, -0.04, 0.04), chassisRest.z);
       chassis.rotation.set(pitch, 0, roll);
       steering.quaternion.setFromAxisAngle(colAxis, -st.steer * 0.55);
@@ -403,6 +407,29 @@ function buildKart(shape: KartShape, livery0: Livery): KartModel {
   };
   void numberQuads;
   return model;
+}
+
+/**
+ * Extruded side profile: `outline` is [z, y] (kart space), extruded symmetrically across X by `width`.
+ * Bevelled at LOD0 only (the bevel catches the rim light; at distance it is sub-pixel).
+ */
+export function sideProfile(k: KartKit, outline: ReadonlyArray<readonly [number, number]>, width: number, bevel = 0.02): THREE.BufferGeometry {
+  const b = k.lod === 0 ? bevel : 0;
+  const sh = new THREE.Shape(outline.map(([z, y]) => new THREE.Vector2(z, y)));
+  const g = new THREE.ExtrudeGeometry(sh, { depth: Math.max(0.001, width - b * 2), bevelEnabled: b > 0, bevelThickness: b, bevelSize: b, bevelSegments: 1, curveSegments: k.q(6, 3, 2) });
+  g.translate(0, 0, -(width - b * 2) / 2);
+  g.rotateY(-Math.PI / 2);
+  return g;
+}
+
+/** Top-view plan outline [x, z] extruded vertically from y0 to y1 (wings, plates, trays). */
+export function planPlate(k: KartKit, outline: ReadonlyArray<readonly [number, number]>, y0: number, y1: number, bevel = 0.01): THREE.BufferGeometry {
+  const b = k.lod === 0 ? Math.min(bevel, (y1 - y0) / 3) : 0;
+  const sh = new THREE.Shape(outline.map(([x, z]) => new THREE.Vector2(x, -z)));
+  const g = new THREE.ExtrudeGeometry(sh, { depth: Math.max(0.001, y1 - y0 - b * 2), bevelEnabled: b > 0, bevelThickness: b, bevelSize: b, bevelSegments: 1, curveSegments: k.q(6, 3, 2) });
+  g.rotateX(-Math.PI / 2);
+  g.translate(0, y0 + b, 0);
+  return g;
 }
 
 // ---------- wheels ----------

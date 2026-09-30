@@ -5,9 +5,10 @@ import * as THREE from 'three/webgpu';
 import { color, mix, smoothstep, positionWorld, float, uv, vec2 } from 'three/tsl';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
-export interface StudioLook { floor: string; wall: string; top: string; key: string; rimA: string; rimB: string; hemiSky: string; hemiGround: string }
+export interface StudioLook { floor: string; wall: string; mid: string; top: string; key: string; rimA: string; rimB: string; hemiSky: string; hemiGround: string }
+/** Warm terracotta studio: a bright pool under the subject, peach floor, the wall darkening to espresso behind the UI. */
 export const STUDIO_WARM: StudioLook = {
-  floor: '#f3e7da', wall: '#d9b8a0', top: '#3b2a22', key: '#fff0e2', rimA: '#a9d8ff', rimB: '#ffc9a8', hemiSky: '#fff4ea', hemiGround: '#7a5a48',
+  floor: '#f2e3d3', wall: '#d69a7b', mid: '#8a4c36', top: '#241713', key: '#fff0e2', rimA: '#a9d8ff', rimB: '#ffc9a8', hemiSky: '#fff4ea', hemiGround: '#7a5a48',
 };
 
 export interface Studio {
@@ -42,8 +43,9 @@ export function createStudio(renderer: THREE.WebGPURenderer | null, scene: THREE
     const r = positionWorld.xz.length();
     const y = positionWorld.y;
     // one continuous function of (radius, height): bright pool under the subject → warm wall → dark top (logo contrast)
-    const pool = mix(color(L.floor), color(L.wall), smoothstep(2.5, 11, r));
-    m.colorNode = mix(pool, color(L.top), smoothstep(1.5, 12, y).pow(0.8));
+    const pool = mix(color(L.floor), color(L.wall), smoothstep(2.4, 10, r));
+    const wall = mix(pool, color(L.mid), smoothstep(0.3, 3.2, y));
+    m.colorNode = mix(wall, color(L.top), smoothstep(2.4, 7.5, y));
     cyc = new THREE.Mesh(coveGeometry(9, 6, 26, 64), m);
     cyc.receiveShadow = true;
     cyc.name = 'cyclorama';

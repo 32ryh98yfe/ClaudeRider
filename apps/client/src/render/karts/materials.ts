@@ -40,8 +40,9 @@ export function kartPaint(): THREE.MeshPhysicalNodeMaterial {
     const gate = step(0.0, mx_noise_float(floor(P.mul(4)).mul(0.77)));
     const pads = step(length(fract(P.mul(4)).sub(0.5)), 0.13);
     const circuit = clamp(step(gx, 0.045).mul(gate).add(step(gy, 0.04).mul(gate.oneMinus())).add(pads), 0, 1);
-    const scroll = sin(P.z.mul(22).add(sin(P.x.mul(16)).mul(2.2))).mul(sin(P.x.mul(22).add(sin(P.z.mul(14)).mul(2))));
-    const filigree = step(0.55, abs(scroll)).mul(step(0.0, sin(P.y.mul(40))).mul(0.3).add(0.7));
+    // ornamental scrollwork: thin isolines of two interfering waves (reads as gold filigree, not stripes)
+    const fw = sin(P.z.mul(9).add(sin(P.x.mul(7).add(P.y.mul(5))).mul(1.6))).add(sin(P.x.mul(9).add(P.y.mul(4)).add(sin(P.z.mul(6)).mul(1.6))));
+    const filigree = step(abs(fract(fw.mul(1.4)).sub(0.5)), 0.06);
     const pz = fract(P.z.mul(3.2)), py = fract(P.y.mul(3.2).add(0.2));
     const seam = step(0.93, max(pz, py));
     const rivet = step(length(vec3(pz.sub(0.08), py.sub(0.08), 0)), 0.04);

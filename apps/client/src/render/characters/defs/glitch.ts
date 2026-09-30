@@ -18,7 +18,7 @@ const def: CharacterDef = {
   palette: { body: '#1C1B22', shade: '#121117', accent: '#FF7A50', detail: '#2EF2FF', eye: '#2EF2FF' },
   eyeStyle: 'visor',
   body: { surf: { rough: 0.26, metal: 0.1, glow: 0, coat: 1 } },
-  eyes: { z: 0.392, glow: 2.4 },
+  eyes: { z: 0.392, glow: 2.6, color: '#9FFBFF' },
   sparkle: { at: [0, 0.56, -0.02], size: 0.85, color: 'detail' },
   accessories: [
     // neon edge loops (front + back) and a top circuit stripe
@@ -37,7 +37,7 @@ const def: CharacterDef = {
     (k) => {
       const v = new THREE.CylinderGeometry(0.9, 0.9, 0.24, k.q(20, 10, 6), 1, true, -0.52, 1.04);
       v.translate(0, 0.07, 0.38 - 0.9);
-      k.add(v, { color: 'detail', glass: true, surf: { rough: 0.05, metal: 0, glow: 0.9, coat: 1 } });
+      k.add(v, { color: '#0F3C45', glass: true, surf: { rough: 0.05, metal: 0, glow: 0.35, coat: 1 } });
       if (k.lod < 2) k.add(box(0.86, 0.012, 0.012).translate(0, 0.195, 0.372), { color: 'detail', surf: NEON });
     },
     // headphones + equalizer bars on each can

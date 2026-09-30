@@ -6,13 +6,13 @@ import { rbox, box, band, cyl, torus, sph } from '../../mascot/shapes.ts';
 import { sleeves } from '../parts.ts';
 import { wave } from '../../mascot/emotes.ts';
 
-const DOME = { r: 0.7, sy: 0.78, sz: 0.76, y: 0.06 };
+const DOME = { r: 0.7, sy: 0.78, sz: 0.76, y: -0.03 };
 
 const def: CharacterDef = {
   id: 'nova',
   palette: { body: '#D97757', shade: '#BE684D', accent: '#F5F4ED', detail: '#6A9BCC', eye: '#141413' },
   eyeStyle: 'slot',
-  sparkle: { bone: 'antenna', at: [0.18, 0.9, -0.12], size: 0.95, color: 'ivory' },
+  sparkle: { bone: 'antenna', at: [0.18, 0.82, -0.12], size: 0.95, color: 'ivory' },
   accessories: [
     (k) => {
       // glass bubble helmet
@@ -21,7 +21,7 @@ const def: CharacterDef = {
       k.add(d, { color: '#DDF1FF', glass: true, surf: { rough: 0.04, metal: 0, glow: 0.05, coat: 1 } });
       k.add(torus(DOME.r, 0.042, k.q(6, 4, 3), k.q(28, 14, 8)).rotateX(Math.PI / 2).scale(1, 1, DOME.sz).translate(0, DOME.y, 0), { color: 'detail', surf: 'gloss' });
       // suit
-      k.add(band(1.08, 0.72, 0.22, 0.34, 0.06, k.q(4, 2, 1), k.q(0.012, 0, 0)).translate(0, -0.19, 0), { color: 'accent', surf: 'soft' });
+      k.add(band(1.08, 0.72, 0.22, 0.3, 0.06, k.q(4, 2, 1), k.q(0.012, 0, 0)).translate(0, -0.2, 0), { color: 'accent', surf: 'soft' });
       sleeves(k, 'accent', 'detail');
       // backpack + tanks
       k.add((k.lod === 2 ? box(0.62, 0.44, 0.18) : rbox(0.62, 0.44, 0.18, 0.06, 1)).translate(0, -0.1, -0.42), { color: 'accent', surf: 'plastic' });
@@ -32,10 +32,10 @@ const def: CharacterDef = {
       (['#E5484D', '#FFD23F', '#6A9BCC'] as const).forEach((c, i) => k.add(cyl(0.022, 0.022, 0.02, 8).rotateX(Math.PI / 2).translate(-0.09 + i * 0.09, -0.2, 0.385), { color: c, surf: { rough: 0.3, metal: 0, glow: 0.8, coat: 1 } }));
       k.add(box(0.3, 0.06, 0.02).translate(0, 0.08, -0.515), { color: 'detail', surf: 'gloss' });
       // antenna on the dome (springy, jiggles on bumps)
-      k.bone('antenna', 'body', [0.18, 0.57, -0.12]);
+      k.bone('antenna', 'body', [0.18, 0.48, -0.12]);
       k.motion('antenna', { jiggle: 2.2 });
-      k.add(cyl(0.012, 0.014, 0.28, k.q(6, 4, 3)).translate(0.18, 0.71, -0.12), { color: 'chrome', bone: 'antenna', surf: 'chrome' });
-      k.add(sph(0.022, 8, 6).translate(0.18, 0.575, -0.12), { color: 'chrome', bone: 'antenna', surf: 'chrome' });
+      k.add(cyl(0.012, 0.014, 0.28, k.q(6, 4, 3)).translate(0.18, 0.62, -0.12), { color: 'chrome', bone: 'antenna', surf: 'chrome' });
+      k.add(sph(0.022, 8, 6).translate(0.18, 0.485, -0.12), { color: 'chrome', bone: 'antenna', surf: 'chrome' });
     },
   ],
   emotes: {

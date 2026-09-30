@@ -75,7 +75,7 @@ function settle(m: MascotInstance, frames = 30): void { for (let i = 0; i < fram
 // --------------------------------------------------------------------------------------------------------------
 async function charsSheet(r: THREE.WebGPURenderer): Promise<void> {
   const chars = allCharacters();
-  const CW = 220, CH = 230, HEAD = 34, cols = 6;
+  const CW = 220, CH = 240, HEAD = 46, cols = 6;
   const angles: Array<[string, number, number]> = [['front', 0, 0.08], ['¾', -0.72, 0.22], ['chase (back)', Math.PI, 0.42]];
   const blocks = Math.ceil(chars.length / cols);
   size(cols * CW, blocks * (angles.length * CH + HEAD) + 40);
@@ -96,14 +96,14 @@ async function charsSheet(r: THREE.WebGPURenderer): Promise<void> {
     const bx = col * CW, by = 40 + blk * (angles.length * CH + HEAD);
     for (let a = 0; a < angles.length; a++) {
       const [, yaw, pitch] = angles[a]!;
-      const dist = 3.1;
-      cam.position.set(Math.sin(yaw) * Math.cos(pitch) * dist, 0.62 + Math.sin(pitch) * dist, Math.cos(yaw) * Math.cos(pitch) * dist);
-      cam.lookAt(0, 0.62, 0);
+      const dist = 3.9, ty = 0.74;
+      cam.position.set(Math.sin(yaw) * Math.cos(pitch) * dist, ty + Math.sin(pitch) * dist, Math.cos(yaw) * Math.cos(pitch) * dist);
+      cam.lookAt(0, ty, 0);
       await shoot(r, scene, cam, CW, CH, bx, by + a * CH);
     }
     const st = m.stats();
-    label(`${def.id}`, bx + 8, by + angles.length * CH + 20, 15);
-    label(`${st.tris[0]}/${st.tris[1]}/${st.tris[2]} tris · ${st.draws[0]} draws`, bx + CW - 8, by + angles.length * CH + 20, 11, '#b8aea4', 'right');
+    label(`${def.id}`, bx + 8, by + angles.length * CH + 19, 15);
+    label(`LOD ${st.tris[0]} / ${st.tris[1]} / ${st.tris[2]} tris · ${st.draws.join('/')} draws`, bx + 8, by + angles.length * CH + 37, 11, '#b8aea4');
     scene.remove(m.root);
     m.dispose();
     status.textContent = `chars ${i + 1}/${chars.length}`;
@@ -148,9 +148,9 @@ async function kartsSheet(r: THREE.WebGPURenderer): Promise<void> {
       const sh = contactShadow(def.dims.width * 1.5, def.dims.length * 1.35, 0.6); sh.position.y = 0.003; k.group.add(sh);
       scene.add(k.group);
       poseKart(k, v === 2 ? 0 : 0.3);
-      const dist = 5.4;
-      cam.position.set(Math.sin(yaw) * Math.cos(pitch) * dist, 0.5 + Math.sin(pitch) * dist, Math.cos(yaw) * Math.cos(pitch) * dist);
-      cam.lookAt(0, 0.45, 0);
+      const dist = 4.5;
+      cam.position.set(Math.sin(yaw) * Math.cos(pitch) * dist, 0.52 + Math.sin(pitch) * dist, Math.cos(yaw) * Math.cos(pitch) * dist);
+      cam.lookAt(0, 0.52, 0);
       await shoot(r, scene, cam, CW, CH, LW + v * CW, 40 + i * CH);
       scene.remove(k.group);
       k.kart.dispose(); k.mascot.dispose();

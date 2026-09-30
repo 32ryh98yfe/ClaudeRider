@@ -559,9 +559,12 @@ export function buildMascot(def: CharacterDef, _lib?: unknown): MascotInstance {
         }
         if (m.jiggle) {
           // damped spring on two axes, kicked by body rotation changes
-          mo.jvx += (-mo.jx * 90 - mo.jvx * 9) * dt - dRx * m.jiggle * 40;
-          mo.jvz += (-mo.jz * 90 - mo.jvz * 9) * dt - dRz * m.jiggle * 40;
-          mo.jx += mo.jvx * dt; mo.jz += mo.jvz * dt;
+          mo.jvx -= dRx * m.jiggle * 40; mo.jvz -= dRz * m.jiggle * 40;
+          const n = Math.max(1, Math.ceil(dt * 60)), h = dt / n;
+          for (let i = 0; i < n; i++) {
+            mo.jvx += (-mo.jx * 90 - mo.jvx * 9) * h; mo.jvz += (-mo.jz * 90 - mo.jvz * 9) * h;
+            mo.jx += mo.jvx * h; mo.jz += mo.jvz * h;
+          }
           b.rotation.x += clamp(mo.jx, -0.5, 0.5); b.rotation.z += clamp(mo.jz, -0.5, 0.5);
         }
         if (m.ch) for (const [src, dst, gain] of m.ch) {
@@ -585,7 +588,7 @@ export function buildMascot(def: CharacterDef, _lib?: unknown): MascotInstance {
           velW.lerp(tmpV2, 0.5);
         }
         lastW.copy(tmpV); haveLast = true;
-        const sub = dt > 1 / 45 ? 2 : 1, h = dt / sub;
+        const sub = Math.max(1, Math.ceil(dt * 60)), h = dt / sub;
         for (const c of chains) {
           c.parent.getWorldQuaternion(tmpQ).invert();
           tmpV.copy(velW).multiplyScalar(-1.1).addScaledVector(accW, -0.25).applyQuaternion(tmpQ);

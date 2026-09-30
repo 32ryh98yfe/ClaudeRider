@@ -1,7 +1,7 @@
 // Duke (듀크) — royal: a jauntily tilted gold crown with pearls and rubies over a velvet cap, an ermine collar and a
 // wide ermine cape (two verlet chains, cloth-lite, red lining), and a ruby-orb sceptre. Chin up (dignified, vain).
 import type { CharacterDef, V3 } from '../../mascot/rig.ts';
-import { band, extrude, sph, octa, dome, ribbon, box, cyl, torus } from '../../mascot/shapes.ts';
+import { band, extrude, sph, octa, dome, ribbon, box, cyl, torus, tube, sparkle } from '../../mascot/shapes.ts';
 import { blendSkins } from '../parts.ts';
 import { wave } from '../../mascot/emotes.ts';
 import type * as THREE from 'three/webgpu';
@@ -33,10 +33,16 @@ const def: CharacterDef = {
     },
     // ermine collar + cape with red lining
     (k) => {
-      k.add(band(1.1, 0.74, 0.23, 0.12, 0.07, k.q(4, 2, 1), k.q(0.02, 0, 0)).translate(0, -0.04, 0), { color: 'ivory', surf: 'soft' });
-      if (k.lod === 0) for (let i = 0; i < 10; i++) {
-        const a = (i / 10) * Math.PI * 2, x = Math.sin(a) * 0.56, z = Math.cos(a) * 0.38;
-        k.add(box(0.022, 0.05, 0.022).translate(Math.max(-0.555, Math.min(0.555, x)), -0.04, Math.max(-0.375, Math.min(0.375, z))), { color: 'black', surf: 'soft' });
+      k.add(band(1.13, 0.77, 0.25, 0.15, 0.09, k.q(4, 2, 1), k.q(0.04, 0, 0)).translate(0, -0.04, 0), { color: 'ivory', surf: 'soft' });
+      if (k.lod < 2) {
+        // gold chain + sparkle medallion on the chest
+        k.add(tube([[0.3, -0.1, 0.35], [0.16, -0.19, 0.36], [0, -0.22, 0.362], [-0.16, -0.19, 0.36], [-0.3, -0.1, 0.35]], 0.014, k.q(16, 8, 4), k.q(5, 4, 3)), { color: 'accent', surf: 'gold' });
+        k.add(cyl(0.07, 0.07, 0.02, k.q(16, 10, 6)).rotateX(Math.PI / 2).translate(0, -0.25, 0.36), { color: 'accent', surf: 'gold' });
+        if (k.lod === 0) k.add(sparkle(0.05, 1, 5).translate(0, -0.25, 0.374), { color: 'detail', surf: { rough: 0.15, metal: 0, glow: 0.2, coat: 1 } });
+      }
+      if (k.lod === 0) for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2, x = Math.sin(a) * 0.6, z = Math.cos(a) * 0.42;
+        k.add(box(0.026, 0.06, 0.026).translate(Math.max(-0.57, Math.min(0.57, x)), -0.03 + (i % 2) * 0.02, Math.max(-0.39, Math.min(0.39, z))), { color: 'black', surf: 'soft' });
       }
       const L: V3[] = [[0.3, 0.02, -0.37], [0.35, -0.14, -0.42], [0.39, -0.3, -0.46], [0.43, -0.47, -0.5]];
       const R: V3[] = L.map(([x, y, z]) => [-x, y, z]);

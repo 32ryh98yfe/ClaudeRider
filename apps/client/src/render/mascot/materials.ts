@@ -50,7 +50,7 @@ export function mascotGlass(): THREE.MeshPhysicalNodeMaterial {
     const fres = pow(float(1).sub(max(dot(normalView, positionViewDirection), 0)), 2.0);
     m.colorNode = base;
     m.roughnessNode = s.x;
-    m.opacityNode = mix(float(0.14), float(0.8), fres).add(s.z.mul(0.15)).clamp(0, 1);
+    m.opacityNode = mix(float(0.05), float(0.78), fres).add(s.z.mul(0.15)).clamp(0, 1);
     m.emissiveNode = base.mul(s.z).add(vec3(1, 1, 1).mul(fres.mul(0.22)));
     return m;
   });
