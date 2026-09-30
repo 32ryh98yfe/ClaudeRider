@@ -1,19 +1,20 @@
 // Small UI hooks: back handling (Esc / pad B), tab cycling (LB/RB), a ticking clock, first-focus on pad/keyboard use.
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { pushBack, pushTabs } from '../input/menuNav.ts';
 
 /** Registers `fn` as the back action while the component is mounted (topmost mounted wins). */
 export function useBack(fn: () => void): void {
   const ref = useRef(fn);
   ref.current = fn;
-  useEffect(() => pushBack(() => ref.current()), []);
+  // layout effect: registered in the same commit, so an Esc pressed right after the screen appears is not lost
+  useLayoutEffect(() => pushBack(() => ref.current()), []);
 }
 
 /** LB/RB (PageUp/PageDown) cycle through `ids`, calling `set`. */
 export function useTabs<T extends string>(ids: readonly T[], cur: T, set: (t: T) => void): void {
   const ref = useRef({ ids, cur, set });
   ref.current = { ids, cur, set };
-  useEffect(() => pushTabs((d) => {
+  useLayoutEffect(() => pushTabs((d) => {
     const { ids: list, cur: c, set: s } = ref.current;
     const i = list.indexOf(c);
     s(list[(i + d + list.length) % list.length]!);
