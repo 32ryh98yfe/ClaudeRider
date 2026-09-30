@@ -16,6 +16,8 @@ This covers the look layer: materials, post, camera, VFX, environment, track ren
 | `after-magma-underground.jpg` | Ember Mine: underground sky (cave vault and crystal glints), headlights, airborne kart |
 | `after-f2-lava-killplane.jpg` | F2 fixture from above, via `?cam=`: animated lava kill plane under the jump gap and ledge |
 | `after-f3-plaza.jpg` | F3 fixture: annulus plaza (paint-free stone), tower obstacle, curb ring |
+| `after-kraken-hazards.jpg` | Kraken Lighthouse (per-track sunset look): the L12 kit `hazard_tentacle` model sweeping the sea-cave road, posed from `hazardPose` |
+| `after-f5-swinger.jpg` | F5 fixture: default wrecking-ball swinger with its arm, traffic cars in the distance |
 | `bug-terrain-nan-stripes.png` | The black and white "stripe" bug: NaN terrain heights from trackc. Repaired on load; see `contract-requests/L11-terrain-nan.md` |
 
 ## Theme look fields (`ThemeLookFx`, set in a kit's `look`)
