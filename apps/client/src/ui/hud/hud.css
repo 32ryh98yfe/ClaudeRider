@@ -121,7 +121,7 @@
 
 /* ---------------------------------------------------------------- name tags (world space) */
 .hud-tags { position: fixed; inset: 0; overflow: hidden; }
-.hud-tags .tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 0.35em; font-size: calc(var(--H) * 1.7); font-weight: 800; white-space: nowrap; will-change: transform, opacity; transition: opacity 120ms; }
+.hud-tags .tag { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 0.35em; font-size: calc(var(--H) * 1.7); font-weight: 800; white-space: nowrap; will-change: transform, opacity; transition: opacity 120ms; opacity: 0; }
 .tg-r { min-width: 1.5em; height: 1.5em; display: inline-flex; align-items: center; justify-content: center; background: rgba(20, 20, 19, 0.8); border-radius: 0.2em; font-size: 0.95em; text-shadow: none; }
 .tag.me .tg-r { background: var(--coral); box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85); }
 .tag.team .tg-n { padding: 0.05em 0.45em; border-radius: 0.2em; text-shadow: none; }

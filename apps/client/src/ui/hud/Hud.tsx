@@ -2,7 +2,7 @@
 // LAP/TIME/BEST, 270° speedometer, 2 slots + gauges, minimap / progress rail) in ClaudeRider's own look.
 // Every element is positioned in a centred 16:9 safe box and scaled about its anchor by the HUD-scale setting.
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { ITEM_IDS, idOf } from '@cr/content';
+import { ITEM_IDS, idOf, loadContent } from '@cr/content';
 import { hud } from '../store/hud.ts';
 import { hudX } from '../store/hudExtra.ts';
 import { t } from '../../i18n/index.ts';
@@ -103,7 +103,9 @@ function ProgressRail() {
 
 function SlotIcon({ code, booster }: { code: number; booster?: 'booster' | 'teamBooster' }) {
   if (booster) return <ItemIcon id={booster} />;
-  const id = idOf(ITEM_IDS, code);
+  // honour the item's presentation iconKey (`items/<id>`, 12-items-spec §10); fall back to the id list
+  const def = loadContent().items.byCode[code];
+  const id = def ? def.presentation.iconKey.replace(/^items\//, '') : idOf(ITEM_IDS, code);
   return id ? <ItemIcon id={id} /> : null;
 }
 

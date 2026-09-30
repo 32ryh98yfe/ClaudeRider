@@ -2,6 +2,7 @@
 // Missing ids render a placeholder plate and log one dev warning (CLAUDE.md rule 7).
 import { ITEM_IDS, idOf, type ItemId } from '@cr/content';
 import { PLATES, INK, type ItemIconDef } from './items/_def.ts';
+import { t, hasKey } from '../../i18n/index.ts';
 
 const mods = import.meta.glob<{ default: ItemIconDef }>(['./items/*.ts', '!./items/_*.ts'], { eager: true });
 const byId = new Map<string, ItemIconDef>();
@@ -60,4 +61,11 @@ export async function svgToCanvas(svg: string, px: number): Promise<HTMLCanvasEl
   await img.decode().catch(() => undefined);
   c.getContext('2d')?.drawImage(img, 0, 0, px, px);
   return c;
+}
+
+/** Localised item name; until lane L2's `items` namespace lands, a readable fallback from the id (no dev warnings). */
+export function itemName(id: string): string {
+  const key = `items.${id}.name`;
+  if (hasKey(key)) return t(key);
+  return id.split('_').map((w) => (w === 'top1' ? 'Top-1' : w.charAt(0).toUpperCase() + w.slice(1))).join(' ');
 }

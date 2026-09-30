@@ -1,13 +1,11 @@
 // Per-race stat collector for the local kart (13-modes-rules §10.4, §11.3). game/HudPresenter feeds it every sim event
 // and a 20 Hz frame; ui/screens/race turns it into a RaceSummary when the race ends. Also runs the mid-race mission.
 import { signal } from '@preact/signals';
-import { EFFECT_IDS, loadContent, type ChallengeDef, type ThemeId, type TrackId } from '@cr/content';
+import { loadContent, type ChallengeDef, type ThemeId, type TrackId } from '@cr/content';
 import { Attach, Boost, type RaceConfig, type SimEvent, type WorldState } from '@cr/sim';
 import { emptyStats, type RaceStatBlock, type RaceSummary } from './progression.ts';
 import { hash32 } from './challenges.ts';
 
-const code = (id: (typeof EFFECT_IDS)[number]): number => EFFECT_IDS.indexOf(id) + 1;
-const TRAP_BOMB = code('trap_bomb'), TRAP_BUG = code('trap_bug');
 
 export interface MissionState { id: string; state: 'active' | 'done' | 'failed'; progress: number; target: number }
 /** The live mid-race mission (HUD toast, results panel). */
@@ -31,7 +29,6 @@ export class RaceStatsCollector {
   private prevAttach = 0;
   private prevKeyMask = 0;
   private prevLap = 0;
-  private trapStart = new Map<number, number>();
   // mission bookkeeping
   private def: ChallengeDef | null = null;
   private windowOpen = false;
@@ -128,19 +125,11 @@ export class RaceStatsCollector {
         if (e.kart === me && e.phase === 'out') { s.respawns++; if (this.def?.metric === 'finishNoReset' && this.windowOpen) this.setMission('failed', 0); }
         break;
       case 'effect':
-        if (e.victim === me && e.result === 'hit') {
-          s.hitsTaken++;
-          if (e.effect === TRAP_BOMB || e.effect === TRAP_BUG) this.trapStart.set(e.effect, e.tick);
-        }
+        if (e.victim === me && e.result === 'hit') s.hitsTaken++;
         if (e.victim === me && e.result === 'shielded') { s.attacksBlocked++; this.missionProgress('attacksBlocked'); }
         if (e.source === me && e.victim !== me && e.result === 'hit') { s.attacksLanded++; this.missionProgress('attacksLanded'); }
         break;
-      case 'effectEnd': {
-        if (e.victim !== me) break;
-        const t0 = this.trapStart.get(e.effect);
-        if (t0 !== undefined) { this.trapStart.delete(e.effect); if (e.tick - t0 <= 60) s.trapsEscapedFast++; }
-        break;
-      }
+      case 'escape': if (e.kart === me && e.fast) s.trapsEscapedFast++; break;
       case 'finish':
         if (e.kart === me) {
           this.finished = true;

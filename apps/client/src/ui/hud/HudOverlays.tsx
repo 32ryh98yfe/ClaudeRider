@@ -7,6 +7,7 @@ import { hudX } from '../store/hudExtra.ts';
 import { banner } from '../store/banner.ts';
 import { t } from '../../i18n/index.ts';
 import { ItemIcon } from '../components/common.tsx';
+import { itemName } from '../icons/itemIcons.ts';
 
 function Countdown() {
   const c = hud.countdown.value;
@@ -67,7 +68,7 @@ function Feed() {
           <span class="fd-arrow" aria-hidden="true">→</span>
           <b class="fd-v">{l.victim}</b>
           <span class="fd-res">{t(`hud.${l.result === 'blocked' ? 'blocked' : l.result === 'immune' ? 'immune' : l.result === 'miss' ? 'miss' : 'hit'}`)}</span>
-          <span class="sr-only">{t('hud.feed', { attacker: l.attacker, item: t(`items.${l.itemId}.name`), victim: l.victim })}</span>
+          <span class="sr-only">{t('hud.feed', { attacker: l.attacker, item: itemName(l.itemId), victim: l.victim })}</span>
         </li>
       ))}
     </ul>

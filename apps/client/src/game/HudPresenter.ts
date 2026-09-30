@@ -1,7 +1,7 @@
 // Writes the HUD model (ui/store/hud.ts + ui/store/hudExtra.ts) from sim state: speed/gauges at ~30 Hz, text at 20 Hz;
 // turns sim events into banners, toasts, the item feed and the race-stat collector (challenges, missions, splits).
 import { batch } from '@preact/signals';
-import { EFFECT_IDS, ITEM_IDS, idOf } from '@cr/content';
+import { EFFECT_IDS, ITEM_IDS, idOf, loadContent } from '@cr/content';
 import { KMH_PER_MPS, Phase, type RaceConfig, type SimEvent, type WorldState } from '@cr/sim';
 import type { RaceRoom } from '@cr/room';
 import { hud, type Standing } from '../ui/store/hud.ts';
@@ -10,6 +10,7 @@ import { banner } from '../ui/store/banner.ts';
 import { t } from '../i18n/index.ts';
 import { save } from '../meta/save.ts';
 import { RaceStatsCollector, setCurrentRace, mission } from '../meta/raceStats.ts';
+import { itemName } from '../ui/icons/itemIcons.ts';
 
 export type ProjectFn = (slot: number, out: { x: number; y: number; visible: boolean; dist: number }) => void;
 export interface NameTag { slot: number; x: number; y: number; visible: boolean; dist: number; name: string; rank: number; me: boolean; team: number }
@@ -29,6 +30,8 @@ const EFFECT_ITEM: Record<number, string> = {
 };
 const RESULT: Record<string, FeedLine['result']> = { hit: 'hit', shielded: 'blocked', immune: 'immune', immune_grace: 'immune', miss: 'miss', hit_late_input: 'late' };
 const TICK_MS = 1000 / 60;
+// EffectInstance.flags / ProjectileState.phase values from sim/items/codes.ts (not exported by @cr/sim)
+const F_RESOLVED = 1, F_ENDED = 16, F_DEAD = 64, P_DEAD = 255;
 const MPH_PER_KMH = 0.621371;
 
 export class HudPresenter {
@@ -137,7 +140,8 @@ export class HudPresenter {
       const tick = w.tick;
       let mirror = false, redaction = -1, lock = false;
       for (const e of w.effects) {
-        if (e.victim !== this.me || tick < e.start || tick >= e.end) continue;
+        if (e.victim !== this.me || tick < e.start || tick >= e.end || e.result !== 0) continue;
+        if ((e.flags & F_RESOLVED) === 0 || (e.flags & (F_ENDED | F_DEAD)) !== 0) continue;
         if (e.code === E.mirror) mirror = true;
         else if (e.code === E.slotLock) lock = true;
         else if (e.code === E.redaction) redaction = e.start;
@@ -148,9 +152,13 @@ export class HudPresenter {
       if ((rStart === null) !== (hudX.redaction.value === null)) hudX.redaction.value = rStart;
       hudX.shield.value = k.status.shieldUntil > tick || k.status.haloUntil > tick;
       hudX.respawn.value = k.race.respawnPhase > 0;
-      const trapped = k.status.cc === E.trapBomb || k.status.cc === E.trapBug;
-      if (!trapped && hud.mash.value !== null) hud.mash.value = null;
-      else if (trapped && hud.mash.value === null) hud.mash.value = Math.max(0, 12 - k.status.mashCredits);
+      // mash prompt while a mash-out hard CC holds me (trap bubbles); remaining taps as the sim counts them
+      const mash = k.status.cc && tick < k.status.ccEnd ? loadContent().effects.byCode[k.status.cc]?.mash : undefined;
+      if (!mash) { if (hud.mash.value !== null) hud.mash.value = null; }
+      else if (hud.mash.value === null) {
+        const floor = k.status.ccStart + mash.floorTicks;
+        hud.mash.value = Math.max(0, Math.min(mash.maxCredits - k.status.mashCredits, Math.ceil((k.status.ccEnd - Math.max(floor, tick + 1)) / mash.creditTicks)));
+      }
       hudX.roulette.value = k.items.rouletteSlot >= 0 && k.items.rouletteEnd > tick ? { slot: k.items.rouletteSlot as 0 | 1, endsAt: performance.now() + (k.items.rouletteEnd - tick) * TICK_MS } : null;
       this.updateIncoming(w);
       // expiry
@@ -172,11 +180,20 @@ export class HudPresenter {
   private updateIncoming(w: Readonly<WorldState>): void {
     const k = w.karts[this.me]!;
     let best: { dir: number; etaTicks: number } | null = null;
+    const c = loadContent();
     for (const p of w.projectiles) {
-      if (p.target !== this.me) continue;
+      if (p.target !== this.me || p.phase === P_DEAD || p.owner === this.me) continue;
       const dx = p.px - k.body.px, dz = p.pz - k.body.pz;
-      const dist = Math.hypot(dx, dz);
-      const eta = p.impact > w.tick ? p.impact - w.tick : Math.round((dist / 65) * 60);
+      // committed projectiles know their impact tick; cruising ones: race-distance gap over the closing speed + 21 lead
+      let eta: number;
+      if (p.impact > w.tick) eta = p.impact - w.tick;
+      else {
+        const pd = c.items.byCode[p.code]?.projectile;
+        const vk = Math.hypot(k.body.vx, k.body.vz);
+        const vp = pd ? Math.max(pd.speedMulVref * 34, pd.plusTargetSpeed > 0 ? vk + pd.plusTargetSpeed : 0) : 65;
+        const gap = Math.abs(k.race.raceDist - p.s);
+        eta = Math.round((gap / Math.max(4, vp - vk)) * 60) + 21;
+      }
       if (eta > 120) continue;
       // angle of the threat relative to the kart heading (0 = ahead, + = right)
       const fx = k.body.fx, fz = k.body.fz;
@@ -227,6 +244,7 @@ export class HudPresenter {
       case 'itemUse': this.lastUse.set(e.kart, e.item); break;
       case 'itemFizzle': if (e.kart === me) this.toast(t('hud.noLock'), 'bad', 1200); break;
       case 'mash': if (e.kart === me) hud.mash.value = e.remaining; break;
+      case 'escape': if (e.kart === me) { hud.mash.value = null; if (e.fast) this.toast(t('hud.fastEscape'), 'good', 1400); } break;
       case 'effectEnd':
         if (e.victim === me && (e.effect === E.trapBomb || e.effect === E.trapBug)) { hud.mash.value = null; }
         break;
@@ -248,7 +266,7 @@ export class HudPresenter {
     const line: FeedLine = { id: this.feedId++, attacker: this.names[e.source] ?? '?', victim: this.names[e.victim] ?? '?', itemId, result: RESULT[e.result] ?? 'hit', mine: e.source === me || e.victim === me, until: now + 4000 };
     if (save.get().settings.itemFeed === false && !line.mine) return;
     hudX.feed.value = [...hudX.feed.value.filter((x) => x.until >= now).slice(-3), line];
-    const text = t('hud.feed', { attacker: line.attacker, item: t(`items.${itemId}.name`), victim: line.victim });
+    const text = t('hud.feed', { attacker: line.attacker, item: itemName(itemId), victim: line.victim });
     hud.feed.value = [...hud.feed.value.slice(-3), { id: line.id, text, until: line.until }];
   }
 
