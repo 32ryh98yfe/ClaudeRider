@@ -7,12 +7,15 @@ import { describe, expect, it } from 'vitest';
 import { loadCtrk, toArrayBuffer } from '@cr/sim';
 import { buildTrack } from '../src/build.ts';
 import { TrackDslError } from '../src/dsl.ts';
-import { TRACKS_DIR, allTrackIds, entryOf, readGolden, srcHash } from '../src/golden.ts';
+import { TRACKS_DIR, allTrackIds, entryOf, externalFingerprint, readGolden, srcHash } from '../src/golden.ts';
 
 /** tracks whose validator findings are L4's to keep at zero errors */
 const OWNED = (id: string): boolean => id.startsWith('_test/') || id === 'clayhill_village/meadow_loop' || id === 'spark_circuit/proving_ring';
 const golden = readGolden();
 const soft: string[] = [];
+// inputs other lanes own changed since the golden was written: report, don't fail (see golden.ts)
+const externalStale = golden.external !== externalFingerprint();
+if (externalStale) soft.push('golden: AI bake / content inputs changed since tracks/golden.json was written; run node packages/trackc/src/golden.ts --update');
 
 describe('trackc build', () => {
   for (const id of allTrackIds()) {
@@ -45,6 +48,7 @@ describe('trackc build', () => {
       if (OWNED(id)) expect(g, `${id} missing from tracks/golden.json (node packages/trackc/src/golden.ts --update)`).toBeDefined();
       if (!g) { soft.push(`${id}: not in tracks/golden.json`); return; }
       if (g.src !== srcHash(src)) { soft.push(`${id}: golden stale (source changed)`); return; }
+      if (externalStale) return;
       const e = entryOf(src, a);
       expect({ ctrk: e.ctrk, vis: e.vis }, `${id}: bake output changed; if intended run node packages/trackc/src/golden.ts --update`).toEqual({ ctrk: g.ctrk, vis: g.vis });
     });

@@ -1,0 +1,27 @@
+# Validator base (L4): a frozen copy of meadow_loop as of the F6 ladder step, strict-clean under @signature. The
+# seeded-violation tests (packages/trackc/test/validators/) edit this file, so it must not follow the roster track.
+@signature pads, surfaces, jump
+TRACK v_base name="Validator Base" theme=clayhill_village diff=1 laps=3 topo=circuit
+DEFAULTS w=18 surf=asphalt wall=fence:1.0 shoulder=3 shoulderSurf=grass blend=16
+START pos=(0,0,0) hdg=0
+GRID rows=4 cols=2 pitch=7 stagger=3.5 d=4
+S 200                                     @home         # home straight; pads +110/+160; tutorial arch "드리프트!"
+C R40 110 L bank=6                        @first_drift  # T1 "first drift" (V19)
+S 71                                      @windmill_run # item row
+WIGGLE R60 45/75/40 L bank=3              @meadow_s     # sheep-field S-bends
+S ?b=56 dy=2                              @bridge_up    # stone-bridge approach
+J ramp=8@6 gap=6 drop=0.5 land=40 vmin=25 vmax=46 @bridge  # tutorial hop over the creek (kicker, 6 m gap, landing)
+C R50 40 R bank=-4 w=18 wall=fence:1.0    @bridge_exit
+C R40 175 L bank=7                        @green        # village-green hairpin round the bandstand (V19)
+C R70 45 R bank=-3                        @market_kink
+S ?c=118 dy=-1.5                            @market_lane  # item row, stalls and bunting
+C R60 80 L bank=5                         @windmill_corner
+WIGGLE R60 25/70/25 L bank=3 wall=fence:1.0:soft @hay_s  # hay-bale S (soft bales)
+S 72 wall=fence:1.0:soft                 @hay_straight
+C R45 90 L bank=6 wall=fence:1.0          @last_corner  # onto the home straight (V19)
+S ?a=93                                   @run_in
+CLOSE solve=[?a,?b,?c] length=1400
+LINE start at=0
+ITEMS at=160,320,545,870,1040,1200 n=5
+PAD at=55,105 d=0 len=6 w=4
+KEYS 240,460,660,860,1070,1280

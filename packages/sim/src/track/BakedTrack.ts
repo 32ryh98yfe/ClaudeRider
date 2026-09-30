@@ -88,11 +88,21 @@ function f64(a: TypedArray | undefined): Float64Array | null {
   return a instanceof Float64Array ? a : Float64Array.from(a as ArrayLike<number>);
 }
 
-function hashFrom(arrays: Map<string, unknown>, prefix: string, cells: { cs: number; cy: number }, dims: Float64Array): TriHashData {
-  return {
-    ox: dims[0]!, oy: dims[1]!, oz: dims[2]!, cs: cells.cs, cy: cells.cy, nx: dims[3]!, ny: dims[4]!, nz: dims[5]!,
-    keys: arrays.get(prefix + '.hk') as Float64Array, starts: arrays.get(prefix + '.hs') as Uint32Array, tris: arrays.get(prefix + '.ht') as Uint32Array,
-  };
+/** A section (ground or walls) that a file does not carry, or carries incompletely, queries as empty, never null. */
+function hashFrom(arrays: Map<string, unknown>, prefix: string, cells: { cs: number; cy: number } | undefined, dims: Float64Array | undefined): TriHashData {
+  const keys = arrays.get(prefix + '.hk') as Float64Array | undefined, starts = arrays.get(prefix + '.hs') as Uint32Array | undefined;
+  const tris = arrays.get(prefix + '.ht') as Uint32Array | undefined;
+  if (!keys || !starts || !tris || !dims || dims.length < 6 || !cells || starts.length !== keys.length + 1) {
+    return { ox: 0, oy: 0, oz: 0, cs: 1, cy: 1, nx: 0, ny: 0, nz: 0, keys: new Float64Array(0), starts: new Uint32Array(1), tris: new Uint32Array(0) };
+  }
+  return { ox: dims[0]!, oy: dims[1]!, oz: dims[2]!, cs: cells.cs, cy: cells.cy, nx: dims[3]!, ny: dims[4]!, nz: dims[5]!, keys, starts, tris };
+}
+
+/** Clamps a cell range to the grid; returns false when it is empty or not finite (NaN / ±Infinity positions). */
+function clampRange(lo: number, hi: number, n: number, out: { lo: number; hi: number }): boolean {
+  if (!(lo <= hi) || hi < 0 || lo >= n) return false; // also rejects NaN
+  out.lo = lo < 0 ? 0 : lo; out.hi = hi >= n ? n - 1 : hi;
+  return true;
 }
 
 const G_WORLD = 28;
@@ -112,6 +122,7 @@ class BakedTrackImpl implements BakedTrack {
   private tmpFrame: FrameSample = { px: 0, py: 0, pz: 0, tx: 0, ty: 0, tz: 0, rx: 0, ry: 0, rz: 0, ux: 0, uy: 0, uz: 0, wL: 0, wR: 0, sMain: 0, flags: 0 };
   private cand: TrackLoc = { path: 0, i: 0, s: 0, u: 0, h: 0, sMain: 0, valid: 0 };
   private sc = { s: 0, c: 0 };
+  private rng = { x: { lo: 0, hi: 0 }, y: { lo: 0, hi: 0 }, z: { lo: 0, hi: 0 } };
 
   constructor(buf: ArrayBuffer) {
     const c = readContainer(buf, CTRK_MAGIC, CTRK_VERSION);
@@ -125,11 +136,20 @@ class BakedTrackImpl implements BakedTrack {
       grav: f64(A.get(`p${k}.grav`)), rok: (A.get(`p${k}.rok`) as Uint8Array | undefined) ?? null,
       rto: (A.get(`p${k}.rto`) as Int32Array | undefined) ?? null, lineS: pm.lineS ?? 0,
     }));
-    this.gPos = f64(A.get('g.pos'))!; this.gNrm = A.has('g.noct') ? decodeOct(A.get('g.noct') as Uint16Array) : f64(A.get('g.nrm'))!; this.gIdx = A.get('g.idx') as Uint32Array | Uint16Array;
-    this.gSurf = A.get('g.surf') as Uint8Array; this.gFlg = A.get('g.flg') as Uint8Array;
-    this.gHash = hashFrom(A, 'g', m.hashCells, A.get('g.hd') as Float64Array);
-    this.wPos = f64(A.get('w.pos'))!; this.wIdx = A.get('w.idx') as Uint32Array | Uint16Array; this.wFlg = A.get('w.flg') as Uint8Array;
-    this.wHash = hashFrom(A, 'w', m.hashCells, A.get('w.hd') as Float64Array);
+    // every section falls back to an empty or neutral array: a missing section must query as "nothing here", never
+    // throw inside step() (a null here once surfaced as `reading '9150' of null` in groundRay)
+    this.gPos = f64(A.get('g.pos')) ?? new Float64Array(0);
+    this.gIdx = (A.get('g.idx') as Uint32Array | Uint16Array | undefined) ?? new Uint32Array(0);
+    const nG = this.gIdx.length / 3;
+    // zero normals make groundRay use the triangle's geometric normal
+    this.gNrm = A.has('g.noct') ? decodeOct(A.get('g.noct') as Uint16Array) : f64(A.get('g.nrm')) ?? new Float64Array(this.gPos.length);
+    if (this.gNrm.length < this.gPos.length) this.gNrm = new Float64Array(this.gPos.length);
+    this.gSurf = (A.get('g.surf') as Uint8Array | undefined) ?? new Uint8Array(nG); this.gFlg = (A.get('g.flg') as Uint8Array | undefined) ?? new Uint8Array(nG);
+    this.gHash = hashFrom(A, 'g', m.hashCells, A.get('g.hd') as Float64Array | undefined);
+    this.wPos = f64(A.get('w.pos')) ?? new Float64Array(0);
+    this.wIdx = (A.get('w.idx') as Uint32Array | Uint16Array | undefined) ?? new Uint32Array(0);
+    this.wFlg = (A.get('w.flg') as Uint8Array | undefined) ?? new Uint8Array(this.wIdx.length / 3);
+    this.wHash = hashFrom(A, 'w', m.hashCells, A.get('w.hd') as Float64Array | undefined);
   }
 
   path(p: number): Readonly<CtrkPathMeta> { return this.paths[p]!.meta; }
@@ -137,14 +157,16 @@ class BakedTrackImpl implements BakedTrack {
   // ---------------------------------------------------------------- ground ray (Möller–Trumbore, front side only)
   groundRay(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, maxT: number, out: GroundHit): boolean {
     const h = this.gHash;
+    if (!(maxT >= 0)) return false;
     const ex = ox + dx * maxT, ey = oy + dy * maxT, ez = oz + dz * maxT;
-    const ix0 = Math.floor(((ox < ex ? ox : ex) - h.ox) / h.cs), ix1 = Math.floor(((ox > ex ? ox : ex) - h.ox) / h.cs);
-    const iy0 = Math.floor(((oy < ey ? oy : ey) - h.oy) / h.cy), iy1 = Math.floor(((oy > ey ? oy : ey) - h.oy) / h.cy);
-    const iz0 = Math.floor(((oz < ez ? oz : ez) - h.oz) / h.cs), iz1 = Math.floor(((oz > ez ? oz : ez) - h.oz) / h.cs);
+    const R = this.rng;
+    if (!clampRange(Math.floor(((ox < ex ? ox : ex) - h.ox) / h.cs), Math.floor(((ox > ex ? ox : ex) - h.ox) / h.cs), h.nx, R.x)) return false;
+    if (!clampRange(Math.floor(((oy < ey ? oy : ey) - h.oy) / h.cy), Math.floor(((oy > ey ? oy : ey) - h.oy) / h.cy), h.ny, R.y)) return false;
+    if (!clampRange(Math.floor(((oz < ez ? oz : ez) - h.oz) / h.cs), Math.floor(((oz > ez ? oz : ez) - h.oz) / h.cs), h.nz, R.z)) return false;
+    const ix0 = R.x.lo, ix1 = R.x.hi, iy0 = R.y.lo, iy1 = R.y.hi, iz0 = R.z.lo, iz1 = R.z.hi;
     let best = maxT + 1e-9, found = false;
     const P = this.gPos, I = this.gIdx;
     for (let iz = iz0; iz <= iz1; iz++) for (let iy = iy0; iy <= iy1; iy++) for (let ix = ix0; ix <= ix1; ix++) {
-      if (ix < 0 || iy < 0 || iz < 0 || ix >= h.nx || iy >= h.ny || iz >= h.nz) continue;
       const ci = findCell(h, ix + h.nx * (iy + h.ny * iz));
       if (ci < 0) continue;
       for (let q = h.starts[ci]!; q < h.starts[ci + 1]!; q++) {
@@ -183,13 +205,15 @@ class BakedTrackImpl implements BakedTrack {
   // ---------------------------------------------------------------- sphere vs wall triangles (closest point, Ericson)
   sphereWalls(cx: number, cy: number, cz: number, r: number, out: Contact[], max: number): number {
     const h = this.wHash;
-    const ix0 = Math.floor((cx - r - h.ox) / h.cs), ix1 = Math.floor((cx + r - h.ox) / h.cs);
-    const iy0 = Math.floor((cy - r - h.oy) / h.cy), iy1 = Math.floor((cy + r - h.oy) / h.cy);
-    const iz0 = Math.floor((cz - r - h.oz) / h.cs), iz1 = Math.floor((cz + r - h.oz) / h.cs);
+    if (!(r >= 0 && r < 1e6) || !(max > 0)) return 0; // also NaN and ±Infinity
+    const R = this.rng;
+    if (!clampRange(Math.floor((cx - r - h.ox) / h.cs), Math.floor((cx + r - h.ox) / h.cs), h.nx, R.x)) return 0;
+    if (!clampRange(Math.floor((cy - r - h.oy) / h.cy), Math.floor((cy + r - h.oy) / h.cy), h.ny, R.y)) return 0;
+    if (!clampRange(Math.floor((cz - r - h.oz) / h.cs), Math.floor((cz + r - h.oz) / h.cs), h.nz, R.z)) return 0;
+    const ix0 = R.x.lo, ix1 = R.x.hi, iy0 = R.y.lo, iy1 = R.y.hi, iz0 = R.z.lo, iz1 = R.z.hi;
     let n = 0, nSeen = 0;
     const P = this.wPos, I = this.wIdx, seen = this.seen, r2 = r * r;
     for (let iz = iz0; iz <= iz1; iz++) for (let iy = iy0; iy <= iy1; iy++) for (let ix = ix0; ix <= ix1; ix++) {
-      if (ix < 0 || iy < 0 || iz < 0 || ix >= h.nx || iy >= h.ny || iz >= h.nz) continue;
       const ci = findCell(h, ix + h.nx * (iy + h.ny * iz));
       if (ci < 0) continue;
       for (let q = h.starts[ci]!; q < h.starts[ci + 1]!; q++) {

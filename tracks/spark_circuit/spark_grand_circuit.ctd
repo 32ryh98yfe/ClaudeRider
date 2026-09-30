@@ -10,10 +10,10 @@ GRID rows=4 cols=2 pitch=7 stagger=3.5 d=4
 S 258 w=19                                        @pit_straight
 C R40 90 L bank=6 w=17                            @turn1
 S 64                                              @grandstand_run
-WIGGLE R60 40/80/40 R dy=6 bank=4                 @esses
+WIGGLE R60 40/80/40 R dy=2 bank=4                 @esses
 S ?b                                              @esses_exit
-C R30 180 L bank=8 shoulder=9 shoulderSurf=gravel @hairpin
-S 129 dy=-6 shoulder=3 shoulderSurf=grass         @back_straight
+C R30 180 L bank=5 shoulder=9 shoulderSurf=gravel @hairpin
+S 129 dy=-2 shoulder=3 shoulderSurf=grass         @back_straight
 C R50 90 R bank=-6                                @stadium_corner
 C R80 40 R ; C R80 40 L                           @kinks
 WIGGLE R55 35/70/35 R bank=4                      @sponsor_s
@@ -43,7 +43,7 @@ PROPS kind=pit_wall along=1405-1495 side=L every=20 offset=3
 PROPS kind=pit_garage along=1407-1492 side=L every=21 offset=13
 PROPS kind=control_tower along=252-252 side=L every=10 offset=16
 # main grandstands opposite the pits, around the line
-PROPS kind=grandstand along=22-240 side=R every=27 offset=6
+PROPS kind=grandstand along=90-175 side=R every=27 offset=6
 PROPS kind=grandstand along=1402-1490 side=R every=27 offset=6
 PROPS kind=floodlight along=10-250 side=R every=54 offset=20
 # Turn 1 and the esses
@@ -54,10 +54,11 @@ PROPS kind=banner along=390-550 side=both every=12 offset=1.4
 PROPS kind=grandstand along=440-510 side=L every=35 offset=10
 # the hairpin: gravel run-off, tyre wall, a stand and a TV camera
 PROPS kind=tyre_wall along=584-684 side=R every=5 offset=9
-PROPS kind=grandstand along=600-668 side=R every=34 offset=16
+PROP kind=grandstand at=(265.70,1.65,-349.41) yaw=-87.7 scale=1   # hairpin stand (a row this far out on the banked high side is dropped), s=634
 PROPS kind=camera_tower along=634-634 side=R every=10 offset=30
 # back straight: the overhead chevron bridge, boards
-PROPS kind=footbridge along=745-745 side=R every=10 offset=-11.5
+# landmarks over the road are hand-placed (PROPS rows never land on a drivable surface); regenerate if the layout moves
+PROP kind=footbridge at=(238.00,0.79,-226.50) yaw=0.0 scale=1   # back straight, s=745
 PROPS kind=banner along=690-800 side=both every=14 offset=1.4
 # stadium corner (right-hander: outside on the left)
 PROPS kind=stadium along=814-884 side=L every=33 offset=7

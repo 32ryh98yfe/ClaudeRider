@@ -7,7 +7,7 @@ import type { BuildOptions } from '../../src/build.ts';
 import { validate } from '../../src/validate.ts';
 
 const src = (rel: string): string => readFileSync(TRACKS + rel, 'utf8');
-const MEADOW = src('clayhill_village/meadow_loop.ctd');
+const MEADOW = src('_test/v_base.ctd'); // frozen copy of meadow_loop: world-lane edits must not move the seeds
 const F1 = src('_test/f1_branch.ctd'), F3 = src('_test/f3_halfpipe.ctd'), F4 = src('_test/f4_rails.ctd'), F5 = src('_test/f5_hazards.ctd'), F6 = src('_test/f6_helix.ctd');
 
 /** Replaces `from` (must occur) with `to`. */
@@ -21,7 +21,7 @@ function findings(s: string, rule: string, opts: BuildOptions = {}): { severity:
 const errors = (s: string, rule: string, opts: BuildOptions = {}): string[] => findings(s, rule, opts).filter((f) => f.severity === 'error').map((f) => f.msg);
 
 describe('the clean bases', () => {
-  it('meadow_loop is strict-clean (0 errors of any rule)', () => {
+  it('the base (frozen meadow_loop) is strict-clean (0 errors of any rule)', () => {
     expect(bakeSrc(MEADOW).findings.filter((f) => f.severity === 'error')).toEqual([]);
   });
 });

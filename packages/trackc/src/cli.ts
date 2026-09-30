@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSy
 import { availableParallelism } from 'node:os';
 import { basename, join } from 'node:path';
 import { Worker, isMainThread, parentPort } from 'node:worker_threads';
+import { gzipSync } from 'node:zlib';
 import { COMPILER_VERSION, buildTrack, type BuildOptions } from './build.ts';
 
 const ROOT = new URL('../../..', import.meta.url).pathname;
@@ -29,9 +30,17 @@ async function runJob(j: Job): Promise<Done> {
       r = buildTrack(src, j.file, { ...j.opts, refLapTicks: g.lapTicks });
       ghostNote = `${(g.lapTicks / 60).toFixed(2)} s/lap (${g.note})`;
     }
+    const ms = Date.now() - t0;
+    // budgets (11-track-spec / L4 brief): bake ≤ 20 s, .ctrk ≤ 1.5 MB, .vis ≤ 2 MB gzip
+    const stats = { ...r.stats, visGzBytes: gzipSync(r.vis, { level: 9 }).byteLength, bakeMs: ms };
+    const findings = [...r.findings];
+    const over = (what: string): void => { findings.push({ rule: 'V20', severity: 'warn', msg: `budget: ${what}` }); };
+    if (r.ctrk.byteLength > 1.5 * 1024 * 1024) over(`.ctrk ${(r.ctrk.byteLength / 1048576).toFixed(2)} MB > 1.5 MB`);
+    if (stats.visGzBytes > 2 * 1024 * 1024) over(`.vis ${(stats.visGzBytes / 1048576).toFixed(2)} MB gzip > 2 MB`);
+    if (ms > 20000) over(`bake ${(ms / 1000).toFixed(1)} s > 20 s`);
     return {
-      id: r.id, ok: true, ctrk: r.ctrk, vis: r.vis, svg: r.previewSvg, ghostNote, ms: Date.now() - t0,
-      report: { meta: r.meta, stats: r.stats, findings: r.findings, timings: r.timings },
+      id: r.id, ok: true, ctrk: r.ctrk, vis: r.vis, svg: r.previewSvg, ghostNote, ms,
+      report: { meta: r.meta, stats, findings, timings: r.timings },
     };
   } catch (e) { return { id: j.id, ok: false, err: (e as Error).message, ms: Date.now() - t0 }; }
 }
@@ -164,7 +173,7 @@ async function main(): Promise<void> {
     const errs = rep.findings.filter((f) => f.severity === 'error');
     if (flag('--validate') && errs.length) errors += errs.length;
     const s = rep.stats;
-    console.log(`${errs.length ? '✗' : '✓'} ${d.id}: ${s.lapLength!.toFixed(0)} m, ${s.paths} paths, minR ${s.minR!.toFixed(0)}, minW ${s.minW!.toFixed(0)}, ${s.groundTris} ground / ${s.wallTris} wall tris, ctrk ${(s.ctrkBytes! / 1024).toFixed(0)} KB, vis ${(s.visBytes! / 1024).toFixed(0)} KB, ${d.cached ? 'cached' : `${d.ms} ms`}`);
+    console.log(`${errs.length ? '✗' : '✓'} ${d.id}: ${s.lapLength!.toFixed(0)} m, ${s.paths} paths, minR ${s.minR!.toFixed(0)}, minW ${s.minW!.toFixed(0)}, ${s.groundTris} ground / ${s.wallTris} wall tris, ctrk ${(s.ctrkBytes! / 1024).toFixed(0)} KB, vis ${(s.visBytes! / 1024).toFixed(0)} KB (${((s.visGzBytes ?? 0) / 1024).toFixed(0)} KB gz), ${d.cached ? 'cached' : `${d.ms} ms`}`);
     for (const f of rep.findings) console.log(`    ${f.severity === 'error' ? 'ERROR' : 'warn '} ${f.rule}${f.s !== undefined ? ` @${f.s.toFixed(0)}` : ''}${f.path && f.path !== 'main' ? ` [${f.path}]` : ''}: ${f.msg}`);
   }
   writeFileSync(join(out, 'index.json'), JSON.stringify(manifest, null, 1));
