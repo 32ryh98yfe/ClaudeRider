@@ -1,5 +1,7 @@
 // Item drop tables by KRD rank bucket (1 / 2–3 / 4–6 / 7–8). Each bucket sums to 100. Owned by lane L2 (ITEMS).
-import type { DropTable } from './schema/index.ts';
+// Row order matters: the roll walks the rows in order (12-items-spec §5.2), so variants keep the standard order.
+import type { DropTable, ItemDef } from './schema/index.ts';
+import { ITEM_IDS, type ItemId, type RankBucket } from './ids.ts';
 
 export const DROP_SOLO: DropTable = {
   format: 'solo',
@@ -26,3 +28,38 @@ export const DROP_TEAM: DropTable = {
       ['interrupt_pulse', 5], ['top1_missile', 4], ['firewall', 4]],
   },
 };
+
+export type ItemSet = 'standard' | 'light' | 'chaos';
+export type ItemCategory = ItemDef['category'];
+export const RANK_BUCKETS: readonly RankBucket[] = ['top', 'high', 'mid', 'low'];
+
+/**
+ * Category multipliers of the custom-room item sets (12-items-spec §8.3), in halves so the renormalization is exact
+ * integer arithmetic: light = attack/trap ×0.5, chaos = attack/trap ×1.5 and defense ×0.5.
+ */
+const HALVES: Record<ItemSet, Record<ItemCategory, number>> = {
+  standard: { speed: 2, attack: 2, trap: 2, defense: 2, utility: 2 },
+  light: { speed: 2, attack: 1, trap: 1, defense: 2, utility: 2 },
+  chaos: { speed: 2, attack: 3, trap: 3, defense: 1, utility: 2 },
+};
+
+/**
+ * Derives the light/chaos variant of a standard table: weights × category multiplier, renormalized to 100 with
+ * largest-remainder rounding (ties by ITEM_IDS order). Rows that round to 0 are dropped; row order is kept.
+ */
+export function deriveDropTable(base: DropTable, set: ItemSet, categoryOf: (id: ItemId) => ItemCategory): DropTable {
+  if (set === 'standard') return base;
+  const buckets = {} as Record<RankBucket, ReadonlyArray<readonly [ItemId, number]>>;
+  for (const b of RANK_BUCKETS) {
+    const rows = base.buckets[b];
+    const raw = rows.map(([id, wt]) => wt * HALVES[set][categoryOf(id)]);
+    const total = raw.reduce((a, x) => a + x, 0);
+    const out = raw.map((r) => Math.floor((r * 100) / total));
+    const rem = raw.map((r) => (r * 100) % total);
+    let left = 100 - out.reduce((a, x) => a + x, 0);
+    const order = rows.map((_, i) => i).sort((i, j) => rem[j]! - rem[i]! || ITEM_IDS.indexOf(rows[i]![0]) - ITEM_IDS.indexOf(rows[j]![0]));
+    for (let k = 0; left > 0 && k < order.length; k++, left--) out[order[k]!]!++;
+    buckets[b] = rows.map(([id], i) => [id, out[i]!] as const).filter((r) => r[1] > 0);
+  }
+  return { format: base.format, buckets };
+}
