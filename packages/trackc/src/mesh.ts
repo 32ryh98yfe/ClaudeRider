@@ -218,7 +218,8 @@ export function buildRibbon(m: TrackModel, c: Content, p: PathModel, ground: Tri
 /** Wall quads → triangles (both faces are collidable; the sim resolves by closest point). */
 export function wallTriangles(walls: WallQuad[], out: TriSoup): void {
   for (const w of walls) {
-    const n = [-w.out[0], -w.out[1], -w.out[2]];
+    // collision walls need no normals (the sim uses closest points); zero them so neighbouring panels weld
+    const n = [0, 0, 0];
     const V = (p: [number, number, number], s: number, h: number): number[] => [p[0], p[1], p[2], n[0]!, n[1]!, n[2]!, s, h];
     out.push(V(w.a0, w.sa, 0), V(w.b0, w.sb, 0), V(w.a1, w.sa, 1), 0, w.flg, w.path, ROLE.CLIFF);
     out.push(V(w.a1, w.sa, 1), V(w.b0, w.sb, 0), V(w.b1, w.sb, 1), 0, w.flg, w.path, ROLE.CLIFF);

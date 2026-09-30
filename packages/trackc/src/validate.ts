@@ -57,7 +57,7 @@ export function hasFeature(r: BuildResult, f: string): boolean {
     case 'surfaces': return m.paths.some((p) => p.prims.some((q) => q.attr.surf !== m.paths[0]!.prims[0]!.attr.surf || q.attr.surfSub.length > 0 || q.attr.shL > 0 || q.attr.shR > 0)) || c.zones.some((z) => z.kind === 'surface');
     case 'conveyor': return c.zones.some((z) => z.kind === 'conveyor');
     case 'jump': return c.jumps.some((j) => !j.legacy) || c.pads.some((p) => p.kind === 'jump');
-    case 'kill': return c.killPlanes.length > 0 || c.zones.some((z) => z.kind === 'kill') || m.paths.some((p) => p.samples.some((s) => !!s.kill));
+    case 'kill': return c.killPlanes.length > 0 || c.zones.some((z) => z.kind === 'kill') || c.jumps.some((j) => !j.legacy && j.floor === 'kill') || m.paths.some((p) => p.samples.some((s) => !!s.kill) || p.prims.some((q) => q.attr.wallL.ledgeKill || q.attr.wallR.ledgeKill));
     case 'ledge': return m.paths.some((p) => p.prims.some((q) => q.attr.wallL.type === 'none' || q.attr.wallR.type === 'none'));
     case 'halfpipe': return m.paths.some((p) => p.samples.some((s) => s.profT > 0.5 && m.profiles.get(s.prof)?.kind === 'halfpipe'));
     case 'plaza': return m.paths.some((p) => p.samples.some((s) => !!s.area));
