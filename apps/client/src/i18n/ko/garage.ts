@@ -1,0 +1,28 @@
+export default {
+  character: '캐릭터', kart: '카트', livery: '도색', palette: '팔레트', emotes: '감정표현', equip: '장착', equipped: '장착 중',
+  locked: '레벨 {n}에 해금', buy: '{price} 스파크로 구매', notEnough: '스파크가 부족합니다',
+  archetype: { speed: '속도형', balance: '밸런스형', drift: '드리프트형' },
+  stat: { topSpeed: '최고 속도', accel: '가속', drift: '드리프트', gauge: '게이지 충전', weight: '무게' },
+  plate: '번호판', flame: '부스터 불꽃',
+  title: '차고', sub: '캐릭터와 카트를 골라 나만의 레이서를 꾸며 보세요', preview: '미리보기 중', bought: '{name} 구매 완료!', buyTitle: '구매할까요?',
+  buyBody: '{name} · {price} 스파크', primary: '메인 색상', secondary: '보조 색상', pattern: '무늬', number: '레이스 번호', plateText: '번호판 문구',
+  owned: '보유', free: '무료', teamFlameNote: '팀 부스터 불꽃은 항상 파란색이에요.', name: '레이서 이름', rename: '이름 변경', nameHint: '최대 12자',
+  cosmeticNote: '캐릭터와 도색은 외형만 바뀌어요. 성능은 카트에 따라 달라집니다.', statsOf: '카트 성능',
+  patternName: { stripes: '스트라이프', sparkle: '반짝이 스티커', checker: '체커', flames: '불꽃 데칼', circuit: '회로 무늬', wave: '웨이브', filigree: '로열 필리그리', aurora: '오로라 그라데이션', chrome: '골드 크롬', legend: '레전드' },
+  paletteName: { classic: '클래식', midnight: '미드나이트', parchment: '파치먼트', sage: '세이지', sky: '스카이' },
+  flameName: { coral: '코랄', violet: '바이올렛', teal: '틸', gold: '골드', white: '화이트 핫' },
+  emotePack2: '감정표현 팩 2', titleLegend: '칭호: 전설의 라이더', titleName: { legend: '전설의 라이더' },
+  emote: { win: '우승', podium: '시상대', lose: '아쉬움', attackLanded: '공격 성공', gotHit: '피격', lobby: '대기' },
+  emoteNote: '레이스 중 1~4 키로 감정표현을 쓸 수 있어요.',
+  charDesc: {
+    clay: '차분하고 친절한 오리지널 클로드. 상아색 레이싱 스카프가 트레이드마크.', pixel: '진짜 복셀로 만든 레트로 장난꾸러기.', turbo: '승부욕 넘치는 레이서. 헬멧 번호는 01.',
+    anchor: '호탕한 해적 선장. 어깨 위 반짝이 앵무새와 함께.', rune: '몽상가 마법사. 반짝이 지팡이를 늘 들고 다녀요.', nova: '호기심 많은 우주비행사. 버블 헬멧이 반짝.',
+    kage: '말수 적은 닌자. 긴 스카프 꼬리가 바람에 휘날려요.', bisque: '다정하지만 까다로운 셰프. 국자 하나로 모든 걸 해결.', frost: '수줍은 얼음 결정 레이서. 고드름 왕관이 포인트.',
+    glitch: '에너지 넘치는 네온 사이버 레이서. 홀로 바이저를 착용.', bolt: '말 그대로만 알아듣는 구리 로봇. 등 뒤의 태엽이 돌아가요.', duke: '품위 있는(그리고 조금 허세 있는) 왕족 레이서.',
+  },
+  kartDesc: {
+    pebble: '입문용 튜브 프레임 고카트. 무난하고 다루기 쉬워요.', clay_comet: '반짝이 꼬리날개를 단 캡슐 카트.', arrowhead: '낮고 날렵한 오픈휠 쐐기형. 직선에서 강해요.',
+    tugboat: '풍선 타이어의 묵직한 레트로 버기. 부딪혀도 잘 밀리지 않아요.', glacier_sled: '스키 앞바퀴의 호버 카트. 드리프트가 부드러워요.', neon_blade: '언더글로 사이버 하이퍼카. 최고 속도가 높아요.',
+    jet_kettle: '쌍굴뚝 스팀펑크 보일러. 드리프트 게이지가 빨리 차요.', crown_cruiser: '금박 장식의 왕실 전차. 빠르지만 무거워요.',
+  },
+};
