@@ -38,6 +38,7 @@ pnpm start         # http://127.0.0.1:8787  (static client + /ws game server) �
 
 - **Development:** `pnpm dev` runs Vite on :5173 (hot reload) and the game server on :8787.
 - **Hosting:** `node apps/server/src/main.ts --host 0.0.0.0 --port 8787` serves the built client, `/health` and the WebSocket on `/ws`. Put it behind a TLS proxy for `wss://`.
+- **Art overrides:** the server reads `apps/client/public/art/overrides/` live, so a dropped image shows on the next page load without a rebuild. `--art <dir>` adds another folder, which is checked first.
 - **Offline play:** solo races run the authority in a Web Worker, so no server is needed.
 
 개발 중에는 `pnpm dev`, 배포할 때는 위 명령으로 서버를 띄우면 됩니다. 오프라인 싱글 플레이는 서버 없이 브라우저에서 동작합니다.
