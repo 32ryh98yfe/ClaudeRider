@@ -26,6 +26,7 @@ import { ItemFx } from './vfx/itemFx.ts';
 import { AmbientFx } from './vfx/ambient.ts';
 import { Headlights } from './vfx/headlights.ts';
 import { setParticleClock, particleClock, setParticleFog } from './vfx/gpuParticles.ts';
+import { airborneLift } from '@cr/sim/items/public.ts';
 import { setListener } from '../audio/listener.ts';
 import { raceAudioPrepare } from '../audio/race.ts';
 import { save } from '../meta/save.ts';
@@ -58,6 +59,7 @@ export class RaceRenderer {
   private camFwd = new THREE.Vector3(); private camPrev = new THREE.Vector3(); private camVel = new THREE.Vector3();
   private lineAt = new THREE.Vector3();
   private fxAt = new THREE.Vector3();
+  private ccM = new THREE.Matrix4();
   private boostK = 0; private flashK = 0; private hitK = 0; private flickerT = 0;
   private resScale = 1; private dynT = 0; private goodT = 0;
   private reducedMotion: boolean;
@@ -154,6 +156,34 @@ export class RaceRenderer {
     this.renderer.info.reset();
   }
 
+  /**
+   * Render-only motion of hard crowd control (the sim moves the body but never tumbles it): `airborne` lifts the
+   * kart along airborneLift (4 m peak) with one barrel roll, `spin` turns it twice in 60 ticks easing out, and the
+   * `trap` bubbles float it 1 m with a slow bob. `m` is the kart's basis matrix, modified in place.
+   */
+  private ccPose(k: Readonly<WorldState['karts'][number]>, t: number, m: THREE.Matrix4, up: THREE.Vector3): void {
+    const st = k.status;
+    if (!st.cc || t >= st.ccEnd) return;
+    const kin = this.content.effects.byCode[st.cc]?.mods.kinematic;
+    if (kin !== 'airborne' && kin !== 'spin' && kin !== 'trap') return;
+    const ck = t - st.ccStart, dur = Math.max(1, st.ccEnd - st.ccStart);
+    let lift = 0;
+    if (kin === 'airborne') {
+      lift = airborneLift(ck, dur);
+      const x = Math.min(1, Math.max(0, ck / (dur * 0.8)));
+      this.ccM.makeRotationZ(Math.PI * 2 * x * x * (3 - 2 * x));
+      m.multiply(this.ccM);
+    } else if (kin === 'spin') {
+      const x = Math.min(1, Math.max(0, ck / 60));
+      this.ccM.makeRotationY(Math.PI * 4 * (1 - (1 - x) * (1 - x)));
+      m.multiply(this.ccM);
+    } else {
+      const inK = Math.min(1, ck / 8), outK = Math.min(1, Math.max(0, (dur - ck) / 8));
+      lift = (inK * inK * (3 - 2 * inK)) * (outK * outK * (3 - 2 * outK)) * (1 + Math.sin(this.t * 2.6) * 0.12);
+    }
+    if (lift > 0) { const e = m.elements; e[12]! += up.x * lift; e[13]! += up.y * lift; e[14]! += up.z * lift; }
+  }
+
   /** Per-frame update. `alpha` interpolates prev→curr sim states. */
   update(prev: Readonly<WorldState>, curr: Readonly<WorldState>, alpha: number, dt: number): void {
     const now = performance.now();
@@ -181,6 +211,7 @@ export class RaceRenderer {
       const fwd = this.tmpF.crossVectors(left, p.up).normalize();
       p.left.copy(left);
       this.tmpM.makeBasis(left, p.up, fwd).setPosition(p.pos);
+      this.ccPose(b, curr.tick + alpha, this.tmpM, p.up);
       kv.root.matrix.copy(this.tmpM);
       kv.root.matrixWorldNeedsUpdate = true;
       const vx = B.vx, vy = B.vy, vz = B.vz;

@@ -3,6 +3,7 @@
 // events (use, impact, hazard removal, effect results incl. shield absorbs and "late signal").
 import * as THREE from 'three/webgpu';
 import { EFFECT_IDS, ITEM_IDS, type ContentTables } from '@cr/content';
+import { EFlag, tetherTarget } from '@cr/sim/items/public.ts';
 import type { SimEvent, WorldState } from '@cr/sim';
 import type { GpuParticles, SpawnOpts } from './gpuParticles.ts';
 import type { KartPose } from './driving.ts';
@@ -29,12 +30,13 @@ export class ItemFx {
   private rigs: StatusRig[] = [];
   private flags: StatusFlags[] = [];
   private pv: ProjectileView = { id: 0, code: 0, owner: 0, target: 0, phase: 0, x: 0, y: 0, z: 0, dx: 0, dy: 0, dz: 1, spawn: 0, impact: 0, tick: 0 };
-  private hv: HazardView = { id: 0, code: 0, owner: 0, x: 0, y: 0, z: 0, radius: 1, arm: 0, expire: 0, tick: 0, armed: true };
+  private hv: HazardView = { id: 0, code: 0, owner: 0, x: 0, y: 0, z: 0, radius: 1, arm: 0, expire: 0, tick: 0, armed: true, ox: 0, oy: 0, oz: 0, ax: 1, az: 0, px: 0, py: 0, pz: 0 };
   private v = new THREE.Vector3(); private tether = new THREE.Vector3();
   private col = new THREE.Color();
   private ctx: ItemFxCtx;
   private content: ContentTables | null;
   private kartRoots: THREE.Object3D[];
+  private tetherCode = EFFECT_IDS.indexOf('tether_pull') + 1;
 
   constructor(sparks: GpuParticles, smoke: GpuParticles, kartRoots: THREE.Object3D[], content: ContentTables | null, local: number, hooks: ItemFxHooks) {
     this.root.name = 'itemFx';
@@ -66,6 +68,7 @@ export class ItemFx {
   }
   /** Builds one hidden proxy per item (projectile and hazard forms) so their shaders compile during loading. */
   prewarm(): void {
+    this.rigs[0]?.prewarm();
     for (let code = 1; code <= ITEM_IDS.length; code++) {
       for (let h = 0; h < 2; h++) {
         const inst = this.acquire(code, h === 1);
@@ -116,6 +119,20 @@ export class ItemFx {
       const id = -1 - h.id; // keep hazard ids apart from projectile ids
       const v = this.hv;
       v.id = h.id; v.code = h.code; v.owner = h.owner; v.x = h.px; v.y = h.py; v.z = h.pz; v.radius = h.radius; v.arm = h.arm; v.expire = h.expire; v.tick = curr.tick; v.armed = curr.tick >= h.arm;
+      v.px = h.px; v.py = h.py; v.pz = h.pz;
+      const own = poses[h.owner];
+      if (own) { v.ox = own.pos.x; v.oy = own.pos.y; v.oz = own.pos.z; } else { v.ox = h.px; v.oy = h.py; v.oz = h.pz; }
+      // across-road direction: a sibling from the same drop (same owner, code and arm tick), else ⟂ owner heading
+      let ax = 0, az = 0;
+      for (let j = 0; j < H.length; j++) {
+        const o = H[j]!;
+        if (o.id === h.id || o.code !== h.code || o.owner !== h.owner || o.arm !== h.arm) continue;
+        ax = o.px - h.px; az = o.pz - h.pz; if (ax < 0 || (ax === 0 && az < 0)) { ax = -ax; az = -az; }
+        break;
+      }
+      if (ax === 0 && az === 0 && own) { ax = own.fwd.z; az = -own.fwd.x; }
+      const al = Math.sqrt(ax * ax + az * az);
+      if (al > 1e-6) { v.ax = ax / al; v.az = az / al; } else { v.ax = 1; v.az = 0; }
       let l = this.live.get(id);
       if (!l) {
         const inst = this.acquire(h.code, true);
@@ -140,9 +157,15 @@ export class ItemFx {
     const E = curr.effects;
     for (let i = 0; i < E.length; i++) {
       const e = E[i]!;
-      if (e.start > curr.tick || e.end <= curr.tick) continue;
       const f = this.flags[e.victim];
-      if (f) applyEffect(f, e.code, e.source);
+      if (!f || (e.flags & EFlag.DEAD)) continue;
+      if (e.start > curr.tick) {
+        // committed but not yet resolved (projectile or bolt in flight): telegraph on the victim
+        if (!(e.flags & EFlag.RESOLVED)) { const left = e.start - curr.tick; f.incoming = f.incoming > 0 ? Math.min(f.incoming, left) : left; }
+        continue;
+      }
+      if (e.end <= curr.tick) continue;
+      applyEffect(f, e.code, e.code === this.tetherCode ? tetherTarget(e) : e.source);
     }
     for (let s = 0; s < this.rigs.length; s++) {
       const p = poses[s], f = this.flags[s]!;
@@ -189,6 +212,13 @@ export class ItemFx {
         break;
       }
       case 'mash': { const p = pose(e.kart); if (p) fx.stars(p.pos, 2, '#FAF9F5', 0.8); break; }
+      case 'escape': {
+        // mash-out finished: a fast escape gets the gold burst that matches the "fast escape" callout
+        const p = pose(e.kart); if (!p) break;
+        if (e.fast) { fx.ring(p.pos, '#FFD23F', 7, 0.4); fx.stars(p.pos, 20, '#FFD23F', 2.4); fx.flash(p.pos, '#fff1b8', 3); }
+        else fx.stars(p.pos, 8, '#FAF9F5', 1.4);
+        break;
+      }
       default: break;
     }
   }
