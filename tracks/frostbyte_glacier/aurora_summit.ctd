@@ -78,3 +78,61 @@ KILL cornice belowY=-40 aabb=(491,-162 .. 611,4) surf=void
 ITEMS at=250,480,745,900,1080,1240,1390,1800,2075,2290,2440,2725,3000,3170,3450 n=4
 PAD at=60,1500,1522 d=0 len=6 w=4
 KEYS 200,500,800,1100,1400,1700,2000,2300,2600,2900,3200,3500
+
+# ---- look & dressing (Frostbyte Glacier kit; art bible: 22:00 under the aurora, headlights on) ----
+THEME frostbyte_glacier sky=aurora time=22:00 headlights=on scatter=pine_snow,snowbank,serac,birch density=4 hills=14
+PROPS kind=snow_cabin from=2 to=130 side=L every=20 offset=6 jitter=2 seed=101
+PROPS kind=avalanche_net from=136 to=224 side=R every=8 offset=3 seed=102
+PROPS kind=pine_snow from=211 to=606 side=both every=13 offset=5 jitter=5 seed=103
+PROPS kind=snowbank from=409 to=606 side=both every=24 offset=10 jitter=6 seed=104
+PROPS kind=ice_spire from=610 to=668 side=L every=9 offset=1.5 seed=105
+PROPS kind=ice_spire from=694 to=724 side=R every=9 offset=1.5 seed=106
+PROPS kind=serac from=726 to=768 side=both every=14 offset=5 seed=107
+PROPS kind=avalanche_net from=770 to=1012 side=both every=10 offset=3 seed=108
+PROPS kind=pine_snow from=965 to=1145 side=both every=12 offset=5 jitter=5 seed=109
+PROPS kind=serac from=1145 to=1310 side=both every=18 offset=8 jitter=6 seed=110
+PROPS kind=ice_spire from=1407 to=1484 side=both every=10 offset=2 jitter=2 seed=111
+PROPS kind=pine_snow from=1485 to=1550 side=both every=10 offset=4 seed=112
+PROPS kind=pine_snow from=1661 to=1890 side=both every=13 offset=5 jitter=5 seed=113
+PROPS kind=pine_snow from=1911 to=2047 side=both every=8 offset=2 jitter=2 seed=114
+PROPS kind=snowbank from=2140 to=2204 side=both every=12 offset=3 seed=115
+PROPS kind=birch from=2205 to=2496 side=both every=12 offset=5 jitter=4 seed=116
+PROPS kind=pine_snow from=2498 to=2596 side=both every=12 offset=5 jitter=4 seed=117
+PROPS kind=snow_cabin from=2634 to=2920 side=both every=26 offset=7 jitter=3 seed=118
+PROPS kind=pine_snow from=2921 to=3108 side=both every=12 offset=5 jitter=4 seed=119
+PROPS kind=snow_cabin from=3110 to=3292 side=both every=20 offset=6 jitter=3 seed=120
+PROPS kind=penguin from=3110 to=3292 side=both every=14 offset=2 jitter=2 seed=121
+PROPS kind=birch from=3373 to=3630 side=both every=13 offset=5 jitter=4 seed=122
+PROPS kind=snow_cabin from=3690 to=3830 side=both every=18 offset=6 seed=123
+# landmarks: start-gate fairy lights, the gondola line down the mountain, four aurora curtains in the sky, the glacier
+# hairpin crystals, the gully's crystal arches, ski-jump lights, the frozen-lake igloo, the ski lodge, the chapel and
+# the finish lights
+PROP kind=fairy_lights at=(20.0,-0.3,0.0) yaw=-90 scale=1
+PROP kind=fairy_lights at=(56.0,-0.3,0.0) yaw=-90 scale=1
+PROP kind=fairy_lights at=(110.0,-0.3,0.0) yaw=-90 scale=1
+PROP kind=gondola_pylon at=(30.0,-0.3,28.0) yaw=90 scale=1
+PROP kind=gondola_pylon at=(337.6,-20.7,95.8) yaw=65 scale=1
+PROP kind=gondola_pylon at=(805.4,-60.5,-252.6) yaw=147 scale=1
+PROP kind=gondola_pylon at=(649.6,-100.3,-545.3) yaw=-177 scale=1
+PROP kind=aurora_ribbon at=(186.3,-24.8,292.1) yaw=166 scale=1.4
+PROP kind=aurora_ribbon at=(583.1,-95.9,-138.5) yaw=145 scale=1.5
+PROP kind=aurora_ribbon at=(401.5,-112.0,-831.1) yaw=20 scale=1.4
+PROP kind=aurora_ribbon at=(229.6,-122.3,123.3) yaw=165 scale=1.3
+PROP kind=ice_spire at=(894.9,-66.3,-328.1) yaw=-34 scale=1.3
+PROP kind=crystal_arch at=(895.6,-67.0,-342.0) yaw=58 scale=1
+PROP kind=crystal_arch at=(887.0,-67.8,-347.0) yaw=62 scale=1
+PROP kind=crystal_arch at=(878.0,-68.6,-351.3) yaw=66 scale=1
+PROP kind=crystal_arch at=(868.9,-69.5,-355.4) yaw=64 scale=1
+PROP kind=crystal_arch at=(860.1,-70.3,-360.2) yaw=60 scale=1
+PROP kind=fairy_lights at=(778.1,-76.2,-417.1) yaw=55 scale=1
+PROP kind=fairy_lights at=(753.5,-78.0,-434.3) yaw=55 scale=1
+PROP kind=igloo at=(381.9,-94.3,-232.7) yaw=-165 scale=1.2
+PROP kind=snowman at=(339.4,-94.3,-236.8) yaw=15 scale=1.4
+PROP kind=penguin at=(349.8,-94.3,-213.7) yaw=15 scale=1.5
+PROP kind=ski_lodge at=(618.7,-100.3,-566.5) yaw=-148 scale=1
+PROP kind=chapel at=(484.0,-109.3,-107.7) yaw=147 scale=1
+PROP kind=fairy_lights at=(525.3,-102.3,-525.4) yaw=114 scale=1
+PROP kind=fairy_lights at=(497.2,-102.3,-515.0) yaw=112 scale=1
+PROP kind=fairy_lights at=(141.9,-114.3,-132.7) yaw=60 scale=1
+PROP kind=fairy_lights at=(107.2,-114.3,-152.7) yaw=60 scale=1
+PROP kind=fairy_lights at=(72.6,-114.3,-172.7) yaw=60 scale=1

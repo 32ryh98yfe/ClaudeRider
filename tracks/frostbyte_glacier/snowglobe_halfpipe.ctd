@@ -36,3 +36,46 @@ KEYS 200,390,560,780,1000,1180
 ZONE surface from=@cave_s+4 to=@cave_s+26 d=[1,8] surf=ice
 ZONE surface from=@cave_s+34 to=@cave_s+88 d=[-8,-1] surf=ice
 ZONE surface from=@cave_s+96 to=@cave_s+114 d=[1,8] surf=ice
+
+# ---- look & dressing (Frostbyte Glacier kit; art bible: soft overcast over the penguin village) ----
+THEME frostbyte_glacier sky=overcast time=13:00 scatter=pine_snow,snowbank,birch,serac density=5 hills=8
+PROPS kind=igloo from=5 to=108 side=R every=18 offset=6 jitter=3 seed=81
+PROPS kind=penguin from=5 to=108 side=both every=9 offset=2 jitter=2 scale=0.9-1.3 seed=82
+PROPS kind=snow_cabin from=112 to=166 side=L every=16 offset=6 seed=83
+PROPS kind=pine_snow from=112 to=210 side=R every=11 offset=5 jitter=4 seed=84
+PROPS kind=snowbank from=212 to=368 side=both every=14 offset=6 seed=85
+PROPS kind=serac from=250 to=368 side=both every=24 offset=12 jitter=6 seed=86
+PROPS kind=pine_snow from=370 to=422 side=both every=10 offset=4 jitter=3 seed=87
+PROPS kind=ice_spire from=424 to=606 side=both every=8 offset=1 jitter=1 scale=0.8-1.3 seed=88
+PROPS kind=serac from=608 to=680 side=both every=14 offset=6 jitter=4 seed=89
+PROPS kind=rink_boards from=682 to=745 side=R every=5.5 offset=0.4 scale=1-1 seed=90
+PROPS kind=penguin from=684 to=744 side=L every=8 offset=3 jitter=3 seed=91
+PROPS kind=pine_snow from=747 to=825 side=both every=11 offset=5 jitter=4 seed=92
+PROPS kind=birch from=826 to=960 side=both every=12 offset=5 jitter=4 seed=93
+PROPS kind=snowman from=962 to=1036 side=R every=22 offset=5 seed=94
+PROPS kind=snowbank from=1097 to=1150 side=L every=10 offset=2 seed=95
+PROPS kind=snow_cabin from=1152 to=1298 side=R every=18 offset=6 jitter=2 seed=96
+PROPS kind=pine_snow from=1152 to=1298 side=L every=12 offset=5 jitter=4 seed=97
+# landmarks: fairy lights over the village, the giant snow globe with its igloos, the igloo corner, the crystal-cave
+# arches, the rink snowman, penguin sleds on the snowman lane (F5 traffic fallback), the chapel
+PROP kind=fairy_lights at=(20.0,-0.3,0.0) yaw=-90 scale=1
+PROP kind=fairy_lights at=(75.0,-0.3,0.0) yaw=-90 scale=1
+PROP kind=snowglobe_frame at=(55.0,-0.3,-44.0) yaw=-90 scale=0.8
+PROP kind=igloo at=(45.0,-0.3,-40.0) yaw=-90 scale=1.3
+PROP kind=igloo at=(65.0,-0.3,-48.0) yaw=-90 scale=1
+PROP kind=penguin at=(52.0,-0.3,-36.0) yaw=-90 scale=2
+PROP kind=igloo at=(169.7,-0.3,-22.2) yaw=-49 scale=2
+PROP kind=crystal_arch at=(213.8,-0.3,-229.5) yaw=40 scale=1
+PROP kind=crystal_arch at=(207.4,-0.3,-237.2) yaw=40 scale=1
+PROP kind=crystal_arch at=(200.9,-0.3,-244.9) yaw=40 scale=1
+PROP kind=crystal_arch at=(194.5,-0.3,-252.5) yaw=40 scale=1
+PROP kind=crystal_arch at=(188.1,-0.3,-260.2) yaw=40 scale=1
+PROP kind=snowman at=(26.9,1.7,-364.6) yaw=142 scale=1.6
+PROP kind=sled at=(-121.3,-0.3,-106.0) yaw=-45 scale=1
+PROP kind=sled at=(-114.3,-0.3,-76.3) yaw=-45 scale=1
+PROP kind=sled at=(-144.0,-0.3,-83.4) yaw=-45 scale=1
+PROP kind=penguin at=(-107.2,-0.3,-80.6) yaw=135 scale=1.2
+PROP kind=penguin at=(-139.7,-0.3,-90.5) yaw=-45 scale=1.2
+PROP kind=snowman at=(-131.3,-0.3,-39.3) yaw=-180 scale=1.3
+PROP kind=chapel at=(-70.0,-0.3,42.0) yaw=90 scale=1
+PROP kind=fairy_lights at=(-25.0,-0.3,0.0) yaw=-90 scale=1
