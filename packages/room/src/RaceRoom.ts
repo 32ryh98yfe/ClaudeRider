@@ -2,8 +2,8 @@
 // M1: local/offline authority API (setInput + tick). Lane L9 adds peers/transports, relay, snapshots, resume.
 import type { ContentTables } from '@cr/content';
 import {
-  createWorld, cloneWorld, copyWorld, makeContext, step, createAiDriver, AI_TIERS, makeInput, copyInput, ArraySink, Phase, Edge,
-  type BakedTrack, type InputFrame, type RaceConfig, type SimEvent, type StepContext, type WorldState, type AiDriver,
+  createWorld, cloneWorld, copyWorld, makeContext, step, createAiDriver, AI_TIERS, makeInput, copyInput, ArraySink, Phase, Edge, rollItem,
+  type AuthorityHooks, type Decision, type BakedTrack, type InputFrame, type RaceConfig, type SimEvent, type StepContext, type WorldState, type AiDriver,
 } from '@cr/sim';
 
 export interface RoomClock { nowMs(): number }
@@ -32,13 +32,22 @@ export class RaceRoom {
   private bots: (AiDriver | null)[];
   private endCbs: ((r: RaceResult) => void)[] = [];
   private ended = false;
+  private authority: AuthorityHooks;
+  /** Decisions emitted since the last drain (L9 broadcasts these as EVENTS). */
+  readonly decisionLog: Decision[] = [];
 
   constructor(o: RaceRoomOptions) {
     this.config = o.config;
     this.track = o.track;
     this.world = createWorld(o.config, o.track, o.content);
     this.prev = cloneWorld(this.world);
-    this.ctx = makeContext({ track: o.track, cfg: o.config, content: o.content, role: 'authority', events: this.sink });
+    const secret = o.secret ?? randomSecret();
+    const world = this.world, content = o.content, cfg = o.config;
+    this.authority = {
+      rollItem: (slot, boxId, tick, bucket) => rollItem(content, cfg, secret, slot, boxId, tick, bucket),
+      emit: (d) => { world.decisions.items.push(d); this.decisionLog.push(d); },
+    };
+    this.ctx = makeContext({ track: o.track, cfg: o.config, content: o.content, role: 'authority', authority: this.authority, events: this.sink });
     this.inputs = o.config.slots.map(() => makeInput());
     this.pending = o.config.slots.map(() => makeInput());
     this.bots = o.config.slots.map((s, i) => {
@@ -102,6 +111,15 @@ export class RaceRoom {
     }
     return { trackId: cfg.trackId, mode: cfg.mode, rows, winnerTeam, endTick: w.endTick };
   }
+}
+
+/** Per-room secret for keyed item rolls (4 words). Uses Web Crypto when present (Node ≥ 19 and browsers). */
+function randomSecret(): Uint32Array {
+  const out = new Uint32Array(4);
+  const c = (globalThis as { crypto?: { getRandomValues?(a: Uint32Array): Uint32Array } }).crypto;
+  if (c?.getRandomValues) c.getRandomValues(out);
+  else for (let i = 0; i < 4; i++) out[i] = (Math.random() * 4294967296) >>> 0;
+  return out;
 }
 
 export { Edge };

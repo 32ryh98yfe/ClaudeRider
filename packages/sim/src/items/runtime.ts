@@ -5,6 +5,7 @@ import type { InputFrame } from '../core/input.ts';
 import type { Decision, WorldState } from '../core/state.ts';
 import type { Tick } from '../core/units.ts';
 import { neutralMods, type StepContext } from '../api.ts';
+import { rubberBandMul } from '../race/rubberband.ts';
 
 /** ADR-005 step 2: effects whose start tick is now (by id order). */
 export function startEffects(_w: WorldState, _ctx: StepContext): void { /* L2 */ }
@@ -16,6 +17,7 @@ export function computeMods(w: WorldState, ctx: StepContext): void {
     // bot tier speed multiplier (≤ 1, public via RaceConfig → predicted identically everywhere)
     const sc = ctx.cfg.slots[i];
     if (sc && sc.kind === 'bot' && sc.vMul > 0 && sc.vMul < 1) m.vCapMul = sc.vMul;
+    if (ctx.cfg.rules.rubberBand) m.vCapMul *= rubberBandMul(w, w.karts[i]!, ctx);
   }
 }
 

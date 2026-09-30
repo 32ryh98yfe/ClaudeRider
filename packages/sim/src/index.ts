@@ -17,5 +17,7 @@ export { paramsFor, gripGain, type KartParams } from './kart/params.ts';
 export { raceTicksOf } from './race/progress.ts';
 export { StartTier } from './race/rules.ts';
 export { applyDecision } from './items/runtime.ts';
+export { rollItem } from './items/roll.ts';
+export { rubberBandMul } from './race/rubberband.ts';
 export * from './ai/api.ts';
 export { createAiDriver } from './ai/driver.ts';
