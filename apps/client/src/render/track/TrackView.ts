@@ -8,13 +8,14 @@
 import * as THREE from 'three/webgpu';
 import { CVIS_MAGIC, CVIS_VERSION, readContainer, type BakedTrack } from '@cr/sim';
 import type { ThemeKit } from '../themes/kit.ts';
+import type { RoadStyle, WallStyle } from '../materials/library.ts';
 import { PLACEHOLDER_PROP } from '../props/defaults.ts';
 import { MaterialLibrary } from '../materials/library.ts';
 import { merge, paint, place, rbox, box } from '../util/geo.ts';
 
 export interface VisMeta {
   id: string; themeId: string; name: string;
-  slots: { name: string; material: string; chunks: { i0: number; n: number; bbox: number[] }[] }[];
+  slots: { name: string; material: string; variant?: string; chunks: { i0: number; n: number; bbox: number[]; chunk?: number }[] }[];
   props: { kind: string; n: number }[];
   bounds: number[];
   line: { x: number; y: number; z: number; fx: number; fy: number; fz: number; w: number };
@@ -37,18 +38,58 @@ export interface TrackView {
 const LANDMARK = /house|windmill|tower|gantry|arch|stand|building|lighthouse|ship|galleon|crane|monolith|obelisk|tree_giant|pillar/;
 const SCATTER = /bush|flower|grass|rock|fence|lamp|cone|sign|chevron|barrel|crate|mushroom/;
 
-function resolveMaterial(name: string, mats: Record<string, THREE.Material>, kit: ThemeKit, warned: Set<string>): THREE.Material {
-  const exact = mats[name];
-  if (exact) return exact;
-  const [family, variant] = name.split(/[.:]/) as [string, string | undefined];
+// .vis v2 bakes a per-surface vertex tint (× AO); variant materials divide it back out (trackc render.ts TINT).
+const SURFACE_TINT: Record<string, readonly [number, number, number]> = {
+  asphalt: [1, 1, 1], stone: [1.05, 1.03, 1.0], cobble: [1.08, 1.02, 0.95], dirt: [1.25, 1.0, 0.75], sand: [1.45, 1.3, 0.95], gravel: [1.2, 1.15, 1.08],
+  ice: [1.2, 1.4, 1.6], snow: [1.7, 1.75, 1.8], grass: [1, 1, 1], wet: [0.8, 0.85, 0.95], wood: [1.3, 1.0, 0.7], metal: [1.15, 1.18, 1.22],
+  conveyor_fwd: [0.9, 1.1, 1.25], conveyor_back: [1.25, 0.95, 0.85], lava: [2.0, 0.7, 0.3], basalt: [0.7, 0.68, 0.7], obsidian: [0.55, 0.5, 0.65],
+  glass: [1.2, 1.35, 1.45], rail: [1.1, 1.1, 1.1],
+};
+const WALL_TINT: Record<string, number> = { rock: 0.8, building: 0.9, parapet: 0.95, planter: 0.85, pillar: 0.9, fence: 1, barrier: 1, gore: 1, cliff: 0.75 };
+/** Surface id → road style + neutral palette (theme-independent looks for special surfaces). */
+const SURFACE_LOOK: Record<string, { style: RoadStyle; a: string; b: string; dir?: number }> = {
+  stone: { style: 'cobble', a: '#8f887e', b: '#a39b90' }, cobble: { style: 'cobble', a: '#8a8176', b: '#a0968a' }, dirt: { style: 'dirt', a: '#8a6a4c', b: '#9d7c5a' },
+  sand: { style: 'sand', a: '#d6b57c', b: '#e6c893' }, gravel: { style: 'gravel', a: '#8e8578', b: '#a59b8c' }, ice: { style: 'ice', a: '#b9dcec', b: '#dff2fa' },
+  snow: { style: 'snow', a: '#e3eaf2', b: '#f5f9fd' }, grass: { style: 'dirt', a: '#6f9a4a', b: '#86ad5a' }, wood: { style: 'wood', a: '#8b5a2b', b: '#a26c3a' },
+  metal: { style: 'metal', a: '#6f757d', b: '#8d939b' }, rail: { style: 'metal', a: '#6f757d', b: '#8d939b' }, glass: { style: 'glass', a: '#bfe6f7', b: '#e2f5fc' },
+  conveyor_fwd: { style: 'conveyor', a: '#4a4e57', b: '#5a5e67', dir: 1 }, conveyor_back: { style: 'conveyor', a: '#4a4e57', b: '#5a5e67', dir: -1 },
+  lava: { style: 'lava', a: '#2b1a14', b: '#3a2218' }, basalt: { style: 'basalt', a: '#3a3432', b: '#4a4442' }, obsidian: { style: 'obsidian', a: '#1c1622', b: '#2a2032' },
+};
+const WALL_STYLE: Record<string, WallStyle> = { barrier: 'barrier', fence: 'fence', rock: 'rock', cliff: 'rock', parapet: 'parapet', building: 'building', planter: 'planter', pillar: 'pillar', rail: 'pillar', portal: 'neon', gore: 'barrier' };
+
+/**
+ * Material for a vis slot: the kit's explicit `material:variant` entry → a variant look (surface / wall type /
+ * kill plane / pad kind) → the kit's plain `material` → a magenta placeholder with a dev warning.
+ */
+function resolveMaterial(slot: { name: string; material: string; variant?: string }, mats: Record<string, THREE.Material>, kit: ThemeKit, warned: Set<string>): THREE.Material {
+  let family = slot.material, variant = slot.variant;
+  if (!variant && /[.:]/.test(slot.name)) { const parts = slot.name.split(/[.:]/); family = parts[0]!; variant = parts[1]; }
+  const key = variant ? `${family}:${variant}` : family;
+  const explicit = mats[key];
+  if (explicit) return explicit;
   const L = kit.look;
-  if (family === 'wall' && variant) return MaterialLibrary.wall(variant, L.wall.a, L.wall.b);
-  if (family === 'road' && variant) return MaterialLibrary.road({ ...L.road, style: variant as never });
+  if (variant) {
+    if ((family === 'road' || family === 'shoulder') && variant !== 'asphalt' && !(family === 'shoulder' && variant === 'grass')) {
+      const look = SURFACE_LOOK[variant];
+      if (look) {
+        const tint = SURFACE_TINT[variant] ?? [1, 1, 1];
+        const same = family === 'road' && look.style === L.road.style;
+        return MaterialLibrary.road({ style: look.style, a: same ? L.road.a : look.a, b: same ? L.road.b : look.b, line: L.road.line, tint, shoulder: family === 'shoulder', ...(look.dir !== undefined ? { dir: look.dir } : {}), ...(variant === 'wet' ? { wet: true } : {}) });
+      }
+      if (variant === 'wet' && family === 'road') return MaterialLibrary.road({ ...L.road, wet: true, tint: SURFACE_TINT['wet'] });
+    }
+    if (family === 'wall' && variant !== 'barrier') {
+      const style = WALL_STYLE[variant] ?? 'barrier';
+      const rock = variant === 'rock' || variant === 'cliff';
+      return MaterialLibrary.wall(style, rock ? L.terrain.rock : variant === 'fence' ? '#a8805a' : L.wall.a, rock ? '#6f665c' : variant === 'fence' ? '#c49a6c' : L.wall.b, WALL_TINT[variant] ?? 1);
+    }
+    if (family === 'underside' && variant.startsWith('kill_')) return MaterialLibrary.killPlane(variant === 'kill_lava' ? 'lava' : 'void');
+    if (family === 'boostpad' && (variant === 'boost' || variant === 'jump')) return MaterialLibrary.boostPad(variant);
+    if (family === 'water') return MaterialLibrary.water(L.water ? { shallow: L.water.shallow, deep: L.water.deep, foam: L.water.foam ?? '#ffffff' } : { shallow: '#7FE3D6', deep: '#1FB5C9' });
+  }
   if (family === 'water') return MaterialLibrary.water(L.water ? { shallow: L.water.shallow, deep: L.water.deep, foam: L.water.foam ?? '#ffffff' } : { shallow: '#7FE3D6', deep: '#1FB5C9' });
-  if (family === 'kerb') return MaterialLibrary.kerb(L.kerb[0], L.kerb[1]);
-  if (family === 'jumppad' || family === 'pad') return MaterialLibrary.boostPad();
   if (mats[family]) return mats[family]!;
-  if (import.meta.env.DEV && !warned.has(name)) { warned.add(name); console.warn(`[track] no material for vis slot "${name}"; using placeholder`); }
+  if (import.meta.env.DEV && !warned.has(key)) { warned.add(key); console.warn(`[track] no material for vis slot "${key}"; using placeholder`); }
   return MaterialLibrary.world({ color: '#ff00ff', roughness: 0.8 });
 }
 
@@ -86,13 +127,13 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
     const pos = c.arrays.get(`s${j}.pos`) as Float32Array, nrm = c.arrays.get(`s${j}.nrm`) as Float32Array;
     const uv = c.arrays.get(`s${j}.uv`) as Float32Array, col = c.arrays.get(`s${j}.col`) as Float32Array, idx = c.arrays.get(`s${j}.idx`) as Uint32Array;
     const aPos = new THREE.BufferAttribute(pos, 3), aNrm = new THREE.BufferAttribute(nrm, 3), aUv = new THREE.BufferAttribute(uv, 2), aCol = new THREE.BufferAttribute(col, 3);
-    const mat = resolveMaterial(slot.material, mats, kit, warned);
+    const mat = resolveMaterial(slot, mats, kit, warned);
     // merge runs of contiguous chunks (same index buffer, adjacent ranges) into groups of `mergeChunks`
     const groups: { i0: number; n: number; bbox: number[] }[] = [];
     for (const ch of slot.chunks) {
       const last = groups[groups.length - 1];
       const run = last ? (last as { k?: number }).k ?? 1 : 0;
-      if (last && run < opts.mergeChunks && last.i0 + last.n === ch.i0 && slot.name !== 'terrain') {
+      if (last && run < opts.mergeChunks && last.i0 + last.n === ch.i0 && slot.material !== 'terrain') {
         last.n += ch.n;
         for (let k = 0; k < 3; k++) { last.bbox[k] = Math.min(last.bbox[k]!, ch.bbox[k]!); last.bbox[k + 3] = Math.max(last.bbox[k + 3]!, ch.bbox[k + 3]!); }
         (last as { k?: number }).k = run + 1;
@@ -107,7 +148,7 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
       g.boundingSphere = g.boundingBox.getBoundingSphere(new THREE.Sphere());
       const m = new THREE.Mesh(g, mat);
       m.receiveShadow = true;
-      m.castShadow = slot.name === 'wall' || slot.name.startsWith('wall.');
+      m.castShadow = slot.material === 'wall';
       m.name = `${slot.name}#${meshes}`;
       m.matrixAutoUpdate = false;
       root.add(m);
@@ -139,7 +180,8 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
       v.set(xf[o]!, xf[o + 1]!, xf[o + 2]!);
       q.setFromAxisAngle(up, xf[o + 3]!);
       const sc = xf[o + 4]!;
-      s.set(p.kind === 'chevron' && xf[o + 5] === 1 ? -sc : sc, sc, sc);
+      // chevron variant 1 = mirrored; pillar variant = height class (≈ 6 m each)
+      s.set(p.kind === 'chevron' && xf[o + 5] === 1 ? -sc : sc, p.kind === 'pillar' ? sc * (1 + (xf[o + 5] ?? 0)) : sc, sc);
       m4.compose(v, q, s);
       m4.toArray(set.mats, k * 16);
       im.setMatrixAt(k, m4);

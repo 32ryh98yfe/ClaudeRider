@@ -94,6 +94,21 @@ export const DEFAULT_PROPS: Record<string, PropFactory> = {
     }),
   },
   rock: { build: () => ({ geometry: merge([paint(place(ico(1.2, 0), 0, 0.5, 0, 0.3, 0.5, 0.2, 1.4, 0.8, 1.1), '#8b8680', 0.1, 17)]), material: lit() }) },
+  // .vis v2 compiler props (L4-vis-v2 §5)
+  gore_cushion: {
+    build: () => {
+      // crash cushion at a split gore: stacked impact drums with an arrow board facing the oncoming traffic (−Z)
+      const parts: THREE.BufferGeometry[] = [];
+      for (let i = 0; i < 3; i++) for (let j = 0; j <= i; j++) parts.push(paint(place(cyl(0.42, 0.42, 0.9, 10), (j - i / 2) * 0.85, 0.45, -i * 0.8), i % 2 ? '#1c1f26' : '#ffd23f'));
+      parts.push(paint(place(rbox(1.6, 0.8, 0.1, 0.04, 2), 0, 1.35, 0.4), '#1c1f26'));
+      for (const x of [-0.45, 0.45]) { parts.push(paint(place(box(0.12, 0.44, 0.04), x - 0.08, 1.46, 0.46, 0, 0, -0.7), '#ffd23f'), paint(place(box(0.12, 0.44, 0.04), x - 0.08, 1.2, 0.46, 0, 0, 0.7), '#ffd23f')); }
+      return { geometry: merge(parts), material: MaterialLibrary.vertexLit(0.5, 0), castShadow: true };
+    },
+  },
+  pillar: {
+    // support column under elevated decks, 6 m per height class (TrackView scales y by the prop variant)
+    build: (pal) => ({ geometry: merge([paint(place(rbox(1.1, 6, 1.1, 0.12, 2), 0, 3, 0), '#9a968f', 0.05, 23), paint(place(box(1.5, 0.3, 1.5), 0, 5.85, 0), pal[1] ?? '#b8b2a8')]), material: lit(), castShadow: true }),
+  },
 };
 
 /** Visible placeholder for unknown prop kinds (never crash). */

@@ -9,8 +9,13 @@ import { fbm2, n01, cellEdges, proceduralBump, aaLines, detailFade, windOffset, 
 
 type N = any;
 
-export type RoadStyle = 'asphalt' | 'cobble' | 'dirt' | 'ice' | 'metal' | 'wood' | 'sand' | 'neon' | 'glass' | 'snow';
-export interface RoadParams { style: RoadStyle; a: string; b: string; line: string; wet?: boolean; glow?: string }
+export type RoadStyle = 'asphalt' | 'cobble' | 'dirt' | 'ice' | 'metal' | 'wood' | 'sand' | 'neon' | 'glass' | 'snow' | 'gravel' | 'lava' | 'basalt' | 'obsidian' | 'conveyor';
+/**
+ * `shoulder`: no paint or wheel wear (off-road strips use the same surface looks).
+ * `tint`: the vertex tint trackc bakes into this surface's colours (.vis v2), divided out so only the AO remains.
+ * `dir`: conveyor scroll direction (+1 forward, −1 back).
+ */
+export interface RoadParams { style: RoadStyle; a: string; b: string; line: string; wet?: boolean; glow?: string; shoulder?: boolean; tint?: readonly [number, number, number]; dir?: number }
 export type WallStyle = 'panel' | 'stone' | 'barrier' | 'fence' | 'rock' | 'parapet' | 'building' | 'planter' | 'pillar' | 'curb' | 'glass' | 'neon' | 'ice' | 'hedge';
 export interface WaterParams { shallow: string; deep: string; foam?: string; opacity?: number; waveScale?: number }
 
@@ -18,9 +23,9 @@ export interface WaterParams { shallow: string; deep: string; foam?: string; opa
 export interface MaterialProfile { hq: boolean; triplanar: boolean }
 
 // ----------------------------------------------------------------------------------------------- roads
-const ROUGH: Record<RoadStyle, number> = { asphalt: 0.86, cobble: 0.78, dirt: 0.95, ice: 0.18, metal: 0.4, wood: 0.72, sand: 0.97, neon: 0.35, glass: 0.12, snow: 0.8 };
-const METAL: Partial<Record<RoadStyle, number>> = { metal: 0.65, neon: 0.2, glass: 0.1 };
-const PAINT: Record<RoadStyle, number> = { asphalt: 1, cobble: 0.5, dirt: 0, ice: 0.45, metal: 0.9, wood: 0.35, sand: 0, neon: 0, glass: 0.6, snow: 0 };
+const ROUGH: Record<RoadStyle, number> = { asphalt: 0.86, cobble: 0.78, dirt: 0.95, ice: 0.18, metal: 0.4, wood: 0.72, sand: 0.97, neon: 0.35, glass: 0.12, snow: 0.8, gravel: 0.95, lava: 0.6, basalt: 0.82, obsidian: 0.18, conveyor: 0.5 };
+const METAL: Partial<Record<RoadStyle, number>> = { metal: 0.65, neon: 0.2, glass: 0.1, obsidian: 0.15, conveyor: 0.5 };
+const PAINT: Record<RoadStyle, number> = { asphalt: 1, cobble: 0.5, dirt: 0, ice: 0.45, metal: 0.9, wood: 0.35, sand: 0, neon: 0, glass: 0.6, snow: 0, gravel: 0, lava: 0, basalt: 0.4, obsidian: 0.3, conveyor: 0 };
 
 export function buildRoad(p: RoadParams, prof: MaterialProfile): THREE.MeshStandardNodeMaterial {
   const m = new THREE.MeshStandardNodeMaterial({ roughness: ROUGH[p.style], metalness: METAL[p.style] ?? 0 });
@@ -33,7 +38,7 @@ export function buildRoad(p: RoadParams, prof: MaterialProfile): THREE.MeshStand
   let height: N = null;
   let emissive: N = null;
   // racing-line wear: two slightly polished darker bands where the wheels run
-  const wear = smoothstep(0.13, 0.0, abs(U.x.sub(0.3))).add(smoothstep(0.13, 0.0, abs(U.x.sub(0.7))));
+  const wear = p.shoulder ? float(0) : smoothstep(0.13, 0.0, abs(U.x.sub(0.3))).add(smoothstep(0.13, 0.0, abs(U.x.sub(0.7))));
   switch (p.style) {
     case 'asphalt': {
       base = base.mul(wear.mul(-0.09).add(1));
@@ -124,6 +129,46 @@ export function buildRoad(p: RoadParams, prof: MaterialProfile): THREE.MeshStand
       rough = mix(float(0.3), float(0.55), speck);
       break;
     }
+    case 'gravel': {
+      const stones = float(1).sub(cellEdges(P.xz.mul(6.5), 0.25));
+      const tone = n01(P.xz.mul(4.1));
+      base = base.mul(stones.mul(0.22).add(0.86)).mul(tone.mul(0.16).add(0.9));
+      height = stones.mul(0.7).add(tone.mul(0.3));
+      break;
+    }
+    case 'basalt': {
+      const cracks = float(1).sub(cellEdges(P.xz.mul(0.7), 0.05));
+      base = base.mul(cracks.mul(-0.35).add(1)).mul(speck.mul(0.12).add(0.92));
+      emissive = color('#ff6a2b').mul(cracks.mul(smoothstep(0.55, 0.7, n01(P.xz.mul(0.05)))).mul(0.8));
+      height = cracks.mul(-1);
+      break;
+    }
+    case 'obsidian': {
+      const facets = cellEdges(P.xz.mul(0.4), 0.12);
+      base = base.mul(facets.mul(0.25).add(0.8)).add(fresnel(4).mul(0.15));
+      rough = float(0.12).add(facets.oneMinus().mul(0.25));
+      break;
+    }
+    case 'lava': {
+      // cooled crust plates over glowing flow: the crust drifts slowly, the glow pulses
+      const flow = n01(vec2(P.x.mul(0.18).add(time.mul(0.05)), P.z.mul(0.18)));
+      const crust = smoothstep(0.35, 0.55, cellEdges(P.xz.mul(0.35).add(vec2(time.mul(0.03), 0)), 0.4).mul(flow.add(0.4)));
+      base = mix(color('#ff6a2b'), color('#2b1a14'), crust);
+      emissive = mix(color('#ffb347').mul(2.4), color('#ff4a1b').mul(0.6), crust).mul(float(1).sub(crust.mul(0.92))).mul(sin(time.mul(1.7).add(flow.mul(6))).mul(0.15).add(1));
+      rough = mix(float(0.4), float(0.9), crust);
+      break;
+    }
+    case 'conveyor': {
+      // metal belt with chevrons scrolling in the belt direction
+      const d = p.dir ?? 1;
+      const slat = aaLines(U.y.mul(2).sub(time.mul(1.6 * d)), 0.03);
+      const chev = fract(U.y.mul(0.5).sub(time.mul(0.8 * d)).add(abs(U.x.sub(0.5)).mul(d > 0 ? 1.2 : -1.2)));
+      const arrow = smoothstep(0.5, 0.55, chev).mul(smoothstep(0.75, 0.7, chev));
+      base = base.mul(slat.mul(-0.35).add(1));
+      emissive = color(p.glow ?? (d > 0 ? '#3EE6C8' : '#FF9A5A')).mul(arrow.mul(0.9));
+      rough = float(0.45).add(slat.mul(0.2));
+      break;
+    }
     case 'glass': {
       const lu = aaLines(U.x.mul(4), 0.01), lv = aaLines(U.y.mul(1.5), 0.01);
       const edges = clamp(lu.add(lv), 0, 1);
@@ -135,7 +180,7 @@ export function buildRoad(p: RoadParams, prof: MaterialProfile): THREE.MeshStand
   // painted edge lines + dashed centre line (in shader, 30-art-bible §5)
   const edge = aaLines(U.x.sub(0.03).mul(1), 0.012).mul(step(U.x, 0.06)).add(aaLines(U.x.sub(0.97), 0.012).mul(step(0.94, U.x)));
   const dash = smoothstep(0.009, 0.004, abs(U.x.sub(0.5))).mul(step(fract(U.y.mul(0.5)), 0.45)).mul(p.style === 'asphalt' ? 0.85 : 0.5);
-  const paint = clamp(edge.add(dash), 0, 1).mul(PAINT[p.style]);
+  const paint = clamp(edge.add(dash), 0, 1).mul(p.shoulder ? 0 : PAINT[p.style]);
   const worn = prof.hq ? n01(P.xz.mul(1.3)).mul(0.35).add(0.65) : float(1);
   const paintK = paint.mul(worn);
   let col: N = mix(base, color(p.line), paintK);
@@ -149,7 +194,9 @@ export function buildRoad(p: RoadParams, prof: MaterialProfile): THREE.MeshStand
     col = col.mul(fxUniforms.wet.mul(-0.3).add(1));
     rough = mix(rough, float(0.2), fxUniforms.wet);
   }
-  m.colorNode = col.mul(vertexColor());
+  // vertex colour = baked AO (× the trackc surface tint in .vis v2, divided out when known)
+  const vc: N = p.tint ? vertexColor().rgb.div(vec3(p.tint[0], p.tint[1], p.tint[2])) : vertexColor();
+  m.colorNode = col.mul(vc);
   m.roughnessNode = clamp(rough, 0.03, 1);
   if (height && prof.hq) m.normalNode = proceduralBump(height, detailFade(4, 40).mul(0.06));
   if (emissive) m.emissiveNode = emissive;
@@ -171,7 +218,7 @@ export function buildKerb(a: string, b: string, prof: MaterialProfile): THREE.Me
 
 // ----------------------------------------------------------------------------------------------- walls
 /** vis wall slot uv: x ∈ {0, 1/3, 2/3, 1} across [inner bottom, inner top, outer top, outer bottom]; y = s/3. */
-export function buildWall(kind: WallStyle, a: string, b: string, prof: MaterialProfile): THREE.MeshStandardNodeMaterial {
+export function buildWall(kind: WallStyle, a: string, b: string, prof: MaterialProfile, tint = 1): THREE.MeshStandardNodeMaterial {
   const m = new THREE.MeshStandardNodeMaterial({ roughness: 0.72 });
   const U = uv(), P = positionWorld;
   const inner = U.x.mul(3);                                // 0..1 up the inner face
@@ -266,7 +313,7 @@ export function buildWall(kind: WallStyle, a: string, b: string, prof: MaterialP
     }
   }
   c = c.mul(float(1).sub(grime));
-  m.colorNode = c.mul(vertexColor());
+  m.colorNode = c.mul(tint !== 1 ? vertexColor().rgb.div(tint) : vertexColor());
   m.roughnessNode = rough;
   if (emissive) m.emissiveNode = emissive;
   if (height && prof.hq) m.normalNode = proceduralBump(height, detailFade(3, 30).mul(0.05));
@@ -365,10 +412,11 @@ export function buildFoliage(a: string, b: string, vertexColored: boolean): THRE
 
 // ----------------------------------------------------------------------------------------------- gameplay surfaces
 /** Boost pads (vertex colour r = 1: teal chevrons) and jump pads (r = 0: coral with pink), 30-art-bible §11. */
-export function buildPad(): THREE.MeshStandardNodeMaterial {
+export function buildPad(kind: 'auto' | 'boost' | 'jump' = 'auto'): THREE.MeshStandardNodeMaterial {
   const m = new THREE.MeshStandardNodeMaterial({ roughness: 0.3 });
   const U = uv();
-  const isBoost = step(0.5, vertexColor().r);
+  // v1 .vis marks the kind in vertex colour r; v2 names it in the slot variant
+  const isBoost: N = kind === 'boost' ? float(1) : kind === 'jump' ? float(0) : step(0.5, vertexColor().r);
   const on = chevrons(U.x, U.y, 4, 2.2);
   const edge = smoothstep(0.5, 0.44, abs(U.x.sub(0.5)));
   const rim = smoothstep(0.4, 0.5, abs(U.x.sub(0.5)));
@@ -376,6 +424,23 @@ export function buildPad(): THREE.MeshStandardNodeMaterial {
   const jumpBase = mix(color('#a8412c'), color('#ffd0c2'), on), jumpGlow = mix(color('#FF7A59'), color('#FF9EC7'), on);
   m.colorNode = mix(jumpBase, boostBase, isBoost).mul(edge.mul(0.8).add(0.2));
   m.emissiveNode = mix(jumpGlow, boostGlow, isBoost).mul(on.mul(2.2).add(0.35).mul(edge).add(rim.mul(1.4)));
+  return m;
+}
+
+/** F2 kill planes: `lava` = glowing molten surface (emissive, bloom); `void` = dark abyss with a faint glowing rim. */
+export function buildKillPlane(kind: 'lava' | 'void'): THREE.MeshStandardNodeMaterial {
+  const m = new THREE.MeshStandardNodeMaterial({ roughness: kind === 'lava' ? 0.6 : 1 });
+  const P = positionWorld;
+  if (kind === 'lava') {
+    const flow = n01(vec2(P.x.mul(0.06).add(time.mul(0.04)), P.z.mul(0.06)));
+    const crust = smoothstep(0.3, 0.6, cellEdges(P.xz.mul(0.12).add(vec2(time.mul(0.02), time.mul(0.01))), 0.45).mul(flow.add(0.3)));
+    m.colorNode = mix(color('#ff6a2b'), color('#261510'), crust);
+    m.emissiveNode = mix(color('#ffc857').mul(3), color('#ff4a1b').mul(0.4), crust).mul(float(1).sub(crust.mul(0.9)));
+  } else {
+    const n = n01(P.xz.mul(0.02).add(time.mul(0.01)));
+    m.colorNode = color('#07060c').mul(n.mul(0.4).add(0.6));
+    m.emissiveNode = color('#6A4C93').mul(smoothstep(0.7, 0.9, n).mul(0.25));
+  }
   return m;
 }
 

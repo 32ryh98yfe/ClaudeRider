@@ -4,7 +4,7 @@
 import * as THREE from 'three/webgpu';
 import { uniform, Fn } from 'three/tsl';
 import {
-  buildRoad, buildKerb, buildWall, buildTerrain, buildWater, buildFoliage, buildPad, buildStartLine, buildWorld,
+  buildRoad, buildKerb, buildWall, buildTerrain, buildWater, buildFoliage, buildPad, buildStartLine, buildWorld, buildKillPlane,
   type RoadParams, type RoadStyle, type WallStyle, type WaterParams, type MaterialProfile,
 } from './world.ts';
 import { buildVinyl, buildKartPaint, buildEmissive, buildEmissiveVertex, buildNeon, buildVertexLit, type VinylParams } from './character.ts';
@@ -41,13 +41,15 @@ function world(p: { color: string; color2?: string; roughness: number; metalness
 function road(p: RoadParams): THREE.MeshStandardNodeMaterial { return memo(pk(keyOf('road', p)), () => buildRoad(p, profile)); }
 function kerb(a = '#e84a3c', b = '#fafafa'): THREE.MeshStandardNodeMaterial { return memo(pk(keyOf('kerb', [a, b])), () => buildKerb(a, b, profile)); }
 /** Walls by `WallSpec.type` (barrier, fence, rock, parapet, building, planter, pillar, curb) plus theme kinds (panel, stone, glass, neon, ice, hedge). */
-function wall(kind: string, a: string, b: string): THREE.MeshStandardNodeMaterial {
-  return memo(pk(keyOf('wall', [kind, a, b])), () => buildWall(kind as WallStyle, a, b, profile));
+function wall(kind: string, a: string, b: string, tint = 1): THREE.MeshStandardNodeMaterial {
+  return memo(pk(keyOf('wall', [kind, a, b, tint])), () => buildWall(kind as WallStyle, a, b, profile, tint));
 }
 function terrain(a: string, b: string, c: string): THREE.MeshStandardNodeMaterial { return memo(pk(keyOf('terrain', [a, b, c])), () => buildTerrain(a, b, c, profile)); }
 function water(p: WaterParams): THREE.MeshStandardNodeMaterial { return memo(pk(keyOf('water', p)), () => buildWater(p, profile)); }
 /** Boost pads (teal) and jump pads (coral) share one material; the vis pad slot marks the kind in vertex colour r. */
-function boostPad(): THREE.MeshStandardNodeMaterial { return memo('boostpad', buildPad); }
+function boostPad(kind: 'auto' | 'boost' | 'jump' = 'auto'): THREE.MeshStandardNodeMaterial { return memo(kind === 'auto' ? 'boostpad' : `boostpad:${kind}`, () => buildPad(kind)); }
+/** F2 kill planes (`underside:kill_lava` / `underside:kill_void` slots). */
+function killPlane(kind: 'lava' | 'void'): THREE.MeshStandardNodeMaterial { return memo(`kill:${kind}`, () => buildKillPlane(kind)); }
 function startLine(): THREE.MeshStandardNodeMaterial { return memo('startline', buildStartLine); }
 /** Vinyl-toy mascot material: vertex-coloured palette, clearcoat, Fresnel rim. */
 function vinyl(p: VinylParams): THREE.MeshPhysicalNodeMaterial {
@@ -80,7 +82,7 @@ function custom<T extends THREE.Material>(key: string, make: () => T): T { retur
 export const boostUniform = uniform(0);
 
 export const MaterialLibrary = {
-  configure, world, road, kerb, wall, terrain, water, boostPad, startLine, vinyl, kartPaint, emissive, emissiveVertex, neon,
+  configure, world, road, kerb, wall, terrain, water, boostPad, killPlane, startLine, vinyl, kartPaint, emissive, emissiveVertex, neon,
   flame, flameShared, foliage, foliageLit, vertexLit, bubble, ringDecal, custom,
   /** Look uniforms shared by all library materials (rim boost, wind, wetness, pulse). */
   uniforms: fxUniforms,
