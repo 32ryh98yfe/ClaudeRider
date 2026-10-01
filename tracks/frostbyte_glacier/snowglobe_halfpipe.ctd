@@ -46,7 +46,7 @@ ZONE surface from=@cave_s+96 to=@cave_s+114 d=[1,8] surf=ice
 # footprint reaches into any road band (scratch fitrows).
 THEME frostbyte_glacier sky=overcast time=13:00 scatter=tree_pine_snow,tree_pine_snow,tree_round_big,bush_round,bush_round,rock_cluster,snowbank,tree_birch,serac,flower_patch density=36 hills=8 fogNear=240 fogFar=1400
 PROPS kind=penguin from=5 to=108 side=both every=9 offset=2 jitter=2 scale=0.9-1.3 seed=82
-PROPS kind=ice_spire from=424 to=606 side=both every=8 offset=1.7 jitter=1 scale=0.8-1.3 seed=88
+PROPS kind=ice_spire from=424 to=606 side=both every=8 offset=2.4 jitter=0.6 scale=0.8-1.1 seed=88
 PROPS kind=rink_boards from=682 to=745 side=R every=5.5 offset=0.4 scale=1-1 seed=90
 PROPS kind=penguin from=684 to=744 side=L every=8 offset=3 jitter=3 seed=91
 PROPS kind=snowman from=962 to=1036 side=R every=22 offset=5 seed=94
@@ -65,7 +65,7 @@ PROPS kind=ad_board_a from=1260 to=1299 side=both every=16 offset=0.4 seed=209
 PROPS kind=spectators from=1256 to=1299 side=both every=16 offset=1.8 jitter=1 seed=210
 # igloo corner (T1, a left-hander): tyre wall and chevron boards on the outside
 PROPS kind=tyre_wall from=171 to=208 side=R every=1.3 offset=0.6 seed=211
-PROPS kind=ad_board_b from=173 to=206 side=R every=10 offset=2.4 seed=212
+PROPS kind=ad_board_b from=173 to=206 side=R every=10 offset=2.4 scale=1.4-1.4 seed=212
 # ground cover over the whole lap: snow tufts at the barrier, frost sprigs, snowy junipers and boulders behind it
 PROPS kind=grass_tuft side=both every=1 offset=0.3 jitter=8 scale=1.0-1.8 seed=221
 PROPS kind=grass_tuft from=0.5 side=both every=2 offset=2 jitter=14 scale=0.8-1.4 seed=222
