@@ -4,7 +4,7 @@ import * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
 import { TRACKSIDE_PROPS } from '../../props/trackside.ts';
-import { AD_BOARD_B_L } from './mirror.ts';
+import { BACKED_BOARDS } from './mirror.ts';
 import { merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../../util/geo.ts';
 import { arcTube, buntingLine, dome, lathe, part, prism, seeded, tubeThrough } from '../clayhill_village/toyshapes.ts';
 
@@ -499,7 +499,7 @@ SUNSTONE_PROPS['hazard_car'] = SUNSTONE_PROPS['hazard_pot_cart']!;
 // dressing rows use `tree_palm` / `tree_saguaro` (same models) so Low / Medium thin them like every other tree kind
 SUNSTONE_PROPS['tree_palm'] = SUNSTONE_PROPS['palm']!;
 SUNSTONE_PROPS['tree_saguaro'] = SUNSTONE_PROPS['cactus']!;
-// left-side chevron board (arrows point forward on side=L rows)
-SUNSTONE_PROPS['ad_board_b_l'] = AD_BOARD_B_L;
+// navy-backed sponsor boards and the left-side chevron board (arrows point forward on side=L rows)
+Object.assign(SUNSTONE_PROPS, BACKED_BOARDS);
 
 export const SUNSTONE_PALETTE = { SAND, SANDSTONE, OASIS, TERRA, CREAM } as const;

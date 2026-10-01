@@ -1,10 +1,12 @@
 // Left-side twins of directional props. PROPS rows turn side=L props by 180°, so a board whose chevrons point along
 // local +Z would point against the travel direction there (a wrong-way arrow). Mirroring the model in Z (and flipping
 // the triangle winding so faces stay front-facing) gives the twin whose arrows point forward on the left.
-// Shared by the Sunstone Desert and Frostbyte Glacier kits (`ad_board_b_l`, the same name main uses).
+// Shared by the Sunstone Desert and Frostbyte Glacier kits (`ad_board_b_l`, the same name main uses), together with
+// navy-backed versions of the shared sponsor boards.
 import * as THREE from 'three/webgpu';
 import type { PropFactory } from '../../props/defaults.ts';
 import { TRACKSIDE_PROPS } from '../../props/trackside.ts';
+import { merge, paint, place, box } from '../../util/geo.ts';
 
 /** Mirror a non-indexed geometry in local Z and restore counter-clockwise winding. */
 export function mirrorZ(src: THREE.BufferGeometry): THREE.BufferGeometry {
@@ -21,11 +23,24 @@ export function mirrorZ(src: THREE.BufferGeometry): THREE.BufferGeometry {
   return g;
 }
 
-/** `ad_board_b` (yellow chevrons) for side=L rows: arrows point forward once the row turns it to face the road. */
-export const AD_BOARD_B_L: PropFactory = {
-  maxInstances: 60,
-  build: (pal) => {
-    const b = TRACKSIDE_PROPS['ad_board_b']!.build(pal);
-    return { geometry: mirrorZ(b.geometry), material: b.material, castShadow: b.castShadow ?? true };
-  },
+/**
+ * Sponsor board with a navy back plate. Seen from outside a corner the shared boards show a large blank pale-grey
+ * back that out-shouts the track; a back in the trackside navy reads as an ordered row instead. Plate size matches
+ * the shared board (3 m × 0.95 m panel centred 1.595 m up, frame back face at x = −0.11).
+ */
+function backed(kind: string, mirror: boolean): PropFactory {
+  return {
+    maxInstances: 60,
+    build: (pal) => {
+      const b = TRACKSIDE_PROPS[kind]!.build(pal);
+      const g = merge([mirror ? mirrorZ(b.geometry) : b.geometry, paint(place(box(0.02, 1.05, 3.1), -0.12, 1.595, 0), '#2f4a7a')]);
+      return { geometry: g, material: b.material, castShadow: b.castShadow ?? true };
+    },
+  };
+}
+
+/** The three shared boards with navy backs, plus `ad_board_b_l`: the chevron board for side=L rows (arrows forward). */
+export const BACKED_BOARDS: Record<string, PropFactory> = {
+  ad_board_a: backed('ad_board_a', false), ad_board_b: backed('ad_board_b', false), ad_board_c: backed('ad_board_c', false),
+  ad_board_b_l: backed('ad_board_b', true),
 };

@@ -54,7 +54,7 @@ const NIGHT_LOOK: Partial<ThemeLook> = {
   bloom: 0.3,
   envIntensity: 0.35,
   shadowStrength: 0.7,
-  rimBoost: 1.7,
+  rimBoost: 1.9,
   grade: { tint: '#f4f7ff', saturation: 1.0, shadows: '#dfe6ff', highlights: '#f6faff' },
 };
 

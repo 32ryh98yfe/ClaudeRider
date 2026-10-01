@@ -6,7 +6,7 @@ import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
 import { merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../../util/geo.ts';
 import { arcTube, dome, part, prism, seeded, tubeThrough } from '../clayhill_village/toyshapes.ts';
-import { AD_BOARD_B_L } from '../sunstone_desert/mirror.ts';
+import { BACKED_BOARDS } from '../sunstone_desert/mirror.ts';
 
 // snow albedo stays ≈ #e8eef5 so it never clips to pure white under ACES (34-stylized-pass, glacier notes)
 const SNOW = '#e8eef5', SNOW_SH = '#d3dfeb', ICE = '#bee9f7', DEEP = '#2f6fa6', AURORA_G = '#6cf2c2', AURORA_V = '#b57cff';
@@ -408,7 +408,7 @@ FROSTBYTE_PROPS['hazard_car'] = FROSTBYTE_PROPS['hazard_sled_train']!;
 // dressing rows use `tree_pine_snow` / `tree_birch` (same models) so Low / Medium thin them like every other tree kind
 FROSTBYTE_PROPS['tree_pine_snow'] = FROSTBYTE_PROPS['pine_snow']!;
 FROSTBYTE_PROPS['tree_birch'] = FROSTBYTE_PROPS['birch']!;
-// left-side chevron board (arrows point forward on side=L rows)
-FROSTBYTE_PROPS['ad_board_b_l'] = AD_BOARD_B_L;
+// navy-backed sponsor boards and the left-side chevron board (arrows point forward on side=L rows)
+Object.assign(FROSTBYTE_PROPS, BACKED_BOARDS);
 
 export const FROSTBYTE_PALETTE = { SNOW, ICE, DEEP, AURORA_G, AURORA_V } as const;
