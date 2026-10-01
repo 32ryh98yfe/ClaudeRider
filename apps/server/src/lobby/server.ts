@@ -49,6 +49,9 @@ export interface GameServerOptions {
 
 type Phase = 'search' | 'stage' | 'waiting' | 'countdown' | 'roulette' | 'loading' | 'racing' | 'results';
 
+/** One accepted socket: its session once welcomed (sessionOf is a lookup, not a scan of every session). */
+interface Conn { readonly mux: FrameMux; session: Session | null; helloUntil: number }
+
 interface Slot { state: 'open' | 'closed' | 'human' | 'bot'; session: Session | null; ready: boolean; team: number; tier: AiTier; joinedAt: number }
 
 export class Session {
@@ -97,7 +100,7 @@ export class GameServer {
   private readonly clock: ServerClock;
   private readonly sessions = new Map<string, Session>();       // by public id
   private readonly byToken = new Map<string, Session>();
-  private readonly pendingHello = new Map<Transport, { mux: FrameMux; until: number }>();
+  private readonly conns = new Map<Transport, Conn>();
   private readonly rooms = new Map<string, LobbyRoom>();         // custom, by code
   private readonly quick = new Map<string, { pending: LobbyRoom | null; lastTracks: TrackId[] }>();
   private readonly active = new Set<LobbyRoom>();                // every room with timers or a race
@@ -121,14 +124,14 @@ export class GameServer {
 
   accept(t: Transport): void {
     const mux = new FrameMux(t);
-    this.pendingHello.set(t, { mux, until: this.clock.nowMs() + this.t.helloMs });
+    this.conns.set(t, { mux, session: null, helloUntil: this.clock.nowMs() + this.t.helloMs });
     mux.onOther = (b) => this.onFrame(t, mux, b);
     mux.onClose = () => this.onClose(t);
   }
 
   private sessionOf(t: Transport): Session | null {
-    for (const s of this.sessions.values()) if (s.transport === t) return s;
-    return null;
+    const s = this.conns.get(t)?.session ?? null;
+    return s && s.transport === t ? s : null;
   }
 
   private onFrame(t: Transport, mux: FrameMux, b: Uint8Array): void {
@@ -169,9 +172,15 @@ export class GameServer {
     } catch (e) { if (!(e instanceof ProtocolError)) throw e; }
   }
 
+  /** Closes a socket and forgets it now (a transport need not report its own close). */
+  private closeConn(t: Transport, code: number, reason: string): void {
+    t.close(code, reason);
+    this.onClose(t);
+  }
+
   private onClose(t: Transport): void {
-    this.pendingHello.delete(t);
     const s = this.sessionOf(t);
+    this.conns.delete(t);
     if (!s) return;
     s.connected = false;
     s.transport = null;
@@ -185,19 +194,20 @@ export class GameServer {
   }
 
   private hello(t: Transport, mux: FrameMux, m: Extract<C2SLobby, { t: 'hello' }>): void {
-    this.pendingHello.delete(t);
-    if (m.v !== LOBBY_PROTOCOL_VERSION) { this.sendTo(t, { t: 'error', code: 'version' }); t.close(4002, 'version'); return; }
+    const c = this.conns.get(t);
+    if (!c) return;
+    if (m.v !== LOBBY_PROTOCOL_VERSION) { this.sendTo(t, { t: 'error', code: 'version' }); this.closeConn(t, 4002, 'version'); return; }
     let s: Session | undefined;
     if (typeof m.resume === 'string') {
       s = this.byToken.get(m.resume);
       if (!s) this.sendTo(t, { t: 'error', code: 'resumeExpired' });
     }
     if (s) {
-      if (s.transport && s.transport !== t) { const old = s.transport; this.detachTransport(s); old.close(4003, 'replaced'); }
+      if (s.transport && s.transport !== t) { const old = s.transport; this.detachTransport(s); this.closeConn(old, 4003, 'replaced'); }
     } else {
       const name = cleanName(m.name);
       if (!name) { this.sendTo(t, { t: 'error', code: 'nameInvalid' }); return; }
-      if (this.sessions.size >= (this.o.maxSessions ?? 5000)) { this.sendTo(t, { t: 'error', code: 'serverFull' }); t.close(4004, 'full'); return; }
+      if (this.sessions.size >= (this.o.maxSessions ?? 5000)) { this.sendTo(t, { t: 'error', code: 'serverFull' }); this.closeConn(t, 4004, 'full'); return; }
       s = new Session(`s${(this.nextId++).toString(36)}${u32Hex(randomSecret()).slice(0, 6)}`, u32Hex(randomSecret()), name, cleanLoadout(m.loadout));
       this.sessions.set(s.id, s);
       this.byToken.set(s.token, s);
@@ -205,6 +215,7 @@ export class GameServer {
     s.transport = t;
     s.mux = mux;
     s.connected = true;
+    c.session = s;
     const now = this.clock.nowMs();
     this.send(s, { t: 'welcome', session: s.id, serverVersion: SERVER_VERSION, simVersion: SIM_VERSION, resume: s.token, serverMs: this.clock.wallMs(now), tickEpochMs: this.clock.epochWallMs });
     const r = s.room;
@@ -219,6 +230,8 @@ export class GameServer {
 
   private detachTransport(s: Session): void {
     s.room?.race?.detach(s.id, 'replaced');
+    const c = s.transport ? this.conns.get(s.transport) : undefined;
+    if (c) c.session = null;
     s.transport = null; s.mux = null; s.connected = false;
   }
 
@@ -632,7 +645,7 @@ export class GameServer {
   }
 
   private housekeeping(now: number): void {
-    for (const [t, p] of this.pendingHello) if (now > p.until) { this.pendingHello.delete(t); t.close(4005, 'hello timeout'); }
+    for (const [t, c] of [...this.conns]) if (!c.session && now > c.helloUntil) this.closeConn(t, 4005, 'hello timeout');
     for (const s of [...this.sessions.values()]) {
       if (s.connected) continue;
       const away = now - s.disconnectedAt;

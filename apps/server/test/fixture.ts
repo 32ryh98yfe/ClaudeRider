@@ -64,12 +64,16 @@ export class TestClient {
   serverSide: Transport;
   mux: FrameMux;
   readonly got: S2CLobby[] = [];
+  /** The close reason once the server closed this connection. */
+  closed: string | null = null;
   constructor(w: World, name: string) {
     this.w = w; this.name = name;
     const [c, s] = loopbackPair(1, (fn) => { w.queue.push(fn); });
     this.transport = c; this.serverSide = s;
     this.mux = new FrameMux(c);
     this.mux.onOther = (b) => { if (b[0] === S2C.LOBBY_JSON) this.got.push(decodeLobby(b) as S2CLobby); };
+    this.closed = null;
+    this.mux.onClose = (r) => { this.closed = r; };
     w.server.accept(s);
   }
   send(m: C2SLobby): this { this.transport.send(encodeC2SLobby(m)); this.w.flush(); return this; }
@@ -89,6 +93,8 @@ export class TestClient {
     this.transport = c; this.serverSide = s;
     this.mux = new FrameMux(c);
     this.mux.onOther = (b) => { if (b[0] === S2C.LOBBY_JSON) this.got.push(decodeLobby(b) as S2CLobby); };
+    this.closed = null;
+    this.mux.onClose = (r) => { this.closed = r; };
     this.w.server.accept(s);
     return this.hello(token);
   }
