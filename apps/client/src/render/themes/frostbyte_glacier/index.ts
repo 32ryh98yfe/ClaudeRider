@@ -65,8 +65,8 @@ export default (c: ContentTables, env: Readonly<Record<string, string>> = {}): T
   const T = kit.look.terrain;
   kit.materials = () => ({
     ...base(),
-    // bright snow: keep only 40 % of the baked terrain AO (no dark diamonds on the open slopes)
-    terrain: softAoTerrain(T.a, T.b, T.rock, 0.4),
+    // bright snow: keep 60 % of the baked terrain AO (soft, clean ground; wall bases and gullies keep their shade)
+    terrain: softAoTerrain(T.a, T.b, T.rock, 0.6),
     'road:ice': MaterialLibrary.road({ style: 'ice', a: '#9fd3ea', b: '#c0e6f5', line: '#f1f6fa', tint: [1.2, 1.4, 1.6] }),
     'road:snow': MaterialLibrary.road({ style: 'snow', a: '#dfe7ef', b: '#e8eef5', line: '#bee9f7', tint: [1.7, 1.75, 1.8] }),
     'shoulder:snow': MaterialLibrary.road({ style: 'snow', a: '#dce5ee', b: '#e6edf4', line: '#bee9f7', tint: [1.7, 1.75, 1.8], shoulder: true }),

@@ -1,8 +1,8 @@
-// Terrain with softened baked AO for bright ground (sand, snow). The .vis bakes per-vertex AO into the terrain colour;
-// on the noise hills a single self-occluded vertex shows as a dark diamond (Gouraud over the grid), which bright
-// sand and snow make far more visible than grass. This variant divides the baked AO back out and re-applies only part
-// of it, so wall bases and gullies keep some shade while the open ground reads as clean, matte colour (34 §1.3).
-// Shared by the Sunstone Desert and Frostbyte Glacier kits; built through MaterialLibrary.custom (one material each).
+// Terrain with softened baked AO for bright ground (sand, snow). The .vis bakes per-vertex AO into the terrain colour,
+// tuned on grass; on near-white sand and snow the same darkening reads as grey blotches over the noise hills. This
+// variant divides the baked AO back out and re-applies only part of it, so wall bases and gullies keep their shade
+// while the open ground reads as clean, matte colour (34 §1.3). Shared by the Sunstone Desert and Frostbyte Glacier
+// kits; built through MaterialLibrary.custom (one material per kit and tier).
 import * as THREE from 'three/webgpu';
 import { vertexColor, mix, vec3, max } from 'three/tsl';
 import { MaterialLibrary } from '../../materials/library.ts';

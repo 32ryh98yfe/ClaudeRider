@@ -33,7 +33,8 @@ export const SUNSTONE_LOOK: Partial<ThemeLook> = {
   rimBoost: 0.4,
   bloom: 0.25,
   wind: 0.7,
-  ambient: 'dust',
+  // no dust particles: the shared smoke quads read as dark rotated squares on the bright sand (a frame-wide noise)
+  ambient: 'none',
   grade: { tint: '#ffffff', saturation: 1.04, shadows: '#eef2ff', highlights: '#fffaf3' },
   // no global water plane: the only water is the oasis_pond prop (a sea level would flood the dune-top dip)
 };
@@ -49,8 +50,8 @@ export default (c: ContentTables, env: Readonly<Record<string, string>> = {}): T
   const T = kit.look.terrain;
   kit.materials = () => ({
     ...base(),
-    // bright sand: keep only 40 % of the baked terrain AO (no dark diamonds on the open dunes)
-    terrain: softAoTerrain(T.a, T.b, T.rock, 0.4),
+    // bright sand: keep 60 % of the baked terrain AO (soft, clean ground; wall bases and gullies keep their shade)
+    terrain: softAoTerrain(T.a, T.b, T.rock, 0.6),
     // sandstone paving: warm grey stone (the karts read against it), gold edge paint
     'road:stone': MaterialLibrary.road({ style: 'cobble', a: '#8a7c6b', b: '#9c8d7a', line: '#ffe2a0', tint: [1.05, 1.03, 1.0] }),
     'road:sand': MaterialLibrary.road({ style: 'sand', a: '#cfb283', b: '#dcc193', line: '#ffe2a0', tint: [1.45, 1.3, 0.95] }),

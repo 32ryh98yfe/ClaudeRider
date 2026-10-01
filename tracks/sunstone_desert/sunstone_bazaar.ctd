@@ -91,7 +91,6 @@ PROPS kind=bazaar_house_a from=872 to=872 side=R every=21 offset=1.5 seed=512
 PROPS kind=bazaar_house_a from=893 to=956 side=R every=21 offset=0.5 seed=513
 PROPS kind=bazaar_house_a from=977 to=977 side=R every=21 offset=1.5 seed=514
 PROPS kind=bazaar_house_a from=998 to=1397 side=R every=21 offset=0.5 seed=515
-PROPS kind=bazaar_house_a from=1439 to=1439 side=R every=21 offset=0.5 seed=516
 PROPS kind=bazaar_house_b from=11 to=179 side=L every=21 offset=0.5 seed=540
 PROPS kind=bazaar_house_b from=11 to=179 side=R every=21 offset=0.5 seed=541
 PROPS kind=bazaar_house_b from=732 to=858 side=L every=21 offset=0.5 seed=542
@@ -104,7 +103,6 @@ PROPS kind=bazaar_house_b from=879 to=879 side=R every=21 offset=1.5 seed=548
 PROPS kind=bazaar_house_b from=900 to=963 side=R every=21 offset=0.5 seed=549
 PROPS kind=bazaar_house_b from=984 to=984 side=R every=21 offset=1.5 seed=550
 PROPS kind=bazaar_house_b from=1005 to=1383 side=R every=21 offset=0.5 seed=551
-PROPS kind=bazaar_house_b from=1446 to=1446 side=R every=21 offset=0.5 seed=552
 PROPS kind=bazaar_house_c from=18 to=186 side=L every=21 offset=0.5 seed=580
 PROPS kind=bazaar_house_c from=18 to=186 side=R every=21 offset=0.5 seed=581
 PROPS kind=bazaar_house_c from=718 to=844 side=L every=21 offset=0.5 seed=582
@@ -113,11 +111,13 @@ PROPS kind=bazaar_house_c from=970 to=1432 side=L every=21 offset=0.5 seed=584
 PROPS kind=bazaar_house_c from=697 to=844 side=R every=21 offset=0.5 seed=585
 PROPS kind=bazaar_house_c from=865 to=865 side=R every=21 offset=1.5 seed=586
 PROPS kind=bazaar_house_c from=886 to=1390 side=R every=21 offset=0.5 seed=587
-PROPS kind=bazaar_house_c from=1432 to=1432 side=R every=21 offset=0.5 seed=588
-# a palm plaza breaks the run-in frontage on the right (s 1400–1428)
-PROPS kind=tree_palm from=1402 to=1428 side=R every=8 offset=2.5 jitter=3 seed=589
-PROPS kind=awning_stall from=1406 to=1426 side=R every=10 offset=4 seed=590
-PROPS kind=crate_stack from=1400 to=1428 side=R every=7 offset=1 jitter=1 seed=591
+# an open palm plaza on the right of the run-in and grid (s 1400 to the line): breaks the frontage and keeps the grid
+# visible from above the plaza; the palms stand clear of the start-wide sightline
+PROPS kind=tree_palm from=1402 to=1410 side=R every=8 offset=3 jitter=2 seed=589
+PROPS kind=tree_palm from=1430 to=1430 side=R every=8 offset=8 seed=592
+PROPS kind=awning_stall from=1406 to=1436 side=R every=10 offset=4 seed=590
+PROPS kind=crate_stack from=1400 to=1438 side=R every=7 offset=1 jitter=1 seed=591
+PROPS kind=barrel_spice from=1403 to=1438 side=R every=12 offset=7 seed=593
 # domed skyline behind the frontage
 PROPS kind=dome_house from=5 to=181 side=L every=16 offset=14 jitter=3 seed=620
 PROPS kind=dome_house from=5 to=181 side=R every=16 offset=14 jitter=3 seed=621
@@ -186,7 +186,7 @@ PROP kind=street_bunting at=(118.0,0.0,0.0) yaw=-90 scale=1
 PROP kind=lantern_string at=(150.0,-0.3,0.0) yaw=-90 scale=1
 PROP kind=lantern_string at=(190.0,-0.3,0.0) yaw=-90 scale=1
 PROP kind=street_bunting at=(-14.0,0.0,0.0) yaw=-90 scale=1
-PROP kind=lantern_string at=(-34.0,-0.3,0.0) yaw=-90 scale=1
+PROP kind=lantern_string at=(-44.0,-0.3,0.0) yaw=-90 scale=1
 PROP kind=oasis_pond at=(199.1,0.1,-34.9) yaw=-46 scale=1
 PROP kind=camel_statue at=(108.7,-1.3,-360.1) yaw=69 scale=1.4
 PROP kind=camel_statue at=(182.2,-1.3,-327.2) yaw=-150 scale=1
