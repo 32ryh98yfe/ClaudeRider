@@ -7,14 +7,16 @@
 import * as THREE from 'three/webgpu';
 import {
   pass, mrt, output, emissive, uniform, vec2, vec3, vec4, float, uv, renderOutput, dot, mix, smoothstep, Fn, Loop, If, int,
-  time, atan, fract, abs, sin, normalView, directionToColor, colorToDirection, sample, clamp, max, mx_noise_float, cdl,
+  time, atan, fract, abs, sin, normalView, packNormalToRGB, unpackRGBToNormal, sample, clamp, max, mx_noise_float, cdl,
 } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import { fxaa } from 'three/addons/tsl/display/FXAANode.js';
 import { smaa } from 'three/addons/tsl/display/SMAANode.js';
 import { ao } from 'three/addons/tsl/display/GTAONode.js';
 import { compileInContext } from '../engine/warm.ts';
-import type { TierSettings } from '../quality.ts';
+import type { TierSettings, Backend } from '../quality.ts';
+import type { Environment } from '../env/environment.ts';
+import type { PostFrameInput } from './stages.ts';
 
 type N = any;
 
@@ -41,6 +43,8 @@ export interface Post {
   setScene(scene: THREE.Scene, camera: THREE.Camera): void;
   setGrade(g: GradeParams): void;
   setResolutionScale(s: number): void;
+  /** Per-frame camera/time inputs (DoF focus, TRAA/motion-blur history resets). No allocation. */
+  frame(input: PostFrameInput): void;
   /**
    * Compiles the scene's programs in the scene pass's own context (its render target + MRT), so the programs
    * match what the first real frame links. A plain `renderer.compileAsync()` targets the canvas without MRT and
@@ -50,7 +54,11 @@ export interface Post {
   dispose(): void;
 }
 
-export interface PostOptions { ts: TierSettings; reducedMotion?: boolean; grade?: GradeParams }
+export interface PostOptions {
+  ts: TierSettings; reducedMotion?: boolean; grade?: GradeParams;
+  /** Race only: the light rig (CSM, aerial perspective) and the backend, for the Ultra chain's stages. */
+  env?: Environment; backend?: Backend;
+}
 
 export function createPost(renderer: THREE.WebGPURenderer, scene: THREE.Scene, camera: THREE.Camera, opts: PostOptions | { bloom: boolean; fxaa: boolean }): Post {
   const ts: Partial<TierSettings> = 'ts' in opts ? opts.ts : { bloom: opts.bloom, fxaa: opts.fxaa, aa: opts.fxaa ? 'fxaa' : 'none', blurTaps: 16 };
@@ -72,7 +80,7 @@ export function createPost(renderer: THREE.WebGPURenderer, scene: THREE.Scene, c
   const build = (s: THREE.Scene, c: THREE.Camera): void => {
     scenePass = pass(s, c, aa === 'msaa' ? { samples: 4 } : undefined);
     const outputs: Record<string, N> = { output, emissive: vec4(emissive, output.a) };
-    if (ts.ssao) outputs['normal'] = directionToColor(normalView);
+    if (ts.ssao) outputs['normal'] = packNormalToRGB(normalView);
     const m = mrt(outputs);
     // emissive follows the material's blending so additive sparks add glow and soft smoke only dims it
     m.setBlendMode('emissive', new THREE.BlendMode(THREE.MaterialBlending));
@@ -82,7 +90,7 @@ export function createPost(renderer: THREE.WebGPURenderer, scene: THREE.Scene, c
     let aoTex: N = null;
     if (ts.ssao) {
       const nrmTex = scenePass.getTextureNode('normal');
-      const sceneNormal = sample((st: N) => colorToDirection(nrmTex.sample(st)));
+      const sceneNormal = sample((st: N) => unpackRGBToNormal(nrmTex.sample(st)));
       const aoPass = ao(scenePass.getTextureNode('depth'), sceneNormal, c);
       aoPass.resolutionScale = 0.5;
       aoPass.radius.value = 0.6; aoPass.thickness.value = 1.2; aoPass.distanceExponent.value = 1.5;
@@ -176,6 +184,7 @@ export function createPost(renderer: THREE.WebGPURenderer, scene: THREE.Scene, c
       if (g.bloom !== undefined) u.bloomStrength.value = g.bloom;
     },
     setResolutionScale(s: number): void { scenePass?.setResolutionScale(s); },
+    frame(): void { /* the High/Medium/Low chain has no temporal state */ },
     async warm(): Promise<void> {
       if (!scenePass) return;
       await compileInContext(renderer, scenePass.renderTarget, scenePass.getMRT(), () => renderer.compileAsync(scenePass.scene, scenePass.camera));

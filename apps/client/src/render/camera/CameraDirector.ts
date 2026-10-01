@@ -33,6 +33,8 @@ export class CameraDirector {
   private tmp = new THREE.Vector3(); private tmp2 = new THREE.Vector3();
   private track: BakedTrack | null;
   cinematics = true;
+  /** Increments on every cut and teleport (temporal post effects drop their history when it changes). */
+  cutSerial = 0;
   /** Dev only: `?cam=px,py,pz,tx,ty,tz` pins the camera (visual checks of kill planes, plazas, vistas). */
   private pinned: number[] | null = null;
 
@@ -102,7 +104,11 @@ export class CameraDirector {
     if (p) { cam.position.set(p[0]!, p[1]!, p[2]!); cam.up.set(0, 1, 0); cam.lookAt(p[3]!, p[4]!, p[5]!); this.chase.applyFov(60); }
   }
 
+  /** A teleport of the followed kart (respawn, warp): the image jumps, so temporal history must reset. */
+  bumpCut(): void { this.cutSerial++; }
+
   private cut(m: CamMode): void {
+    this.cutSerial++;
     this.fromPos.copy(this.chase.camera.position);
     this.chase.lookTarget(this.fromLook);
     if (this.mode !== 'chase') this.fromLook.copy(this.look);

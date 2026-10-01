@@ -31,6 +31,12 @@ Target hardware: 60 fps at 1080p on a mid laptop (Iris Xe, Radeon 680M, Apple M1
 - Dynamic resolution (Low, optional on Medium): p90 > 16.7 ms over 2 s → render scale −0.1 (floor 0.7); p90 < 12 ms for 5 s → +0.1.
 - The e2e perf suite runs **Low at 960×540** under SwiftShader (R15): counters are asserted, frame times are not.
 
+**High and Ultra since ADR-015** (`render/quality.ts`, `33-ultra-graphics.md` §3):
+- High: 500 draws, 6M triangles, CSM 3×2048, hybrid clipmap and 150k grass.
+- Ultra: 800 draws, 30M triangles, CSM 4×4096, full clipmap and 500k grass. It has no performance cap by design.
+- Every tier keeps the 40-material limit.
+- Frame times on a real GPU come from `?bench=1`; this container has no GPU.
+
 ## 2. Render budgets by category [P, sums to the tier caps]
 ### 2.1 Draw calls per frame
 | Category | Low (150) | Medium (250) | High (400) |

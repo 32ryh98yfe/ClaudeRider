@@ -20,6 +20,7 @@ Status keys: **[S]** sourced · **[P]** proposed. Render-side times are in secon
 - Mascots: `MeshPhysicalNodeMaterial` — clearcoat 0.6, clearcoatRoughness 0.25, roughness 0.42, sheen 0.2, TSL Fresnel rim `#FFD9C7` (power 2.5) added through `emissiveNode`. No `onBeforeCompile` (ADR-012 #19).
 - Karts: `kartPaint` physical material, clearcoat 1.0, clearcoatRoughness 0.1 ("candy paint"), livery from a canvas texture.
 - Tone mapping `NeutralToneMapping`, exposure 1.0, followed by a CDL grade (slope 1.05, saturation 1.1) plus the theme's grade (`ThemeKit.grade`). Neutral keeps brand colours true (Claude coral stays coral) [S].
+  - **Amended by ADR-015:** `ACESFilmicToneMapping` on every tier, with exposure ×0.72 and grade saturation ×1.13 (`render/engine/tone.ts`). That keeps the brand coral within ΔE_OKLab 0.03 of the Neutral look at normal lighting, and gives highlights a filmic roll-off.
 - Environment: `SkyMesh` → PMREM (`environmentIntensity` 0.5) regenerated only when the time of day changes; `HemisphereLight` for sky/ground tint; `SunLight` (2 cascades).
 - No planar reflections; no many dynamic point lights (emissive + bloom instead).
 
@@ -121,6 +122,9 @@ Order: scene pass with MRT (output, emissive, velocity; normal+depth only with G
 | DoF | — | — | garage only | garage/photo |
 - Chromatic aberration uses TSL `chromaticAberration(node, strength, center, 1.1)`; values are tuned visually (ADR-012 #19 notes the 0.4 vs 0.004 unit mismatch in the research).
 - Reduced motion (accessibility): no motion/radial blur, no CA, no FOV kick.
+- **Amended by ADR-015** (`33-ultra-graphics.md` §3–4):
+  - High and Ultra bloom thresholds the exposed HDR image at 0.8, with strength 0.4, and adds the emissive MRT so gameplay glows still bloom.
+  - Ultra uses TRAA, velocity motion blur and DoF in cinematic camera moments (intro, grid, finish, results, showcase). There is no DoF while racing.
 
 ---
 

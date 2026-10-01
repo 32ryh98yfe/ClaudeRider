@@ -27,10 +27,19 @@ export interface VisMeta {
   lapLength: number;
 }
 
-export interface TrackViewOptions { mergeChunks: number; propFar: number; foliage: number }
+export interface TrackViewOptions {
+  mergeChunks: number; propFar: number; foliage: number;
+  /**
+   * Velocity tiers (TRAA / motion blur): draw every prop instance in a fixed order instead of compacting the visible
+   * ones, so instance i keeps its previous-frame matrix (compaction would smear props). ≤ 863 props per track.
+   */
+  stableInstances?: boolean;
+}
 
 export interface TrackView {
   root: THREE.Group; meta: VisMeta; minimap: Float32Array; boxes: THREE.InstancedMesh | null;
+  /** The baked terrain meshes (the clipmap system hides them on Ultra). */
+  terrainMeshes: THREE.Mesh[];
   update(t: number, boxAvail: (i: number) => boolean, camera?: THREE.Camera): void;
   /** World position of item box `i` (for shatter VFX). */
   boxPos(i: number, out: THREE.Vector3): THREE.Vector3;
@@ -135,6 +144,7 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
   const chunkKind = new Map<number, string>();
   for (const ck of (meta as { chunks?: { id: number; kind: string }[] }).chunks ?? []) chunkKind.set(ck.id, ck.kind);
   let meshes = 0, tris = 0;
+  const terrainMeshes: THREE.Mesh[] = [];
   meta.slots.forEach((slot, j) => {
     const pos = c.arrays.get(`s${j}.pos`) as Float32Array, nrm = c.arrays.get(`s${j}.nrm`) as Float32Array;
     const uv = c.arrays.get(`s${j}.uv`) as Float32Array, col = c.arrays.get(`s${j}.col`) as Float32Array, idx = c.arrays.get(`s${j}.idx`) as Uint32Array;
@@ -172,6 +182,7 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
       m.name = `${slot.name}#${meshes}`;
       m.matrixAutoUpdate = false;
       root.add(m);
+      if (slot.material === 'terrain') terrainMeshes.push(m);
       meshes++; tris += ch.n / 3;
     }
   });
@@ -260,9 +271,9 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
     }
   };
   return {
-    root, meta, minimap, boxes, stats: { meshes, tris },
+    root, meta, minimap, boxes, terrainMeshes, stats: { meshes, tris },
     update(t: number, boxAvail: (i: number) => boolean, camera?: THREE.Camera): void {
-      if (camera) {
+      if (camera && !opts.stableInstances) {
         // every 3rd frame while the chase camera drifts; at once after a cut, a fly-by step or a fast turn
         // (the intro fly-over and slow software frames otherwise pop roadside props out for a frame or two)
         camera.getWorldDirection(dir);

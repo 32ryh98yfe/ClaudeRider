@@ -78,6 +78,8 @@ Run commands from the repo root.
   - `node tools/shots/shot.mjs "<url>" <out-prefix> 4000 key:Enter 4000 …`, then look at the PNGs.
   - SwiftShader is a CPU rasterizer and very slow (≈1–3 fps). Add `&quality=low&dpr=0.5` for flow tests; use `&autopilot=1&simRate=20&laps=1` to finish a race quickly.
   - Other dev query flags: `bloom=0|1`, `shadows=<size>`, `debug`.
+  - WebGPU validation (Tint/Dawn, real WGSL errors): `node tools/shots/webgpu.mjs "<url with renderer=webgpu>" <out-prefix> 90000`. Any `[webgpu-shim]` error is a bug.
+  - Ultra checks on software GL: `&quality=ultra&gfx=smoke` (every cinematic path, tiny counts). Spec: `docs/design/33-ultra-graphics.md`.
 - **Ownership.** Edit only the paths your lane owns (listed in your brief).
   - If you need a change elsewhere, write `docs/design/contract-requests/<lane>-<topic>.md`: what, why, and the exact diff.
   - Where your brief grants additive edits to a frozen file (new optional fields or sections only), make the edit, run `node tools/check-frozen.mjs --update`, and also write the request file. The orchestrator reviews it at merge.

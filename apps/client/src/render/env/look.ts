@@ -3,6 +3,7 @@
 // so a kit that only sets colours still gets a complete light rig. Documented in docs/art/fx/README.md.
 import * as THREE from 'three/webgpu';
 import type { ThemeDataDef } from '@cr/content';
+import { ACES_EXPOSURE, ACES_SATURATION } from '../engine/tone.ts';
 
 export type SkyKind = ThemeDataDef['sky'];
 export type AmbientKind = 'none' | 'snow' | 'fireflies' | 'dust' | 'rain' | 'embers' | 'leaves' | 'petals' | 'bubbles' | 'motes' | 'stars';
@@ -20,7 +21,7 @@ export interface ThemeLookFx {
   planet?: { color: string; ring?: string; dir?: [number, number, number]; size?: number };
   horizon?: string;             // gradient-sky horizon colour
   clouds?: number;              // 0..1 cloud cover on gradient skies
-  /** Post grade (CDL in display space after Neutral tone mapping). */
+  /** Post grade (CDL in display space after tone mapping; authored against Neutral, see engine/tone.ts). */
   grade?: { slope?: number; saturation?: number; tint?: string; offset?: number; power?: number; shadows?: string; highlights?: string };
   exposure?: number;
   bloom?: number;               // bloom strength override
@@ -123,7 +124,8 @@ export function resolveEnvLook(kit: KitLike, trackTheme: Record<string, string> 
       clouds: L.clouds ?? (kind === 'overcast' ? 0.85 : 0),
       planet: L.planet ?? (kind === 'space' ? { color: '#c9a27a', ring: '#e8d8c0', dir: [-0.5, 0.35, -0.8], size: 0.16 } : null),
     },
-    exposure: L.exposure ?? (L.sky.exposure !== undefined && dayLike ? L.sky.exposure : K.exposure ?? 1),
+    // kit and track exposures were authored for Neutral tone mapping; ACES needs ×0.72 for the same mid-tones
+    exposure: (L.exposure ?? (L.sky.exposure !== undefined && dayLike ? L.sky.exposure : K.exposure ?? 1)) * ACES_EXPOSURE,
     envIntensity: L.envIntensity ?? K.envIntensity ?? 0.55,
     rimBoost: L.rimBoost ?? K.rimBoost ?? 1,
     bloom: L.bloom ?? null,
@@ -132,7 +134,7 @@ export function resolveEnvLook(kit: KitLike, trackTheme: Record<string, string> 
     wind: L.wind ?? 1,
     wet: num(trackTheme['wet']) ?? L.wet ?? (trackTheme['weather'] === 'rain' ? 0.8 : 0),
     grade: {
-      slope: g.slope ?? kg.slope, saturation: g.saturation ?? kg.saturation, tint: g.tint ?? '#ffffff', offset: g.offset ?? 0, power: g.power ?? 1,
+      slope: g.slope ?? kg.slope, saturation: (g.saturation ?? kg.saturation) * ACES_SATURATION, tint: g.tint ?? '#ffffff', offset: g.offset ?? 0, power: g.power ?? 1,
       shadows: g.shadows ?? (kind === 'night' || kind === 'aurora' || kind === 'underground' ? '#dfe6ff' : '#eef2ff'),
       highlights: g.highlights ?? (kind === 'sunset' || kind === 'goldenHour' ? '#fff0de' : '#fff8f0'),
     },

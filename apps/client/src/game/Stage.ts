@@ -1,5 +1,5 @@
 // Owns the single WebGPURenderer + canvas; switches between the lobby Showcase and a race Session.
-// Also: renderer output settings (Neutral tone mapping, soft PCF shadows), the tier → audio panning choice,
+// Also: renderer output settings (ACES tone mapping, PCF shadows), the tier → audio panning choice,
 // and the ?debug overlay with live budget counters.
 import * as THREE from 'three/webgpu';
 import { signal } from '@preact/signals';
@@ -7,7 +7,8 @@ import { createRenderer, type Backend } from '../render/engine/createRenderer.ts
 import { Showcase } from '../render/showcase/Showcase.ts';
 import { navigate } from '../ui/store/route.ts';
 import { isWarming, MaterialReveal } from '../render/engine/warm.ts';
-import { pickTier, tierSettings, withUserPrefs, pixelRatioFor, FrameCap, type QualityTier, type TierSettings } from '../render/quality.ts';
+import { pickTier, tierSettings, withUserPrefs, pixelRatioFor, FrameCap, setActiveBackend, deviceHints, type QualityTier, type TierSettings } from '../render/quality.ts';
+import { TONE_MAPPING, ACES_EXPOSURE } from '../render/engine/tone.ts';
 import { MaterialLibrary } from '../render/materials/library.ts';
 import { Audio } from '../audio/engine.ts';
 import { save } from '../meta/save.ts';
@@ -32,17 +33,21 @@ class StageImpl {
     host.appendChild(canvas);
     const info = await createRenderer(canvas);
     const r = info.renderer;
-    this.tier = pickTier(save.get().settings.quality, info.backend);
+    setActiveBackend(info.backend);
+    // a software (fallback) WebGPU adapter never gets Ultra on 'auto'
+    const dev = (r.backend as unknown as { device?: { adapterInfo?: { isFallbackAdapter?: boolean } } }).device;
+    this.tier = pickTier(save.get().settings.quality, info.backend, { ...deviceHints(), fallbackAdapter: dev?.adapterInfo?.isFallbackAdapter === true });
     const st = save.get().settings;
     const ts = withUserPrefs(tierSettings(this.tier), st);
     this.ts = ts;
     r.setPixelRatio(pixelRatioFor(ts, st));
     this.cap.cap = st.fpsCap ?? 60;
     r.setSize(window.innerWidth, window.innerHeight, false);
-    r.toneMapping = THREE.NeutralToneMapping;
-    r.toneMappingExposure = 1.0;
+    r.toneMapping = TONE_MAPPING;
+    r.toneMappingExposure = ACES_EXPOSURE;
     r.shadowMap.enabled = ts.shadowSize > 0;
-    r.shadowMap.type = this.tier === 'low' || this.tier === 'medium' ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
+    // r186 WebGPURenderer dropped PCFSoftShadowMap (it warns and falls back); softness comes from shadow.radius / PCSS
+    r.shadowMap.type = THREE.PCFShadowMap;
     this.renderer = r;
     MaterialLibrary.configure(this.tier);
     Audio.hrtf = this.tier !== 'low';

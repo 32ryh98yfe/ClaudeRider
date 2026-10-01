@@ -8,11 +8,22 @@ import { MaterialLibrary } from '../materials/library.ts';
 import { resolveEnvLook, type EnvLook } from './look.ts';
 import { buildSky } from './sky.ts';
 
+type N = any;
+
 export interface Environment {
   look: EnvLook;
   sun: THREE.DirectionalLight; hemi: THREE.HemisphereLight; sky: THREE.Object3D;
+  /**
+   * Cascaded shadow node of the sun when `ts.shadowTech === 'csm'` (S-Light; a CSMShadowNode subclass whose
+   * `lights[i].shadow` are the cascades), else null. Post stages sample its cascades for fog visibility.
+   */
+  csm: N | null;
+  /** Analytic aerial perspective for a world position node: transmittance T (vec3) and in-scatter L (vec3), or null on linear fog. */
+  aerial: ((posW: N) => { T: N; L: N }) | null;
   /** Keeps the sky centred and the shadow frustum on the player. `ahead` biases the frustum toward the view. */
   follow(target: THREE.Vector3, ahead?: THREE.Vector3): void;
+  /** The race camera's projection changed (FOV kick, resize): cascades re-split. */
+  onCameraChange(cam: THREE.PerspectiveCamera): void;
   dispose(): void;
 }
 
@@ -80,7 +91,8 @@ export async function buildEnvironment(renderer: THREE.WebGPURenderer, scene: TH
   const tmp = new THREE.Vector3(), centre = new THREE.Vector3();
 
   return {
-    look: L, sun, hemi, sky: sky.object,
+    look: L, sun, hemi, sky: sky.object, csm: null, aerial: null,
+    onCameraChange(): void { /* single follow frustum: nothing to re-split */ },
     follow(target: THREE.Vector3, ahead?: THREE.Vector3): void {
       centre.copy(target);
       if (ahead) centre.addScaledVector(ahead, half * 0.45);

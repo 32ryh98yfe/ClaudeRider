@@ -2,8 +2,10 @@
 // Systems: environment rig, track view (culled chunks/props, prompt cubes), karts + mascots (L8 registries),
 // driving VFX (sparks/smoke/skids/flames), item VFX (proxies, status rigs), ambient air, headlights,
 // camera director (intro, grid, chase, finish), post chain per tier, BudgetTracker and dynamic resolution.
+// High/Ultra also lazy-load the per-frame systems in render/systems (clipmap terrain, grass, forest, weather).
 // Hot path rule: nothing below allocates per frame (scratch objects only).
 import * as THREE from 'three/webgpu';
+import { uniform, uniformArray } from 'three/tsl';
 import type { ContentTables } from '@cr/content';
 import { CVIS_MAGIC, CVIS_VERSION, readContainer, Phase, type BakedTrack, type WorldState, type SimEvent } from '@cr/sim';
 import { getThemeKit } from './themes/registry.ts';
@@ -20,7 +22,11 @@ import { getCharacter } from './characters/registry.ts';
 import { getKartBody } from './karts/registry.ts';
 import type { KartModel } from './karts/types.ts';
 import { MaterialLibrary } from './materials/library.ts';
-import { tierSettings, prefersReducedMotion, withUserPrefs, FrameCap, type QualityTier, type TierSettings } from './quality.ts';
+import { tierSettings, prefersReducedMotion, withUserPrefs, FrameCap, getActiveBackend, noteAutoFrameTime, type QualityTier, type TierSettings } from './quality.ts';
+import { LAYER_FX, tagFx } from './engine/layers.ts';
+import { loadSystems } from './systems/registry.ts';
+import type { FrameContext, FrameSystem, SharedFrameUniforms } from './systems/types.ts';
+import type { PostFrameInput } from './post/stages.ts';
 import { BudgetTracker } from './engine/budget.ts';
 import { DrivingFx, type KartPose } from './vfx/driving.ts';
 import { ItemFx } from './vfx/itemFx.ts';
@@ -83,6 +89,17 @@ export class RaceRenderer {
   private resScale = 1; private dynT = 0; private goodT = 0;
   private reducedMotion: boolean;
   private countdownTicks: number;
+  private systems: FrameSystem[] = [];
+  private sysCtx: FrameContext | null = null;
+  /** Shared per-frame uniforms for the systems (see systems/types.ts). */
+  private readonly su: SharedFrameUniforms = {
+    mainCamPos: uniform(new THREE.Vector3()), prevMainCamPos: uniform(new THREE.Vector3()),
+    kartPos: uniformArray(Array.from({ length: 8 }, () => new THREE.Vector4(0, -1e5, 0, -1)), 'vec4'),
+    dt: uniform(0), time: uniform(0), windDir: uniform(new THREE.Vector2(0.8, 0.6)), windStrength: uniform(1),
+  };
+  private readonly postIn: PostFrameInput = { dt: 0, camMode: 'chase', cutSerial: 0, focus: null, reducedMotion: false };
+  private localTeleport = false;
+  private lastFov = 0; private lastAspect = 0;
   private content: ContentTables;
   localSlot = 0;
   lookBack = false;
@@ -123,7 +140,9 @@ export class RaceRenderer {
     const fog = this.scene.fog as THREE.Fog;
     fog.far = Math.min(fog.far, ts.far * 0.97); fog.near = Math.min(fog.near, fog.far * 0.6);
     setParticleFog(fog.color, fog.near, fog.far);
-    this.view = buildTrackView(this.vis, this.track, this.kit, { mergeChunks: this.tier === 'low' ? LOW_MERGE_CHUNKS : this.tier === 'medium' ? 2 : 1, propFar: ts.propFar, foliage: ts.foliage });
+    // velocity-based post (TRAA, motion blur) needs every prop instance to keep its slot from frame to frame
+    const stable = ts.aa === 'traa' || ts.velocityBlur !== null;
+    this.view = buildTrackView(this.vis, this.track, this.kit, { mergeChunks: this.tier === 'low' ? LOW_MERGE_CHUNKS : this.tier === 'medium' ? 2 : 1, propFar: ts.propFar, foliage: ts.foliage, stableInstances: stable });
     this.scene.add(this.view.root);
     if (meta.hazards?.length && this.track.hazards.length) {
       this.hazards = new TrackHazards(meta.hazards, this.track, this.kit);
@@ -169,7 +188,22 @@ export class RaceRenderer {
       const me = this.bySlot[this.localSlot];
       if (me && this.lights.spot) me.root.add(this.lights.spot, this.lights.spot.target);
     }
-    this.post = createPost(this.renderer, this.scene, cam, { ts, reducedMotion: this.reducedMotion, grade: { ...L.grade, bloom: L.bloom ?? ts.bloomStrength } });
+    // effects stay out of the screen-space buffers (the Ultra prepass renders layer 0 only); the race camera sees both
+    for (const o of this.driving.objects()) tagFx(o);
+    tagFx(this.items.root);
+    if (this.lights) tagFx(this.lights.mesh);
+    cam.layers.enable(LAYER_FX);
+    this.su.windStrength.value = L.wind;
+    if (ts.systems) {
+      // lazy: the field builder and every system live in their own chunks (Low/Medium never load them)
+      const ground = await (await import('./ground/index.ts')).loadGroundField(this.vis);
+      this.sysCtx = {
+        renderer: this.renderer, scene: this.scene, camera: cam, tier: this.tier, ts, backend: getActiveBackend(), kit: this.kit, look: L, env: this.env,
+        track: this.track, vis: this.vis, meta, view: this.view, ground, poses: this.poses, localSlot: this.localSlot, u: this.su,
+      };
+      this.systems = await loadSystems(this.sysCtx);
+    }
+    this.post = createPost(this.renderer, this.scene, cam, { ts, reducedMotion: this.reducedMotion, grade: { ...L.grade, bloom: L.bloom ?? ts.bloomStrength }, env: this.env, backend: getActiveBackend() });
     this.budget = new BudgetTracker(this.renderer, this.tier, ts, () => MaterialLibrary.count());
     this.items.prewarm();
     await this.warmShaders();
@@ -251,6 +285,7 @@ export class RaceRenderer {
       if (!b.active) { kv.root.visible = false; p.visible = false; continue; }
       const A = a.body, B = b.body;
       const teleport = Math.abs(A.px - B.px) + Math.abs(A.pz - B.pz) > 8;
+      if (teleport && kv.slot === this.localSlot) this.localTeleport = true;
       const k = teleport ? 1 : alpha;
       p.pos.set(A.px + (B.px - A.px) * k, A.py + (B.py - A.py) * k, A.pz + (B.pz - A.pz) * k);
       p.fwd.set(A.fx + (B.fx - A.fx) * k, A.fy + (B.fy - A.fy) * k, A.fz + (B.fz - A.fz) * k).normalize();
@@ -311,6 +346,9 @@ export class RaceRenderer {
         phase: curr.phase, tick: curr.tick, goTick: curr.goTick, countdownTicks: this.countdownTicks, finished: k.race.finishTick >= 0, dt,
         target: { pos: me.pose.pos, fwd: me.pose.fwd, up: me.pose.up, speed: me.pose.speed, boosting, drift: d.drift ? d.driftDir : 0, lookBack: this.lookBack, airborne: k.body.grounded === 0, slip },
       });
+      if (this.localTeleport) { this.director.bumpCut(); this.localTeleport = false; }
+      // cascades re-split when the projection changes (boost FOV kick, resize)
+      if (cam.fov !== this.lastFov || cam.aspect !== this.lastAspect) { this.lastFov = cam.fov; this.lastAspect = cam.aspect; this.env.onCameraChange(cam); }
       cam.getWorldDirection(this.camFwd);
       this.env.follow(me.pose.pos, this.camFwd);
       // post juice: boost ramps over ~0.15 s; blur / CA / FOV are off with reduced motion
@@ -331,12 +369,32 @@ export class RaceRenderer {
     this.curW = curr;
     this.view.update(this.t, this.boxAvail, cam);
     this.ambient.update(cam.position, this.camFwd, fxDt);
+    this.updateSystems(fxDt, me?.pose.pos ?? null);
     // spatial audio listener = camera (velocity for Doppler)
     this.camVel.copy(cam.position).sub(this.camPrev).divideScalar(Math.max(1e-3, dt));
     this.camPrev.copy(cam.position);
     setListener(cam.position, this.camFwd, cam.up, this.camVel);
     this.driving.sparks.flush(); this.driving.smoke.flush();
     this.budget.markUpdated(performance.now());
+  }
+
+  /** Shared uniforms, then every system, then the post chain's per-frame inputs. No allocation. */
+  private updateSystems(dt: number, focus: THREE.Vector3 | null): void {
+    const cam = this.director.camera;
+    const U = this.su;
+    (U.prevMainCamPos.value as THREE.Vector3).copy(U.mainCamPos.value as THREE.Vector3);
+    (U.mainCamPos.value as THREE.Vector3).copy(cam.position);
+    U.dt.value = dt; U.time.value = this.t;
+    const kp = U.kartPos.array as THREE.Vector4[];
+    for (let i = 0; i < 8; i++) {
+      const p = this.poses[i]!;
+      kp[i]!.set(p.pos.x, p.pos.y, p.pos.z, p.visible ? p.speed : -1);
+    }
+    const c = this.sysCtx;
+    if (c) for (let i = 0; i < this.systems.length; i++) this.systems[i]!.update(c, dt, this.t);
+    const pi = this.postIn;
+    pi.dt = dt; pi.camMode = this.director.mode; pi.cutSerial = this.director.cutSerial; pi.focus = focus; pi.reducedMotion = this.reducedMotion;
+    this.post.frame(pi);
   }
 
   private readonly poseOf = (s: number): KartPose | null => { const p = this.poses[s]; return p && p.visible ? p : null; };
@@ -420,6 +478,7 @@ export class RaceRenderer {
     root.add(kart.root);
     const mat = MaterialLibrary.ghost();
     root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.material = mat; m.castShadow = false; m.receiveShadow = false; m.renderOrder = 2; } });
+    tagFx(root);
     this.scene.add(root);
     this.ghost = { root, kart, mascot, mat };
   }
@@ -481,6 +540,10 @@ export class RaceRenderer {
     this.unsub?.(); this.unsub = null;
     this.hazards?.dispose();
     this.setGhost(null);
+    // a slow first race on auto-selected Ultra remembers High for this browser (quality.ts)
+    if (this.budget) noteAutoFrameTime(this.tier, this.budget.snap.frameMs.p95);
+    for (const sys of this.systems) sys.dispose();
+    this.systems = []; this.sysCtx = null;
     this.post.dispose();
     this.env.dispose();
     this.view.dispose();

@@ -404,3 +404,16 @@ See the repo-root `CLAUDE.md`.
 - Every id is pre-assigned in `packages/content/src/ids.ts`.
 - Only the orchestrator edits `package.json` and `pnpm-lock.yaml`.
 - Lanes run vitest with `--maxWorkers=1`.
+
+## ADR-015 Ultra (cinematic) graphics tier
+The full spec is in `33-ultra-graphics.md`.
+- **Display transform:** ACES filmic tone mapping on every tier, replacing Neutral (amends §2 of the art bible).
+  - Exposure ×0.72 and grade saturation ×1.13 keep the authored colours. Fitted on a CPU mirror of both operators: mean ΔE_OKLab under 0.02, the brand orange under 0.03.
+  - Portraits keep Neutral.
+- **Ultra** is the max-quality tier. It ships cascaded sun shadows with PCSS soft edges on WebGPU, Hillaire-style atmosphere LUTs as the sky and procedural HDRI, aerial-perspective fog plus a volumetric correction, GTAO and contact shadows from an opaque prepass, TRAA, McGuire motion blur, cinematic DoF, threshold bloom (0.8 / 0.4), a geometry-clipmap terrain to the horizon, 500k GPU-placed grass blades, a far forest and 100k weather particles.
+- **High** gets the cheaper versions. Low and Medium keep their passes.
+- **Auto-pick:** Ultra on desktop WebGPU (not mobile, not a fallback adapter, deviceMemory ≥ 8). A slow first race (p95 > 33 ms) remembers High once; a player-chosen Ultra never downgrades.
+- **DoF only in cinematic moments** (intro, grid, finish, results, showcase), never while racing, because corners ahead must stay readable (art bible §11).
+- **PCSS on WebGPU only.** Under WebGL2 a compare-mode depth texture cannot be read raw, so that backend uses PCF at radius 2.
+- **No reversed or logarithmic depth.** Near 0.3 m with far 10 km keeps terrain error near 1.8 m at 3 km; road decals are shader-drawn.
+- **WebGPU validation in CI-like headless runs.** ADR-002 S2 now passes with `tools/shots/webgpu.mjs`, a swizzle shim plus Vulkan SwiftShader flags. This gives real Tint/Dawn validation of every WGSL path. The first bug it caught: on WebGPU, GTAO cannot gather from a multisampled depth texture. High therefore uses SMAA instead of MSAA on WebGPU (`quality.ts` `gate`). e2e stays on WebGL2.

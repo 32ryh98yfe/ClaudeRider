@@ -17,6 +17,9 @@ export interface SettingsV1 {
   particles?: 'tier' | 'low' | 'high';
   bloom?: 'tier' | 'off' | 'on';
   motionBlur?: boolean;
+  // ---- U additive (contract-requests/U-settings-postfx.md): cinematic post toggles, 'tier' = the tier default ----
+  velocityBlur?: 'tier' | 'off' | 'on';
+  dof?: 'tier' | 'off' | 'on';
   muteUnfocused?: boolean;
   pad?: Record<string, number[]>;             // gamepad bindings: action → standard-mapping button indices
   deadzone?: number;                          // 0.05..0.30
@@ -80,7 +83,7 @@ function defaults(): SaveV1 {
     settings: {
       quality: 'auto', renderer: 'auto', volume: { master: 0.8, music: 0.55, sfx: 0.8, engine: 0.7, ui: 0.7, voice: 0.7 }, hudScale: 1, reducedMotion: false,
       units: 'kmh', keys: { ...DEFAULT_KEYS, ...DEFAULT_KEYS_EXTRA }, autoBoost: false, driftAssist: false, cameraShake: true,
-      renderScale: 1, fpsCap: 60, shadows: 'tier', particles: 'tier', bloom: 'tier', motionBlur: false, muteUnfocused: true,
+      renderScale: 1, fpsCap: 60, shadows: 'tier', particles: 'tier', bloom: 'tier', motionBlur: false, velocityBlur: 'tier', dof: 'tier', muteUnfocused: true,
       pad: { ...DEFAULT_PAD }, deadzone: 0.15, instantHint: true, cameraDistance: 'normal', racingLine: false,
       minimapInSpeed: false, nameTags: true, itemFeed: true, colorBlind: false, highContrast: false, textScale: 1, ghost: true, proGhost: false,
       firstRunTipSeen: false,
@@ -163,7 +166,9 @@ export function migrateSave(raw: unknown): SaveV1 {
       keys, autoBoost: bool(s['autoBoost'], false), driftAssist: bool(s['driftAssist'], false), cameraShake: bool(s['cameraShake'], true),
       renderScale: num(s['renderScale'], 1, 0.5, 1), fpsCap: oneOf(s['fpsCap'], [30, 60, 120, 0] as const, 60),
       shadows: oneOf(s['shadows'], ['tier', 'off', 'on'] as const, 'tier'), particles: oneOf(s['particles'], ['tier', 'low', 'high'] as const, 'tier'),
-      bloom: oneOf(s['bloom'], ['tier', 'off', 'on'] as const, 'tier'), motionBlur: bool(s['motionBlur'], false), muteUnfocused: bool(s['muteUnfocused'], true),
+      bloom: oneOf(s['bloom'], ['tier', 'off', 'on'] as const, 'tier'), motionBlur: bool(s['motionBlur'], false),
+      velocityBlur: oneOf(s['velocityBlur'], ['tier', 'off', 'on'] as const, 'tier'), dof: oneOf(s['dof'], ['tier', 'off', 'on'] as const, 'tier'),
+      muteUnfocused: bool(s['muteUnfocused'], true),
       pad, deadzone: num(s['deadzone'], 0.15, 0.05, 0.3), instantHint: bool(s['instantHint'], true),
       cameraDistance: oneOf(s['cameraDistance'], ['near', 'normal', 'far'] as const, 'normal'), racingLine: bool(s['racingLine'], false),
       minimapInSpeed: bool(s['minimapInSpeed'], false), nameTags: bool(s['nameTags'], true), itemFeed: bool(s['itemFeed'], true),
