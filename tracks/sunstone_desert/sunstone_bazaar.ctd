@@ -59,8 +59,9 @@ PROPS kind=bazaar_house_a along=awning from=37 to=100 side=L every=21 offset=0.5
 PROPS kind=bazaar_house_a along=awning from=58 to=79 side=R every=21 offset=0.5 seed=881
 # the start straight's grandstand: crowds on the roof terraces of the b-houses, both sides
 PROPS kind=spectators_roof from=11 to=179 side=both every=21 offset=1.5 seed=841
-# oasis corner (T1, a left-hander): chevron boards above the 1 m rock wall on the outside
-PROPS kind=ad_board_b from=203 to=250 side=R every=10 offset=2.4 seed=842
+# oasis corner (T1, a left-hander): a tyre wall and big chevron boards above the 1 m rock wall on the outside
+PROPS kind=ad_board_b from=203 to=250 side=R every=10 offset=2.4 scale=1.4-1.4 seed=842
+PROPS kind=tyre_wall from=199 to=254 side=R every=1.3 offset=0.6 seed=845
 PROPS kind=ad_board_a from=262 to=420 side=R every=48 offset=0.6 seed=843
 PROPS kind=ad_board_c from=286 to=420 side=L every=48 offset=0.6 seed=844
 # open desert (oasis → camel corner): ground cover at the wall, scrub and boulders behind it
