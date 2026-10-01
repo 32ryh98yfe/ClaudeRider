@@ -6,7 +6,7 @@
 //   shopWall   — building walls (market street, the alley): brick-dark base with lit shop windows every 3 m.
 // No per-pixel noise: variation comes from whole slabs and panels, which keeps the look organised.
 import * as THREE from 'three/webgpu';
-import { color, float, vec2, vec3, uv, positionWorld, normalWorld, mix, step, smoothstep, fract, floor, clamp, vertexColor, abs } from 'three/tsl';
+import { color, float, vec2, vec3, uv, positionWorld, normalWorld, mix, step, smoothstep, fract, floor, clamp, vertexColor, abs, dFdx, dFdy } from 'three/tsl';
 import { MaterialLibrary } from '../../materials/library.ts';
 import { aaLines, cellRand, n01, setEmissive, slope01 } from '../../materials/tsl.ts';
 
@@ -22,7 +22,29 @@ function wallFrame(): { U: N; inner: N; onTop: N; hFrac: N; innerFace: N } {
   return { U, inner, onTop, hFrac, innerFace };
 }
 
-export interface BarrierParams { body: string; base: string; cap: string; strip: string; gain: number; tint?: number; rough?: number; hazard?: string }
+/**
+ * Keep-mask for the vis underside slot. trackc hangs each deck's side skirt down to the terrain, and where a deck
+ * crosses a lower road the terrain is that road's ground, so the skirt became a 10 m curtain straight across the
+ * lower road (Skyway's first-corner "black void": the karts drove through it). Skirt uv.x runs from 0 at the deck
+ * edge to 1 at the skirt foot, and inside one triangle uv.x and the world position are both affine, so screen
+ * derivatives give d(uv.x)/d(down) = 1 / skirt depth exactly; uv.x divided by that is the fragment's depth below the
+ * deck edge. Skirt fragments deeper than `fascia` are dropped (their shadows too: maskShadowNode falls back to
+ * maskNode), so an elevated deck reads as a slab with a fascia on its pillars. Contract request
+ * S-C-skirts-over-roads asks trackc to stop the skirts above lower roads instead.
+ */
+export function fasciaMask(fascia: number): N {
+  const P = positionWorld, u = uv().x;
+  const px = dFdx(P), py = dFdy(P), ux = dFdx(u), uy = dFdy(u);
+  const a = px.dot(px), b = px.dot(py), c = py.dot(py);
+  const det = a.mul(c).sub(b.mul(b));
+  // world-down (0, −1, 0) as α·px + β·py (least squares in the face plane), both weights scaled by det
+  const al = b.mul(py.y).sub(c.mul(px.y)), be = b.mul(px.y).sub(a.mul(py.y));
+  const duDown = al.mul(ux).add(be.mul(uy)); // det · du/d(down)
+  const skirt = abs(normalWorld.y).lessThan(0.5).and(det.greaterThan(a.mul(c).mul(0.02))).and(duDown.greaterThan(0));
+  return skirt.and(u.mul(det).greaterThan(duDown.mul(fascia))).not();
+}
+
+export interface BarrierParams { body: string; base: string; cap: string; strip: string; gain: number; tint?: number; rough?: number; hazard?: string; foot?: string; footGain?: number }
 
 /** Barrier with a segmented LED strip (3 m segments) just under the cap on the road side; `hazard` paints the cap band as diagonal hazard stripes in that colour over the cap colour. */
 export function ledBarrier(key: string, p: BarrierParams): THREE.Material {
@@ -41,9 +63,14 @@ export function ledBarrier(key: string, p: BarrierParams): THREE.Material {
     const strip: N = smoothstep(0.72, 0.732, hFrac).mul(smoothstep(0.788, 0.776, hFrac)).mul(innerFace)
       .mul(step(0.03, seg)).mul(step(seg, 0.97));
     c = mix(c, color('#000000'), strip);
+    // `foot`: a floor-edge LED line along the road at the barrier foot (guides the eye through underpasses)
+    const foot: N = p.foot ? smoothstep(0.05, 0.06, hFrac).mul(smoothstep(0.1, 0.09, hFrac)).mul(innerFace) : float(0);
+    c = mix(c, color('#000000'), foot);
     m.colorNode = c.mul(vertexColor().rgb.div(p.tint ?? 1));
     m.roughnessNode = mix(float(p.rough ?? 0.85), float(0.5), clamp(band, 0, 1));
-    setEmissive(m, color(p.strip).mul(strip.mul(p.gain)));
+    let glow: N = color(p.strip).mul(strip.mul(p.gain));
+    if (p.foot) glow = glow.add(color(p.foot).mul(foot.mul(p.footGain ?? 0.8)));
+    setEmissive(m, glow);
     return m;
   });
 }
@@ -117,6 +144,7 @@ export function underpass(key: string, p: UnderpassParams): THREE.Material {
     const spot: N = smoothstep(0.4, 0.42, f.x).mul(smoothstep(0.6, 0.58, f.x)).mul(smoothstep(0.4, 0.42, f.y)).mul(smoothstep(0.6, 0.58, f.y));
     const down: N = smoothstep(-0.5, -0.8, normalWorld.y);
     setEmissive(m, color(p.light).mul(spot.mul(down).mul(p.gain)));
+    m.maskNode = fasciaMask(1.5);
     return m;
   });
 }

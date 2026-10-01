@@ -228,8 +228,9 @@ function streetLamp(): THREE.BufferGeometry {
 function tunnelLamp(): THREE.BufferGeometry {
   return new GlowParts()
     .add(part(box(0.18, 3.6, 0.18), POLE, -0.1, 1.8, 0), part(box(0.5, 0.3, 2.4), '#2a2d36', 0.1, 3.5, 0))
-    .light(2.2, part(box(0.06, 0.14, 2.2), COOL, 0.37, 3.42, 0))
-    .light(1.2, part(box(0.06, 0.06, 2.2), CYAN, 0.37, 3.62, 0))
+    // 2 m strip lights facing the road (gain ≥ 2, so the underpass mouth and the corner beyond read lit)
+    .light(2.6, part(box(0.06, 0.18, 2.0), COOL, 0.37, 3.42, 0))
+    .light(2.0, part(box(0.06, 0.07, 2.0), CYAN, 0.37, 3.64, 0))
     .build();
 }
 

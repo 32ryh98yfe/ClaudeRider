@@ -71,7 +71,8 @@ export default (c: ContentTables, env?: Readonly<Record<string, string>>): Theme
   const kit = makeKit(c.themes.get('neon_harbor'), dusk ? NEON_DUSK_LOOK : NEON_NIGHT_LOOK, NEON_PROPS);
   const base = kit.materials;
   const mood = dusk ? 'dusk' : 'night';
-  const barrier = { body: dusk ? '#b3b6c0' : '#a3a7b2', base: dusk ? '#6a6d77' : '#575a65', cap: '#d83a8e', strip: '#5fe8ff', gain: dusk ? 0.6 : 1.1 };
+  // dusk (Skyway): a cyan floor-edge LED line at the barrier foot leads the eye through the underpasses into T1
+  const barrier = { body: dusk ? '#b3b6c0' : '#a3a7b2', base: dusk ? '#6a6d77' : '#575a65', cap: '#d83a8e', strip: '#5fe8ff', gain: dusk ? 0.6 : 1.1, ...(dusk ? { foot: '#5fe8ff', footGain: 0.9 } : {}) };
   kit.materials = () => ({
     ...base(),
     // barriers: concrete with a magenta cap and a segmented cyan LED strip (the road edge reads at night)
