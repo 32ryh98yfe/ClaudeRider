@@ -51,7 +51,7 @@ describe('sessions', () => {
 
   it('an M4 client (lobby protocol 1, the pre-technique snapshot layout) is refused with error version and closed', () => {
     expect(LOBBY_PROTOCOL_VERSION).toBe(2);
-    expect(SIM_VERSION).toBe(2);
+    expect(SIM_VERSION).toBeGreaterThanOrEqual(2); // the technique snapshot layout arrived with 2
     const w = new World();
     const old = w.client('Old').hello(undefined, 1);
     expect(old.errors()).toEqual(['version']);
