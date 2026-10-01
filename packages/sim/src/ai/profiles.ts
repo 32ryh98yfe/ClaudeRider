@@ -70,7 +70,7 @@ export interface AiExecution {
 
 export const AI_EXECUTION: Readonly<Record<AiTier, AiExecution>> = {
   rookie: {
-    cornerSpeedMul: 0.88, gripSpeedMul: 0.93, sloppyLateM: [4, 10], sloppyHoldTicks: [6, 15], boostSkill: 0, boostDelayTicks: [30, 150], lineTrack: 0.4, laneEvalTicks: 12, ttcHorizon: 0.9, mistakeLateTicks: 20, mistakeHoldTicks: 20, panicBrakeTicks: [12, 24], chainRate: 0, gripViable: 0.8,
+    cornerSpeedMul: 0.88, gripSpeedMul: 0.93, sloppyLateM: [4, 10], sloppyHoldTicks: [6, 15], boostSkill: 0, boostDelayTicks: [30, 150], lineTrack: 0.6, laneEvalTicks: 12, ttcHorizon: 0.9, mistakeLateTicks: 20, mistakeHoldTicks: 20, panicBrakeTicks: [12, 24], chainRate: 0, gripViable: 0.8,
     dragRate: 0.03, tapRate: 0, brakeTurnRate: 0, dragMinR: 60, dragLeadS: 0, tapJitterTicks: 3,
   },
   racer: {

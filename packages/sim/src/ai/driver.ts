@@ -58,11 +58,14 @@ const A = {
  */
 export const AI_TUNING = {
   lineClampFrac: 9, holdTurn: 0.5, holdMinSIn: -0.3, holdMode: 0, holdKeyEh: -0.05, holdSbMax: 0.45, minZones: 6, eExit: 0.05, hazards: 1,
-  chainMinTurn: 0, chainMaxTurn: 0, chainEExit: -0.02, chainShift: 0.4, longEExit: 0.03, longShift: 0.35, longRekickTurn: 2.0,
+  chainMinTurn: 0, chainMaxTurn: 0, chainEExit: -0.02, chainShift: 0.3, longEExit: 0.03, longShift: 0.25, longRekickTurn: 2.0,
   // M5 drift exit (15-driving-techniques §4.5): a full counter-steer cuts (β → 0 at once, the drift ends). The exit
   // cuts only when the corner is done (≤ cutTurn rad left), the nose is at most cutPsi rad past the local tangent and
   // cutRoom m are free on the inside; otherwise the counter-steer is a trim below the threshold (the old gradual exit).
   cut: 1, cutTurn: 0.5, cutPsi: 0.3, cutRoom: 1.5, forkTrimM: 120,
+  // neutral drift style: shift (keep DRIFT, s_in ≥ 0.6) while eh > ehShift (gap-2 0.4; M5 roster sweep: 0.3 is ≈ 1% faster for
+  // every style, the chain/long values above moved by the same −0.1); double drift once eh > ehRekick
+  ehShift: 0.3, ehRekick: 0.8,
   // brake in a drift is a brake turn (heading ×2): only while the nose lags the track by more than brakeEh rad
   brakeEh: 0.2,
   // drag control (끌기, 14-ai §3.11): neutral steer + DRIFT held while the nose is within [dragEhLo, dragEhHi] rad of
@@ -73,6 +76,8 @@ export const AI_TUNING = {
   fastHoldV: 1.1,
   // share of the drag's neutral band (|sIn| < 0.3) the heading controller may use while dragging
   dragTrim: 0.93,
+  // keep boosted drifts on corners without a drag plan out of the drag state (wheel just outside the neutral band)
+  dragAvoid: 1,
   fastTapExp: 0,
   // no drift trigger while the velocity already points more than ~trigVPsi rad inside the track tangent
   trigVPsi: 0.2,
@@ -623,7 +628,7 @@ class BotDriver implements AiDriverEx {
       }
       driftEh = eh;
       sIn = sIn > 1 ? 1 : sIn < -1 ? -1 : sIn;
-      const ehShift = style === 'long' ? AI_TUNING.longShift : style === 'chain' ? AI_TUNING.chainShift : A.ehShift;
+      const ehShift = style === 'long' ? AI_TUNING.longShift : style === 'chain' ? AI_TUNING.chainShift : AI_TUNING.ehShift;
       if (e_forceExit) { drift = false; this.tapLeft = 0; }
       else if (this.tapLeft > 0) {
         // the entry tap's in-steer was validated at grip speed; a boosted drift entry turns the path at v/ω, so above
@@ -636,7 +641,7 @@ class BotDriver implements AiDriverEx {
         // drag drift (끌기): keep the key while not over-rotated; the yaw is trimmed with the wheel
         drift = eh > AI_TUNING.holdKeyEh && sb < AI_TUNING.holdSbMax;
       } else if (eh > ehShift && sb < A.sbShiftMax) {
-        const reKick = style === 'chain' ? 1.0 : A.ehRekick;
+        const reKick = style === 'chain' ? 1.0 : AI_TUNING.ehRekick;
         const longOk = style !== 'long' || (corner !== null && corner.turn > AI_TUNING.longRekickTurn) || eh > 1.0;
         if (pr.dTicks > A.rekTicks && eh > reKick && this.rek === 0 && longOk) { this.rek = 1; drift = false; }
         else drift = true;
@@ -695,6 +700,13 @@ class BotDriver implements AiDriverEx {
       } else if (this.cBrakeTurn && !this.bturnDone && corner !== null && corner.dir === dd && inCorner && eh > AI_TUNING.bturnEh && pr.dTicks >= 2) {
         // brake drift turn (고속턴) on a rolled hairpin: one short brake tap turns the nose at twice the yaw rate
         this.bturnDone = true; this.bturnLeft = AI_TUNING.bturnFrames;
+      }
+      // (the band test has a wire-step margin: 0.3 is sent as 38/127 = 0.299, inside the band)
+      if (!this.dragging && AI_TUNING.dragAvoid && pr.boost > 0 && pr.sb >= P.dragExitLo && sIn > -P.dragNeutral - 0.012 && sIn < P.dragNeutral + 0.012) {
+        // no unplanned drag: a boosted drift sliding in the drag window with the wheel near centre would enter the drag
+        // state by itself (15-driving-techniques §4.5). A corner without a drag plan (not eligible, or not rolled for
+        // this tier) keeps the wheel just outside the neutral band instead — the technique is a choice, not an accident
+        sIn = sIn >= 0 ? P.dragNeutral + 0.012 : -P.dragNeutral - 0.012; // 40/127 on the wire
       }
       steer = sIn * dd;
       // throttle off during the counter-steer sets up the instant-boost edge (only when this drift plans one)
