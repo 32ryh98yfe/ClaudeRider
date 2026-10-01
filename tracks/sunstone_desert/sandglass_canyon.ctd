@@ -56,20 +56,125 @@ ZONE surface from=@sandfall_1+40 to=@sandfall_1+54 d=[-7,-2] surf=sand
 ZONE surface from=@sandfall_2+10 to=@sandfall_2+24 d=[-7,-2] surf=sand
 
 # ---- look & dressing (Sunstone Desert kit; art bible: harsh noon in the slot canyon) ----
-THEME sunstone_desert sky=day time=12:00 scatter=mesa,cactus,dune density=4 hills=10
-PROPS kind=clay_pots from=5 to=88 side=R every=16 offset=2 seed=61
-PROPS kind=scaffold from=10 to=88 side=L every=26 offset=3 seed=62
-PROPS kind=canyon_wall from=140 to=306 side=both every=20 offset=2 scale=0.9-1.2 seed=63
+# 2026-10 stylized pass (docs/design/34-stylized-pass.md, render-only: the .ctrk is unchanged): blue gradient sky and a
+# neutral grade instead of the peach haze; crisp banded strata; the rim start straight gets a grandstand, crowd,
+# sponsor boards and lantern posts; the whole lap gets dry tufts, pebbles, desert blooms, scrub, small cacti, sandstone
+# boulders, saguaros and acacias, with buttes and mesas on the horizon. Canyon slabs and pillars are fitted per side so
+# no footprint reaches into the road on the insides of the S-chains and hairpins (the T1 mesa moved off the road).
+THEME sunstone_desert sky=day time=12:00 scatter=cactus,bush_cactus,bush_round,bush_round,rock_cluster,rock_cluster,tree_round_big,rock_pebbles,grass_tuft density=30 hills=10 fogNear=260 fogFar=1600
+PROPS kind=clay_pots from=5 to=88 side=R every=16 offset=5 seed=61
+PROPS kind=scaffold from=60 to=88 side=L every=26 offset=3 seed=62
+# rim start straight: grandstand on the left, crowd and sponsor boards behind the right parapet, lanterns both sides
+PROPS kind=grandstand from=38 to=39 side=L every=100 offset=4.5 seed=161
+PROPS kind=flag_pole from=22 to=58 side=L every=6 offset=2.2 seed=162
+PROPS kind=ad_board_a from=4 to=88 side=R every=24 offset=0.4 seed=163
+PROPS kind=ad_board_b from=12 to=88 side=R every=24 offset=0.4 seed=164
+PROPS kind=ad_board_c from=20 to=88 side=R every=24 offset=0.4 seed=165
+PROPS kind=spectators from=14 to=86 side=R every=24 offset=2.2 jitter=1 seed=166
+PROPS kind=lamp_post from=2 to=90 side=both every=20 offset=1.4 seed=167
+PROPS kind=ad_board_b from=1898 to=1949 side=both every=16 offset=0.4 scale=1.3-1.3 seed=168
+PROPS kind=ad_board_a from=1906 to=1949 side=both every=16 offset=0.4 scale=1.3-1.3 seed=169
+# T1 (rim drop-in, a right-hander): chevron boards raised above the 1.4 m rock wall on the outside
+PROPS kind=ad_board_b from=94 to=136 side=L every=9 offset=2.4 scale=1.45-1.45 seed=170
+# ---- fitted rows (canyon slabs/pillars, saguaros, acacias, buttes, mesas, dunes): every footprint, over the
+# whole jitter band at the largest scale, stays clear of every road band on this folded lap
+# slot canyon: strata slabs and pillars fitted per side (no footprint inside any road band)
+PROPS kind=canyon_wall from=140 to=196 side=L every=14 offset=2.5 seed=301
+PROPS kind=canyon_wall from=210 to=210 side=L every=14 offset=3.5 seed=302
+PROPS kind=canyon_wall from=224 to=224 side=L every=14 offset=7 seed=303
+PROPS kind=canyon_wall from=238 to=238 side=L every=14 offset=2.5 seed=304
+PROPS kind=canyon_wall from=252 to=252 side=L every=14 offset=3.5 seed=305
+PROPS kind=canyon_wall from=266 to=294 side=L every=14 offset=7 seed=306
+PROPS kind=canyon_wall from=140 to=224 side=R every=14 offset=2.5 seed=307
+PROPS kind=canyon_pillar from=238 to=252 side=R every=14 offset=3 seed=308
+PROPS kind=canyon_wall from=266 to=266 side=R every=14 offset=5 seed=309
+PROPS kind=canyon_wall from=280 to=294 side=R every=14 offset=2.5 seed=310
+PROPS kind=canyon_pillar from=364 to=364 side=L every=14 offset=3 seed=311
+PROPS kind=canyon_wall from=364 to=406 side=R every=14 offset=2.5 seed=312
+PROPS kind=canyon_pillar from=455 to=581 side=R every=14 offset=3 seed=313
+PROPS kind=canyon_wall from=595 to=623 side=R every=14 offset=2.5 seed=314
+PROPS kind=canyon_wall from=936 to=992 side=L every=14 offset=2.5 seed=315
+PROPS kind=canyon_wall from=1006 to=1034 side=L every=14 offset=3.5 seed=316
+PROPS kind=canyon_wall from=1048 to=1048 side=L every=14 offset=2.5 seed=317
+PROPS kind=canyon_wall from=936 to=964 side=R every=14 offset=2.5 seed=318
+PROPS kind=canyon_wall from=978 to=978 side=R every=14 offset=3.5 seed=319
+PROPS kind=canyon_wall from=992 to=1034 side=R every=14 offset=2.5 seed=320
+PROPS kind=canyon_wall from=1048 to=1048 side=R every=14 offset=3.5 seed=321
+PROPS kind=canyon_wall from=1800 to=1870 side=L every=14 offset=2.5 seed=322
+# saguaros along the rim, the sweeper and the dunes
+PROPS kind=cactus from=634 to=796 side=L every=18 offset=5 jitter=4 seed=330
+PROPS kind=cactus from=634 to=796 side=R every=18 offset=5 jitter=4 seed=331
+PROPS kind=cactus from=1296 to=1332 side=L every=18 offset=5 jitter=4 seed=332
+PROPS kind=cactus from=1296 to=1332 side=R every=18 offset=5 jitter=4 seed=333
+PROPS kind=cactus from=1605 to=1677 side=L every=18 offset=5 jitter=4 seed=334
+PROPS kind=cactus from=1605 to=1713 side=R every=18 offset=5 jitter=4 seed=335
+# middle distance: saguaros and acacias wherever the lap leaves room
+PROPS kind=cactus from=0 to=341 side=L every=31 offset=9 jitter=16 scale=0.8-1.3 seed=350
+PROPS kind=cactus from=434 to=434 side=L every=31 offset=9 jitter=16 scale=0.8-1.3 seed=351
+PROPS kind=cactus from=744 to=1178 side=L every=31 offset=9 jitter=16 scale=0.8-1.3 seed=352
+PROPS kind=cactus from=1271 to=1674 side=L every=31 offset=9 jitter=16 scale=0.8-1.3 seed=353
+PROPS kind=cactus from=1798 to=1922 side=L every=31 offset=9 jitter=16 scale=0.8-1.3 seed=354
+PROPS kind=cactus from=0 to=434 side=R every=31 offset=9 jitter=16 scale=0.8-1.3 seed=355
+PROPS kind=cactus from=589 to=1922 side=R every=31 offset=9 jitter=16 scale=0.8-1.3 seed=356
+PROPS kind=tree_round_big from=0 to=82 side=L every=41 offset=16 jitter=20 scale=0.8-1.2 seed=380
+PROPS kind=tree_round_big from=164 to=328 side=L every=41 offset=16 jitter=20 scale=0.8-1.2 seed=381
+PROPS kind=tree_round_big from=451 to=492 side=L every=41 offset=32 jitter=20 scale=0.8-1.2 seed=382
+PROPS kind=tree_round_big from=738 to=779 side=L every=41 offset=16 jitter=20 scale=0.8-1.2 seed=383
+PROPS kind=tree_round_big from=902 to=1148 side=L every=41 offset=16 jitter=20 scale=0.8-1.2 seed=384
+PROPS kind=tree_round_big from=1230 to=1230 side=L every=41 offset=24 jitter=20 scale=0.8-1.2 seed=385
+PROPS kind=tree_round_big from=1271 to=1681 side=L every=41 offset=16 jitter=20 scale=0.8-1.2 seed=386
+PROPS kind=tree_round_big from=1722 to=1763 side=L every=41 offset=32 jitter=20 scale=0.8-1.2 seed=387
+PROPS kind=tree_round_big from=1804 to=1927 side=L every=41 offset=16 jitter=20 scale=0.8-1.2 seed=388
+PROPS kind=tree_round_big from=0 to=410 side=R every=41 offset=16 jitter=20 scale=0.8-1.2 seed=389
+PROPS kind=tree_round_big from=615 to=1927 side=R every=41 offset=16 jitter=20 scale=0.8-1.2 seed=390
+# horizon: buttes and mesas
+PROPS kind=butte from=0 to=0 side=L every=70 offset=110 jitter=40 scale=0.7-1.4 seed=410
+PROPS kind=butte from=70 to=70 side=L every=70 offset=140 jitter=40 scale=0.7-1.4 seed=411
+PROPS kind=butte from=140 to=210 side=L every=70 offset=110 jitter=40 scale=0.7-1.4 seed=412
+PROPS kind=butte from=280 to=280 side=L every=70 offset=140 jitter=40 scale=0.7-1.4 seed=413
+PROPS kind=butte from=350 to=420 side=L every=70 offset=110 jitter=40 scale=0.7-1.4 seed=414
+PROPS kind=butte from=490 to=560 side=L every=70 offset=80 jitter=40 scale=0.7-1.4 seed=415
+PROPS kind=butte from=630 to=630 side=L every=70 offset=110 jitter=40 scale=0.7-1.4 seed=416
+PROPS kind=butte from=700 to=700 side=L every=70 offset=140 jitter=40 scale=0.7-1.4 seed=417
+PROPS kind=butte from=770 to=770 side=L every=70 offset=110 jitter=40 scale=0.7-1.4 seed=418
+PROPS kind=butte from=840 to=840 side=L every=70 offset=80 jitter=40 scale=0.7-1.4 seed=419
+PROPS kind=butte from=980 to=1120 side=L every=70 offset=140 jitter=40 scale=0.7-1.4 seed=420
+PROPS kind=butte from=1190 to=1260 side=L every=70 offset=80 jitter=40 scale=0.7-1.4 seed=421
+PROPS kind=butte from=1330 to=1330 side=L every=70 offset=140 jitter=40 scale=0.7-1.4 seed=422
+PROPS kind=butte from=1400 to=1400 side=L every=70 offset=80 jitter=40 scale=0.7-1.4 seed=423
+PROPS kind=butte from=1680 to=1680 side=L every=70 offset=80 jitter=40 scale=0.7-1.4 seed=424
+PROPS kind=butte from=1890 to=1890 side=L every=70 offset=110 jitter=40 scale=0.7-1.4 seed=425
+PROPS kind=butte from=0 to=980 side=R every=70 offset=80 jitter=40 scale=0.7-1.4 seed=426
+PROPS kind=butte from=1120 to=1120 side=R every=70 offset=110 jitter=40 scale=0.7-1.4 seed=427
+PROPS kind=butte from=1330 to=1330 side=R every=70 offset=110 jitter=40 scale=0.7-1.4 seed=428
+PROPS kind=butte from=1400 to=1890 side=R every=70 offset=80 jitter=40 scale=0.7-1.4 seed=429
+PROPS kind=mesa from=0 to=880 side=L every=110 offset=150 jitter=60 scale=0.9-1.6 seed=440
+PROPS kind=mesa from=990 to=990 side=L every=110 offset=190 jitter=60 scale=0.9-1.6 seed=441
+PROPS kind=mesa from=1100 to=1320 side=L every=110 offset=150 jitter=60 scale=0.9-1.6 seed=442
+PROPS kind=mesa from=1430 to=1430 side=L every=110 offset=190 jitter=60 scale=0.9-1.6 seed=443
+PROPS kind=mesa from=1650 to=1650 side=L every=110 offset=190 jitter=60 scale=0.9-1.6 seed=444
+PROPS kind=mesa from=1760 to=1760 side=L every=110 offset=230 jitter=60 scale=0.9-1.6 seed=445
+PROPS kind=mesa from=0 to=990 side=R every=110 offset=150 jitter=60 scale=0.9-1.6 seed=446
+PROPS kind=mesa from=1100 to=1210 side=R every=110 offset=190 jitter=60 scale=0.9-1.6 seed=447
+PROPS kind=mesa from=1320 to=1320 side=R every=110 offset=230 jitter=60 scale=0.9-1.6 seed=448
+PROPS kind=mesa from=1430 to=1870 side=R every=110 offset=150 jitter=60 scale=0.9-1.6 seed=449
+PROPS kind=mesa from=1060 to=1150 side=L every=45 offset=30 jitter=10 scale=0.8-1.3 seed=470
+PROPS kind=mesa from=1060 to=1150 side=R every=45 offset=30 jitter=10 scale=0.8-1.3 seed=471
+# sand-flat dunes
+PROPS kind=dune from=1466 to=1546 side=L every=20 offset=16 jitter=6 scale=0.8-1.2 seed=480
+PROPS kind=dune from=1466 to=1546 side=R every=20 offset=16 jitter=6 scale=0.8-1.2 seed=481
 PROPS kind=rope_post from=309 to=360 side=both every=6 offset=0.2 scale=1-1 seed=64
-PROPS kind=canyon_wall from=364 to=412 side=both every=20 offset=2 seed=65
-PROPS kind=canyon_wall from=455 to=630 side=R every=22 offset=3 seed=66
-PROPS kind=cactus from=634 to=806 side=both every=18 offset=5 jitter=4 seed=67
-PROPS kind=canyon_wall from=936 to=1056 side=both every=22 offset=3 seed=68
-PROPS kind=mesa from=1060 to=1176 side=both every=45 offset=30 jitter=10 scale=0.8-1.3 seed=69
-PROPS kind=cactus from=1296 to=1332 side=both every=10 offset=4 seed=70
-PROPS kind=dune from=1466 to=1552 side=both every=20 offset=8 jitter=6 scale=0.8-1.3 seed=71
-PROPS kind=cactus from=1605 to=1718 side=both every=16 offset=5 jitter=4 seed=72
-PROPS kind=canyon_wall from=1800 to=1880 side=L every=22 offset=3 seed=73
+# dressing layers over the whole lap: ground cover at the wall, scrub and boulders behind it, saguaros and acacias in
+# the middle distance, buttes and mesas on the horizon (rows inside the canyon slabs are simply hidden)
+PROPS kind=grass_tuft side=both every=1.3 offset=0.3 jitter=9 scale=0.9-1.6 seed=171
+PROPS kind=grass_tuft from=0.6 side=both every=2.6 offset=2.5 jitter=14 scale=0.8-1.4 seed=181
+PROPS kind=rock_pebbles side=both every=7 offset=0.6 jitter=5 scale=0.8-1.4 seed=172
+PROPS kind=flower_patch side=both every=11 offset=1 jitter=9 scale=0.8-1.3 seed=173
+PROPS kind=bush_round side=both every=13 offset=3 jitter=9 scale=0.7-1.3 seed=174
+PROPS kind=bush_cactus side=both every=19 offset=2.5 jitter=10 scale=0.8-1.3 seed=175
+PROPS kind=rock_cluster side=both every=23 offset=4 jitter=12 scale=0.6-1.5 seed=176
+PROP kind=hot_air_balloon at=(60.0,48.0,-70.0) yaw=0 scale=1
+PROP kind=hot_air_balloon at=(-60.0,56.0,-150.0) yaw=40 scale=1.2
 # landmarks: the three sandfalls, obelisk hairpin, the portal marker, the gorge mesas and lip scaffolds, the u-turn
 # and sweeper buttes, the obelisk gate and the finish gate
 PROP kind=sandfall at=(155.9,-7.4,118.8) yaw=82 scale=1
@@ -79,7 +184,7 @@ PROP kind=obelisk at=(322.3,-12.2,133.7) yaw=-99 scale=1.2
 PROP kind=scaffold at=(345.3,-11.9,146.8) yaw=150 scale=1
 PROP kind=token_monolith at=(325.5,-5.6,105.9) yaw=80 scale=1
 PROP kind=mesa at=(190.3,0.7,-28.4) yaw=-150 scale=1.3
-PROP kind=mesa at=(111.7,0.9,5.5) yaw=30 scale=1.1
+PROP kind=mesa at=(100.0,-0.3,22.0) yaw=30 scale=1.0
 PROP kind=scaffold at=(166.3,0.7,-9.9) yaw=-150 scale=1
 PROP kind=scaffold at=(149.0,0.7,0.1) yaw=30 scale=1
 PROP kind=mesa at=(-119.1,-5.3,-130.7) yaw=-178 scale=1
@@ -87,6 +192,6 @@ PROP kind=mesa at=(-74.9,-5.3,-222.1) yaw=2 scale=1.2
 PROP kind=sandstone_arch at=(-161.5,-5.3,-91.9) yaw=-150 scale=1
 PROP kind=obelisk at=(-145.5,-5.3,-62.4) yaw=43 scale=1
 PROP kind=obelisk at=(-129.4,-5.3,-77.2) yaw=-137 scale=1
-PROP kind=obelisk at=(-20.0,-0.9,12.0) yaw=90 scale=1
-PROP kind=obelisk at=(-20.0,-0.9,-12.0) yaw=-90 scale=1
+PROP kind=obelisk at=(-50.0,-1.5,13.0) yaw=90 scale=1
+PROP kind=obelisk at=(-50.0,-1.5,-13.0) yaw=-90 scale=1
 PROP kind=sandstone_arch at=(-40.0,-1.5,0.0) yaw=-90 scale=1

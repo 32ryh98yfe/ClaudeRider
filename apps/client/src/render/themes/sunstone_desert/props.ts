@@ -3,29 +3,106 @@
 import * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
+import { TRACKSIDE_PROPS } from '../../props/trackside.ts';
 import { merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../../util/geo.ts';
 import { arcTube, buntingLine, dome, lathe, part, prism, seeded, tubeThrough } from '../clayhill_village/toyshapes.ts';
 
 const SAND = '#e8c27a', SANDSTONE = '#c98b4e', SANDSTONE_DK = '#a86f3c', OASIS = '#3fb8af', TERRA = '#c96442', CREAM = '#f4e3c3';
-const GOLD = '#e0b04b', PALM = '#4e9f3d', PALM_DK = '#3c7f2f', TRUNK = '#8a6340', INK = '#2a2622';
+const GOLD = '#e0b04b', PALM = '#4e9f3d', PALM_DK = '#3c7f2f', TRUNK = '#8a6340', INK = '#2a2622', WOOD_DK = '#6b4a33';
 const RUGS = ['#b53333', '#3fb8af', '#e0b04b', '#6a4c93', '#c96442'];
+/** Dry ground cover (straw, khaki, olive) and desert scrub greens: mid-value, never lime. */
+const DRY = ['#c8b06a', '#a99f5a', '#8f9a4e', '#b9a25e'] as const;
+const SCRUB = ['#7d9150', '#8fa05c', '#6a8045'] as const;
+const STRATA = ['#c27c52', '#e2bf93', '#b06a45', '#d8a06e', '#9e5d3c'] as const;
 
 const lit = (): THREE.Material => MaterialLibrary.vertexLit(0.85, 0);
-const toy = (): THREE.Material => MaterialLibrary.vinyl({ rim: '#ffe2b8', clearcoat: 0.6, roughness: 0.42 });
+// statues, pots and carts are fired clay, stone and painted wood: satin-matte (gloss stays on kart paint, 34 §1.3)
+const toy = (): THREE.Material => MaterialLibrary.vertexLit(0.62, 0);
 const glow = (): THREE.Material => MaterialLibrary.emissiveVertex(3);
 
-/** Layered sandstone strata: stacked slightly offset slabs. */
-function strata(w: number, h: number, d: number, layers: number, seed: number): THREE.BufferGeometry[] {
+/**
+ * Layered sandstone strata: stacked, slightly offset slabs with crisp (small-radius) edges in an ordered band palette
+ * (deep red-rock, pale cream, terracotta, ochre). `lean` steps each layer back along −X, so a canyon face opens upward.
+ */
+function strata(w: number, h: number, d: number, layers: number, seed: number, lean = 0): THREE.BufferGeometry[] {
   const r = seeded(seed), out: THREE.BufferGeometry[] = [];
-  const cols = [SANDSTONE, '#d49a5c', SANDSTONE_DK, '#dba76a', '#b97a45'];
+  const cols = STRATA;
   for (let i = 0; i < layers; i++) {
-    const lh = h / layers, sx = 1 - r() * 0.12, sz = 1 - r() * 0.12;
-    out.push(part(rbox(w * sx, lh * 1.02, d * sz, Math.min(0.6, lh * 0.3), 2), cols[i % cols.length]!, (r() - 0.5) * 0.8, lh * (i + 0.5), (r() - 0.5) * 0.8));
+    const lh = h / layers, sx = 1 - r() * 0.1, sz = 1 - r() * 0.1;
+    out.push(part(rbox(w * sx, lh * 1.02, d * sz, Math.min(0.22, lh * 0.1), 2), cols[i % cols.length]!, (r() - 0.5) * 0.6 - i * lean, lh * (i + 0.5), (r() - 0.5) * 0.6, 0, 0, 0, 1, 1, 1, 0.03, seed + i));
   }
   return out;
 }
 
+/** Low-detail palm (far groves): a leaning tube trunk and five drooping fronds. */
+function palmLite(x: number, z: number, k: number, yaw: number, seed: number): THREE.BufferGeometry[] {
+  const lean = 0.6 + (seed % 3) * 0.3, c = Math.cos(yaw), s = Math.sin(yaw);
+  const top: [number, number, number] = [x + c * lean * k, 6.2 * k, z + s * lean * k];
+  const out = [part(tubeThrough([[x, -0.5, z], [x + c * lean * 0.3 * k, 3 * k, z + s * lean * 0.3 * k], top], 0.22 * k, 6, 5), TRUNK)];
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2 + seed;
+    out.push(part(cone(0.5 * k, 3.2 * k, 4), i % 2 ? PALM : PALM_DK, top[0] + Math.cos(a) * 1.4 * k, top[1] - 0.25 * k, top[2] + Math.sin(a) * 1.4 * k, 0, -a, Math.PI / 2 + 0.4, 1, 1, 0.25));
+  }
+  return out;
+}
+
+/**
+ * Bazaar street frontage (local +X faces the road): a two-storey adobe house 6.2 m wide standing just behind the
+ * 2.5 m building wall, with shuttered windows, a crenellated roofline and a striped cloth awning that leans out over
+ * the wall top (never down into the road). Three looks so a row of a/b/c reads as a varied but ordered street.
+ */
+function bazaarHouse(v: 'a' | 'b' | 'c'): THREE.BufferGeometry {
+  const W = 6.2, D = 5, H = 6.4;
+  const body = v === 'a' ? '#ecd3a6' : v === 'b' ? '#e6b98c' : '#f1e6d2';
+  const trim = v === 'a' ? OASIS : v === 'b' ? TERRA : '#2f6f9a';
+  const cloth = v === 'a' ? [CREAM, OASIS] : v === 'b' ? [CREAM, TERRA] : ['#f5c230', '#c8402e'];
+  const p: THREE.BufferGeometry[] = [
+    part(box(D + 0.3, 0.9, W + 0.2), SANDSTONE_DK, -D / 2, -0.15, 0),                        // plinth into the sand
+    part(rbox(D, H, W, 0.12, 2), body, -D / 2, H / 2, 0),
+    part(box(D + 0.2, 0.35, W + 0.2), '#d9bf94', -D / 2, H + 0.12, 0),                       // roof slab
+  ];
+  // crenellated parapet along the street face
+  for (let k = 0; k < 6; k++) p.push(part(box(0.35, 0.45, 0.6), '#d9bf94', -0.17, H + 0.5, -W / 2 + 0.5 + k * 1.04));
+  // upper-storey windows: dark recess, rounded head, shutters in the trim colour
+  for (const z of [-1.6, 1.6]) {
+    p.push(part(box(0.08, 1.1, 0.8), '#3a2f28', 0.02, 4.4, z), part(cyl(0.4, 0.4, 0.08, 10), '#3a2f28', 0.02, 4.95, z, 0, 0, Math.PI / 2));
+    p.push(part(box(0.06, 1.15, 0.26), trim, 0.06, 4.4, z - 0.56), part(box(0.06, 1.15, 0.26), trim, 0.06, 4.4, z + 0.56));
+    p.push(part(box(0.3, 0.1, 1.0), '#d9bf94', 0.12, 3.8, z));                                // sill
+  }
+  // trim band under the roof
+  p.push(part(box(0.06, 0.22, W), trim, 0.03, H - 0.45, 0));
+  // striped awning over the wall: 3.0 m at its lip, 3.7 m at the house, 1.15 m deep
+  for (let i = 0; i < 8; i++) p.push(part(box(1.25, 0.07, W / 8 - 0.02), cloth[i % 2]!, 0.5, 3.35, -W / 2 + W / 16 + (i * W) / 8, 0, 0, -0.55));
+  p.push(part(box(0.06, 0.18, W), cloth[1]!, 1.06, 2.98, 0));                                  // valance
+  for (const z of [-W / 2 + 0.2, W / 2 - 0.2]) p.push(part(box(0.06, 0.06, 0.06), WOOD_DK, 1.0, 3.0, z));
+  if (v === 'b') {
+    // rug hung over a small balcony rail
+    p.push(part(box(0.9, 0.12, 2.4), WOOD_DK, 0.35, 5.25, 0), part(box(0.06, 0.5, 2.4), WOOD_DK, 0.78, 5.55, 0));
+    p.push(part(box(0.05, 1.3, 1.5), RUGS[0]!, 0.82, 5.05, 0), part(box(0.06, 0.8, 1.0), RUGS[2]!, 0.84, 5.05, 0), part(box(0.07, 0.3, 0.4), RUGS[1]!, 0.86, 5.05, 0));
+  } else if (v === 'c') {
+    // small dome and gold finial on the back of the roof
+    p.push(part(cyl(1.3, 1.3, 0.6, 14), '#d9bf94', -3.2, H + 0.6, -1.2), part(dome(1.25, 14, 6), CREAM, -3.2, H + 0.9, -1.2), part(cyl(0.08, 0.08, 0.7, 6), GOLD, -3.2, H + 2.4, -1.2));
+  } else {
+    // potted palm on the roof terrace
+    p.push(part(lathe([[0, 0], [0.4, 0.05], [0.45, 0.5], [0.35, 0.6]], 8), TERRA, -1.6, H + 0.3, 1.8));
+    for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; p.push(part(cone(0.22, 1.3, 4), i % 2 ? PALM : PALM_DK, -1.6 + Math.cos(a) * 0.55, H + 1.25, 1.8 + Math.sin(a) * 0.55, 0, -a, Math.PI / 2 - 0.5, 1, 1, 0.3)); }
+  }
+  return merge(p);
+}
+
+/** Bronze lantern post with a pierced brass lantern (unlit by day; the street lights are the lantern strings). */
+function lanternPost(): THREE.BufferGeometry {
+  const BR = '#5a4632';
+  return merge([
+    part(cyl(0.2, 0.26, 0.4, 8), SANDSTONE_DK, 0, 0.18, 0), part(cyl(0.07, 0.09, 3.6, 8), BR, 0, 2.1, 0),
+    part(tubeThrough([[0, 3.7, 0], [0.35, 4.05, 0], [0.75, 3.95, 0]], 0.04, 8, 4), BR),
+    part(lathe([[0, -0.32], [0.2, -0.2], [0.24, 0.1], [0.12, 0.28], [0.03, 0.42]], 8), GOLD, 0.75, 3.5, 0),
+    part(cyl(0.15, 0.15, 0.3, 8), '#ffe2a8', 0.75, 3.48, 0),
+  ]);
+}
+
 export const SUNSTONE_PROPS: Record<string, PropFactory> = {
+  lamp_post: { maxInstances: 200, build: () => ({ geometry: lanternPost(), material: lit(), castShadow: true }) },
   palm: {
     maxInstances: 300,
     build: () => {
@@ -159,9 +236,15 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
     build: () => ({ geometry: merge(strata(14, 22, 12, 6, 21).map((g) => place(g, 0, -4, 0))), material: lit(), castShadow: true }),
   },
   canyon_wall: {
-    // tall strata slab lining the slot canyon; its face (+X) faces the road, it runs 24 m along the track
-    maxInstances: 200,
-    build: () => ({ geometry: merge(strata(7, 26, 24, 7, 17).map((g) => place(g, -3.5, -6, 0))), material: lit(), castShadow: true }),
+    // tall strata slab lining the slot canyon: its face (+X) faces the road, it runs 16 m along the track (short enough
+    // to follow the S-chains) and its layers step back as they rise so the corridor opens to the sky
+    maxInstances: 300,
+    build: () => ({ geometry: merge(strata(7, 24, 16, 7, 17, 0.3).map((g) => place(g, -3.5, -5, 0))), material: lit(), castShadow: true }),
+  },
+  canyon_pillar: {
+    // narrow strata column for the insides of tight canyon bends, where a long slab would cut across the road
+    maxInstances: 300,
+    build: () => ({ geometry: merge(strata(5, 20, 6, 6, 23, 0.2).map((g) => place(g, -2.5, -4, 0))), material: lit(), castShadow: true }),
   },
   scaffold: {
     maxInstances: 20,
@@ -179,9 +262,9 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
     build: () => ({ geometry: merge([part(cyl(0.12, 0.15, 1.6, 6), '#7a522e', 0, 0.8, 0), part(cyl(0.035, 0.035, 6.2, 4), '#d9c7a0', 0, 1.35, 0, Math.PI / 2, 0, 0), part(sph(0.16, 6, 4), '#6b4a33', 0, 1.62, 0)]), material: lit() }),
   },
   sandfall: {
-    // a pale luminous sheet of falling sand pouring off the canyon rim (faces the road)
+    // a pale sheet of falling sand (lit, not emissive: bloom stays on real lights) pouring off the canyon rim (faces the road)
     maxInstances: 20,
-    build: () => ({ geometry: merge([part(box(0.4, 22, 5), '#f6d7a7', 0, 11, 0), part(sph(3, 10, 6), '#f0cf96', 1.5, 0, 0, 0, 0, 0, 1, 0.35, 1)]), material: MaterialLibrary.emissiveVertex(0.9) }),
+    build: () => ({ geometry: merge([part(box(0.4, 22, 5), '#f6d7a7', 0, 11, 0), part(sph(3, 10, 6), '#f0cf96', 1.5, 0, 0, 0, 0, 0, 1, 0.35, 1)]), material: lit() }),
   },
   oasis_pond: {
     maxInstances: 4,
@@ -206,6 +289,175 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
       return { geometry: merge(p), material: lit(), castShadow: true };
     },
   },
+  // ---- dressing pass (2026-10, docs/design/34-stylized-pass.md) --------------------------------------------------
+  // Desert versions of the shared ground-cover / shrub / tree kinds (same names, so they win over trackside.ts), plus
+  // pebbles, small cacti, palms, a bazaar street frontage and market clutter. Everything here is matte (vertexLit /
+  // foliageLit); plant kinds are named so TrackView's SCATTER / tree|bush patterns thin them on Low and Medium.
+  grass_tuft: {
+    // dry desert tuft: straw, khaki and olive blades fanning out of the sand
+    maxInstances: 6000,
+    build: () => {
+      const p: THREE.BufferGeometry[] = [], r = seeded(141);
+      for (let i = 0; i < 8; i++) {
+        const a = r() * Math.PI * 2, d = r() * 0.22, h = 0.26 + r() * 0.38, t = 0.35 + r() * 0.5;
+        p.push(part(cone(0.045, h, 3), DRY[i % DRY.length]!, Math.cos(a) * d, h / 2, Math.sin(a) * d, Math.sin(a) * t, a, -Math.cos(a) * t));
+      }
+      return { geometry: merge(p), material: MaterialLibrary.foliageLit() };
+    },
+  },
+  flower_patch: {
+    // desert bloom: a grey-green succulent rosette with two flower stalks (coral and yellow)
+    maxInstances: 3000,
+    build: () => {
+      const p: THREE.BufferGeometry[] = [];
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2, t = i % 2 ? 0.95 : 0.6;
+        p.push(part(cone(0.075, 0.48, 4), i % 2 ? '#7f9a6c' : '#6c8a5e', Math.cos(a) * 0.14, 0.18, Math.sin(a) * 0.14, Math.sin(a) * t, 0, -Math.cos(a) * t));
+      }
+      p.push(part(cone(0.09, 0.4, 4), '#86a374', 0, 0.2, 0));
+      p.push(part(cyl(0.014, 0.02, 0.62, 4), '#6c8a5e', 0.12, 0.31, 0.05), part(ico(0.075, 0), '#f0705a', 0.12, 0.64, 0.05));
+      p.push(part(cyl(0.014, 0.02, 0.48, 4), '#6c8a5e', -0.1, 0.24, -0.08), part(ico(0.065, 0), '#f2c14e', -0.1, 0.5, -0.08));
+      return { geometry: merge(p), material: MaterialLibrary.foliageLit() };
+    },
+  },
+  bush_round: {
+    // low desert scrub: flattened sage and olive mounds (no lime)
+    maxInstances: 1500,
+    build: () => ({
+      geometry: merge([
+        part(ico(0.8, 1), SCRUB[0], 0, 0.42, 0, 0, 0, 0, 1.2, 0.68, 1.1, 0.08, 3),
+        part(ico(0.58, 1), SCRUB[1], 0.6, 0.5, 0.3, 0, 0, 0, 1, 0.75, 1, 0.08, 5),
+        part(ico(0.5, 1), SCRUB[2], -0.55, 0.34, -0.25, 0, 0, 0, 1, 0.72, 1, 0.08, 7),
+        part(ico(0.18, 0), '#e7c65a', 0.2, 0.92, -0.2), part(ico(0.15, 0), '#e7c65a', -0.4, 0.66, 0.3),
+      ]), material: MaterialLibrary.foliageLit(), castShadow: true,
+    }),
+  },
+  rock_cluster: {
+    // sandstone boulders: faceted, warm, one flat-topped slab
+    maxInstances: 800,
+    build: () => ({
+      geometry: merge([
+        part(ico(0.75, 0), '#c2916a', 0, 0.3, 0, 0.3, 0.5, 0.2, 1.3, 0.7, 1.0, 0.1, 11),
+        part(ico(0.48, 0), '#ad7d58', 0.85, 0.18, 0.3, 0.2, 1.2, 0.1, 1.1, 0.65, 1, 0.1, 13),
+        part(ico(0.32, 0), '#d4a67c', -0.65, 0.12, 0.5, 0, 0.4, 0.3, 1, 0.8, 1.2, 0.1, 17),
+        part(rbox(0.9, 0.3, 0.7, 0.08, 1), '#b98a62', -0.3, 0.12, -0.7, 0, 0.6, 0),
+      ]), material: lit(), castShadow: true,
+    }),
+  },
+  rock_pebbles: {
+    // a handful of flat pebbles on the sand (fine ground cover near the walls)
+    maxInstances: 3000,
+    build: () => {
+      const p: THREE.BufferGeometry[] = [], r = seeded(147);
+      const cols = ['#c8a07a', '#b48a64', '#d9b994', '#9c7a5c'];
+      for (let i = 0; i < 7; i++) {
+        const s = 0.08 + r() * 0.16;
+        p.push(part(ico(s, 0), cols[i % cols.length]!, (r() - 0.5) * 1.6, s * 0.3, (r() - 0.5) * 1.6, r(), r() * 3, r(), 1.3, 0.55, 1.1));
+      }
+      return { geometry: merge(p), material: lit() };
+    },
+  },
+  bush_cactus: {
+    // small cactus garden: a barrel cactus, prickly-pear pads and a flower (knee to waist high)
+    maxInstances: 1500,
+    build: () => {
+      const C1 = '#5f9a4c', C2 = '#4f8a42';
+      const p: THREE.BufferGeometry[] = [
+        part(sph(0.34, 10, 7), C1, 0, 0.3, 0, 0, 0, 0, 1, 1.2, 1), part(ico(0.09, 0), '#f25f7a', 0, 0.72, 0),
+        part(sph(0.22, 8, 6), C2, 0.45, 0.2, 0.3, 0, 0, 0, 1, 1.15, 1),
+        part(cyl(0.3, 0.3, 0.08, 10), C1, -0.45, 0.32, -0.15, Math.PI / 2, 0.4, 0, 1, 1, 1.4),
+        part(cyl(0.24, 0.24, 0.07, 10), C2, -0.62, 0.68, -0.05, Math.PI / 2, 0.9, 0.3, 1, 1, 1.4),
+        part(cyl(0.2, 0.2, 0.07, 10), C1, -0.3, 0.7, -0.35, Math.PI / 2, -0.3, -0.3, 1, 1, 1.4),
+        part(ico(0.07, 0), '#f2c14e', -0.66, 0.98, -0.05),
+        part(ico(0.28, 0), '#c8a07a', 0.2, 0.06, -0.45, 0, 0, 0, 1.3, 0.5, 1),
+      ];
+      return { geometry: merge(p), material: MaterialLibrary.foliageLit(), castShadow: true };
+    },
+  },
+  tree_round_big: {
+    // flat-topped acacia: forked trunk under three wide, thin canopy layers (the mid-distance layer)
+    maxInstances: 800,
+    build: () => ({
+      geometry: merge([
+        part(cyl(0.2, 0.32, 3.4, 7), TRUNK, 0, 1.6, 0),
+        part(cyl(0.11, 0.17, 2.4, 6), TRUNK, 0.75, 3.9, 0.1, 0, 0, -0.65), part(cyl(0.11, 0.17, 2.3, 6), TRUNK, -0.7, 3.9, -0.2, 0.15, 0, 0.6),
+        part(ico(2.6, 1), '#6f8f3e', 0, 4.95, 0, 0, 0, 0, 1.25, 0.32, 1.1, 0.08, 3),
+        part(ico(1.9, 1), '#7f9d48', 1.4, 5.35, 0.5, 0, 0, 0, 1.1, 0.34, 1, 0.08, 5),
+        part(ico(1.7, 1), '#5f7f36', -1.35, 5.2, -0.6, 0, 0, 0, 1.1, 0.34, 1, 0.08, 7),
+      ]), material: MaterialLibrary.foliageLit(), castShadow: true,
+    }),
+  },
+  tree_clump: {
+    // far line: a palm grove (five palms of mixed height over scrub mounds) in a 16 m patch
+    maxInstances: 400,
+    build: () => {
+      const p: THREE.BufferGeometry[] = [], r = seeded(149);
+      for (let i = 0; i < 5; i++) p.push(...palmLite((r() - 0.5) * 13, (r() - 0.5) * 13, 0.8 + r() * 0.5, r() * 6.28, i));
+      for (let i = 0; i < 3; i++) p.push(part(ico(1.3, 0), SCRUB[i % 3]!, (r() - 0.5) * 12, 0.4, (r() - 0.5) * 12, 0, r() * 3, 0, 1.4, 0.6, 1.2, 0.08, 31 + i));
+      return { geometry: merge(p), material: MaterialLibrary.foliageLit(), castShadow: true };
+    },
+  },
+  butte: {
+    // distant sandstone butte (far horizon layer on the canyon rim): a stepped strata tower
+    maxInstances: 120,
+    build: () => ({
+      geometry: merge([...strata(16, 14, 14, 4, 37).map((g) => place(g, 0, -3, 0)), ...strata(9, 12, 8, 3, 39).map((g) => place(g, 1, 10.5, -1))]),
+      material: lit(), castShadow: true,
+    }),
+  },
+  // ---- bazaar street frontage and market clutter (sits behind the 2.5 m building wall; awnings overhang its top)
+  bazaar_house_a: { maxInstances: 120, build: () => ({ geometry: bazaarHouse('a'), material: lit(), castShadow: true }) },
+  bazaar_house_b: { maxInstances: 120, build: () => ({ geometry: bazaarHouse('b'), material: lit(), castShadow: true }) },
+  bazaar_house_c: { maxInstances: 120, build: () => ({ geometry: bazaarHouse('c'), material: lit(), castShadow: true }) },
+  spectators_roof: {
+    // the bazaar's grandstand: the shared cheering crowd standing on a house's roof terrace (place it on the same row
+    // grid as `bazaar_house_b`, 1 m further out, so it stands behind the street-side parapet)
+    maxInstances: 120,
+    build: () => {
+      const g = TRACKSIDE_PROPS['spectators']!.build([]).geometry.clone();
+      g.translate(0, 6.42, 0);
+      return { geometry: g, material: lit(), castShadow: true };
+    },
+  },
+  street_bunting: {
+    // a sagging line of cloth pennants across the market street between the house fronts (landmark, local X crosses
+    // the road; lowest point ≈ 5 m above the road)
+    maxInstances: 40,
+    build: () => {
+      const p = buntingLine(-10.8, 10.8, 6.3, 1.3, 0, [TERRA, CREAM, OASIS, GOLD, '#c8402e'], 18);
+      for (const x of [-10.8, 10.8]) p.push(part(box(0.3, 0.3, 0.3), WOOD_DK, x, 6.3, 0));
+      return { geometry: merge(p), material: lit() };
+    },
+  },
+  crate_stack: {
+    // wooden crates, a fruit crate and a grain sack
+    maxInstances: 600,
+    build: () => ({
+      geometry: merge([
+        part(rbox(0.9, 0.8, 0.9, 0.05, 1), '#a57a4c', 0, 0.4, 0), part(rbox(0.92, 0.1, 0.92, 0.03, 1), '#7a522e', 0, 0.62, 0),
+        part(rbox(0.8, 0.7, 0.8, 0.05, 1), '#b88a58', 0.05, 1.15, 0.05, 0, 0.3, 0),
+        part(rbox(0.9, 0.5, 0.9, 0.05, 1), '#a57a4c', 0, 0.25, 1.0, 0, -0.2, 0),
+        ...[0, 1, 2, 3].map((k) => part(sph(0.15, 7, 5), k % 2 ? '#f28b3c' : '#e8c14a', -0.2 + (k % 2) * 0.4, 0.58, 0.8 + (k > 1 ? 0.35 : 0))),
+        part(rbox(0.6, 0.75, 0.5, 0.2, 2), '#e3d2ae', 0.1, 0.37, -0.95, 0, 0.4, 0.08), part(cyl(0.12, 0.2, 0.18, 8), '#d4c09a', 0.1, 0.8, -0.95),
+      ]), material: lit(), castShadow: true,
+    }),
+  },
+  barrel_spice: {
+    // spice market display: open sacks heaped with red, saffron and green spice, a basket and a clay jar
+    maxInstances: 600,
+    build: () => {
+      const p: THREE.BufferGeometry[] = [part(box(1.8, 0.3, 1.4), '#7a522e', 0, 0.15, 0)];
+      const SP = ['#c8402e', '#e8a92a', '#7d9150', '#b8623a'];
+      for (let i = 0; i < 4; i++) {
+        const x = i % 2 ? 0.42 : -0.42, z = i < 2 ? -0.32 : 0.32;
+        p.push(part(lathe([[0, 0], [0.34, 0.02], [0.36, 0.45], [0.3, 0.5]], 9), '#e3d2ae', x, 0.3, z));
+        p.push(part(cone(0.3, 0.26, 9), SP[i]!, x, 0.88, z));
+      }
+      p.push(part(lathe([[0, 0], [0.3, 0.05], [0.4, 0.4], [0.42, 0.45]], 10), '#b98a55', 1.3, 0, 0.2));
+      p.push(part(lathe([[0, 0], [0.28, 0.08], [0.34, 0.5], [0.16, 0.85], [0.18, 0.95]], 10), TERRA, 1.25, 0, -0.55));
+      return { geometry: merge(p), material: lit(), castShadow: true };
+    },
+  },
   // ---- hazards (drawn by render/track/hazards.ts at real size: x across, y up, z along travel) ------------------
   hazard_pot_cart: {
     // bazaar traffic: a toy donkey-less pot cart matching the 4.4 × 2 × 1.8 m traffic contact box
@@ -223,11 +475,13 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
       pots.forEach(([x, z], i) => p.push(part(lathe([[0, 0], [0.3, 0.05], [0.38, 0.35], [0.22, 0.62], [0.16, 0.75]], 10), i % 2 ? TERRA : OASIS, x, 1.0, z)));
       p.push(part(box(0.08, 1.2, 0.08), '#6b4a33', 0.9, 1.6, -1.7), part(box(0.08, 1.2, 0.08), '#6b4a33', -0.9, 1.6, -1.7));
       p.push(part(box(2.1, 0.08, 1.4), CREAM, 0, 2.2, -1.2), part(box(2.1, 0.1, 0.3), RUGS[0]!, 0, 2.22, -1.2));
-      return { geometry: merge(p), material: MaterialLibrary.vinyl({ rim: '#ffe2a0', clearcoat: 0.5, roughness: 0.45 }), castShadow: true };
+      return { geometry: merge(p), material: toy(), castShadow: true };
     },
   },
 };
 // the traffic default key (`hazard_car`) resolves to the pot cart too, so a HAZ without `prop=` still fits the theme
 SUNSTONE_PROPS['hazard_car'] = SUNSTONE_PROPS['hazard_pot_cart']!;
+// dressing rows use `tree_palm` (same palm) so Low / Medium thin them like every other tree kind
+SUNSTONE_PROPS['tree_palm'] = SUNSTONE_PROPS['palm']!;
 
 export const SUNSTONE_PALETTE = { SAND, SANDSTONE, OASIS, TERRA, CREAM } as const;
