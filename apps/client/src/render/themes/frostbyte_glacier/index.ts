@@ -7,25 +7,29 @@ import { MaterialLibrary } from '../../materials/library.ts';
 import { makeKit, type ThemeKit, type ThemeLook } from '../kit.ts';
 import { FROSTBYTE_PROPS } from './props.ts';
 import { softAoTerrain } from '../sunstone_desert/terrain.ts';
+import { halfpipeRoad } from './halfpipe.ts';
 
 // Stylized arcade read (2026-10 pass, docs/design/34-stylized-pass.md): snow is matte white-blue around #e8eef5 (never
 // clipped to white under ACES), the road is a cool neutral grey so karts and the next corner read first, kerbs are red
 // and white against the snow, barriers are white panels with a navy band, and only ice is glossy.
 export const FROSTBYTE_LOOK: Partial<ThemeLook> = {
-  road: { style: 'asphalt', a: '#656a71', b: '#71767d', line: '#cdeefa' },
+  // a light warm-grey road under the overcast (the cooler slate read dark navy against the snow)
+  road: { style: 'asphalt', a: '#7a7876', b: '#858381', line: '#cdeefa' },
   shoulder: { a: '#dde6ef', b: '#e6edf4' },
   terrain: { a: '#e3eaf2', b: '#d5dfe9', rock: '#8e99a7' },
   wall: { kind: 'stone', a: '#d2dde7', b: '#97a7b6' },
   kerb: ['#d9453c', '#f1f4f7'],
   sky: { turbidity: 6, rayleigh: 0.9, elevationDeg: 28, azimuthDeg: 200, exposure: 0.85, top: '#9db7d2', bottom: '#cdd9e5' },
-  sun: { color: '#eef6ff', intensity: 1.6 },
+  // note: on overcast and aurora skies resolveEnvLook uses the sky kind's key (2.6 × sunK), so this only applies to
+  // a day-like glacier track; Snowglobe gets its extra light from the exposure and the back fill below
+  sun: { color: '#eef6ff', intensity: 2.2 },
   hemi: { sky: '#e4eefa', ground: '#b4c0cd', intensity: 0.8 },
   // a warm, shadowless back fill: the shaded side of karts and mascots keeps its colour against the white snow
-  fill: { color: '#fff1e2', intensity: 0.5 },
+  fill: { color: '#fff1e2', intensity: 0.65 },
   fogColor: '#dbe5ee',
   horizon: '#e2eaf1',
   skyStyle: 'gradient',
-  exposure: 0.82,
+  exposure: 0.95,
   bloom: 0.25,
   hour: 13,
   clouds: 0.75,
@@ -67,6 +71,8 @@ export default (c: ContentTables, env: Readonly<Record<string, string>> = {}): T
     ...base(),
     // bright snow: keep 60 % of the baked terrain AO (soft, clean ground; wall bases and gullies keep their shade)
     terrain: softAoTerrain(T.a, T.b, T.rock, 0.6),
+    // halfpipe walls (part of the road ribbon): packed snow → ice at the lip, navy top band
+    road: halfpipeRoad(MaterialLibrary.road(kit.look.road)),
     'road:ice': MaterialLibrary.road({ style: 'ice', a: '#9fd3ea', b: '#c0e6f5', line: '#f1f6fa', tint: [1.2, 1.4, 1.6] }),
     'road:snow': MaterialLibrary.road({ style: 'snow', a: '#dfe7ef', b: '#e8eef5', line: '#bee9f7', tint: [1.7, 1.75, 1.8] }),
     'shoulder:snow': MaterialLibrary.road({ style: 'snow', a: '#dce5ee', b: '#e6edf4', line: '#bee9f7', tint: [1.7, 1.75, 1.8], shoulder: true }),
