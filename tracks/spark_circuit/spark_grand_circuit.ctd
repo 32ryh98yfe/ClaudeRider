@@ -82,4 +82,36 @@ PROPS kind=pine along=1190-1400 side=R every=14 offset=24 jitter=18
 PROPS kind=tree_round along=1250-1340 side=L every=18 offset=14 jitter=10
 PROPS kind=tyre_wall along=1324-1400 side=R every=4 offset=1.2
 PROPS kind=marshal_post along=1362-1362 side=R every=10 offset=5
-THEME scatter=tree_round,bush,pine density=4 hills=5 sky=day time=13:00
+# ---- stylized dressing pass (2026-10, docs/design/34-stylized-pass.md; render-only, the .ctrk is unchanged) ----------
+# start straight: flags and a cheering crowd between the main stand and Turn 1, lamps along the stand side
+PROPS kind=flag_pole along=180-250 side=R every=6 offset=2.6 seed=60
+PROPS kind=spectators along=12-84 side=R every=18 offset=2.4 jitter=1 seed=61
+PROPS kind=spectators along=184-248 side=R every=22 offset=3.4 jitter=1 seed=62
+PROPS kind=lamp_post along=1400-250 side=R every=24 offset=1.8 seed=63
+# chevron boards above the tyre walls on the outside of the left-handers (Turn 1, tower, final; never on a right-hander's
+# left-side outside, where a +Z chevron would point the wrong way)
+PROPS kind=ad_board_b along=260-318 side=R every=10 offset=2.6 seed=64
+PROPS kind=ad_board_b along=1198-1262 side=R every=10 offset=2.6 seed=65
+PROPS kind=ad_board_b along=1328-1394 side=R every=10 offset=2.6 seed=66
+PROPS kind=spectators along=596-672 side=R every=19 offset=12 jitter=2 seed=67
+# ground cover at the barrier foot round the lap (the pit row on the left of the pit straight stays concrete)
+PROPS kind=grass_tuft side=R every=1.1 offset=0.2 jitter=7 scale=1.0-1.7 seed=41
+PROPS kind=grass_tuft along=252-6 side=L every=1.1 offset=0.2 jitter=7 scale=1.0-1.7 seed=42
+PROPS kind=flower_patch side=R every=7 offset=0.8 jitter=9 scale=0.8-1.3 seed=43
+PROPS kind=flower_patch along=252-6 side=L every=7 offset=0.8 jitter=9 scale=0.8-1.3 seed=44
+PROPS kind=bush_round side=R every=12 offset=3 jitter=2 scale=0.7-1.3 seed=45
+PROPS kind=bush_round along=252-6 side=L every=12 offset=3 jitter=2 scale=0.7-1.3 seed=46
+PROPS kind=rock_cluster along=252-1400 side=both every=30 offset=4 jitter=6 scale=0.6-1.3 seed=47
+# shade trees (none behind the grandstands, the stadium or the pit row), far tree lines
+PROPS kind=tree_round_big along=180-950 side=R every=20 offset=16 jitter=14 scale=0.8-1.3 seed=48
+PROPS kind=tree_round_big along=995-1135 side=R every=20 offset=16 jitter=14 scale=0.8-1.3 seed=49
+PROPS kind=tree_round_big along=1195-1395 side=R every=20 offset=30 jitter=14 scale=0.8-1.3 seed=50
+PROPS kind=tree_round_big along=262-435 side=L every=20 offset=16 jitter=14 scale=0.8-1.3 seed=51
+PROPS kind=tree_round_big along=515-805 side=L every=20 offset=16 jitter=14 scale=0.8-1.3 seed=52
+PROPS kind=tree_round_big along=890-1395 side=L every=20 offset=24 jitter=14 scale=0.8-1.3 seed=53
+PROPS kind=tree_clump side=both every=26 offset=60 jitter=50 scale=0.9-1.4 seed=54
+PROPS kind=tree_clump side=both every=34 offset=125 jitter=50 scale=1.0-1.6 seed=55
+PROP kind=hot_air_balloon at=(120.0,50.0,-180.0) yaw=0 scale=1
+PROP kind=hot_air_balloon at=(340.0,58.0,-300.0) yaw=40 scale=1.2
+PROP kind=hot_air_balloon at=(-70.0,46.0,-110.0) yaw=10 scale=0.9
+THEME scatter=tree_round,tree_round,tree_round_big,bush,bush_round,pine,pine,tree_clump,rock_cluster,flower_patch density=36 hills=5 sky=day time=13:00 fogNear=250 fogFar=1500

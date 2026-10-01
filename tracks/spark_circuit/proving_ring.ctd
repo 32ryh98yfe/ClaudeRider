@@ -26,4 +26,19 @@ PROPS kind=marshal_post along=518-518 side=R every=10 offset=4
 PROPS kind=camera_tower along=342-342 side=L every=10 offset=12
 PROPS kind=footbridge along=300-300 side=R every=10 offset=-11
 PROPS kind=pine along=236-450 side=R every=16 offset=30 jitter=20
-THEME scatter=tree_round,bush,pine density=5 hills=4 sky=day
+# ---- stylized dressing pass (2026-10, docs/design/34-stylized-pass.md; render-only, the .ctrk is unchanged) ----------
+# Proving Ring is the e2e track (Low tier on SwiftShader), so it gets a moderate, plants-only layer (≤ 1500 props in
+# all): TrackView thins every grass/flower/bush/tree kind by the tier's foliage factor and culls it early.
+# infield (left) round the lap except the pit row; outside (right) of both turns and the back straight
+PROPS kind=grass_tuft along=0-584 side=L every=1.6 offset=0.2 jitter=6 scale=1.0-1.7 seed=41
+PROPS kind=grass_tuft along=100-590 side=R every=1.6 offset=0.2 jitter=6 scale=1.0-1.7 seed=42
+PROPS kind=flower_patch along=0-584 side=L every=9 offset=0.8 jitter=8 scale=0.8-1.3 seed=43
+PROPS kind=flower_patch along=100-590 side=R every=9 offset=0.8 jitter=8 scale=0.8-1.3 seed=44
+PROPS kind=bush_round along=0-584 side=L every=14 offset=3 jitter=8 scale=0.7-1.3 seed=45
+PROPS kind=bush_round along=236-450 side=R every=14 offset=3.5 jitter=6 scale=0.7-1.3 seed=46
+# infield shade trees, an outer tree belt and far tree lines (none behind the grandstands or the grid)
+PROPS kind=tree_round_big along=110-570 side=L every=18 offset=14 jitter=12 scale=0.8-1.3 seed=47
+PROPS kind=tree_round_big along=240-450 side=R every=18 offset=18 jitter=10 scale=0.8-1.3 seed=48
+PROPS kind=tree_clump along=100-590 side=R every=30 offset=60 jitter=40 scale=0.9-1.4 seed=49
+PROPS kind=tree_clump side=R every=40 offset=120 jitter=50 scale=1.0-1.6 seed=50
+THEME scatter=tree_round,tree_round_big,bush,bush_round,pine,tree_clump density=12 hills=4 sky=day fogNear=250 fogFar=1500
