@@ -6,7 +6,7 @@ import { Boost, type ZoneBaked } from '@cr/sim';
 import { isNoItem } from '../src/kart/zones.ts';
 import { getContent } from './rig.ts';
 import { strip } from './fixtures/kits.ts';
-import { racingRig, place, fwdKmh, speedOf } from './util.ts';
+import { racingRig, place, fwdKmh, speedOf, KMH } from './util.ts';
 
 const TABLE: Record<SurfaceId, [number, number, number]> = {
   asphalt: [1, 1, 1], stone: [1, 1, 1], cobble: [0.98, 1, 1], dirt: [0.92, 0.97, 1.2], sand: [0.85, 0.92, 1.6], gravel: [0.85, 0.94, 1.4],
@@ -20,7 +20,7 @@ function topSpeed(id: SurfaceId, ticks = 720): number {
   const rig = racingRig(strip(id).track);
   const k = place(rig, 0, { s: 150, speed: 0 });
   rig.run(ticks, (_w, inp) => { inp[0]!.throttle = 15; });
-  return fwdKmh(k) / 5.4;
+  return fwdKmh(k) / KMH;
 }
 
 describe('surface table (§13.1)', () => {
@@ -53,7 +53,7 @@ describe('surface behaviour', () => {
     const rig = racingRig(strip(id).track);
     const k = place(rig, 0, { s: 300, speed: 18 });
     rig.run(30, () => { /* no throttle */ });
-    const decel = (18 - fwdKmh(k) / 5.4) / 0.5;
+    const decel = (18 - fwdKmh(k) / KMH) / 0.5;
     expect(decel).toBeCloseTo(2.5 * TABLE[id][2], 1);
   });
 
@@ -129,11 +129,11 @@ describe('zones (§13.2)', () => {
     const rig = racingRig(t);
     const k = place(rig, 0, { s: 210, speed: 34 });
     rig.run(600, (_w, inp) => { inp[0]!.throttle = 15; });
-    expect(fwdKmh(k) / 5.4).toBeGreaterThan(34 * 1.2 * 0.99);
+    expect(fwdKmh(k) / KMH).toBeGreaterThan(34 * 1.2 * 0.99);
     // past the box the target speed is back to vGrip
     rig.run(900, (_w, inp) => { inp[0]!.throttle = 15; });
     expect(k.race.loc.s).toBeGreaterThan(1000);
-    expect(fwdKmh(k) / 5.4).toBeLessThan(34 * 1.01);
+    expect(fwdKmh(k) / KMH).toBeLessThan(34 * 1.01);
   });
 
   it('surface zone overrides the triangle surface (grass on asphalt caps the speed at 0.6·vGrip)', () => {
@@ -141,7 +141,7 @@ describe('zones (§13.2)', () => {
     const rig = racingRig(t);
     const k = place(rig, 0, { s: 210, speed: 34 });
     rig.run(600, (_w, inp) => { inp[0]!.throttle = 15; });
-    expect(fwdKmh(k) / 5.4).toBeLessThan(0.6 * 34 * 1.01);
+    expect(fwdKmh(k) / KMH).toBeLessThan(0.6 * 34 * 1.01);
   });
 
   it('kill zone triggers a respawn; with belowY only below that plane', () => {

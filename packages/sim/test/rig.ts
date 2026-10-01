@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { loadContent, type ContentTables } from '@cr/content';
 import { buildTrack } from '@cr/trackc/build.ts';
 import {
-  createWorld, loadCtrk, toArrayBuffer, makeContext, step, makeInput, ArraySink, AI_TIERS, createAiDriver,
+  createWorld, loadCtrk, toArrayBuffer, makeContext, step, makeInput, ArraySink, AI_TIERS, createAiDriver, KMH_PER_MPS,
   type BakedTrack, type RaceConfig, type InputFrame, type WorldState, type StepContext, type SimEvent, type SlotConfig, type AiDriver,
 } from '@cr/sim';
 
@@ -69,5 +69,5 @@ export function makeRig(track: BakedTrack, o: RigOptions = {}): Rig {
 /** Forward speed of kart `slot` in display km/h. */
 export function kmh(w: WorldState, slot = 0): number {
   const b = w.karts[slot]!.body;
-  return (b.vx * b.fx + b.vy * b.fy + b.vz * b.fz) * 5.4;
+  return (b.vx * b.fx + b.vy * b.fy + b.vz * b.fz) * KMH_PER_MPS;
 }

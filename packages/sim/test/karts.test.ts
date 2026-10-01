@@ -3,10 +3,11 @@
 import { describe, expect, it } from 'vitest';
 import { getContent } from './rig.ts';
 
+// vBoost ×(45.11/44.4) in M5 (doc 15 §1): the booster plateau reads 272 km/h on Balance
 const ARCH = {
-  speed: { vGrip: 34.4, vBoost: 45.0, a0: 16.5, tBoostTicks: 186, g0: 0.64, kLatIn: 2.8, kLatNeutral: 5.2, yGrip: 1.5, cBeta: 0.85 },
-  balance: { vGrip: 34.0, vBoost: 44.4, a0: 18, tBoostTicks: 180, g0: 0.7, kLatIn: 3.0, kLatNeutral: 5.5, yGrip: 1.55, cBeta: 0.8 },
-  drift: { vGrip: 33.6, vBoost: 43.8, a0: 19.5, tBoostTicks: 174, g0: 0.77, kLatIn: 3.3, kLatNeutral: 5.9, yGrip: 1.6, cBeta: 0.75 },
+  speed: { vGrip: 34.4, vBoost: 45.72, a0: 16.5, tBoostTicks: 186, g0: 0.64, kLatIn: 2.8, kLatNeutral: 5.2, yGrip: 1.5, cBeta: 0.85 },
+  balance: { vGrip: 34.0, vBoost: 45.11, a0: 18, tBoostTicks: 180, g0: 0.7, kLatIn: 3.0, kLatNeutral: 5.5, yGrip: 1.55, cBeta: 0.8 },
+  drift: { vGrip: 33.6, vBoost: 44.50, a0: 19.5, tBoostTicks: 174, g0: 0.77, kLatIn: 3.3, kLatNeutral: 5.9, yGrip: 1.6, cBeta: 0.75 },
 } as const;
 
 describe('kart bodies vs archetypes (ADR-004 ±1%)', () => {

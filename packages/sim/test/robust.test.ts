@@ -33,10 +33,10 @@ describe('robustness: random drops (§14.8)', () => {
 });
 
 describe('robustness: boosted wall tunnelling (§10.4, R5)', () => {
-  /** Drives at 45.3 m/s (team-boost speed) into a wall at `deg`; returns the worst penetration past the wall plane. */
-  function ram(track: BakedTrack, s: number, u: number, deg: number, wallU: number, side: 1 | -1): number {
+  /** Drives at `speed` (default 45.3 m/s, team-boost speed) into a wall at `deg`; returns the worst penetration past the wall plane. */
+  function ram(track: BakedTrack, s: number, u: number, deg: number, wallU: number, side: 1 | -1, speed = 45.3): number {
     const rig = racingRig(track);
-    const k = place(rig, 0, { s, u, speed: 45.3, yawDeg: -side * deg });
+    const k = place(rig, 0, { s, u, speed, yawDeg: -side * deg });
     k.drive.boostTicks = 400; k.drive.boostKind = 2;
     let worst = -1e9;
     for (let t = 0; t < 90; t++) {
@@ -50,6 +50,12 @@ describe('robustness: boosted wall tunnelling (§10.4, R5)', () => {
     const t = corridor(16).track;
     expect(ram(t, 300, 0, deg, 8, 1)).toBeLessThan(0);
     expect(ram(t, 300, 0, deg, 8, -1)).toBeLessThan(0);
+  });
+  // 52 m/s is above the highest technique speed (tap-boost cap 50.59 m/s = 305 km/h, doc 15 §1)
+  it.each([5, 10, 15, 20, 30, 45, 60, 75, 90])('corridor walls at %i° are never crossed at 52 m/s', (deg) => {
+    const t = corridor(16).track;
+    expect(ram(t, 300, 0, deg, 8, 1, 52)).toBeLessThan(0);
+    expect(ram(t, 300, 0, deg, 8, -1, 52)).toBeLessThan(0);
   });
   it.each([10, 45, 90])('corner inner/outer walls and halfpipe lips at %i° are never crossed', (deg) => {
     const c = cornerKit(12, 90, 12);
