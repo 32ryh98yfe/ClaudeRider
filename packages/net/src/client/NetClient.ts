@@ -204,7 +204,7 @@ export class NetClient {
     if (this.ownClock && this.mode === 'synced' && !this.closed && this.clock.due(nowMs, !this.started)) this.sendPing(nowMs);
     this.processIncoming(nowMs);
 
-    const budget = this.maxSteps;
+    let budget = this.maxSteps;
     let freeze = false;
     if (this.mode === 'synced') {
       if (!this.clock.ready) return 0;
@@ -238,11 +238,14 @@ export class NetClient {
       } else this.reconcile();
       const err = this.pred.tick + this.acc - target;
       if (err < -NET.RESYNC_TICKS || this.resyncWanted) {
-        // hard resync (§2): jump P to the target, dropping the prediction in between; a flood of catch-up inputs
-        // would only arrive late (and trip the server's rate limit)
+        // hard resync (§2). The target is at most MAX_PREDICT past the last snapshot, so catching up is bounded:
+        // step there now (inputs batched 4 per message, ≤ 23 messages), so a page that only gets an update every
+        // second or two still steers its kart; jump without inputs only when even that bound is exceeded.
         this.resyncWanted = false;
         this.stats.hardResyncs++;
-        this.jump(target);
+        const gap = target - this.pred.tick;
+        if (gap <= MAX_PREDICT) { budget = Math.max(budget, Math.ceil(gap)); this.acc = Math.max(this.acc, gap); }
+        else this.jump(target);
       } else if (err > NET.RESYNC_TICKS) {
         // too far ahead: hold until the server's clock catches up (rewinding would duplicate already-sent frames)
         this.stats.hardResyncs++;
