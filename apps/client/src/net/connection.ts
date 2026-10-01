@@ -1,10 +1,12 @@
 // The client's single game socket (ADR-007: one WebSocket, binary frames): lobby JSON both ways, PING/PONG clock sync
 // shared with the race, and a race channel for the NetClient. Drops reconnect with backoff and resume the session
-// (`hello.resume`) for up to 60 s.
+// (`hello.resume`) for up to 60 s. A server of another protocol or simulation version is refused for good: retrying
+// cannot help, only a reload (with the new client) can; `versionMismatch` tells the store to say so.
 import {
-  ByteReader, ByteWriter, C2S, ClockSync, FrameMux, NET, PingMsg, PongMsg, S2C, decodeLobby, encodeC2SLobby,
+  ByteReader, ByteWriter, C2S, ClockSync, FrameMux, LOBBY_PROTOCOL_VERSION, NET, PingMsg, PongMsg, S2C, decodeLobby, encodeC2SLobby,
   type C2SLobby, type Channel, type Loadout, type PongT, type S2CLobby, type Transport,
 } from '@cr/net';
+import { SIM_VERSION } from '@cr/sim';
 import { wsTransport } from './transports.ts';
 
 const RESUME_KEY = 'cr.net.resume';
@@ -21,6 +23,11 @@ export class LobbyConnection {
   /** Fast pings (250 ms) while a race is loading. */
   loading = false;
   tickEpochMs = 0;
+  /**
+   * The server refused our protocol version (`error: version`) or welcomed us with another simulation version (the
+   * snapshot layout would not decode). Set until the next connect(); no reconnects are attempted meanwhile.
+   */
+  versionMismatch = false;
   private url = '';
   private name = '';
   private loadout: Loadout | null = null;
@@ -39,7 +46,7 @@ export class LobbyConnection {
 
   /** Opens the socket and resolves on `welcome` (rejects on error or after 8 s). */
   connect(url: string, name: string, loadout: Loadout): Promise<void> {
-    this.url = url; this.name = name; this.loadout = loadout; this.wanted = true; this.attempt = 0;
+    this.url = url; this.name = name; this.loadout = loadout; this.wanted = true; this.attempt = 0; this.versionMismatch = false;
     if (this.connected) { this.send({ t: 'loadout', loadout }); return Promise.resolve(); }
     const p = new Promise<void>((ok, fail) => this.waiters.push({ ok, fail }));
     this.open();
@@ -84,13 +91,17 @@ export class LobbyConnection {
       this.transport = t; this.mux = mux;
       let resume: string | null = null;
       try { resume = sessionStorage.getItem(RESUME_KEY); } catch { /* storage off */ }
-      t.send(encodeC2SLobby({ t: 'hello', v: 1, name: this.name, loadout: this.loadout!, ...(resume ? { resume } : {}) }));
+      t.send(encodeC2SLobby({ t: 'hello', v: LOBBY_PROTOCOL_VERSION, name: this.name, loadout: this.loadout!, ...(resume ? { resume } : {}) }));
     });
     mux.onOther = (b) => {
       if (b[0] === S2C.PONG) { PongMsg.decode(this.pr.reset(b), this.pong); this.clock.onPong(this.pong, performance.now()); return; }
       if (b[0] !== S2C.LOBBY_JSON) return;
       let m: S2CLobby;
       try { m = decodeLobby(b) as S2CLobby; } catch { return; }
+      // version refusals (the server's, or ours on a welcome from another simulation version) end in onClose below,
+      // which reports them once; the store is not told about the welcome, so nothing is sent on this socket
+      if (m.t === 'error' && m.code === 'version' && !this.welcomed) { this.refuseVersion(t, timeout); return; }
+      if (m.t === 'welcome' && m.simVersion !== SIM_VERSION) { this.refuseVersion(t, timeout); return; }
       if (m.t === 'welcome') this.onWelcome(m, timeout);
       this.onLobby?.(m);
     };
@@ -99,6 +110,7 @@ export class LobbyConnection {
       const was = this.transport === t;
       if (was) { this.transport = null; this.mux = null; }
       this.stopPings();
+      if (this.versionMismatch) { this.welcomed = false; this.failAll(new Error('version')); this.onEvent?.('closed'); return; }
       if (!this.welcomed && this.attempt === 0 && !this.dropAt) { this.failAll(new Error('connection failed')); this.onEvent?.('closed'); return; }
       this.welcomed = false;
       if (this.wanted) this.scheduleRetry(); else this.onEvent?.('closed');
@@ -116,6 +128,13 @@ export class LobbyConnection {
     const ws = this.waiters.splice(0);
     for (const w of ws) w.ok();
     this.onEvent?.(reconnected ? 'reconnected' : 'open');
+  }
+
+  private refuseVersion(t: Transport, timeout: ReturnType<typeof setTimeout>): void {
+    clearTimeout(timeout);
+    this.versionMismatch = true;
+    this.wanted = false;
+    t.close(4002, 'version');
   }
 
   private scheduleRetry(): void {

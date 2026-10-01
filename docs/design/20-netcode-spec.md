@@ -165,6 +165,8 @@ The server loop uses a drift-compensated timer (`performance.now()`-based setTim
 **C2S**: `hello{v, name, loadout, resume?}`, `quick{mode, teams}`, `quickCancel`, `create{settings}`, `join{code}`, `leave`, `ready{ready}`, `loadout{loadout}`, `settings{settings}` (host), `slot{slot, action: open|close|bot|kick, tier?}` (host), `team{slot, team}` (host), `start` (host), `vote{trackId}` (roulette), `chat{text}`, `loaded{trackHash}`.
 **S2C**: `welcome{session, serverVersion, simVersion}`, `queue{phase: search|stage, endsAt, humans, trackId?}`, `room{room}`, `roulette{endsAt, votes}`, `raceStart{config, startTick, serverTick, yourSlot}`, `raceEnd{result}`, `chat{from, text}`, `error{code}`.
 
+**Versions.** `hello.v` is `LOBBY_PROTOCOL_VERSION` (2 since M5, when the snapshot layout gained the driving-technique fields of SIM_VERSION 2). The server answers any other `v` with `error{code: 'version'}` and closes (4002). The client refuses a `welcome` whose `simVersion` differs from its own `SIM_VERSION` the same way (close 4002). Either refusal is final: no reconnect, and the player sees `errors.version_mismatch` ("reload").
+
 ### 5.2 Shapes [P]
 ```ts
 interface Loadout { characterId: CharacterId; kartBodyId: KartBodyId; livery: Livery; palette?: string; emotes?: Partial<Record<EmoteSlot, number>> }
