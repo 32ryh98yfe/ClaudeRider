@@ -1,5 +1,6 @@
 // Static file serving for the built client (SPA fallback, immutable caching for hashed assets).
 import { createReadStream, statSync } from 'node:fs';
+import { pipeline } from 'node:stream';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
@@ -33,7 +34,8 @@ export function createStatic(rootDir: string): (req: IncomingMessage, res: Serve
       'x-content-type-options': 'nosniff',
     });
     if (req.method === 'HEAD') { res.end(); return true; }
-    createReadStream(file).pipe(res);
+    // pipeline, not pipe: a read error (EMFILE, EACCES, a file removed mid-send) must end this response, not the process
+    pipeline(createReadStream(file), res, (e) => { if (e) res.destroy(); });
     return true;
   };
 }
