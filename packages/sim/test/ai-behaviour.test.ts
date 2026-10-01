@@ -3,7 +3,11 @@
 // risk (aiMinSkill), bot identities are unique and localised, and bot races are reproducible.
 import { describe, expect, it } from 'vitest';
 import { CHARACTER_IDS, type CharacterId } from '@cr/content';
-import { AI_TIERS, createAiDriver, makeInput, type SlotConfig } from '@cr/sim';
+import { AI_TIERS, createAiDriver, Edge, makeInput, type SlotConfig } from '@cr/sim';
+import { EF, EFlag } from '../src/items/codes.ts';
+import { activeEffect, scheduleEffect } from '../src/items/effects.ts';
+import { createItemBrain, decideItem } from '../src/ai/items/index.ts';
+import { scenario } from './items-rig.ts';
 import { runRace } from '../src/ai/balance.ts';
 import { InputDelayLine } from '../src/ai/lookahead.ts';
 import { TakeoverController, TAKEOVER_AFTER_TICKS } from '../src/ai/takeover.ts';
@@ -16,17 +20,26 @@ const FIELD: readonly CharacterId[] = ['clay', 'pixel', 'turbo', 'anchor', 'rune
 
 describe('AI field racing', () => {
   it('8 Pro bots on meadow_loop: all finish, no start pile-up, no ramming, nobody stuck', () => {
-    const r = runRace({ track: bakedTrack(MEADOW), content: getContent(), seed: 1, lookahead: 8, laps: 1, bots: FIELD.map((c) => ({ tier: 'pro' as const, character: c })) });
-    const stuck = Math.max(...r.karts.map((k) => k.maxStuckTicks));
-    console.log(`field: bumps ${r.bumps} (hard ${r.hardBumps}, start ${r.startHardBumps}), max stuck ${stuck} ticks, overtaking lanes ${r.karts.reduce((a, k) => a + k.ai.overtakeLanes, 0)}, draft follows ${r.karts.reduce((a, k) => a + k.ai.draftFollows, 0)}`);
-    expect(r.karts.every((k) => k.finished)).toBe(true);
-    expect(r.karts.reduce((a, k) => a + k.respawns, 0)).toBe(0);
-    expect(stuck).toBeLessThanOrEqual(300);
-    // a hard bump closes at ≥ 2 m/s; the start is a clean launch, and racing contact stays rare
-    expect(r.startHardBumps).toBeLessThanOrEqual(6);
-    expect(r.hardBumps / r.karts.length).toBeLessThanOrEqual(3);
+    // three seeds: contact in an 8-kart field is chaotic (one seed's count swings 2× with any AI change), so the
+    // ramming bound is on the mean, with a looser bound on the worst seed
+    const hard: number[] = [];
+    let lanes = 0;
+    for (const seed of [1, 2, 3]) {
+      const r = runRace({ track: bakedTrack(MEADOW), content: getContent(), seed, lookahead: 8, laps: 1, bots: FIELD.map((c) => ({ tier: 'pro' as const, character: c })) });
+      const stuck = Math.max(...r.karts.map((k) => k.maxStuckTicks));
+      console.log(`field seed ${seed}: bumps ${r.bumps} (hard ${r.hardBumps}, start ${r.startHardBumps}), max stuck ${stuck} ticks, overtaking lanes ${r.karts.reduce((a, k) => a + k.ai.overtakeLanes, 0)}, draft follows ${r.karts.reduce((a, k) => a + k.ai.draftFollows, 0)}`);
+      expect(r.karts.every((k) => k.finished)).toBe(true);
+      expect(r.karts.reduce((a, k) => a + k.respawns, 0)).toBe(0);
+      expect(stuck).toBeLessThanOrEqual(300);
+      // a hard bump closes at ≥ 2 m/s; the start is a clean launch, and racing contact stays rare
+      expect(r.startHardBumps).toBeLessThanOrEqual(6);
+      hard.push(r.hardBumps / r.karts.length);
+      lanes += r.karts.reduce((a, k) => a + k.ai.overtakeLanes, 0);
+    }
+    expect(hard.reduce((a, b) => a + b, 0) / hard.length, `hard bumps per kart ${hard.map((h) => h.toFixed(2)).join(', ')}`).toBeLessThanOrEqual(2.5);
+    expect(Math.max(...hard)).toBeLessThanOrEqual(4);
     // bots do use lanes to pass and follow in the draft
-    expect(r.karts.reduce((a, k) => a + k.ai.overtakeLanes, 0)).toBeGreaterThan(0);
+    expect(lanes).toBeGreaterThan(0);
   });
 
   it('bot races are reproducible (same seed, same lookahead)', () => {
@@ -109,6 +122,28 @@ describe('branch choice by skill (F1 fixture, shortcut aiMin 0.3)', () => {
     expect(rookie).toBe(0);
     expect(pro).toBeGreaterThanOrEqual(2);
     expect(legend).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('Mirror Mode and the tap keys (15-driving-techniques §3)', () => {
+  it('the item brain flips the steer and swaps the driver\'s TAP_L / TAP_R edges together', () => {
+    const sc = scenario({ count: 2 });
+    sc.until(() => sc.w.tick >= sc.w.goTick + 120);
+    scheduleEffect(sc.w, sc.ctx, EF.mirror, 0, 1, sc.w.tick + 1, 0, 0, EFlag.BLOCKABLE, 77);
+    sc.until(() => activeEffect(sc.w, 0, EF.mirror, sc.w.tick) !== undefined, 200);
+    expect(activeEffect(sc.w, 0, EF.mirror, sc.w.tick)).toBeDefined();
+    // itemSkill 3 (Pro) counter-steers from the first mirrored tick
+    const brain = createItemBrain(0, AI_TIERS.pro, {}, 5);
+    const env = { track: sc.track, content: sc.ctx.content, cfg: sc.cfg };
+    const out = makeInput();
+    out.steer = 60; out.edges = Edge.TAP_L;
+    decideItem(brain, sc.w, env, out);
+    expect(out.steer).toBe(-60);
+    expect(out.edges & (Edge.TAP_L | Edge.TAP_R)).toBe(Edge.TAP_R);
+    out.steer = -40; out.edges = Edge.TAP_R;
+    decideItem(brain, sc.w, env, out);
+    expect(out.steer).toBe(40);
+    expect(out.edges & (Edge.TAP_L | Edge.TAP_R)).toBe(Edge.TAP_L);
   });
 });
 

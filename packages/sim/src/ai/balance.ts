@@ -42,12 +42,17 @@ export interface RaceSetup {
   now?: () => number;
   /** Called after every step (tests can inspect the world). */
   onTick?: (w: WorldState, applied: readonly InputFrame[]) => void;
+  /** Called once with the drivers before the first tick (tools can trace their state). */
+  onDrivers?: (drivers: readonly AiDriverEx[]) => void;
 }
 
 export interface KartResult {
   slot: number; tier: AiTier; character: CharacterId | undefined; finished: boolean; raceTicks: number; bestLapTicks: number;
   drifts: number; instantBoosts: number; boostsUsed: number; wallHits: number; hardHits: number; respawns: number; startTier: number;
   draftBursts: number; driftMeters: number; bumps: number; hardBumps: number; maxStuckTicks: number; hazardHits: number; ai: AiDriverStats;
+  /** Driving techniques (M5), counted from the sim events: drag entries (끌기), valid taps (톡톡이), cuts, spin-outs,
+   *  brake drift turns (고속턴); and the longest brake run (sim brakeTicks) seen while drifting. */
+  drags: number; taps: number; cuts: number; spinOuts: number; brakeTurns: number; maxDriftBrakeTicks: number;
 }
 
 export interface RaceOutcome { ticks: number; karts: KartResult[]; bumps: number; hardBumps: number; /** hard bumps in the first 5 s after GO (start pile-ups) */ startHardBumps: number; aiMs: number; stepMs: number; decides: number; drivers: readonly AiDriverEx[] }
@@ -69,11 +74,13 @@ export function runRace(o: RaceSetup): RaceOutcome {
   const drivers: AiDriverEx[] = o.bots.map((b, i) => createAiDriver(track, content, i, AI_TIERS[b.tier], {
     ...b.overrides, character: b.role === 'ghost' ? undefined : b.personality ?? b.character, role: b.role, lookaheadTicks: LA, noJitter: b.noJitter, startOffsetTicks: b.startOffset, mode: o.mode,
   }, (o.seed * 7919 + i * 104729) >>> 0));
+  o.onDrivers?.(drivers);
   const lines = o.bots.map(() => new InputDelayLine(LA));
   const decided: InputFrame[] = o.bots.map(() => makeInput());
   const inputs: InputFrame[] = o.bots.map(() => makeInput());
   const n = o.bots.length;
   const lastDist = new Float64Array(n).fill(-1e9), lastMove = new Int32Array(n), maxStuck = new Int32Array(n), bumps = new Int32Array(n), hardB = new Int32Array(n), hazHits = new Int32Array(n);
+  const drags = new Int32Array(n), taps = new Int32Array(n), cuts = new Int32Array(n), spins = new Int32Array(n), bturns = new Int32Array(n), maxBrk = new Int32Array(n);
   const evs: SimEvent[] = [];
   const now = o.now;
   let aiMs = 0, stepMs = 0, decides = 0, totalBumps = 0, totalHard = 0, startHard = 0;
@@ -94,7 +101,13 @@ export function runRace(o: RaceSetup): RaceOutcome {
         if (e.impulse >= 1.3) { totalHard++; if (w.tick <= w.goTick + 300) startHard++; if (e.a < n) hardB[e.a]!++; if (e.b < n) hardB[e.b]!++; }
       }
       else if (e.t === 'effect' && e.source === 255 && e.result === 'hit' && e.victim < n) hazHits[e.victim]!++;
+      else if (e.t === 'drag') { if (e.on && e.kart < n) drags[e.kart]!++; }
+      else if (e.t === 'tapBoost') { if (e.kart < n) taps[e.kart]!++; }
+      else if (e.t === 'cut') { if (e.kart < n) cuts[e.kart]!++; }
+      else if (e.t === 'spinOut') { if (e.kart < n) spins[e.kart]!++; }
+      else if (e.t === 'brakeTurn') { if (e.kart < n) bturns[e.kart]!++; }
     }
+    for (let i = 0; i < n; i++) { const dr = w.karts[i]!.drive; if (dr.drift === 1 && dr.brakeTicks > maxBrk[i]!) maxBrk[i] = dr.brakeTicks; }
     evs.length = 0;
     o.onTick?.(w, inputs);
     if (w.phase < Phase.RACING) continue;
@@ -113,6 +126,7 @@ export function runRace(o: RaceSetup): RaceOutcome {
       drifts: k.stats.drifts, instantBoosts: k.stats.instantBoosts, boostsUsed: k.stats.boostsUsed, wallHits: k.stats.wallHits, hardHits: k.stats.hardHits,
       respawns: k.stats.respawns, startTier: k.stats.startTier, draftBursts: k.stats.draftBursts, driftMeters: k.stats.driftMeters,
       bumps: bumps[i]!, hardBumps: hardB[i]!, maxStuckTicks: maxStuck[i]!, hazardHits: hazHits[i]!, ai: drivers[i]!.stats,
+      drags: drags[i]!, taps: taps[i]!, cuts: cuts[i]!, spinOuts: spins[i]!, brakeTurns: bturns[i]!, maxDriftBrakeTicks: maxBrk[i]!,
     };
   });
   return { ticks: w.tick - w.goTick, karts, bumps: totalBumps, hardBumps: totalHard, startHardBumps: startHard, aiMs, stepMs, decides, drivers };
@@ -121,18 +135,27 @@ export function runRace(o: RaceSetup): RaceOutcome {
 /**
  * Pace reference (s): the noise-free Legend ghost (14-ai §2), solo, averaged over the seven PERFECT start
  * offsets (0…6 ticks). One ghost run is a single sample of a chaotic system (a booster fired one tick
- * earlier can move a race by 1.5 s), so the mean over the PERFECT window is the stable yardstick.
+ * earlier can move a race by 1.5 s), so the mean over the PERFECT window is the stable yardstick; incident runs
+ * (> GHOST_OUTLIER over the median) are left out.
  */
 export function ghostRaceSec(track: BakedTrack, content: ContentTables, laps?: number, lookahead = 0, mode: ModeId = 'speed'): number {
-  let sum = 0, n = 0;
+  const t: number[] = [];
   for (let d = 0; d <= 6; d++) {
     const r = runRace({ track, content, bots: [{ tier: 'legend', role: 'ghost', startOffset: d }], seed: 1, laps, lookahead, mode });
     const k = r.karts[0]!;
     if (!k.finished) return NaN;
-    sum += k.raceTicks / 60; n++;
+    t.push(k.raceTicks / 60);
   }
+  // an incident run (a missed key gate costs a whole lap, a respawn several seconds) is not pace: runs more than
+  // GHOST_OUTLIER slower than the median are left out of the mean
+  const med = [...t].sort((a, b) => a - b)[3]!;
+  let sum = 0, n = 0;
+  for (const x of t) if (x <= med * (1 + GHOST_OUTLIER)) { sum += x; n++; }
   return sum / n;
 }
+
+/** Ghost runs slower than the median by more than this share are incidents, not pace (ghostRaceSec). */
+export const GHOST_OUTLIER = 0.04;
 
 /** One solo race for a tier/character; returns pace vs the reference race time. */
 export function soloPace(track: BakedTrack, content: ContentTables, tier: AiTier, character: CharacterId | undefined, seed: number, refSec: number, laps?: number, lookahead = 0, overrides?: Partial<AiProfile>): { pace: number; sec: number; kart: KartResult } {

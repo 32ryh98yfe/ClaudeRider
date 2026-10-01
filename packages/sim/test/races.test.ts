@@ -1,4 +1,6 @@
-// Full 8-bot races on the shipped tracks: finishers, wall discipline, stuck detection, pace window.
+// Full 8-bot races on the shipped tracks: finishers, wall discipline, stuck detection, pace window, and the M5 technique
+// guards (15-driving-techniques): no bot ever spins out, and no drift ever sees more than 8 consecutive brake ticks
+// (the AI brakes in pulses of at most 6 frames; the sim spins out at 11).
 import { describe, expect, it } from 'vitest';
 import { AI_TIERS, Phase, raceTicksOf, type WorldState } from '@cr/sim';
 import { existsSync } from 'node:fs';
@@ -10,23 +12,33 @@ const KARTS = ['pebble', 'clay_comet', 'arrowhead', 'tugboat', 'glacier_sled', '
 
 function race(rel: string, mode: 'speed' | 'item', tier: 'pro' | 'racer' = 'pro') {
   const slots = CHARS.map((c, i) => ({ kind: 'bot' as const, characterId: c, kartBodyId: KARTS[i]!, name: c, ai: tier, vMul: AI_TIERS[tier].vMul }));
-  const rig = makeRig(bakedTrack(rel), { mode, slots, seed: 4242 });
-  const lastDist = new Float64Array(8).fill(-1e9), lastMove = new Int32Array(8);
-  let maxStuck = 0;
+  const track = bakedTrack(rel);
+  const rig = makeRig(track, { mode, slots, seed: 4242 });
+  // "stuck" is measured on the distance driven along the main line (Δ sMain, wrapped on circuits), not on raceDist:
+  // a kart whose key gate went uncredited (docs/design/contract-requests/S-AI-keygate-quantization.md) loses a lap of
+  // raceDist while it drives on, which is a lap-credit bug and not a stuck bot
+  const L = track.lapLength, circuit = track.topology === 'circuit';
+  const lastDist = new Float64Array(8).fill(-1e9), lastMove = new Int32Array(8), driven = new Float64Array(8), prevS = new Float64Array(8).fill(NaN);
+  let maxStuck = 0, maxDriftBrake = 0, spinOuts = 0, ei = 0;
   const w: WorldState = rig.w;
   while (w.phase !== Phase.DONE && w.tick < 60 * 60 * 6) {
     rig.tick();
+    for (; ei < rig.events.length; ei++) if (rig.events[ei]!.t === 'spinOut') spinOuts++;
+    for (const k of w.karts) if (k.drive.drift === 1 && k.drive.brakeTicks > maxDriftBrake) maxDriftBrake = k.drive.brakeTicks;
     if (w.phase < Phase.RACING) continue;
     for (const k of w.karts) {
+      const sm = k.race.loc.sMain, p = prevS[k.slot]!;
+      prevS[k.slot] = sm;
+      if (p === p) { let d = sm - p; if (circuit) { if (d > L / 2) d -= L; else if (d < -L / 2) d += L; } driven[k.slot]! += d; }
       if (k.race.finishTick >= 0) { lastMove[k.slot] = w.tick; continue; }
-      if (k.race.raceDist > lastDist[k.slot]! + 2) { lastDist[k.slot] = k.race.raceDist; lastMove[k.slot] = w.tick; }
+      if (driven[k.slot]! > lastDist[k.slot]! + 2) { lastDist[k.slot] = driven[k.slot]!; lastMove[k.slot] = w.tick; }
       maxStuck = Math.max(maxStuck, w.tick - lastMove[k.slot]!);
     }
   }
   const finishers = w.karts.filter((k) => k.race.finishTick >= 0);
   const hard = w.karts.reduce((a, k) => a + k.stats.hardHits, 0);
   const winner = Math.min(...finishers.map((k) => raceTicksOf(w, k))) / 60;
-  return { w, finishers: finishers.length, hardPerBotLap: hard / (8 * rig.cfg.laps), winner, maxStuck, respawns: w.karts.reduce((a, k) => a + k.stats.respawns, 0) };
+  return { w, finishers: finishers.length, hardPerBotLap: hard / (8 * rig.cfg.laps), winner, maxStuck, respawns: w.karts.reduce((a, k) => a + k.stats.respawns, 0), spinOuts, maxDriftBrake };
 }
 
 describe('races', () => {
@@ -38,12 +50,16 @@ describe('races', () => {
     expect(r.maxStuck).toBeLessThanOrEqual(300);
     expect(r.winner).toBeGreaterThan(100);
     expect(r.winner).toBeLessThan(130);
+    expect(r.spinOuts, 'spin-outs').toBe(0);
+    expect(r.maxDriftBrake, 'longest brake run in a drift (ticks)').toBeLessThanOrEqual(8);
   });
 
   it('meadow_loop item: ≥ 6/8 finish and nobody stuck > 5 s', () => {
     const r = race('clayhill_village/meadow_loop', 'item', 'racer');
     expect(r.finishers).toBeGreaterThanOrEqual(6);
     expect(r.maxStuck).toBeLessThanOrEqual(300);
+    expect(r.spinOuts, 'spin-outs').toBe(0);
+    expect(r.maxDriftBrake, 'longest brake run in a drift (ticks)').toBeLessThanOrEqual(8);
   });
 
   it('proving_ring speed: all finish cleanly', () => {
@@ -51,6 +67,7 @@ describe('races', () => {
     expect(r.finishers).toBe(8);
     expect(r.respawns).toBe(0);
     expect(r.hardPerBotLap).toBeLessThanOrEqual(0.3);
+    expect(r.spinOuts, 'spin-outs').toBe(0);
   });
 });
 
@@ -64,7 +81,7 @@ const SPEED_TRACKS = loadContent().tracks.all
 describe('speed races on every track', () => {
   it('finds the roster', () => { expect(SPEED_TRACKS.length).toBeGreaterThanOrEqual(20); });
   for (const rel of SPEED_TRACKS) {
-    it(`${rel.split('/')[1]}: ≥ 7/8 finish, ≤ 0.3 hard hits per bot-lap, nobody stuck > 5 s, winner in 85–150 s`, () => {
+    it(`${rel.split('/')[1]}: ≥ 7/8 finish, ≤ 0.3 hard hits per bot-lap, nobody stuck > 5 s, winner in 85–150 s, no spin-out`, () => {
       const r = race(rel, 'speed');
       expect(r.w.phase).toBe(Phase.DONE);
       expect(r.finishers).toBeGreaterThanOrEqual(7);
@@ -72,6 +89,8 @@ describe('speed races on every track', () => {
       expect(r.maxStuck).toBeLessThanOrEqual(300);
       expect(r.winner).toBeGreaterThan(85);
       expect(r.winner).toBeLessThan(150);
+      expect(r.spinOuts, 'spin-outs').toBe(0);
+      expect(r.maxDriftBrake, 'longest brake run in a drift (ticks)').toBeLessThanOrEqual(8);
     });
   }
 });

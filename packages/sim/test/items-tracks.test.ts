@@ -30,7 +30,7 @@ function load(rel: string): BakedTrack | null {
 
 /** Route features a homing projectile can cross (bit per feature), read from the route frame it flies on. */
 const LOOP = 1, ZERO_G = 2, HELIX = 4;
-/** Features the seed-31 race must carry at least one impacting homing projectile through. */
+/** Features that at least one impacting homing projectile must cross (the seed-31 race, topped up by seeds 32–33). */
 const MUST_HOME: Record<string, number> = { orbital_express: LOOP | ZERO_G | HELIX, skyway_interchange: HELIX, cascade_slalom: HELIX };
 
 /**
@@ -102,19 +102,32 @@ describe('item-mode races on every track', () => {
       expect([...r.uses.values()].reduce((a, b) => a + b, 0)).toBeGreaterThan(10);
       // homing through loops / zero-g / helices: projectiles that crossed a feature still land, glide (no snaps
       // over 1 m per tick, including mid-air launches) and meet the target
-      const impact = new Set<number>(), fizzle = new Set<number>();
-      for (const e of r.race.events) { if (e.t === 'projImpact') impact.add(e.obj); if (e.t === 'itemFizzle') fizzle.add(e.obj); }
-      let landed = 0, featImpacts = 0, featFizzles = 0;
-      for (const [objId, bits] of probe.out.tags) {
-        if (!bits) continue;
-        if (impact.has(objId)) { landed |= bits; featImpacts++; }
-        if (fizzle.has(objId)) featFizzles++;
-      }
       const must = MUST_HOME[id] ?? 0;
+      let landed = 0;
+      const homing = (race: typeof r.race, pr: ReturnType<typeof homingProbe>, seed: number): void => {
+        const impact = new Set<number>(), fizzle = new Set<number>();
+        for (const e of race.events) { if (e.t === 'projImpact') impact.add(e.obj); if (e.t === 'itemFizzle') fizzle.add(e.obj); }
+        let featImpacts = 0, featFizzles = 0;
+        for (const [objId, bits] of pr.out.tags) {
+          if (!bits) continue;
+          if (impact.has(objId)) { landed |= bits; featImpacts++; }
+          if (fizzle.has(objId)) featFizzles++;
+        }
+        expect(featFizzles, `fizzles after crossing a feature (seed ${seed})`).toBeLessThanOrEqual(Math.max(1, featImpacts / 10));
+        expect(pr.out.maxStepH, `per-tick height snap (m, seed ${seed})`).toBeLessThan(1);
+        expect(pr.out.maxMiss, `distance to target one tick before impact (m, seed ${seed})`).toBeLessThan(1.5);
+      };
+      homing(r.race, probe, 31);
+      // feature coverage needs a homing shot fired across each feature that also lands, which a single race does not
+      // always produce (where the bots fire depends on how the race unfolds): up to two more races top it up
+      for (let seed = 32; seed <= 33 && (landed & must) !== must; seed++) {
+        const pr = homingProbe(track!);
+        const extra = runItemRace({ track: rel, seed, tiers: ['pro', 'racer'], laps: Math.min(2, track!.laps) }, undefined, pr.tick);
+        expect(extra.nanProjectiles).toBe(0);
+        expect(extra.offTrackProjectiles).toBe(0);
+        homing(extra.race, pr, seed);
+      }
       expect(landed & must, 'features crossed by a landing homing projectile').toBe(must);
-      expect(featFizzles, 'fizzles after crossing a feature').toBeLessThanOrEqual(Math.max(1, featImpacts / 10));
-      expect(probe.out.maxStepH, 'per-tick height snap (m)').toBeLessThan(1);
-      expect(probe.out.maxMiss, 'distance to target one tick before impact (m)').toBeLessThan(1.5);
     });
   }
 });

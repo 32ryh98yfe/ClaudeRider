@@ -11,7 +11,7 @@ Status keys: **[S]** sourced · **[V]** validated by gap-2 · **[P]** proposed. 
 - `sim/src/ai/**` may use trig and `Math.random`-free seeded RNG (`hash32`/mulberry32 from the bot's seed). It reads the world and writes `InputFrame`s; it never mutates the world.
 - **Lookahead**: at tick t the driver decides the input for **t + 8** (≈ 133 ms, a human-like reaction). The room relays it at t, so clients with RTT ≤ 100 ms have bot inputs before they need them.
 - **Rates**: high-level decisions (drift plans, lane choice, items, boosters, branch choice) at 20 Hz (every 3 ticks, staggered by slot); steering and throttle every tick.
-- Pose prediction [P]: because the input applies 8 ticks later, pursuit uses the pose extrapolated 8 ticks ahead (`p + v·8·DT`, heading + yawRate·8·DT).
+- Pose prediction [P]: because the input applies 8 ticks later, pursuit uses the pose the bot's own pending frames lead to: `ai/predict.ts` replays them through a flat-ground 2D copy of `kartDynamics` with every `KartParams` constant, including the M5 techniques of `15-driving-techniques.md` §4 (tap edges, brake turn ×2, spin-out, cut, drag with η = 1 and the planar cap, no K16 while dragging, the post-boost bleed, STOP/R gears) and the bot's own booster requests. `test/predict.test.ts` holds it within 0.05 m of `step()` after 8 ticks on scripted technique frames (measured ≤ 2.2 mm).
 - Bots emit exactly the same `InputFrame` bits as humans (steer, throttle, brake, held, edges, aim), so the same driver can take over a disconnected player (§10).
 
 ---
@@ -69,7 +69,12 @@ While drifting (dir = drift direction):
 - `outside = −dir·(u + u̇·0.25 s)/hw` (+ = heading for the outer wall).
 - `e = eh + 0.6·outside`; `s_in = clamp(2.5·e, …, 0.8)`.
 - **Bite**: if outward slip sine > 0.42, or `outside > 0.35` while `eh > 0`, limit `s_in ≤ 0.3` (more lateral grip).
-- Exit: `e < −0.05` → full counter-steer (`s_in = −1`), throttle off while `s_in < −0.3`.
+- Exit: `e < −0.05` → counter-steer, throttle off while `s_in < −0.3`. Since M5 a full counter-steer (`s_in ≤ −0.7` for 2 ticks) is a **cut** (β → 0 at once, the drift ends; `15-driving-techniques.md` §4.5), so the counter-steer has two forms:
+  - **trim** `s_in = −0.677` (86/127, just under the cut threshold): the old reversible counter-steer, used mid-corner, within 120 m of a branch split (the split approach keeps its line) and whenever a cut would point the velocity at the inside wall;
+  - **cut** `s_in = −1`: the deliberate exit, only when the corner is done (≤ 0.5 rad left), the nose is at most 0.3 rad past the local tangent and 1.5 m are free on the inside; also the forced exits (jump lip < 30 m, warp gate < 30 m, S-bend within 15 m).
+  - A long corner held in one drift (`holding`) counter-steers to −0.3, or to the trim when the drift is boosted (v > 1.1·vGrip).
+- **Brakes in a drift** (M5): every brake press in a drift is a brake turn (heading ×2 for ticks 1–8) and 11 ticks spin out. The speed control brakes in a drift only while the nose lags the track (`eh > 0.2`), else it lifts; `commit()` turns any brake in a drift context (DRIFT held, the predicted drift, or drifting now) into pulses of ≤ 6 frames with ≥ 4 released frames, checks the predicted brake count at the apply tick (the sim counts brake ticks on the ground only), and never brakes a drift in the air. Races assert 0 spin-outs and ≤ 8 brake ticks in any drift.
+- **Drift trigger sanity** (M5): no new drift into a corner the velocity already turns inside of (`−vU·dir > 0.2·|vS|`): a boosted kart re-drifting while it heads for the inside wall was the main source of wall hits.
 - Hold drift while `eh > 0.4` and slip < 0.4 (keeps `s_in ≥ 0.6`); **double drift** (release then re-press) once when `driftTicks > 18` (0.3 s) and `eh > 0.8`.
 
 ### 3.6 Instant boost
@@ -91,8 +96,33 @@ While drifting (dir = drift direction):
 - Mistakes: each drift zone rolls `p = mistakeRate / zonesPerLap`; a mistake is a 0.3 s late brake or a 20-tick over-held drift (may tap the wall).
 - Line noise: an Ornstein–Uhlenbeck lateral offset with σ = `lineNoise`, time constant 90 ticks, clamped to `hw − 1.5`.
 
+- A corner of 2 rad or more (hairpin) is never gripped on purpose: the grip table's width allowance is optimistic over 120°+ of turning, so such corners roll a sloppy drift instead of the grip plan.
+
 ### 3.10 Draft (`useDraft`)
 - On a straight (`|turnAhead40| < 10°` for 100 m), if a kart is 5–20 m ahead within ±1.5 m, follow its lateral offset; when `draftTicks > 0` (active), pull out 2.5 m to the side with fewer karts and pass.
+
+### 3.11 Driving techniques (M5, `15-driving-techniques.md`)
+The tiers adopt drag (끌기), tap boost (톡톡이) and the brake drift turn (고속턴) at their own rate (`AI_EXECUTION`, `profiles.ts`); every bot avoids spin-outs (§3.5).
+
+| | rookie | racer | pro | legend |
+|---|---|---|---|---|
+| `dragRate` (share of eligible corners planned as a drag) | 0.03 | 0.25 | 0.75 | 0.95 |
+| `tapRate` (share of planned drags that tap) | 0 | 0.05 | 0.3 | 0.9 |
+| `brakeTurnRate` (share of hairpins with a deliberate brake turn) | 0 | 0.1 | 0.35 | 0.7 |
+| `dragMinR` (m) | 60 | 50 | 40 | 35 |
+| `dragLeadS` (booster fired into the corner from v·dragLeadS m) | 0 | 0.5 | 0.7 | 0.8 |
+| `tapJitterTicks` (± on the 8-tick rhythm, clamped to 6–12) | 3 | 2 | 1 | 0 |
+
+- **Eligible corners** (`Corner.dragSafe`, `plan.ts`): a drift corner with `minR ≥ dragMinR` and `turn ≤ 2.6` rad, no open ledge, halfpipe or loop span over it (−20/+30 m), no jump lip or warp gate within 60 m before / 40 m after, no branch split or merge within 80 m before / 40 m after, and no S-bend (an opposite drift corner starting within 25 m of the exit, or ending that close before the entry). The plan is rolled once per corner pass (keyed by the lap of the pass, so the booster look-ahead and the corner roll agree); the ghost takes every eligible plan.
+- **Boosters for a drag** (`boostSkill ≥ 1`): fire into the corner when it is `5 < d < v·dragLeadS` m ahead; the last booster is kept for a planned drag corner up to 150 m ahead (unless a booster fired now still covers its entry). Holding boosters longer costs more than the drag gains (≈ 2.5 s per race on meadow_loop), so most drags are opportunistic: a boosted drift in an eligible corner.
+- **Boost expiry** (Pro/Legend): a straight-line booster may wait up to 0.6 s so that it runs out inside a drift corner (a drift cancels the post-boost bleed).
+- **Drag control** (drifting, boosting ≥ 20 more ticks, the planned corner, the kart not heading for either wall, more than 0.2 rad left):
+  - build-up while the predicted β is below the 20° entry window: full in-steer with DRIFT kept held from the entry tap, only while the nose lags the track (`eh > 0.1`) and the yaw is below what the corner asks for + 1.2 rad/s; a released DRIFT is re-pressed (double drift) only when `eh > 0.35`;
+  - drag: the wheel stays inside the neutral band (`|s_in| ≤ 0.28`); it sets the yaw target `(κ·v + 2·e − tapYaw/kYawDrift/gap − centred yaw)/y1` with damping on the yaw excess; DRIFT keeps its state (a re-press re-kicks) unless the yaw needs the other one; a drag whose yaw stays saturated high releases DRIFT;
+  - taps on the corner key every `8 ± tapJitterTicks` ticks (clamped to 6–12), steer still 0, while the nose is not ahead of the track; Mirror Mode swaps the TAP bits together with the steer (`ai/items/decide.ts`);
+  - abort when the nose is more than 0.12 rad ahead of / 0.35 rad behind the track, when the kart runs to either wall (`|outside| > 0.45`), or near the corner end, or while a kart runs alongside (the side-contact reflex of §5 would push the wheel; a drag holds its line at boost speed and rubbed an inside kart for up to 40 ticks); the normal exit (trim / cut) follows. vLim braking is skipped while dragging.
+- **Brake turn**: on a rolled hairpin (turn ≥ 2 rad, minR ≤ 20 m) one 5-frame brake tap in the drift once the nose lags by more than 0.45 rad.
+- Telemetry: `runRace()` counts drag entries, valid taps, cuts, spin-outs and brake turns per kart from the events, plus the longest brake run seen in a drift; `node tools/balance/tiers.ts --verbose` prints them per lap.
 
 ---
 
@@ -116,14 +146,14 @@ While drifting (dir = drift direction):
 - Follow the baked guide line `(u(s), h(s))` (the ghost's fastest wall ride); line noise scaled ×0.5 on the walls.
 
 ### 4.5 Loops, zero-g, helices
-- Loops and zero-g tubes: throttle held, steer to `lineU` only (no drifts inside an RMF span).
+- Loops and zero-g tubes: throttle held (no vLim or ledge braking inside the RMF span, M5), steer to `lineU` only (no drifts inside an RMF span).
 - Helices: normal driving; the baked `vLim` already includes the constant curvature.
 
 ### 4.6 Warps
 - Steer to the gate centre `d` 50 m before the entry; no drift.
 
 ### 4.7 Hazards
-- For each hazard within the next 120 m: evaluate `hazardPose(h, tick + ETA)` at the bot's ETA (analytic phase). If the hazard will be active or telegraphing at arrival, either choose a lane outside its shape (lane cost +∞ for that lane) or slow to arrive after the active window when no lane is safe (presses, laser gates).
+- For each hazard within the next 120 m: evaluate `hazardPose(h, tick + ETA)` at the bot's ETA (analytic phase). If the hazard will be active or telegraphing at arrival, either choose a lane outside its shape (lane cost +∞ for that lane) or slow to arrive after the active window when no lane is safe (presses, laser gates). A hazard that does not clear within the 5 s scan (a pendulum that is always active) is never waited for: crawling at 6 m/s behind it lost 5–10 s per pass on manor_catacombs; the lane choice alone handles it.
 - Traffic/trains: treat vehicles as moving karts in the avoidance cone (§5).
 
 ---
@@ -133,6 +163,7 @@ While drifting (dir = drift direction):
 - Cost = `1.0·|offset − lineU| + 3.0·Σ(1/TTC)` for karts in a 30 m forward cone `+ 50·hazard` (traps, active hazards, firewall blocks) `− 2.0·wanted` (item boxes when a slot is free, boost pads) `+ 0.5·|change from current|`.
 - Aggressive bots (aggression ≥ 0.8) scale the kart TTC term by `(1 − aggression)` and may steer into a rival alongside (bump), never into a rival ahead at > 5 m/s closing speed.
 - Lateral change rate ≤ 3 m/s.
+- Side contact (M5): in grip (not in loops, on halfpipes or beside ledges), a kart within 4.5 m along and 3.2 m across that closes in laterally pushes the wheel away (≤ 0.6 of lock, more with the closing speed); bump personalities (aggression ≥ 0.8) are exempt. Lane re-plans alone are too slow for side-by-side contact at corner speeds. In a drift the same push acts on sIn: a rival on the outside (where the slide carries the kart) tightens the drift, one on the inside only eases it, never below sIn −0.3 (no cut); not while dragging or on the entry tap. With the wider window (4.5 m along, 3.2 m across; was 3.5 / 2.8) and no drag beside a rival (§3.11), the 8-Pro meadow field drops from 2.58 (M5 baseline) to 1.30 hard bumps per kart over seeds 1–10 (worst seed 4.5 → 2.0).
 - Ghosted or finished karts are ignored.
 
 ---
@@ -239,7 +270,7 @@ The profile passed to `createAiDriver(…, profile, personality, seed)` is the t
 ## 10. Takeover and stuck recovery
 - **Disconnect takeover**: after 180 ticks (3 s) without inputs, the authority attaches an `AiDriver` to the human's slot with the Racer profile and the human's character personality; it hands control back on reconnect (ADR-007).
 - **Finished karts**: a cruise controller (Rookie noise, no items) drives until `DONE`.
-- **Stuck**: `v < 2 m/s` for 90 ticks → reverse with counter-steer for 48 ticks → still stuck at 240 ticks → press R (manual reset is allowed after 60 slow ticks). This keeps "no bot stuck > 5 s" (E).
+- **Stuck**: `v < 2 m/s` for 90 ticks → reverse with counter-steer for 54 ticks (M5: reverse engages 6 ticks after STOP) → still stuck at 200 ticks → press R (manual reset is allowed after 60 slow ticks). The slow test uses the smaller of the predicted and the real speed: the self-prediction has no walls, so a kart pinned against an obstacle (hard hit, stun, throttle, hard hit …) would otherwise predict itself moving off forever. This keeps "no bot stuck > 5 s" (E).
 
 ---
 

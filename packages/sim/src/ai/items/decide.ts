@@ -248,7 +248,12 @@ export function decideItem(b: ItemBrain, w: Readonly<WorldState>, env: ItemEnv, 
   const mirror = activeEffect(w, k.slot, EF.mirror, tick);
   if (mirror) {
     const s = b.profile.itemSkill, adapt = s >= 3 ? 0 : s === 2 ? b.profile.reactionTicks >> 1 : Math.min(b.profile.reactionTicks, 45);
-    if (tick - mirror.start >= adapt) out.steer = -out.steer;
+    if (tick - mirror.start >= adapt) {
+      out.steer = -out.steer;
+      // the sim swaps the tap keys with the steer (15-driving-techniques §3): swap the driver's tap-boost edges too
+      const tl = out.edges & Edge.TAP_L, tr = out.edges & Edge.TAP_R;
+      out.edges = (out.edges & ~(Edge.TAP_L | Edge.TAP_R)) | (tl ? Edge.TAP_R : 0) | (tr ? Edge.TAP_L : 0);
+    }
   }
   // ---- mash-out: alternating taps at the tier's rate with ±1 tick jitter
   if (st.cc !== 0 && tick < st.ccEnd) {
