@@ -8,7 +8,7 @@ import { merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } 
 import { buntingLine, dome, lathe, part, pennant, prism, seeded } from './toyshapes.ts';
 
 const TERRACOTTA = '#d97757', CREAM = '#f4efe6', SAGE = '#8fb573', SKY = '#9fd3f5', SLATE = '#5a6b7b';
-const STONE = '#e3d3b6', STONE_DK = '#c9b08c', NICHE = '#8b7b68', PAVING = '#b9ab95', WOOD = '#8a5a3c', WOOD_DK = '#6b4a33', GOLD = '#e0b04b', IVORY = '#faf9f5', INK = '#2a2826';
+const STONE = '#e3d3b6', STONE_DK = '#c9b08c', NICHE = '#8b7b68', PAVING = '#c2b298', WOOD = '#8a5a3c', WOOD_DK = '#6b4a33', GOLD = '#e0b04b', IVORY = '#faf9f5', INK = '#2a2826';
 const FLAGS = [TERRACOTTA, CREAM, SKY, '#f2c14e', SAGE];
 
 const lit = (): THREE.Material => MaterialLibrary.vertexLit(0.8, 0);
@@ -185,8 +185,9 @@ export const CLAYHILL_PROPS: Record<string, PropFactory> = {
       ];
       for (let k = 0; k < 7; k++) p.push(part(box(0.08, 0.8, 0.08), WOOD_DK, 4.1, 4.4, -1.5 + k * 0.5));
       // a paved plinth round the house that runs on into the next one, so terraces stand on a street, not on lawn
-      // (flush with the ground: a raised slab read as houses parked on pallets where the rows curve apart)
-      p.push(part(box(9.2, 1.0, 12.6), PAVING, -0.9, -0.45, 0));
+      // flush with the ground and 1.8 m deep: where the terrain falls away behind a house its exposed edge reads as a
+      // stone terrace in the house's foundation colour instead of a thin slab on pallets
+      p.push(part(box(9.2, 1.8, 12.6), PAVING, -0.9, -0.85, 0));
       windowRow(p, 3.0, 5.2, [-2.2, 2.2], 0.9, 1.3);
       windowRow(p, 3.0, 1.4, [0.4, 2.3], 1.1, 1.1);
       return { geometry: merge(p), material: lit(), castShadow: true };
