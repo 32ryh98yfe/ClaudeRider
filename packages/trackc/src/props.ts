@@ -68,7 +68,15 @@ export function exclusions(m: TrackModel, c: Content, js: Junction[], hazardS: {
   return ex;
 }
 
+/** Why PROPS row instances were not placed in the last placeProps() call (bake stats: authors see what to move). */
+export const DROPS = { onRoad: 0, floating: 0, excluded: 0 };
+/** PROPS rows closer than this to the road edge are deck-edge dressing: on an elevated deck they stand on the deck. */
+const DECK_EDGE = 2;
+/** Farther-out props beside an elevated deck stand on the ground below unless it is deeper than this. */
+const GROUND_BELOW = 40;
+
 export function placeProps(m: TrackModel, c: Content, seed: number, gi: GroundIndex, tf: TerrainField | null, ex: Exclusion[], js: Junction[]): PropSet[] {
+  DROPS.onRoad = 0; DROPS.floating = 0; DROPS.excluded = 0;
   const R = rng(seed ^ 0x9e3779b9);
   const sets = new Map<string, number[]>();
   const add = (kind: string, x: number, y: number, z: number, yaw: number, scale = 1, variant = 0): void => {
@@ -130,17 +138,26 @@ export function placeProps(m: TrackModel, c: Content, seed: number, gi: GroundIn
     for (let s = s0; s <= s1 + 1e-6; s += every) {
       // ranges that wrap past the line (s1 += L above) must wrap back, or sampleAt clamps them onto the last sample
       const smp = sampleAt(P, P.closed ? ((s % P.length) + P.length) % P.length : s);
-      if (smp.jumpPart === 2 || smp.warp || excluded(pathIdx, smp.s)) continue;
+      if (smp.jumpPart === 2 || smp.warp || excluded(pathIdx, smp.s)) { DROPS.excluded += sides.length; continue; }
       for (const side of sides) {
         const edge = side * (smp.w / 2 + (side < 0 ? smp.shL : smp.shR));
         const u = edge + side * (offset + pr() * jitter);
-        const x = smp.x + smp.rx * u, z = smp.z + smp.rz * u;
+        let x = smp.x + smp.rx * u, z = smp.z + smp.rz * u;
         // compare against the road edge, not the banked road plane extended out to u: on the high side of an 8° bank
         // that plane is 3 m above the ground by ~19 m out and dropped every grandstand and tyre wall there
         const yRoad = smp.y + smp.ry * edge;
-        if (gi.heightAt(x, z, yRoad) !== null) continue;          // never on a road
-        const y = groundY(x, z, yRoad - 0.2);
-        if (y < yRoad - 3) continue;                              // no floating props beside ledges / bridges
+        if (gi.heightAt(x, z, yRoad) !== null) { DROPS.onRoad++; continue; } // never on a road
+        let y = groundY(x, z, yRoad - 0.2);
+        if (y < yRoad - 3) {
+          // beside an elevated deck (bridges, interchange ramps, skyways) the ground is far below:
+          if (smp.kill) { DROPS.floating++; continue; }          // ledges over kill planes stay bare
+          if (offset <= DECK_EDGE) {
+            // deck-edge dressing (lamps, light strips, signs, rails) stands on the deck edge itself
+            const ud = edge - side * 0.25;
+            x = smp.x + smp.rx * ud; z = smp.z + smp.rz * ud; y = smp.y + smp.ry * ud;
+          } else if (!tf || yRoad - y > GROUND_BELOW || gi.heightAt(x, z, y + 1, 3) !== null) { DROPS.floating++; continue; }
+          // farther-out props (billboards, cranes, towers) stand on the ground below the deck
+        }
         add(cmd.kind, x, y, z, yawOf(smp.tx, smp.tz) + (side < 0 ? Math.PI : 0), (sc0 ?? 0.85) + pr() * ((sc1 ?? 1.15) - (sc0 ?? 0.85)), Math.floor(pr() * 4));
       }
     }

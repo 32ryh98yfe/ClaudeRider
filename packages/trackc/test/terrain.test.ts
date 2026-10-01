@@ -64,3 +64,21 @@ describe('terrain next to roads', () => {
     expect(tf.height(q.x + q.rx * d, q.z + q.rz * d)).toBeLessThan(q.y - 3);
   });
 });
+
+describe('props on elevated decks (L6 §1)', () => {
+  it('deck-edge rows stand on the deck edge where the ground is far below; farther rows stand on the ground', () => {
+    const src = readFileSync(TRACKS + '_test/f6_helix.ctd', 'utf8') + 'PROPS kind=lamp along=main side=both every=20 offset=0.5\nPROPS kind=billboard along=main side=R every=60 offset=6\n';
+    const r = buildTrack(src, 'f6p.ctd');
+    expect(r.stats.propsDroppedFloating).toBeLessThanOrEqual(2); // only far-out rows over a lower road or a chasm
+    const tf = buildTerrainField(r.model, r.content, r.meta.bounds, () => 0, 0);
+    const c = readContainer(toArrayBuffer(r.vis), CVIS_MAGIC, CVIS_VERSION);
+    const kinds = (c.meta as { props: { kind: string }[] }).props;
+    const lamps = c.arrays.get(`p${kinds.findIndex((p) => p.kind === 'lamp')}.xf`) as Float32Array;
+    const rows = Math.floor(r.model.paths[0]!.length / 20) * 2;
+    expect(lamps.length / 6).toBeGreaterThan(rows * 0.6); // exclusions (line, pads, items) take the rest
+    // on the stacked helix some lamps stand on an upper deck, well above the ground under them
+    let onDeck = 0;
+    for (let i = 0; i < lamps.length; i += 6) if (lamps[i + 1]! - tf.height(lamps[i]!, lamps[i + 2]!) > 5) onDeck++;
+    expect(onDeck).toBeGreaterThan(3);
+  });
+});

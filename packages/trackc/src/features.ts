@@ -81,12 +81,29 @@ export function buildFeatures(m: TrackModel, c: Content, rows: Map<number, numbe
       }
     }
   }
-  // ---- KILL planes: collision strips along every path wherever the road stands > 2 m above the plane
+  // ---- KILL planes: collision strips under the spans a kart can actually fall from — open edges (no wall), jump
+  // gaps, warps and kill spans, ±20 m — wherever the road stands > 2 m above the plane. Under fully walled road a
+  // strip only fed the TriHash (≈ 600 KB on a 3.9 km track); a kart thrown over a wall there still dies at killY.
+  const MARGIN = 20;
   for (const kp of c.killPlanes) {
     for (const p of m.paths) {
       if (p.kind === 'rail') continue;
       const step = 6;
+      const open: number[] = [];
+      for (const q of p.samples) if (q.wallL.type === 'none' || q.wallR.type === 'none' || q.jumpPart === 2 || q.warp || q.kill) open.push(q.s);
+      if (!open.length) continue;
+      const near = (s0: number, s1: number): boolean => {
+        // binary search the sorted open samples for one within [s0 − MARGIN, s1 + MARGIN] (wrapping on circuits)
+        const hit = (lo: number, hi: number): boolean => {
+          let a = 0, b = open.length;
+          while (a < b) { const mid = (a + b) >> 1; if (open[mid]! < lo) a = mid + 1; else b = mid; }
+          return a < open.length && open[a]! <= hi;
+        };
+        if (hit(s0 - MARGIN, s1 + MARGIN)) return true;
+        return p.closed && (hit(s0 - MARGIN + p.length, s1 + MARGIN + p.length) || hit(s0 - MARGIN - p.length, s1 + MARGIN - p.length));
+      };
       for (let s = 0; s < p.length - 1e-6; s += step) {
+        if (!near(s, s + step)) continue;
         const a = sampleAt(p, s), b = sampleAt(p, Math.min(p.length, s + step));
         if (a.y < kp.y + 2 || b.y < kp.y + 2) continue;
         const inBox = (x: number, z: number): boolean => !kp.aabb || (x >= kp.aabb[0] && x <= kp.aabb[2] && z >= kp.aabb[1] && z <= kp.aabb[3]);
@@ -98,6 +115,23 @@ export function buildFeatures(m: TrackModel, c: Content, rows: Map<number, numbe
         ground.push(V(a1, up, a.s, W), V(b1, up, b.s, W), V(b0, up, b.s, -W), LAVA, TFLAG.KILL, p.index, ROLE.KILL);
         kills += 2;
       }
+    }
+  }
+  // ---- point-to-point end cap (appended last, so every other wall keeps its index): a soft barrier across the road at the end of the main line, so finished karts
+  // stop at the end instead of driving off it and respawning (L6 §8). The start needs none: the grid stands ≥ 10 m in.
+  if (!m.closed) {
+    const p = m.paths[0]!;
+    for (const [s, dir] of [[p.length, 1]] as const) {
+      const q = sampleAt(p, s);
+      const L0 = edgePoint(m, p, s, -1, 0.3), R0 = edgePoint(m, p, s, 1, 0.3);
+      const out: P3 = [q.tx * dir, q.ty * dir, q.tz * dir];
+      walls.push({
+        path: p.index, side: 1, flg: TFLAG.SOFT, kind: 'barrier',
+        a0: [L0[0] - q.ux * 0.5, L0[1] - q.uy * 0.5, L0[2] - q.uz * 0.5], a1: [L0[0] + q.ux * 1.6, L0[1] + q.uy * 1.6, L0[2] + q.uz * 1.6],
+        b0: [R0[0] - q.ux * 0.5, R0[1] - q.uy * 0.5, R0[2] - q.uz * 0.5], b1: [R0[0] + q.ux * 1.6, R0[1] + q.uy * 1.6, R0[2] + q.uz * 1.6],
+        sa: s, sb: s, out, render: true,
+      });
+      faces++;
     }
   }
   return { kills, faces };

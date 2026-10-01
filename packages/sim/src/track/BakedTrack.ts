@@ -123,6 +123,7 @@ class BakedTrackImpl implements BakedTrack {
   private cand: TrackLoc = { path: 0, i: 0, s: 0, u: 0, h: 0, sMain: 0, valid: 0 };
   private sc = { s: 0, c: 0 };
   private rng = { x: { lo: 0, hi: 0 }, y: { lo: 0, hi: 0 }, z: { lo: 0, hi: 0 } };
+  private rsp = { path: 0, i: -1 };
 
   constructor(buf: ArrayBuffer) {
     const c = readContainer(buf, CTRK_MAGIC, CTRK_VERSION);
@@ -401,38 +402,51 @@ class BakedTrackImpl implements BakedTrack {
   /** The sample a kart whose last valid location is `loc` is placed on, or −1 (respawn in place).
    *  v2 tracks bake it per sample (p{k}.rto: jump-aware, never across the finish or forwards across a key gate);
    *  older bakes walk back ≤ 15 samples to the nearest respawn-ok sample of the same path. */
-  private respawnIndex(loc: Readonly<TrackLoc>): number {
-    const pd = this.paths[loc.path]!;
+  /** Sets this.rsp to the respawn (path, sample) for `loc`; returns false for "respawn in place". rto values ≤ −2
+   *  point at another path (a branch sample with no slot of its own falls back to its host): −2 − (path·2^16 + i). */
+  private respawnIndex(loc: Readonly<TrackLoc>): boolean {
+    const R = this.rsp;
+    R.path = loc.path; R.i = -1;
+    const pd = this.paths[loc.path];
+    if (!pd) return false;
     const nSeg = pd.meta.n - 1;
     const i = this.indexAt(pd, loc.s);
-    if (pd.rto) return pd.rto[i]!;
-    if (!pd.rok) return -1;
+    if (pd.rto) {
+      const v = pd.rto[i] ?? -1;
+      if (v >= 0) { R.i = v; return true; }
+      if (v <= -2) {
+        const c = -v - 2, path = (c - (c % 65536)) / 65536, j = c % 65536;
+        if (!this.paths[path] || j >= this.paths[path]!.meta.n) return false;
+        R.path = path; R.i = j; return true;
+      }
+      return false;
+    }
+    if (!pd.rok) return false;
     for (let k = 0; k <= 15; k++) {
       let j = i - k;
       if (pd.meta.closed) { j %= nSeg; if (j < 0) j += nSeg; } else if (j < 0) break;
-      if (pd.rok[j] === 1) return j;
+      if (pd.rok[j] === 1) { R.i = j; return true; }
     }
-    return -1;
+    return false;
   }
 
   respawnLoc(loc: Readonly<TrackLoc>, out: TrackLoc): void {
     copyLoc(out, loc);
-    const j = this.respawnIndex(loc);
-    if (j < 0) return;
-    const pd = this.paths[loc.path]!, S = pd.smp, a = j * SMP.STRIDE;
-    out.i = j; out.s = S[a + SMP.S]!; out.sMain = S[a + SMP.SMAIN]!; out.u = 0; out.h = 0; out.valid = 1;
+    if (!this.respawnIndex(loc)) return;
+    const R = this.rsp, pd = this.paths[R.path]!, S = pd.smp, a = R.i * SMP.STRIDE;
+    out.path = R.path; out.i = R.i; out.s = S[a + SMP.S]!; out.sMain = S[a + SMP.SMAIN]!; out.u = 0; out.h = 0; out.valid = 1;
     if (this.topology === 'circuit' && out.sMain >= this.lapLength) out.sMain -= this.lapLength;
   }
 
   respawnPose(loc: Readonly<TrackLoc>, out: PoseBaked): void {
     const f = this.tmpFrame;
-    const j = this.respawnIndex(loc);
-    const pd = this.paths[loc.path]!;
-    const s = j >= 0 ? pd.smp[j * SMP.STRIDE + SMP.S]! : loc.s;
-    this.frameAt(loc.path, s, f);
+    const found = this.respawnIndex(loc);
+    const R = this.rsp, path = found ? R.path : loc.path;
+    const s = found ? this.paths[path]!.smp[R.i * SMP.STRIDE + SMP.S]! : loc.s;
+    this.frameAt(path, s, f);
     // keep a little of the lateral offset, clamped well inside the road
     const lim = (f.wL < f.wR ? f.wL : f.wR) - 2.5;
-    const u = j < 0 && lim > 0 ? (loc.u > lim ? lim : loc.u < -lim ? -lim : loc.u) * 0.3 : 0;
+    const u = !found && lim > 0 ? (loc.u > lim ? lim : loc.u < -lim ? -lim : loc.u) * 0.3 : 0;
     out.x = f.px + f.rx * u; out.y = f.py + f.ry * u; out.z = f.pz + f.rz * u;
     out.fx = f.tx; out.fy = f.ty; out.fz = f.tz;
   }

@@ -24,6 +24,8 @@ export interface RespawnContext {
   jumps: readonly JumpBaked[];
   /** hazards at a fixed s (everything but lane traffic) keep respawn slots 8 m clear (11-track-spec §9) */
   hazards?: readonly HazardDefBaked[];
+  /** main-line DSL s of the start line on p2p tracks (sMain = s − lineS) */
+  lineS?: number;
 }
 
 export interface RespawnTables { ok: Uint8Array; to: Int32Array }
@@ -33,15 +35,20 @@ export function runUp(vMin: number): number {
   return (2 * vMin * vMin) / (2 * RUNUP_ACCEL);
 }
 
-export function respawnTables(track: BakedTrack, p: PathModel, rc: RespawnContext): RespawnTables {
+export function respawnTables(track: BakedTrack, p: PathModel, rc: RespawnContext, host?: { p: PathModel; to: Int32Array }): RespawnTables {
   const S = p.samples, n = S.length;
   const ok = new Uint8Array(n);
   const hit: GroundHit = { t: 0, x: 0, y: 0, z: 0, nx: 0, ny: 1, nz: 0, surf: 0, tri: 0, flags: 0 };
+  const hit2: GroundHit = { ...hit };
   const cs: Contact[] = Array.from({ length: 4 }, () => ({ x: 0, y: 0, z: 0, nx: 0, ny: 0, nz: 0, depth: 0, flags: 0, tri: 0 }));
   S.forEach((s, i) => {
     if (s.flags & (SFLAG.NO_GROUND | SFLAG.KILL | SFLAG.WARP | SFLAG.RAIL)) return;
     if (!track.groundRay(s.x + s.ux, s.y + s.uy, s.z + s.uz, -s.ux, -s.uy, -s.uz, 2, hit)) return;
     if (hit.flags & 4) return;
+    // two drivable surfaces within 1.5 m of each other (a branch overlapping its host at a slightly different height):
+    // a kart placed here could land on either, or on the step between them
+    if (Math.abs((hit.x - s.x) * s.ux + (hit.y - s.y) * s.uy + (hit.z - s.z) * s.uz) > 0.15) return;
+    if (track.groundRay(hit.x - s.ux * 0.05, hit.y - s.uy * 0.05, hit.z - s.uz * 0.05, -s.ux, -s.uy, -s.uz, 1.5, hit2)) return;
     const r = Math.max(0.9, Math.min(3, s.w / 2 - 0.5));
     if (track.sphereWalls(hit.x + s.ux * 0.6, hit.y + s.uy * 0.6, hit.z + s.uz * 0.6, r, cs, 4) > 0) return;
     ok[i] = 1;
@@ -132,6 +139,23 @@ export function respawnTables(track: BakedTrack, p: PathModel, rc: RespawnContex
       if (j < 0) j = seek(i, i - LOCAL_BACK - 1, -1, far);
     }
     to[i] = j;
+  }
+  // a branch sample with no slot on its own path respawns on the host at the same progress (encoded −2 − (path·2^16 +
+  // sample); BakedTrack decodes it), instead of in place — the in-place fallback looped on overlapping chords
+  if (host && p.map) {
+    const H = host.p, hs = H.samples;
+    for (let i = 0; i < n; i++) {
+      if (to[i] !== -1) continue;
+      const sm = S[i]!.sMain, hsS = rc.closed ? sm : sm + (rc.lineS ?? 0);
+      let lo = 0, hi = hs.length - 1;
+      while (lo < hi) { const mid = (lo + hi) >> 1; if (hs[mid]!.s < hsS) lo = mid + 1; else hi = mid; }
+      for (let k = 0; k <= 30; k++) {
+        const j = lo - k;
+        if (j < 0) break;
+        const t2 = host.to[j]!;
+        if (t2 >= 0) { to[i] = -2 - (H.index * 65536 + t2); break; }
+      }
+    }
   }
   if (p.closed) to[n - 1] = to[0]!;
   else if (n > 0) to[n - 1] = n > 1 ? to[n - 2]! : -1;
