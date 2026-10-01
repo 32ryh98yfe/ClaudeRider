@@ -80,10 +80,15 @@ export function createPost(renderer: THREE.WebGPURenderer, scene: THREE.Scene, c
   const build = (s: THREE.Scene, c: THREE.Camera): void => {
     scenePass = pass(s, c, aa === 'msaa' ? { samples: 4 } : undefined);
     const outputs: Record<string, N> = { output, emissive: vec4(emissive, output.a) };
-    if (ts.ssao) outputs['normal'] = packNormalToRGB(normalView);
+    // GTAO pairs this normal with the depth buffer, so only materials that write depth may write it. Smoke, sparks,
+    // skids and other depth-less FX write rgba 0 under their own blending, which leaves the opaque surface's normal
+    // in place; before, their camera-facing quads overwrote it and GTAO drew dark, hard-edged squares round every
+    // drifting kart (and the desert dust motes)
+    if (ts.ssao) outputs['normal'] = Fn((b: N) => (b.material && b.material.transparent && !b.material.depthWrite ? vec4(0) : vec4(packNormalToRGB(normalView), 1)))();
     const m = mrt(outputs);
     // emissive follows the material's blending so additive sparks add glow and soft smoke only dims it
     m.setBlendMode('emissive', new THREE.BlendMode(THREE.MaterialBlending));
+    if (ts.ssao) m.setBlendMode('normal', new THREE.BlendMode(THREE.MaterialBlending));
     scenePass.setMRT(m);
     const beauty = scenePass.getTextureNode('output');
     const emis = scenePass.getTextureNode('emissive');
