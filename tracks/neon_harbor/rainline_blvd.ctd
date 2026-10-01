@@ -61,7 +61,7 @@ PROPS kind=ad_board_b from=@arcade_corner+1 to=@arcade_corner+30 side=R every=8 
 PROPS kind=street_lamp from=@arcade_corner+4 to=@arcade_corner+30 side=R every=13 offset=5 seed=112
 PROPS kind=bus_shelter from=@arcade_corner+38 to=@arcade_corner+39 side=R every=50 offset=2.2 seed=113
 # the plaza outside T1 (the b2 camera stands in it): low furniture only, so the corner stays in view
-PROPS kind=street_tree from=@arcade_corner to=@arcade_corner+32 side=R every=9 offset=9 jitter=2 scale=0.9-1.2 seed=114
+PROPS kind=street_tree from=@arcade_corner to=@arcade_corner+32 side=R every=9 offset=24 jitter=4 scale=0.9-1.2 seed=114
 PROPS kind=planter_bush from=@arcade_corner-4 to=@arcade_corner+34 side=R every=7 offset=4.6 jitter=1 seed=115
 PROPS kind=street_bench from=@arcade_corner+2 to=@arcade_corner+34 side=R every=11 offset=6.5 seed=116
 PROPS kind=vending_machine from=@arcade_corner+8 to=@arcade_corner+30 side=R every=16 offset=13 seed=117

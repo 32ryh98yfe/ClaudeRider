@@ -60,7 +60,7 @@ PROPS kind=tunnel_lamp from=@toll_plaza+58 to=@cloverleaf+10 side=both every=7 o
 PROPS kind=tyre_wall from=@cloverleaf-4 to=@cloverleaf+44 side=R every=1.3 offset=0.6 seed=210
 PROPS kind=ad_board_b from=@cloverleaf+2 to=@cloverleaf+42 side=R every=9 offset=2.6 seed=211
 # the plaza outside T1 (the b2 camera stands in it): low furniture only, so the corner stays in view
-PROPS kind=street_tree from=@cloverleaf-20 to=@cloverleaf+60 side=R every=13 offset=8 jitter=2 scale=0.9-1.2 seed=214
+PROPS kind=street_tree from=@cloverleaf-20 to=@cloverleaf+60 side=R every=13 offset=24 jitter=4 scale=0.9-1.2 seed=214
 PROPS kind=planter_bush from=@cloverleaf-20 to=@cloverleaf+60 side=R every=9 offset=4.5 jitter=1 seed=215
 PROPS kind=street_bench from=@cloverleaf-14 to=@cloverleaf+60 side=R every=19 offset=6 seed=216
 PROPS kind=vending_machine from=@cloverleaf+6 to=@cloverleaf+60 side=R every=27 offset=13 seed=217
