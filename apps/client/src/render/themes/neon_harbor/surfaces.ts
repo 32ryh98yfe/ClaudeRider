@@ -6,7 +6,7 @@
 //   shopWall   — building walls (market street, the alley): brick-dark base with lit shop windows every 3 m.
 // No per-pixel noise: variation comes from whole slabs and panels, which keeps the look organised.
 import * as THREE from 'three/webgpu';
-import { color, float, vec2, vec3, uv, positionWorld, mix, step, smoothstep, fract, floor, clamp, vertexColor, abs } from 'three/tsl';
+import { color, float, vec2, vec3, uv, positionWorld, normalWorld, mix, step, smoothstep, fract, floor, clamp, vertexColor, abs } from 'three/tsl';
 import { MaterialLibrary } from '../../materials/library.ts';
 import { aaLines, cellRand, n01, setEmissive, slope01 } from '../../materials/tsl.ts';
 
@@ -48,9 +48,14 @@ export function ledBarrier(key: string, p: BarrierParams): THREE.Material {
   });
 }
 
-export interface PavingParams { a: string; b: string; joint: string; size: number; wall: string; wet?: number; lines?: string; rough?: number }
+export interface PavingParams { a: string; b: string; joint: string; size: number; wall: string; wet?: number; lines?: string; rough?: number; band?: string; bandGain?: number }
 
-/** Slab paving in world xz (sidewalks, plazas, deck plates); `lines` adds a lit seam every 4th slab row. */
+/**
+ * Slab paving in world xz (sidewalks, plazas, deck plates); `lines` adds a lit seam every 4th slab row. Slopes (the
+ * embankments trackc raises under elevated decks) become a retaining wall of 4 m concrete panels with a coping
+ * course every 6 m; `band` lights that course (a neon strip / hull light band), so a trench under the interchange
+ * reads as built structure instead of a faceted mound.
+ */
 export function paving(key: string, p: PavingParams): THREE.Material {
   return MaterialLibrary.custom(`paving:${key}`, () => {
     const m = new THREE.MeshStandardNodeMaterial({ roughness: p.rough ?? 0.9 });
@@ -62,9 +67,16 @@ export function paving(key: string, p: PavingParams): THREE.Material {
     let c: N = mix(color(p.a), color(p.b), step(0.55, r).mul(0.7).add(r.mul(0.3)));
     c = mix(c, color(p.joint), joint);
     // slopes (ramp embankments, deck sides) read as a plain retaining wall instead of stretched slabs
-    const slope = smoothstep(0.25, 0.45, slope01());
-    const courses = aaLines(P.y.mul(0.5), 0.02);
-    c = mix(c, color(p.wall).mul(courses.mul(-0.3).add(1)), slope);
+    const slope = smoothstep(0.1, 0.2, slope01()); // steeper than ≈ 28°
+    const n = normalWorld;
+    // vertical panel joints from whichever world axis runs along the wall (weighted by the wall's facing)
+    const joints: N = clamp(aaLines(P.x.mul(0.25), 0.01).mul(abs(n.z)).add(aaLines(P.z.mul(0.25), 0.01).mul(abs(n.x))), 0, 1);
+    const courses: N = aaLines(P.y.mul(0.5), 0.015);
+    const coping: N = aaLines(P.y.div(6), 0.03);
+    const panel: N = cellRand(vec2(floor(P.x.mul(0.25).add(P.z.mul(0.25))), floor(P.y.div(6)))).mul(0.08).add(0.96);
+    let wallC: N = color(p.wall).mul(panel).mul(courses.mul(-0.18).add(1)).mul(joints.mul(-0.35).add(1));
+    wallC = mix(wallC, color(p.wall).mul(1.25), coping);
+    c = mix(c, wallC, slope);
     let rough: N = float(p.rough ?? 0.9);
     if (p.wet) {
       // rain: shallow puddles in large, soft patches (low frequency, so no speckle), darker and mirror-smooth
@@ -74,14 +86,17 @@ export function paving(key: string, p: PavingParams): THREE.Material {
     }
     m.colorNode = c.mul(vertexColor().rgb);
     m.roughnessNode = rough;
+    let glowN: N = null;
     if (p.lines) {
-      // a lit seam every fourth plate row on the flat floor, and a lit band every 6 m up the plinth walls, so the
-      // decks' supports read as structured bulkheads instead of dark mounds
+      // a lit seam every fourth plate row on the flat floor
       const row = abs(fract(g.y.mul(0.25)).sub(0.5)).mul(2);
-      const lit: N = smoothstep(0.985, 0.995, row).mul(float(1).sub(slope));
-      const band: N = aaLines(P.y.div(6), 0.015).mul(slope);
-      setEmissive(m, color(p.lines).mul(lit.mul(0.8).add(band.mul(0.7))));
+      glowN = color(p.lines).mul(smoothstep(0.985, 0.995, row).mul(float(1).sub(slope)).mul(0.8));
     }
+    if (p.band) {
+      const band: N = color(p.band).mul(aaLines(P.y.div(6).add(0.04), 0.012).mul(slope).mul(p.bandGain ?? 0.7));
+      glowN = glowN ? glowN.add(band) : band;
+    }
+    if (glowN) setEmissive(m, glowN);
     return m;
   });
 }

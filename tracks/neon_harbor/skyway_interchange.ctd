@@ -42,9 +42,10 @@ HAZ train metro at=@subway_platform+25 d=0 box=(24,3.4,4) period=10 on=0-2.5 tel
 THEME scatter=none hills=0 sky=sunset fogNear=160 fogFar=1100
 # -- toll plaza (start straight): toll booths, grandstand opposite the a3 camera, banner poles, neon boards
 PROPS kind=toll_booth from=@toll_plaza+68 to=@toll_plaza+68 side=both every=100 offset=1.5
-PROPS kind=grandstand from=@toll_plaza+38 to=@toll_plaza+39 side=L every=100 offset=5.5 seed=201
-PROPS kind=flag_pole from=@toll_plaza+4 to=@toll_plaza+60 side=L every=9 offset=2.2 seed=202
-PROPS kind=spectators from=@toll_plaza+52 to=@toll_plaza+62 side=L every=10 offset=2.6 jitter=1 seed=203
+# (the stand sits before the line keep-out: the pads at +50 and the skyway embankment at +66 leave no room past it)
+PROPS kind=grandstand from=@toll_plaza+8 to=@toll_plaza+9 side=L every=100 offset=5.5 seed=201
+PROPS kind=flag_pole from=@frontage_s2+150 to=@toll_plaza+60 side=L every=9 offset=2.2 seed=202
+PROPS kind=spectators from=@toll_plaza+24 to=@toll_plaza+40 side=L every=12 offset=2.6 jitter=1 seed=203
 PROPS kind=spectators from=@frontage_s2+130 to=@frontage_s2+165 side=R every=16 offset=2.4 jitter=1 seed=204
 PROPS kind=ad_board_a from=@toll_plaza+22 to=@toll_plaza+60 side=R every=24 offset=0.4 seed=205
 PROPS kind=ad_board_b from=@toll_plaza+30 to=@toll_plaza+60 side=R every=24 offset=0.4 seed=206

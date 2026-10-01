@@ -46,9 +46,10 @@ BRANCH alley from=@alley_split+4 to=@container_row+48 kind=shortcut aiMin=0.5 w=
 # surfaces at any height, so no tower stands under or beside the overpass and the street blocks stay in front.
 THEME scatter=none hills=0 sky=night fogNear=90 fogFar=720
 # -- start straight (to_line + boulevard): grandstand opposite the grid, banner poles, spectators, neon boards
-PROPS kind=grandstand from=@boulevard+34 to=@boulevard+35 side=L every=100 offset=5.5 seed=101
+# (the stand sits past the line's ±10 m keep-out, opposite the grid's front rows)
+PROPS kind=grandstand from=@boulevard+62 to=@boulevard+63 side=L every=100 offset=5.5 seed=101
 PROPS kind=flag_pole from=@boulevard+6 to=@boulevard+110 side=L every=9 offset=2.2 seed=102
-PROPS kind=spectators from=@boulevard+66 to=@boulevard+112 side=L every=14 offset=2.6 jitter=1 seed=103
+PROPS kind=spectators from=@boulevard+80 to=@boulevard+114 side=L every=14 offset=2.6 jitter=1 seed=103
 PROPS kind=spectators from=@to_line+8 to=@to_line+50 side=R every=16 offset=2.4 jitter=1 seed=104
 PROPS kind=ad_board_a from=@boulevard+30 to=@boulevard+116 side=R every=24 offset=0.4 seed=105
 PROPS kind=ad_board_b from=@boulevard+38 to=@boulevard+116 side=R every=24 offset=0.4 seed=106
