@@ -46,7 +46,7 @@ BRANCH awning from=@dune_top+9 to=@caravan+80 kind=shortcut aiMin=0.2 w=9 wall=b
 # straight's roofs and bunting across the street; the open stretch from the oasis to the camel corner gets dry tufts,
 # pebbles, desert blooms, scrub, small cacti, boulders, palms, acacias, saguaros, palm groves and dunes, and a roadside
 # caravan market. Wide props are fitted so no footprint reaches into any road band (scratch fitrows).
-THEME sunstone_desert sky=day time=16:00 scatter=tree_palm,tree_palm,cactus,bush_cactus,bush_round,bush_round,rock_cluster,tree_round_big,rock_pebbles,grass_tuft density=30 hills=8 fogNear=260 fogFar=1500
+THEME sunstone_desert sky=day time=16:00 scatter=tree_palm,tree_palm,tree_saguaro,bush_cactus,bush_round,bush_round,rock_cluster,tree_round_big,rock_pebbles,grass_tuft density=30 hills=8 fogNear=260 fogFar=1500
 PROPS kind=reeds from=205 to=250 side=L every=6 offset=1 jitter=2 seed=44
 PROPS kind=clay_pots from=560 to=612 side=R every=12 offset=5 seed=48
 # the awning shortcut: the same frontage along the caravanserai lane (its 3 m walls meet the awning lips; fitted)
@@ -131,8 +131,8 @@ PROPS kind=tree_palm from=835 to=975 side=R every=14 offset=4 jitter=3 seed=672
 # open desert between the oasis and the camel corner: acacias, saguaros, palm groves and dunes
 PROPS kind=tree_round_big from=200 to=570 side=L every=37 offset=14 jitter=16 scale=0.8-1.2 seed=700
 PROPS kind=tree_round_big from=200 to=644 side=R every=37 offset=14 jitter=16 scale=0.8-1.2 seed=701
-PROPS kind=cactus from=300 to=586 side=L every=26 offset=8 jitter=12 scale=0.8-1.3 seed=720
-PROPS kind=cactus from=300 to=664 side=R every=26 offset=8 jitter=12 scale=0.8-1.3 seed=721
+PROPS kind=tree_saguaro from=300 to=586 side=L every=26 offset=8 jitter=12 scale=0.8-1.3 seed=720
+PROPS kind=tree_saguaro from=300 to=664 side=R every=26 offset=8 jitter=12 scale=0.8-1.3 seed=721
 PROPS kind=tree_clump from=200 to=590 side=L every=30 offset=45 jitter=30 scale=0.9-1.4 seed=740
 PROPS kind=tree_clump from=620 to=620 side=L every=30 offset=60 jitter=30 scale=0.9-1.4 seed=741
 PROPS kind=tree_clump from=650 to=650 side=L every=30 offset=45 jitter=30 scale=0.9-1.4 seed=742

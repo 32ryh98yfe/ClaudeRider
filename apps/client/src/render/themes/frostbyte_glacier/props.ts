@@ -45,13 +45,16 @@ function fade(g: THREE.BufferGeometry, y0: number, y1: number, c0: THREE.Color, 
 
 /** Resort lamp post (local +X faces the road). `head` = only the lantern box, for the emissive twin kind. */
 function lampGeometry(head: boolean): THREE.BufferGeometry {
-  if (head) return merge([part(box(0.3, 0.38, 0.3), '#ffe6b0', 0.75, 3.75, 0)]);
-  return merge([
-    part(cyl(0.2, 0.24, 0.35, 8), DEEP, 0, 0.17, 0), part(cyl(0.07, 0.09, 3.8, 8), '#24507e', 0, 2.1, 0),
-    part(box(0.06, 0.06, 0.9), '#24507e', 0.35, 3.95, 0, 0, Math.PI / 2, 0),
-    part(rbox(0.38, 0.52, 0.38, 0.06, 1), '#24507e', 0.75, 3.75, 0), part(box(0.29, 0.37, 0.29), '#f4e6c8', 0.75, 3.75, 0),
-    part(cone(0.32, 0.24, 8), '#24507e', 0.75, 4.1, 0), part(cone(0.26, 0.12, 8), SNOW, 0.75, 4.24, 0),
-  ]);
+  // the glass sits in an open frame (corner bars, base plate, cap) so the emissive twin's slightly larger box shows
+  if (head) return merge([part(box(0.31, 0.39, 0.31), '#ffcf86', 0.75, 3.75, 0)]);
+  const F = '#24507e', p: THREE.BufferGeometry[] = [
+    part(cyl(0.2, 0.24, 0.35, 8), DEEP, 0, 0.17, 0), part(cyl(0.07, 0.09, 3.8, 8), F, 0, 2.1, 0),
+    part(box(0.06, 0.06, 0.9), F, 0.35, 3.95, 0, 0, Math.PI / 2, 0),
+    part(box(0.3, 0.37, 0.3), '#f4e6c8', 0.75, 3.75, 0), part(box(0.42, 0.06, 0.42), F, 0.75, 3.53, 0),
+    part(cone(0.32, 0.24, 8), F, 0.75, 4.08, 0), part(cone(0.26, 0.12, 8), SNOW, 0.75, 4.22, 0),
+  ];
+  for (const [dx, dz] of [[-1, -1], [-1, 1], [1, -1], [1, 1]] as const) p.push(part(box(0.05, 0.42, 0.05), F, 0.75 + dx * 0.165, 3.75, dz * 0.165));
+  return merge(p);
 }
 
 export const FROSTBYTE_PROPS: Record<string, PropFactory> = {

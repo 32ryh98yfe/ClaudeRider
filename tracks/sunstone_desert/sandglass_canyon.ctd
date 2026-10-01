@@ -61,7 +61,7 @@ ZONE surface from=@sandfall_2+10 to=@sandfall_2+24 d=[-7,-2] surf=sand
 # sponsor boards and lantern posts; the whole lap gets dry tufts, pebbles, desert blooms, scrub, small cacti, sandstone
 # boulders, saguaros and acacias, with buttes and mesas on the horizon. Canyon slabs and pillars are fitted per side so
 # no footprint reaches into the road on the insides of the S-chains and hairpins (the T1 mesa moved off the road).
-THEME sunstone_desert sky=day time=12:00 scatter=cactus,bush_cactus,bush_round,bush_round,rock_cluster,rock_cluster,tree_round_big,rock_pebbles,grass_tuft density=30 hills=10 fogNear=260 fogFar=1600
+THEME sunstone_desert sky=day time=12:00 scatter=tree_saguaro,bush_cactus,bush_round,bush_round,rock_cluster,rock_cluster,tree_round_big,rock_pebbles,grass_tuft density=30 hills=10 fogNear=260 fogFar=1600
 PROPS kind=clay_pots from=5 to=88 side=R every=16 offset=5 seed=61
 PROPS kind=scaffold from=60 to=88 side=L every=26 offset=3 seed=62
 # rim start straight: grandstand on the left, crowd and sponsor boards behind the right parapet, lanterns both sides
@@ -104,21 +104,21 @@ PROPS kind=canyon_wall from=992 to=1034 side=R every=14 offset=2.5 seed=320
 PROPS kind=canyon_wall from=1048 to=1048 side=R every=14 offset=3.5 seed=321
 PROPS kind=canyon_wall from=1800 to=1870 side=L every=14 offset=2.5 seed=322
 # saguaros along the rim, the sweeper and the dunes
-PROPS kind=cactus from=634 to=796 side=L every=18 offset=5 jitter=4 seed=330
-PROPS kind=cactus from=634 to=796 side=R every=18 offset=5 jitter=4 seed=331
-PROPS kind=cactus from=1296 to=1332 side=L every=18 offset=5 jitter=4 seed=332
-PROPS kind=cactus from=1296 to=1332 side=R every=18 offset=5 jitter=4 seed=333
-PROPS kind=cactus from=1605 to=1677 side=L every=18 offset=5 jitter=4 seed=334
-PROPS kind=cactus from=1605 to=1713 side=R every=18 offset=5 jitter=4 seed=335
+PROPS kind=tree_saguaro from=634 to=796 side=L every=18 offset=5 jitter=4 seed=330
+PROPS kind=tree_saguaro from=634 to=796 side=R every=18 offset=5 jitter=4 seed=331
+PROPS kind=tree_saguaro from=1296 to=1332 side=L every=18 offset=5 jitter=4 seed=332
+PROPS kind=tree_saguaro from=1296 to=1332 side=R every=18 offset=5 jitter=4 seed=333
+PROPS kind=tree_saguaro from=1605 to=1677 side=L every=18 offset=5 jitter=4 seed=334
+PROPS kind=tree_saguaro from=1605 to=1713 side=R every=18 offset=5 jitter=4 seed=335
 # middle distance: saguaros and acacias wherever the lap leaves room
-PROPS kind=cactus from=0 to=341 side=L every=31 offset=9 jitter=16 scale=0.8-1.3 seed=350
-PROPS kind=cactus from=434 to=434 side=L every=31 offset=9 jitter=16 scale=0.8-1.3 seed=351
-PROPS kind=cactus from=744 to=1178 side=L every=31 offset=9 jitter=16 scale=0.8-1.3 seed=352
-PROPS kind=cactus from=1271 to=1674 side=L every=31 offset=9 jitter=16 scale=0.8-1.3 seed=353
-PROPS kind=cactus from=1798 to=1922 side=L every=31 offset=9 jitter=16 scale=0.8-1.3 seed=354
-PROPS kind=cactus from=0 to=434 side=R every=31 offset=9 jitter=16 scale=0.8-1.3 seed=355
-PROPS kind=cactus from=589 to=1922 side=R every=31 offset=9 jitter=16 scale=0.8-1.3 seed=356
-PROPS kind=tree_round_big from=0 to=82 side=L every=41 offset=16 jitter=20 scale=0.8-1.2 seed=380
+PROPS kind=tree_saguaro from=0 to=341 side=L every=31 offset=9 jitter=16 scale=0.8-1.3 seed=350
+PROPS kind=tree_saguaro from=434 to=434 side=L every=31 offset=9 jitter=16 scale=0.8-1.3 seed=351
+PROPS kind=tree_saguaro from=744 to=1178 side=L every=31 offset=9 jitter=16 scale=0.8-1.3 seed=352
+PROPS kind=tree_saguaro from=1271 to=1674 side=L every=31 offset=9 jitter=16 scale=0.8-1.3 seed=353
+PROPS kind=tree_saguaro from=1798 to=1922 side=L every=31 offset=9 jitter=16 scale=0.8-1.3 seed=354
+PROPS kind=tree_saguaro from=0 to=434 side=R every=31 offset=9 jitter=16 scale=0.8-1.3 seed=355
+PROPS kind=tree_saguaro from=589 to=1922 side=R every=31 offset=9 jitter=16 scale=0.8-1.3 seed=356
+PROPS kind=tree_round_big from=82 to=82 side=L every=41 offset=16 jitter=20 scale=0.8-1.2 seed=380
 PROPS kind=tree_round_big from=164 to=328 side=L every=41 offset=16 jitter=20 scale=0.8-1.2 seed=381
 PROPS kind=tree_round_big from=451 to=492 side=L every=41 offset=32 jitter=20 scale=0.8-1.2 seed=382
 PROPS kind=tree_round_big from=738 to=779 side=L every=41 offset=16 jitter=20 scale=0.8-1.2 seed=383
@@ -126,9 +126,9 @@ PROPS kind=tree_round_big from=902 to=1148 side=L every=41 offset=16 jitter=20 s
 PROPS kind=tree_round_big from=1230 to=1230 side=L every=41 offset=24 jitter=20 scale=0.8-1.2 seed=385
 PROPS kind=tree_round_big from=1271 to=1681 side=L every=41 offset=16 jitter=20 scale=0.8-1.2 seed=386
 PROPS kind=tree_round_big from=1722 to=1763 side=L every=41 offset=32 jitter=20 scale=0.8-1.2 seed=387
-PROPS kind=tree_round_big from=1804 to=1927 side=L every=41 offset=16 jitter=20 scale=0.8-1.2 seed=388
+PROPS kind=tree_round_big from=1804 to=1886 side=L every=41 offset=16 jitter=20 scale=0.8-1.2 seed=388
 PROPS kind=tree_round_big from=0 to=410 side=R every=41 offset=16 jitter=20 scale=0.8-1.2 seed=389
-PROPS kind=tree_round_big from=615 to=1927 side=R every=41 offset=16 jitter=20 scale=0.8-1.2 seed=390
+PROPS kind=tree_round_big from=615 to=1886 side=R every=41 offset=16 jitter=20 scale=0.8-1.2 seed=390
 # horizon: buttes and mesas
 PROPS kind=butte from=0 to=0 side=L every=70 offset=110 jitter=40 scale=0.7-1.4 seed=410
 PROPS kind=butte from=70 to=70 side=L every=70 offset=140 jitter=40 scale=0.7-1.4 seed=411

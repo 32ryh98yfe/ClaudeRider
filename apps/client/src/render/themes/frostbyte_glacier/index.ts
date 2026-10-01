@@ -14,7 +14,7 @@ import { softAoTerrain } from '../sunstone_desert/terrain.ts';
 export const FROSTBYTE_LOOK: Partial<ThemeLook> = {
   road: { style: 'asphalt', a: '#656a71', b: '#71767d', line: '#cdeefa' },
   shoulder: { a: '#dde6ef', b: '#e6edf4' },
-  terrain: { a: '#e3eaf2', b: '#d5dfe9', rock: '#7f8b99' },
+  terrain: { a: '#e3eaf2', b: '#d5dfe9', rock: '#8e99a7' },
   wall: { kind: 'stone', a: '#d2dde7', b: '#97a7b6' },
   kerb: ['#d9453c', '#f1f4f7'],
   sky: { turbidity: 6, rayleigh: 0.9, elevationDeg: 28, azimuthDeg: 200, exposure: 0.85, top: '#9db7d2', bottom: '#cdd9e5' },
@@ -40,19 +40,22 @@ export const FROSTBYTE_LOOK: Partial<ThemeLook> = {
 
 /** Aurora Summit (22:00): moonlit snow, a cool back fill and strong rims so karts read; never turned into daytime. */
 const NIGHT_LOOK: Partial<ThemeLook> = {
-  road: { style: 'asphalt', a: '#4d535d', b: '#59606a', line: '#bee9f7' },
+  // a mid-grey night road so the lane paint, the karts and the next corner separate from the dark verges
+  road: { style: 'asphalt', a: '#5a616c', b: '#666d78', line: '#bee9f7' },
   // the aurora dome reads sky.top / bottom / horizon too: keep them night colours (the day kit's would wash it white)
   sky: { turbidity: 6, rayleigh: 0.9, elevationDeg: 28, azimuthDeg: 200, exposure: 1, top: '#050c22', bottom: '#14345e' },
   horizon: '#21507a',
-  hemi: { sky: '#90aee0', ground: '#3c4862', intensity: 1.55 },
-  fill: { color: '#a9c6ff', intensity: 0.6 },
+  // moonlight: a brighter, less saturated sky fill so snow reads pale blue-grey (not navy), plus a cool back fill for
+  // the chase camera; the sun-like key stays the weak moon, so it is still night
+  hemi: { sky: '#a6b8dc', ground: '#46526c', intensity: 2.0 },
+  fill: { color: '#b4c8ff', intensity: 0.8 },
   fogColor: '#1c3552',
-  exposure: 1.0,
+  exposure: 1.08,
   bloom: 0.3,
   envIntensity: 0.35,
   shadowStrength: 0.7,
   rimBoost: 1.7,
-  grade: { tint: '#f4f7ff', saturation: 1.05, shadows: '#dfe6ff', highlights: '#f6faff' },
+  grade: { tint: '#f4f7ff', saturation: 1.0, shadows: '#dfe6ff', highlights: '#f6faff' },
 };
 
 export default (c: ContentTables, env: Readonly<Record<string, string>> = {}): ThemeKit => {

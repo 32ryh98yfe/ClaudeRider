@@ -496,8 +496,9 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
 };
 // the traffic default key (`hazard_car`) resolves to the pot cart too, so a HAZ without `prop=` still fits the theme
 SUNSTONE_PROPS['hazard_car'] = SUNSTONE_PROPS['hazard_pot_cart']!;
-// dressing rows use `tree_palm` (same palm) so Low / Medium thin them like every other tree kind
+// dressing rows use `tree_palm` / `tree_saguaro` (same models) so Low / Medium thin them like every other tree kind
 SUNSTONE_PROPS['tree_palm'] = SUNSTONE_PROPS['palm']!;
+SUNSTONE_PROPS['tree_saguaro'] = SUNSTONE_PROPS['cactus']!;
 // left-side chevron board (arrows point forward on side=L rows)
 SUNSTONE_PROPS['ad_board_b_l'] = AD_BOARD_B_L;
 
