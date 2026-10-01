@@ -118,8 +118,8 @@ BRANCH alley from=@riverside to=@riverside+113.4 kind=shortcut aiMin=0.45 w=8 wa
 - Conveyors: `ZONE conveyor … mul=1.15` (or `0.85`); also `surf=conveyor_fwd` on a segment.
 
 ### Boost pads
-2–4 per lap (V10 warns otherwise), ≥ 15 m from the apex of an R < 30 corner, not in landing zones, and ≥ 89 m of clear
-road straight ahead (2 s at 44.4 m/s) — put them early on long straights.
+2–4 per lap (V10 warns otherwise), ≥ 15 m from the apex of an R < 30 corner, not in landing zones, and ≥ 90.2 m of clear
+road straight ahead (2 s at 45.11 m/s) — put them early on long straights.
 
 ## 6. F2 recipes
 ### Jump with a real gap
@@ -135,10 +135,10 @@ S 30                                                   # the landing continues s
 - The gap has no ground and no walls. By default a kill floor sits 5 m below the lower of lip and landing
   (`floor=none` removes it — only for gaps over other track). The landing's front edge is a solid face (a kart that
   falls short hits a wall, not the road top). `wland=` widens the landing.
-- **V11** checks every speed in [vmin, vmax] (G = 28 m/s²): the landing point must fall in
+- **V11** checks every speed in [vmin, max(vmax, 52)] (G = 28 m/s²; 52 m/s is the M5 tap-boost reach): the landing point must fall in
   `[gap + 2, gap + land − 5]` past the lip; landing ≥ 40 m, straight, ±10% grade. Tune `vmin` to the slowest
-  realistic approach (after the preceding corner) and lengthen `land` for fast approaches.
-  Worked numbers: lip 8°, lipH 0.70, drop 2 → 12.2 m at 22 m/s, 33 m at 46 m/s.
+  realistic approach (after the preceding corner) and lengthen `land` for fast approaches. Airtime must stay under 66 ticks.
+  Worked numbers: lip 8°, lipH 0.70, drop 2 → 12.2 m at 22 m/s, 33 m at 46 m/s, 39.6 m at 52 m/s.
 - Respawns around a jump are baked (`.ctrk p{k}.rto`). A kart that dies on the ramp or in the gap comes back 5 m into
   the landing window. A kart that dies on the approach comes back before a run-up of `2·vmin²/(2·9 m/s²)` metres, so a
   standing start still clears the gap. No respawn slot lies in between, and a respawn never crosses the finish line or
@@ -312,7 +312,8 @@ with `@signature`, or `--strict`); M1-era tracks see them as warnings.
 | V9 `item rows only … apart` / `first item row …` | Rows ≥ 150 m apart, first ≥ 60 m after the line, ≈ L/250 ± 1 per lap. |
 | V9 `local radius … within ±10 m` | Move rows onto straights or radii ≥ 60 m (plazas ≥ 24 m wide are exempt). |
 | V10 `wall … straight ahead of the boost pad` | Move the pad earlier on the straight. |
-| V11 `at N m/s the kart lands … past the lip` | Shorten the gap, raise `lip`, add `drop`, lengthen `land`, or narrow [vmin, vmax]. |
+| V11 `at N m/s the kart lands … past the lip` | Shorten the gap, raise `lip`, add `drop`, lengthen `land`, or narrow [vmin, vmax]. Above vmax (the message says so) only the geometry helps: lengthen `land`, or shorten / lower the ramp. |
+| V11 `… ticks of air` | Less `drop` or a lower lip angle. |
 | V11 `landing zone … < 40 m` | `land=` ≥ 40. |
 | V12 `period … < 120` / `active … (> 50%)` / `telegraph … < 36` | Lengthen `period`, shorten `on`, raise `tele` (≥ 0.6 s). |
 | V12 `traffic leaves no safe lane` | Drop or move a lane so one ≥ 3 m corridor stays clear across the road. |

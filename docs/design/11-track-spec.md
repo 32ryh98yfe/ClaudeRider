@@ -292,11 +292,12 @@ Bake rules:
 
 ### 8.3 Boost pads (V10)
 - 2–4 per lap on standard tracks; about one per 200 m on boost-heavy tracks (Orbital Express) [S classic ~230 u].
-- Not within 15 m of an apex with R < 30 m; not in landing zones; no wall ahead within 2 s × v (≈ 90 m at 44.4 m/s).
+- Not within 15 m of an apex with R < 30 m; not in landing zones; no wall ahead within 2 s × V_BOOST (90.2 m at 45.11 m/s).
 - Standard size 6 m long × 4 m wide; colour and chevrons per the art bible (green/teal, scrolling chevrons).
 
 ### 8.4 Jumps (V11)
-- For every speed v in [vMin, vMax], the landing point at G = 28 m/s² must fall in [gapEnd + 2 m, landEnd − 5 m].
+- For every speed v in [vMin, max(vMax, 52)], the landing point at G = 28 m/s² must fall in [gapEnd + 2 m, landEnd − 5 m]. vMax is the AI lip window; 52 m/s is the M5 drag / tap-boost reach (doc 15).
+- Airtime < 66 ticks at the top speed (at vMin for a downward lip): the no-ground respawn fires at 72.
 - Landing zone ≥ 40 m long, R ≥ 80 m, grade within ±10%, full road width (≥ `landW`).
 - Jump pad colour: coral pad with a pink gate (art bible §9).
 - Worked example (Magma): lip 8°, at 25 m/s lands 16.7 m past the lip, at 46 m/s 36.9 m; gap 14 m, landing zone 14–54 m → pass.

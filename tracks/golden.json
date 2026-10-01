@@ -1,7 +1,7 @@
 {
  "compiler": "trackc/2.0",
  "note": "default buildTrack() bakes (no AO/PVS); regenerate with node packages/trackc/src/golden.ts --update",
- "external": "8f7d6546e76e99db",
+ "external": "8f90307687b815fa",
  "tracks": {
   "_fixtures/belltower_piazza": {
    "src": "626b70e2f210308e",
@@ -89,9 +89,9 @@
    "vis": "f5c7f2b6"
   },
   "ember_mine/magma_switchback": {
-   "src": "03c1a2ccb6ce0b2e",
-   "ctrk": "d7407355",
-   "vis": "d5a0a35f"
+   "src": "f23eb60abbc0dd4e",
+   "ctrk": "40c1e250",
+   "vis": "3b929539"
   },
   "frostbyte_glacier/aurora_summit": {
    "src": "5281be4e045d19ac",
