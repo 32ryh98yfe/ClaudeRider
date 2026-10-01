@@ -56,6 +56,41 @@ PROPS kind=ad_board_c from=@frontage_s2+120 to=@frontage_s2+165 side=both every=
 PROPS kind=street_lamp from=@toll_plaza to=@toll_plaza+140 side=both every=35 offset=0.6
 # the toll plaza runs under the cloverleaf and the skyway: wall lamps light the underpass toward T1
 PROPS kind=tunnel_lamp from=@toll_plaza+58 to=@cloverleaf+10 side=both every=7 offset=0.3 seed=212
+# skyway start: the right embankment is a 10 m retaining wall up to the parallel upper road (its edge ≈ 15 m out).
+# It gets lamps along its top (facing the trench), terrace planters set into the face, street trees at the top
+# and two billboards on the face. Generated PROP lines (lane C gen-edge.ts): PROPS rows would lose these to the
+# line and pad keep-outs (+20…+62), and a PROPS row on the upper road would face away from the trench.
+PROP kind=street_lamp at=(30.0,8.9,20.3) yaw=90 scale=1.00
+PROP kind=street_lamp at=(48.0,8.7,20.3) yaw=90 scale=1.00
+PROP kind=street_lamp at=(66.0,8.7,20.3) yaw=90 scale=1.00
+PROP kind=planter_bush at=(32.0,3.4,16.0) yaw=90 scale=0.97
+PROP kind=planter_bush at=(40.0,3.3,16.0) yaw=90 scale=1.09
+PROP kind=planter_bush at=(56.0,3.3,16.0) yaw=90 scale=0.98
+PROP kind=planter_bush at=(72.0,3.3,16.0) yaw=90 scale=1.06
+PROP kind=planter_bush at=(80.0,14.3,16.0) yaw=90 scale=1.03
+PROP kind=planter_bush at=(88.0,3.3,16.0) yaw=90 scale=0.98
+PROP kind=planter_bush at=(36.0,7.1,19.0) yaw=90 scale=0.99
+PROP kind=planter_bush at=(44.0,7.1,19.0) yaw=90 scale=0.95
+PROP kind=planter_bush at=(52.0,7.0,19.0) yaw=90 scale=0.96
+PROP kind=planter_bush at=(60.0,7.0,19.0) yaw=90 scale=1.05
+PROP kind=planter_bush at=(68.0,7.0,19.0) yaw=90 scale=0.96
+PROP kind=planter_bush at=(76.0,10.6,19.0) yaw=90 scale=1.08
+PROP kind=planter_bush at=(84.0,7.0,19.0) yaw=90 scale=0.96
+PROP kind=planter_bush at=(92.0,9.5,19.0) yaw=90 scale=0.97
+PROP kind=planter_bush at=(2.0,2.3,24.0) yaw=90 scale=1.06
+PROP kind=planter_bush at=(10.0,3.3,24.0) yaw=90 scale=1.03
+PROP kind=planter_bush at=(18.0,5.9,24.0) yaw=90 scale=1.08
+PROP kind=planter_bush at=(6.0,5.9,26.5) yaw=90 scale=0.99
+PROP kind=planter_bush at=(12.0,6.8,26.5) yaw=90 scale=0.96
+PROP kind=planter_bush at=(18.0,9.3,26.5) yaw=90 scale=1.05
+PROP kind=planter_bush at=(24.0,5.7,18.0) yaw=90 scale=1.07
+PROP kind=street_tree at=(39.0,9.1,20.6) yaw=90 scale=0.99
+PROP kind=street_tree at=(51.0,9.0,20.6) yaw=90 scale=0.93
+PROP kind=street_tree at=(63.0,9.0,20.6) yaw=90 scale=0.95
+PROP kind=street_tree at=(75.0,9.5,20.6) yaw=90 scale=1.05
+PROP kind=street_tree at=(87.0,9.0,20.6) yaw=90 scale=0.90
+PROP kind=billboard at=(46.0,3.9,16.5) yaw=90 scale=0.72
+PROP kind=billboard at=(64.0,3.9,16.5) yaw=90 scale=0.72
 # -- T1 (cloverleaf entry, a long climbing left): tyre wall and chevron boards on the outside
 PROPS kind=tyre_wall from=@cloverleaf-4 to=@cloverleaf+44 side=R every=1.3 offset=0.6 seed=210
 PROPS kind=ad_board_b from=@cloverleaf+2 to=@cloverleaf+42 side=R every=9 offset=2.6 seed=211

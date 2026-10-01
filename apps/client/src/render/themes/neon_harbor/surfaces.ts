@@ -75,7 +75,7 @@ export function ledBarrier(key: string, p: BarrierParams): THREE.Material {
   });
 }
 
-export interface PavingParams { a: string; b: string; joint: string; size: number; wall: string; wet?: number; lines?: string; rough?: number; band?: string; bandGain?: number }
+export interface PavingParams { a: string; b: string; joint: string; size: number; wall: string; wallB?: string; grid?: number; wet?: number; lines?: string; rough?: number; band?: string; bandGain?: number }
 
 /**
  * Slab paving in world xz (sidewalks, plazas, deck plates); `lines` adds a lit seam every 4th slab row. Slopes (the
@@ -101,7 +101,11 @@ export function paving(key: string, p: PavingParams): THREE.Material {
     const courses: N = aaLines(P.y.mul(0.5), 0.015);
     const coping: N = aaLines(P.y.div(6), 0.03);
     const panel: N = cellRand(vec2(floor(P.x.mul(0.25).add(P.z.mul(0.25))), floor(P.y.div(6)))).mul(0.08).add(0.96);
-    let wallC: N = color(p.wall).mul(panel).mul(courses.mul(-0.18).add(1)).mul(joints.mul(-0.35).add(1));
+    // `wallB`: the 4 m panels alternate between two tones along the wall; `grid` scales the joint and course contrast
+    const along: N = P.x.mul(abs(n.z)).add(P.z.mul(abs(n.x)));
+    const tone: N = p.wallB ? mix(color(p.wall), color(p.wallB), step(0.5, fract(floor(along.mul(0.25)).mul(0.5)))) : color(p.wall);
+    const k = p.grid ?? 1;
+    let wallC: N = tone.mul(panel).mul(courses.mul(-0.18 * k).add(1)).mul(joints.mul(-0.35 * k).add(1));
     wallC = mix(wallC, color(p.wall).mul(1.25), coping);
     c = mix(c, wallC, slope);
     let rough: N = float(p.rough ?? 0.9);

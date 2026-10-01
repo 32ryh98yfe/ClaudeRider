@@ -81,7 +81,7 @@ export default (c: ContentTables, env?: Readonly<Record<string, string>>): Theme
     'wall:building': shopWall(`neon-${mood}`, { body: '#3e3648', trim: '#7a6a82', glass: '#ffcf8a', gain: 0.7, tint: 0.9 }),
     // sidewalks and plazas: slab paving (wet at night), plain retaining walls on the ramp embankments
     terrain: paving(`neon-${mood}`, dusk
-      ? { a: '#7a7c84', b: '#858790', joint: '#55575f', size: 1.6, wall: '#8a8790', band: '#5fe8ff', bandGain: 0.45 }
+      ? { a: '#7a7c84', b: '#858790', joint: '#55575f', size: 1.6, wall: '#4b4168', wallB: '#5a4e7a', grid: 0.5, band: '#5fe8ff', bandGain: 0.45 }
       : { a: '#4a4e5a', b: '#545866', joint: '#2c2e36', size: 1.6, wall: '#5a5d68', wet: 0.85, band: '#ff3ea5', bandGain: 0.8 }),
     // rain: an even damp sheen (the kit's `wet` uniform) instead of the mirror puddles, whose white blotches read
     // as spilt paint at a grazing view; the vis bakes the wet-surface tint (0.8 / 0.85 / 0.95) into the colours
