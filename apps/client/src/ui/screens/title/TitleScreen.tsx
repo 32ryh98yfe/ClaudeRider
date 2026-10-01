@@ -15,7 +15,8 @@ export function TitleScreen() {
   useEffect(() => {
     const p = save.get().profile;
     Stage.showShowcase(p.characterId, p.kartBodyId);
-    if (Stage.showcase) Stage.showcase.offsetX = 0;
+    // centred, and a little low so the mascot's sparkle clears the tagline under the wordmark
+    if (Stage.showcase) { Stage.showcase.offsetX = 0; Stage.showcase.offsetY = -0.05; }
     let gone = false;
     const go = (): void => {
       if (gone) return;
@@ -26,7 +27,7 @@ export function TitleScreen() {
     const offKey = onAnyKey(go);
     const click = (): void => go();
     window.addEventListener('pointerdown', click, { once: true });
-    return () => { offKey(); window.removeEventListener('pointerdown', click); };
+    return () => { offKey(); window.removeEventListener('pointerdown', click); if (Stage.showcase) Stage.showcase.offsetY = 0; };
   }, []);
   const pad = inputDevice.value === 'pad';
   return (
