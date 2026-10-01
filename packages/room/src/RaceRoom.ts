@@ -514,7 +514,10 @@ export class RaceRoom {
     for (const p of list) {
       // backpressure (§9): skip SNAPSHOT/RELAY above 32 KB until below 16 KB; EVENTS always go out
       const buffered = p.transport.bufferedAmount();
-      if (p.skipping ? buffered < NET.BP_LOW : buffered > NET.BP_HIGH) p.skipping = !p.skipping;
+      if (p.skipping ? buffered < NET.BP_LOW : buffered > NET.BP_HIGH) {
+        p.skipping = !p.skipping;
+        this.log(`${p.id}: backpressure ${p.skipping ? 'on' : 'off'} (${buffered} B buffered) at ${N}`);
+      }
       if (buffered > NET.BP_KILL) {
         if (p.overKillSince < 0) p.overKillSince = now;
         else if (this.clock && now - p.overKillSince > NET.BP_KILL_MS) { this.kick(p, 'slow_consumer'); continue; }

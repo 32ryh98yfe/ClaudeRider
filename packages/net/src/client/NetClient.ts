@@ -31,6 +31,8 @@ export interface NetStats {
   lastLocalCorrection: number; maxLocalCorrection: number; corrections: number;
   eventsIn: number; bytesIn: number; bytesOut: number; msgsIn: number; msgsOut: number;
   pingMs: number[];
+  /** The client is too far past its last snapshot to predict and has asked for a keyframe. */
+  waitingForKeyframe: boolean;
 }
 
 export interface NetClientOptions {
@@ -66,6 +68,8 @@ export interface NetClientOptions {
 }
 
 const HASH_RING = 256;
+/** Longest prediction past the last authoritative tick (1.5 s); beyond it the client waits for a keyframe. */
+export const MAX_PREDICT = 90;
 
 export class NetClient {
   readonly cfg: RaceConfig;
@@ -170,7 +174,7 @@ export class NetClient {
       connected: true, rttMs: 0, jitterMs: 0, leadTicks: 0, serverSlack: 0, rate: 60, predTick: 0, authTick: 0, serverTickEst: 0,
       snapshots: 0, keyframes: 0, decodeErrors: 0, lateFlags: 0, hardResyncs: 0, resims: 0, resimTicks: 0, resimSkipped: 0,
       lastResimMs: 0, maxResimMs: 0, lastLocalCorrection: 0, maxLocalCorrection: 0, corrections: 0,
-      eventsIn: 0, bytesIn: 0, bytesOut: 0, msgsIn: 0, msgsOut: 0, pingMs: new Array<number>(MAX_KARTS).fill(0),
+      eventsIn: 0, bytesIn: 0, bytesOut: 0, msgsIn: 0, msgsOut: 0, pingMs: new Array<number>(MAX_KARTS).fill(0), waitingForKeyframe: false,
     };
     this.bind(o.transport);
   }
@@ -208,6 +212,17 @@ export class NetClient {
       const lead = this.clock.leadTicks();
       const target = est + lead;
       this.stats.serverTickEst = est; this.stats.leadTicks = lead;
+      // Never predict more than MAX_PREDICT ticks past the authoritative world: a client that joins (or wakes up) far
+      // behind would otherwise replay from a stale base on every update, starve its own main thread and never read
+      // the snapshot that would fix it. It waits for a keyframe instead (RESUME doubles as the request).
+      if (target - this.dec.world.tick > MAX_PREDICT) {
+        this.stats.waitingForKeyframe = true;
+        if (nowMs - this.lastResumeMs > 1000) { this.lastResumeMs = nowMs; this.sendResume(); }
+        this.flushInputs();
+        this.smoother.update(dtMs / 1000);
+        return 0;
+      }
+      this.stats.waitingForKeyframe = false;
       if (!this.started) {
         if (target < 1) { this.reconcile(); this.smoother.update(dtMs / 1000); return 0; }
         this.started = true;
@@ -271,6 +286,9 @@ export class NetClient {
 
   /** Updates the race start tick (a second raceStart moved it). */
   setStartTick(t: Tick): void { this.startTick = t; }
+
+  /** Asks the room for a keyframe (and the events after the last one received), e.g. after dropped frames. */
+  requestKeyframe(): void { this.lastResumeMs = this.nowMs(); this.sendResume(); }
 
   /** After a reconnect: bind the new transport and ask the room to resume (events after lastSeq + keyframe). */
   replaceTransport(t: Transport): void {
@@ -427,7 +445,7 @@ export class NetClient {
     const T = Math.floor(target);
     const N = this.dec.world.tick;
     this.flushInputs();
-    if (T > this.pred.tick || T > N) this.resimulate(Math.min(T, N + 240));
+    if (T > this.pred.tick || T > N) this.resimulate(Math.min(T, N + MAX_PREDICT));
     this.acc = Math.max(0, target - this.pred.tick);
     if (this.acc >= 1) this.acc = target - Math.floor(target);
   }

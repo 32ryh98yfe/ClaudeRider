@@ -565,7 +565,7 @@ export class GameServer {
     r.phase = 'results';
     r.resultsUntil = this.clock.nowMs() + this.t.resultsMs;
     if (r.kind === 'custom') this.broadcastRoom(r);
-    this.log(`race ${race.raceId} ended`);
+    this.log(`race ${race.raceId} ended; peers ${JSON.stringify(race.room.peerStats().map((x) => ({ id: x.id, snaps: x.snapshots, skipped: x.skippedSnapshots, msgs: x.msgsOut, in: x.msgsIn })))}`);
   }
 
   // ------------------------------------------------------------ tick

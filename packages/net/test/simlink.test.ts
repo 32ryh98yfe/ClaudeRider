@@ -15,7 +15,7 @@ function run(o: { rtt: number; jitter: number; loss: number; mode?: 'speed' | 'i
   const prof: LinkProfile = { rttMs: o.rtt, jitterMs: o.jitter, loss: o.loss };
   return runScenario({
     cfg, track, content, humans, seed: o.seed ?? 3, ticks: o.ticks ?? 1200, frameHz: o.frameHz ?? 60, frameJitterMs: 2,
-    makeAuthority: (now) => new RaceRoom({ config: cfg, track, content, clock: { nowMs: now }, collectEvents: false, limits: { perSec: 70, burst: 10 } }),
+    makeAuthority: (now) => new RaceRoom({ config: cfg, track, content, secret: new Uint32Array([o.seed ?? 3, 0x51, 0x4c, 0x9]), clock: { nowMs: now }, collectEvents: false, limits: { perSec: 70, burst: 10 } }),
     link: () => ({ up: prof, down: prof }),
     driver: (slot) => { const d = createAiDriver(track, content, slot, AI_TIERS.pro, {}, 100 + slot, cfg); return (w, out) => d.decide(w, out); },
     ...(o.skew ? { skewPpm: (s: number) => (s === 0 ? 150 : -150) } : {}),
