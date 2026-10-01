@@ -932,7 +932,9 @@ class BotDriver implements AiDriverEx {
       }
     }
     if (prof.ghost || r < prof.driftSkill) this.cPlan = DriftPlan.OPTIMAL;
-    else if (r < prof.driftSkill + 0.6 * (1 - prof.driftSkill) || corner.gripRatio < ex.gripViable) {
+    // (a long corner — turn ≥ hairpinTurn — is never gripped on purpose either: the grip table's width allowance is
+    // optimistic over 120°+ of turning and a gripping kart runs wide onto the shoulder there)
+    else if (r < prof.driftSkill + 0.6 * (1 - prof.driftSkill) || corner.gripRatio < ex.gripViable || corner.turn >= AI_TUNING.hairpinTurn) {
       this.cPlan = DriftPlan.SLOPPY;
       this.cLate = this.rng.range(ex.sloppyLateM[0], ex.sloppyLateM[1]);
       this.cHold = this.rng.int(ex.sloppyHoldTicks[0], ex.sloppyHoldTicks[1]);
