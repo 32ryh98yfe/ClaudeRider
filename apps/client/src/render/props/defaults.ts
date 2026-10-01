@@ -1,7 +1,7 @@
 // Default prop factories (vertex-coloured, merged, instanced). ThemeKits override kinds with their own looks.
 import * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../materials/library.ts';
-import { merge, paint, place, rbox, box, cyl, cone, ico, sph } from '../util/geo.ts';
+import { merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../util/geo.ts';
 
 export interface PropFactory { build(pal: readonly string[]): { geometry: THREE.BufferGeometry; material: THREE.Material; castShadow?: boolean }; maxInstances?: number }
 
@@ -84,15 +84,7 @@ export const DEFAULT_PROPS: Record<string, PropFactory> = {
       return { geometry: merge(parts), material: MaterialLibrary.vertexLit(0.4, 0) };
     },
   },
-  gantry: {
-    build: (pal) => ({
-      geometry: merge([
-        paint(place(rbox(0.8, 6.5, 0.8, 0.2, 2), -9, 3.25, 0), '#2b2d33'), paint(place(rbox(0.8, 6.5, 0.8, 0.2, 2), 9, 3.25, 0), '#2b2d33'),
-        paint(place(rbox(19, 1.4, 0.9, 0.3, 2), 0, 6.6, 0), pal[0] ?? '#d97757'),
-        paint(place(box(12, 0.8, 0.95), 0, 6.6, 0), '#faf9f5'),
-      ]), material: lit(), castShadow: true,
-    }),
-  },
+  gantry: { build: (pal) => ({ geometry: startGantry(pal[0] ?? '#d97757'), material: lit(), castShadow: true }) },
   rock: { build: () => ({ geometry: merge([paint(place(ico(1.2, 0), 0, 0.5, 0, 0.3, 0.5, 0.2, 1.4, 0.8, 1.1), '#8b8680', 0.1, 17)]), material: lit() }) },
   // .vis v2 compiler props (L4-vis-v2 §5)
   gore_cushion: {
@@ -117,3 +109,42 @@ DEFAULT_PROPS['tree'] ??= DEFAULT_PROPS['tree_round']!;
 DEFAULT_PROPS['pine'] ??= DEFAULT_PROPS['tree_pine']!;
 
 export const PLACEHOLDER_PROP: PropFactory = { build: () => ({ geometry: paint(place(box(1, 1, 1), 0, 0.5, 0), '#ff00ff'), material: lit() }) };
+
+/**
+ * Start/finish gantry (local X across the road, ±Z along it; scaled by road width / 16 by trackc).
+ * Two lattice towers on hazard-striped feet carry a header with checker bands, the parametric sparkle
+ * emblem (never the Claude logo) and five start lamps over the grid side, so the line reads from the grid
+ * and from the far end of the straight.
+ */
+function startGantry(accent: string): THREE.BufferGeometry {
+  const DARK = '#262a33', STEEL = '#9aa3ad', WHITE = '#f6f4ef', INK = '#16181d', YEL = '#f2c230';
+  const p: THREE.BufferGeometry[] = [];
+  for (const x of [-9.4, 9.4]) {
+    // tower: four chords and zig-zag braces on the two faces seen from the road
+    for (const dx of [-0.36, 0.36]) for (const dz of [-0.36, 0.36]) p.push(paint(place(box(0.13, 6.6, 0.13), x + dx, 3.4, dz), DARK));
+    for (let i = 0; i < 6; i++) {
+      const y = 0.75 + i * 1.0, tilt = i % 2 ? 0.8 : -0.8;
+      for (const dz of [-0.36, 0.36]) p.push(paint(place(box(0.08, 1.25, 0.08), x, y, dz, 0, 0, tilt), STEEL));
+      for (const dx of [-0.36, 0.36]) p.push(paint(place(box(0.08, 1.25, 0.08), x + dx, y, 0, tilt, 0, 0), STEEL));
+    }
+    // concrete foot with yellow/black hazard bands
+    p.push(paint(place(rbox(1.3, 0.7, 1.3, 0.08, 1), x, 0.25, 0), '#c9c6bf'));
+    for (let i = 0; i < 4; i++) p.push(paint(place(box(1.32, 0.12, 1.32), x, 0.06 + i * 0.16, 0), i % 2 ? INK : YEL));
+  }
+  // header: dark frame, white panels front and back, checker bands, accent end caps
+  p.push(paint(place(box(20.2, 1.9, 0.7), 0, 7.35, 0), DARK));
+  for (const z of [-0.37, 0.37]) {
+    p.push(paint(place(box(19.4, 1.1, 0.04), 0, 7.35, z), WHITE));
+    for (let i = 0; i < 48; i++) for (const [y, o] of [[8.12, 0], [6.58, 1]] as const) p.push(paint(place(box(0.4, 0.3, 0.05), -9.4 + i * 0.4, y, z * 1.03), (i + o) % 2 ? INK : WHITE));
+    p.push(paint(place(sparkleGeometry(0.62, 0.06, 7), 0, 7.35, z * 1.06, 0, z > 0 ? 0 : Math.PI, 0), accent));
+    for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) p.push(paint(place(box(0.5, 0.18, 0.05), sx * (2.4 + k * 0.75), 7.35, z * 1.04, 0, 0, sx * 0.6), accent), paint(place(box(0.5, 0.18, 0.05), sx * (2.4 + k * 0.75), 7.05, z * 1.04, 0, 0, -sx * 0.6), accent));
+  }
+  for (const x of [-10.1, 10.1]) p.push(paint(place(rbox(0.5, 2.1, 0.9, 0.08, 1), x, 7.35, 0), accent));
+  // start lamps on the grid side (−Z faces the karts on the grid)
+  for (let i = 0; i < 5; i++) {
+    const x = -2.4 + i * 1.2;
+    p.push(paint(place(rbox(0.9, 0.62, 0.5, 0.08, 1), x, 6.05, -0.25), INK));
+    for (const dx of [-0.2, 0.2]) p.push(paint(place(cyl(0.15, 0.15, 0.06, 10), x + dx, 6.05, -0.52, Math.PI / 2, 0, 0), '#e5484d'));
+  }
+  return merge(p);
+}

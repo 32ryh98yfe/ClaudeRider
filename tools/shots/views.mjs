@@ -20,12 +20,15 @@ for (const g of groups) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 });
   if (gpu) await ctx.addInitScript(webgpuInitScript);
   const page = await ctx.newPage();
-  page.on('console', (m) => { if (m.type() === 'error' && !/GL Driver Message|GPU stall/.test(m.text())) errors.push(m.text()); });
+  page.on('console', (m) => { if (m.type() === 'error' && !/GL Driver Message|GPU stall/.test(m.text())) { errors.push(m.text()); console.log(`[console.error] ${m.text().slice(0, 300)}`); } });
   page.on('pageerror', (e) => errors.push(`[pageerror] ${e.message}`));
   const first = g.cams[0].cam.join(',');
   await page.goto(`${base}${base.includes('?') ? '&' : '?'}${g.query}&cam=${first}`);
   const t0 = Date.now();
-  await page.waitForFunction(() => typeof window.__cr?.frozen === 'number', null, { timeout: 600_000, polling: 1000 });
+  try { await page.waitForFunction(() => typeof window.__cr?.frozen === 'number', null, { timeout: 600_000, polling: 1000 }); } catch (e) {
+    await page.screenshot({ path: `${outDir}/timeout.png` });
+    console.log(`[timeout] ${g.query}: ${e.message.split('\n')[0]} (screenshot ${outDir}/timeout.png)`); await ctx.close(); continue;
+  }
   console.log(`[${g.query}] frozen at tick ${await page.evaluate(() => window.__cr.frozen)} after ${((Date.now() - t0) / 1000).toFixed(0)} s`);
   for (const c of g.cams) {
     await page.evaluate(([cam, hud]) => {

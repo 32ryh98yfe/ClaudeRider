@@ -25,7 +25,7 @@ const FIXED = {
 export type KColor = 'primary' | 'secondary' | 'paint' | 'number' | keyof typeof FIXED | `#${string}`;
 
 export interface KPartOpts { bone?: KBoneRef; color: KColor; surf?: SurfName | Partial<Surface> }
-export interface OverlayOpts { bone?: KBoneRef; color: KColor; cell: KartCell; opacity?: number; glow?: number }
+export interface OverlayOpts { bone?: KBoneRef; color: KColor; cell: KartCell; opacity?: number; glow?: number; /** unlit black (contact shadow) */ shadow?: boolean }
 export type Facing = 'x+' | 'x-' | 'y+' | 'y-' | 'z+' | 'z-';
 export interface WheelOpts { r: number; w: number; style?: 'kart' | 'balloon' | 'slick' | 'spoke' | 'pod' | 'neon' | 'brass' | 'gold'; rim?: KColor; hubCell?: KartCell | null; tyre?: KColor }
 export interface KartMotion {
@@ -120,6 +120,7 @@ function buildKart(shape: KartShape, livery0: Livery): KartModel {
   const S = shape.seat;
   const colTop: V3 = [0, S[1] - 0.14, S[2] + 0.33];
   mkBone('steer', KB.chassis, colTop);
+  mkBone('shadow', KB.root, [0, 0, 0]);
   const resolve = (r: KBoneRef | undefined): number => {
     if (r === undefined) return KB.chassis;
     if (typeof r === 'number') return r;
@@ -175,7 +176,7 @@ function buildKart(shape: KartShape, livery0: Livery): KartModel {
         const e = 1 / 2048;
         for (let i = 0; i < U.count; i++) U.setXY(i, u0 + e + (u1 - u0 - 2 * e) * U.getX(i), v0 + e + (v1 - v0 - 2 * e) * U.getY(i));
         const { col, slot } = colorOf(o.color, livery);
-        ob.add(geo, { color: col, slot, bone: resolve(o.bone), surf: { rough: o.opacity ?? 1, metal: 0.3, glow: o.glow ?? 0, coat: 0 } });
+        ob.add(geo, { color: col, slot, bone: resolve(o.bone), surf: { rough: o.opacity ?? 1, metal: 0.3, glow: o.glow ?? 0, coat: o.shadow ? 1 : 0 } });
       },
       decal(at, facing, w, h, o) {
         const g = new THREE.PlaneGeometry(w, h);
@@ -281,6 +282,10 @@ function buildKart(shape: KartShape, livery0: Livery): KartModel {
       },
     };
     shape.build(kit);
+    // contact shadow: a soft dark ellipse on the road under the chassis. The sun shadow of a 1.5 m kart is a few
+    // texels wide and drifts with the sun angle; this keeps every kart planted at any distance (LOD0/1) and shrinks
+    // while airborne (the `shadow` bone, see update).
+    kit.decal([0, 0.03, -0.02], 'y+', D.width * 1.55, D.length * 1.38, { color: '#060608', cell: 'shadow', opacity: 0.9, bone: 'shadow', shadow: true });
     paintGeo[lod] = pb.build();
     overGeo[lod] = ob.build();
   }
@@ -323,6 +328,7 @@ function buildKart(shape: KartShape, livery0: Livery): KartModel {
   // steering column axis (in the chassis frame): from the hub down toward the dash
   const colAxis = new THREE.Vector3(0, 0.62, -0.78).normalize();
   const chassis = B('chassis'), chassisRest = chassis.position.clone();
+  const shadowBone = bones[byName.get('shadow')!]!;
   const knRest = [B('knFL').position.clone(), B('knFR').position.clone()];
   const st: KartAnimState = { t: 0, speed01: 0, steer: 0, drift: 0, boost: 0, air: 0, spin: 0 };
   let y = 0, vy = 0, roll = 0, vroll = 0, pitch = 0, vpitch = 0, lastBoost = 0, kick = 0;
@@ -364,6 +370,8 @@ function buildKart(shape: KartShape, livery0: Livery): KartModel {
         vroll += (K * (troll - roll) - C * vroll) * h; roll += vroll * h;
         vpitch += (K * (tpitch - pitch) - C * vpitch) * h; pitch += vpitch * h;
       }
+      // the contact shadow fades out as the kart leaves the ground (the real sun shadow takes over in the air)
+      shadowBone.scale.setScalar(Math.max(0.001, 1 - 0.85 * st.air));
       chassis.position.set(chassisRest.x, chassisRest.y + clamp(y, -0.04, 0.04), chassisRest.z);
       chassis.rotation.set(pitch, 0, roll);
       steering.quaternion.setFromAxisAngle(colAxis, -st.steer * 0.55);

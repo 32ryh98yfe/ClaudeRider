@@ -19,7 +19,7 @@ const rand3 = (c: N): N => fract(sin(dot(c, vec3(127.1, 311.7, 74.7))).mul(43758
 
 export function buildSky(L: EnvLook, lite = false): SkyObject {
   // Low tier: the Preetham sky + cloud fbm is one of the largest shaders; use the gradient dome with a sun and clouds
-  if (!lite && (L.kind === 'day' || L.kind === 'goldenHour' || L.kind === 'sunset' || L.kind === 'overcast')) {
+  if (!lite && L.sky.style !== 'gradient' && (L.kind === 'day' || L.kind === 'goldenHour' || L.kind === 'sunset' || L.kind === 'overcast')) {
     const s = new SkyMesh();
     s.scale.setScalar(4500);
     s.turbidity.value = L.kind === 'overcast' ? 9 : L.sky.turbidity;

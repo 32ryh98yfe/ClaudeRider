@@ -1,5 +1,5 @@
 // Pebble (페블) — balance starter: an open tube-frame go-kart. 1.6 × 1.1 × 0.5 m, wheels r 0.22, one exhaust.
-// Silhouette: low flat tray, chunky side pods, a chrome roll hoop framing the driver, big nose number.
+// Silhouette: low flat tray, chunky side pods, a chrome roll hoop framing the driver, big nose number, a low rear wing.
 import { defineKart } from '../kit.ts';
 import { box, cyl } from '../../mascot/shapes.ts';
 
@@ -34,6 +34,12 @@ export default defineKart({
     if (k.lod === 0) for (let i = 0; i < 4; i++) k.add(box(0.44, 0.02, 0.02).translate(0.04, 0.32 + i * 0.03, -0.49), { color: 'chrome', surf: 'chrome' });
     // roll hoop framing the driver (chrome) — lower than the head accessories so hats stay readable
     k.add(k.tb([[0.34, 0.22, -0.42], [0.34, 0.5, -0.46], [0.28, 0.6, -0.48], [-0.28, 0.6, -0.48], [-0.34, 0.5, -0.46], [-0.34, 0.22, -0.42]], 0.026, true), { color: 'chrome', surf: 'chrome' });
+    // low rear wing on two struts: from the chase camera the back of the kart reads as a clear shape (a coloured
+    // bar with end plates and tail lights) instead of a grey engine block under the driver
+    if (k.lod === 0) for (const s of [1, -1]) k.add(box(0.035, 0.16, 0.05).translate(s * 0.27, 0.42, -0.74), { color: 'trim', surf: 'plastic' });
+    k.add((k.lod === 0 ? k.rb(0.92, 0.05, 0.2, 0.02) : box(0.92, 0.05, 0.2)).rotateX(0.1).translate(0, 0.505, -0.76), { color: 'primary' });
+    for (const s of [1, -1]) k.add(box(0.03, 0.13, 0.24).translate(s * 0.475, 0.49, -0.76), { color: 'secondary' });
+    for (const s of [1, -1]) k.decal([s * 0.3, 0.5, -0.862], 'z-', 0.14, 0.045, { color: 'red', cell: 'white', glow: 0.8 });
     k.handlebar({ color: 'chrome' });
     k.exhaust([-0.2, 0.36, -0.8], { r: 0.05, len: 0.2 });
     if (k.lod < 2) k.add(cyl(0.035, 0.035, 0.22, q(10, 6, 4)).rotateZ(Math.PI / 2).translate(-0.08, 0.36, -0.72), { color: 'chrome', surf: 'chrome' });

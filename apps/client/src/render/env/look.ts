@@ -20,6 +20,9 @@ export interface ThemeLookFx {
   aurora?: boolean;
   planet?: { color: string; ring?: string; dir?: [number, number, number]; size?: number };
   horizon?: string;             // gradient-sky horizon colour
+  /** 'gradient' draws the art-directed gradient dome (top / horizon colours, clouds) on every tier instead of the
+   *  Preetham SkyMesh, whose bright, peach-tinted output washed the stylized day palettes out. */
+  skyStyle?: 'physical' | 'gradient';
   clouds?: number;              // 0..1 cloud cover on gradient skies
   /** Post grade (CDL in display space after tone mapping; authored against Neutral, see engine/tone.ts). */
   grade?: { slope?: number; saturation?: number; tint?: string; offset?: number; power?: number; shadows?: string; highlights?: string };
@@ -42,7 +45,7 @@ export interface EnvLook {
   sun: { color: string; intensity: number; shadows: boolean };
   hemi: { sky: string; ground: string; intensity: number };
   fog: { color: string; near: number; far: number };
-  sky: { turbidity: number; rayleigh: number; mie: number; mieG: number; top: string; bottom: string; horizon: string; stars: number; moon: boolean; aurora: boolean; clouds: number; planet: ThemeLookFx['planet'] | null };
+  sky: { turbidity: number; rayleigh: number; mie: number; mieG: number; top: string; bottom: string; horizon: string; stars: number; moon: boolean; aurora: boolean; clouds: number; planet: ThemeLookFx['planet'] | null; style: 'physical' | 'gradient' };
   exposure: number; envIntensity: number; rimBoost: number; bloom: number | null;
   headlights: boolean; ambient: AmbientKind; wind: number; wet: number;
   grade: { slope: number; saturation: number; tint: string; offset: number; power: number; shadows: string; highlights: string };
@@ -123,6 +126,7 @@ export function resolveEnvLook(kit: KitLike, trackTheme: Record<string, string> 
       aurora: L.aurora ?? kind === 'aurora',
       clouds: L.clouds ?? (kind === 'overcast' ? 0.85 : 0),
       planet: L.planet ?? (kind === 'space' ? { color: '#c9a27a', ring: '#e8d8c0', dir: [-0.5, 0.35, -0.8], size: 0.16 } : null),
+      style: L.skyStyle ?? 'physical',
     },
     // kit and track exposures were authored for Neutral tone mapping; ACES needs ×0.72 for the same mid-tones
     exposure: (L.exposure ?? (L.sky.exposure !== undefined && dayLike ? L.sky.exposure : K.exposure ?? 1)) * ACES_EXPOSURE,

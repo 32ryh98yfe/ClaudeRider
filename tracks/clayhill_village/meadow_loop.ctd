@@ -32,8 +32,17 @@ KEYS 240,460,660,860,1070,1280
 # ---- look & dressing (Clayhill Village kit; art bible: late-morning meadow) ----
 THEME clayhill_village sky=day time=10:00 scatter=orchard_tree,cypress,hay_bale,sheep,cottage density=5 hills=7
 PROPS kind=cottage from=8 to=190 side=R every=30 offset=7 jitter=3 seed=3
-PROPS kind=flower_box from=5 to=195 side=L every=20 offset=1 seed=4
-PROPS kind=cafe_table from=20 to=180 side=L every=26 offset=5 jitter=2 seed=5
+PROPS kind=flower_box from=85 to=195 side=L every=20 offset=1 seed=4
+PROPS kind=cafe_table from=90 to=180 side=L every=26 offset=5 jitter=2 seed=5
+# start straight: grandstand opposite the cottages, sponsor boards behind the rail fence, tyre wall round T1
+PROPS kind=grandstand from=45 to=46 side=L every=100 offset=5.5 seed=19
+PROPS kind=ad_board_a from=4 to=190 side=R every=24 offset=0.4 seed=20
+PROPS kind=ad_board_b from=12 to=190 side=R every=24 offset=0.4 seed=21
+PROPS kind=ad_board_c from=20 to=190 side=R every=24 offset=0.4 seed=22
+PROPS kind=ad_board_b from=1352 to=1399 side=both every=16 offset=0.4 seed=23
+PROPS kind=ad_board_a from=1360 to=1399 side=both every=16 offset=0.4 seed=24
+PROPS kind=ad_board_c from=80 to=196 side=L every=36 offset=0.4 seed=25
+PROPS kind=tyre_wall from=203 to=272 side=R every=1.3 offset=0.6 seed=26
 PROPS kind=orchard_tree from=200 to=277 side=L every=14 offset=6 jitter=4 seed=6
 PROPS kind=cypress from=277 to=348 side=L every=12 offset=4 seed=7
 PROPS kind=sheep from=350 to=510 side=both every=16 offset=8 jitter=14 scale=0.9-1.2 seed=8

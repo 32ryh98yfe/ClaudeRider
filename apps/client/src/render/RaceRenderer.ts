@@ -356,7 +356,7 @@ export class RaceRenderer {
       const U = this.post.u;
       U.boost.value = this.boostK;
       U.blur.value = this.reducedMotion || this.director.mode !== 'chase' ? 0 : this.boostK * (d.boostKind === 2 ? 1.2 : 1);
-      U.chroma.value = this.reducedMotion ? 0 : this.boostK * this.ts.chroma * 10;
+      U.chroma.value = this.reducedMotion ? 0 : this.boostK * this.ts.chroma * 2;
       U.lines.value = this.reducedMotion ? 0 : Math.max(this.boostK, Math.min(1, Math.max(0, (me.pose.speed - 30) / 12)) * 0.5);
       U.speed.value = Math.min(1, me.pose.speed / 44);
       this.flashK = Math.max(0, this.flashK - dt * 3.5);
@@ -477,7 +477,8 @@ export class RaceRenderer {
     kart.seat.add(mascot.root);
     root.add(kart.root);
     const mat = MaterialLibrary.ghost();
-    root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { m.material = mat; m.castShadow = false; m.receiveShadow = false; m.renderOrder = 2; } });
+    // transparent overlays (decals, glass, the contact shadow) would turn into hologram planes: the ghost keeps the solid parts only
+    root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { if ((m.material as THREE.Material).transparent) m.visible = false; m.material = mat; m.castShadow = false; m.receiveShadow = false; m.renderOrder = 2; } });
     tagFx(root);
     this.scene.add(root);
     this.ghost = { root, kart, mascot, mat };

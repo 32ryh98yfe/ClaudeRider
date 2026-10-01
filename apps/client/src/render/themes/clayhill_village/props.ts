@@ -281,13 +281,59 @@ export const CLAYHILL_PROPS: Record<string, PropFactory> = {
       return { geometry: merge(p), material: lit() };
     },
   },
+  // ---- start straight dressing (Meadow Loop start → T1) -----------------------------------------------------------
+  grandstand: {
+    // five-tier stand facing the road (+X) with coloured seat rows, a terracotta canopy and a small crowd
+    maxInstances: 4,
+    build: () => {
+      const p: THREE.BufferGeometry[] = [];
+      const L = 24, r = seeded(31);
+      const SEATS = [TERRACOTTA, SKY, '#f2c14e', CREAM, SAGE];
+      for (let i = 0; i < 5; i++) {
+        const x = -1.6 - i * 1.25, top = 0.55 + i * 0.5;
+        p.push(part(box(1.25, top + 0.6, L), '#d9d4ca', x, (top - 0.6) / 2, 0));
+        for (let k = 0; k < 12; k++) p.push(part(box(0.5, 0.18, 1.8), SEATS[(i + k) % SEATS.length]!, x + 0.2, top + 0.09, -L / 2 + 1 + k * 2));
+        // spectators: chunky toy figures, a few per row
+        for (let k = 0; k < 7; k++) {
+          if (r() < 0.25) continue;
+          const z = -L / 2 + 1.2 + k * 3.4 + r() * 1.2, col = ['#e84a3c', '#3d7bd9', '#f2c14e', '#ffffff', '#8fb573', '#b57cff'][Math.floor(r() * 6)]!;
+          p.push(part(rbox(0.42, 0.55, 0.42, 0.12, 1), col, x + 0.15, top + 0.46, z), part(sph(0.2, 8, 6), '#f0c9a0', x + 0.15, top + 0.9, z));
+        }
+      }
+      const back = -1.6 - 5 * 1.25;
+      p.push(part(box(0.3, 5.4, L + 0.6), CREAM, back - 0.15, 2.1, 0));
+      p.push(part(box(0.25, 1.0, L), IVORY, -0.85, 0.5, 0));                                  // front parapet
+      p.push(part(box(0.06, 0.4, L - 0.2), TERRACOTTA, -0.7, 0.75, 0));
+      for (const z of [-L / 2 + 0.4, -L / 6, L / 6, L / 2 - 0.4]) p.push(part(cyl(0.12, 0.12, 5.6, 8), INK, -0.9, 2.8, z));
+      p.push(part(box(8.6, 0.25, L + 1.2), TERRACOTTA, back / 2 - 0.4, 5.85, 0, 0, 0, -0.12));  // canopy
+      p.push(part(box(8.7, 0.1, L + 1.3), '#a8553c', back / 2 - 0.4, 5.7, 0, 0, 0, -0.12));
+      return { geometry: merge(p), material: lit(), castShadow: true };
+    },
+  },
+  ad_board_a: { maxInstances: 60, build: () => ({ geometry: adBoard('a'), material: lit(), castShadow: true }) },
+  ad_board_b: { maxInstances: 60, build: () => ({ geometry: adBoard('b'), material: lit(), castShadow: true }) },
+  ad_board_c: { maxInstances: 60, build: () => ({ geometry: adBoard('c'), material: lit(), castShadow: true }) },
+  tyre_wall: {
+    // 1.3 m run of stacked tyres (2 columns × 3 high) on the outside of a corner, banded red / white per column
+    maxInstances: 200,
+    build: () => {
+      const p: THREE.BufferGeometry[] = [];
+      for (let c = 0; c < 2; c++) for (let h = 0; h < 3; h++) {
+        const z = -0.32 + c * 0.64, y = 0.15 + h * 0.3;
+        p.push(part(cyl(0.32, 0.32, 0.28, 14), '#23242a', 0, y, z));
+        p.push(part(cyl(0.325, 0.325, 0.1, 14), c ? '#f6f4ef' : '#d9453c', 0, y, z));
+        p.push(part(cyl(0.16, 0.16, 0.3, 10), '#0f1013', 0, y, z));
+      }
+      return { geometry: merge(p), material: MaterialLibrary.vertexLit(0.9, 0), castShadow: true };
+    },
+  },
   // ---- nature ---------------------------------------------------------------------------------------------------
   cypress: {
     maxInstances: 300,
     build: () => ({
       geometry: merge([
         part(cyl(0.2, 0.28, 3, 6), WOOD_DK, 0, -0.5, 0),
-        part(lathe([[0, 0], [1.1, 0.8], [1.3, 3], [1.0, 6], [0.5, 8], [0, 9.2]], 8), '#4f7a3a', 0, 0.6, 0, 0, 0, 0, 1, 1, 1, 0.1, 7),
+        part(lathe([[0, 0], [1.1, 0.8], [1.3, 3], [1.0, 6], [0.5, 8], [0, 9.2]], 8), '#3a6a35', 0, 0.6, 0, 0, 0, 0, 1, 1, 1, 0.1, 7),
       ]), material: lit(), castShadow: true,
     }),
   },
@@ -296,8 +342,8 @@ export const CLAYHILL_PROPS: Record<string, PropFactory> = {
     build: () => ({
       geometry: merge([
         part(cyl(0.22, 0.32, 3.6, 7), WOOD_DK, 0, 0.6, 0),
-        part(ico(1.9, 1), '#79ad4f', 0, 3.8, 0, 0, 0, 0, 1.1, 0.85, 1.1, 0.1, 3),
-        part(ico(1.2, 1), '#98c463', 0.9, 4.5, 0.5, 0, 0, 0, 1, 1, 1, 0.1, 5),
+        part(ico(1.9, 1), '#4b8a3a', 0, 3.8, 0, 0, 0, 0, 1.1, 0.85, 1.1, 0.1, 3),
+        part(ico(1.2, 1), '#5f9c45', 0.9, 4.5, 0.5, 0, 0, 0, 1, 1, 1, 0.1, 5),
         part(sph(0.18, 6, 4), '#e84a3c', 1.6, 3.6, 0.6), part(sph(0.18, 6, 4), '#e84a3c', -1.2, 3.3, 1.1), part(sph(0.18, 6, 4), '#f2c14e', 0.3, 3.1, -1.6),
       ]), material: lit(), castShadow: true,
     }),
@@ -324,3 +370,28 @@ export const CLAYHILL_PROPS: Record<string, PropFactory> = {
 };
 
 export const CLAYHILL_PALETTE = { TERRACOTTA, CREAM, SAGE, SKY, SLATE } as const;
+
+/** Roadside sponsor board (local +X faces the road): three looks in the village palette, our own sparkle mark only. */
+function adBoard(v: 'a' | 'b' | 'c'): THREE.BufferGeometry {
+  const W = 3.0, H = 0.95, y = 0.32 + H / 2;
+  const NAVY = '#1f2a44', YEL = '#f2c14e', RED = '#d9453c';
+  const p: THREE.BufferGeometry[] = [
+    part(box(0.08, 0.36, 0.08), INK, -0.05, 0.18, -W / 2 + 0.25), part(box(0.08, 0.36, 0.08), INK, -0.05, 0.18, W / 2 - 0.25),
+    part(box(0.1, H + 0.08, W + 0.08), '#2a2826', -0.06, y, 0),
+  ];
+  const face = v === 'a' ? TERRACOTTA : v === 'b' ? NAVY : IVORY;
+  p.push(part(box(0.04, H, W), face, 0.02, y, 0));
+  if (v === 'a') {
+    p.push(paint(place(sparkleGeometry(0.34, 0.03, 11), 0.05, y, -0.85, 0, Math.PI / 2, 0), IVORY));
+    p.push(part(box(0.03, 0.16, 1.6), IVORY, 0.05, y + 0.12, 0.45), part(box(0.03, 0.1, 1.2), IVORY, 0.05, y - 0.16, 0.25));
+  } else if (v === 'b') {
+    for (let k = 0; k < 4; k++) {
+      const z = -0.9 + k * 0.6;
+      p.push(part(box(0.03, 0.5, 0.14), YEL, 0.05, y + 0.14, z, 0.8, 0, 0), part(box(0.03, 0.5, 0.14), YEL, 0.05, y - 0.14, z, -0.8, 0, 0));
+    }
+  } else {
+    for (let k = 0; k < 15; k++) p.push(part(box(0.03, 0.2, 0.2), k % 2 ? RED : INK, 0.05, y - H / 2 + 0.1, -W / 2 + 0.1 + k * 0.2));
+    p.push(paint(place(sparkleGeometry(0.28, 0.03, 5), 0.05, y + 0.12, 0, 0, Math.PI / 2, 0), RED));
+  }
+  return merge(p);
+}

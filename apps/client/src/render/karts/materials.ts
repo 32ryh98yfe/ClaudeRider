@@ -8,7 +8,7 @@
 import * as THREE from 'three/webgpu';
 import {
   attribute, vertexColor, float, vec3, pow, max, dot, mix, smoothstep, step, fract, floor, abs, mod, sin, texture, uv, clamp,
-  normalView, positionViewDirection, positionGeometry, mx_noise_float, select, length, min,
+  normalView, positionViewDirection, positionGeometry, mx_noise_float, select, length, min, output, vec4,
 } from 'three/tsl';
 import { registerLocalMaterial } from '../mascot/materials.ts';
 
@@ -71,7 +71,7 @@ export function kartPaint(): THREE.MeshPhysicalNodeMaterial {
 /** 8 × 4 cells of 128 px. Digits 0–9 are cells 0–9. */
 export const KART_CELLS = {
   sparkle: 10, roundel: 11, crest: 12, crown: 13, gauge: 14, arrow: 15,
-  glow: 16, white: 17, checker: 18, star: 19, bolt: 20, snow: 21, ring: 22, flameIcon: 23, plate: 24, vent: 25, headlight: 26,
+  glow: 16, white: 17, checker: 18, star: 19, bolt: 20, snow: 21, ring: 22, flameIcon: 23, plate: 24, vent: 25, headlight: 26, shadow: 27,
 } as const;
 export type KartCell = keyof typeof KART_CELLS | number;
 export const KART_ATLAS = { cols: 8, rows: 4, cell: 128 } as const;
@@ -144,6 +144,8 @@ export function kartAtlas(): THREE.Texture {
     { const [x, y] = at(KART_CELLS.plate); g.beginPath(); g.roundRect(x - 60, y - 40, 120, 80, 14); g.fill(); }
     { const [x, y] = at(KART_CELLS.vent); for (let k = 0; k < 5; k++) { g.beginPath(); g.roundRect(x - 56, y - 50 + k * 22, 112, 12, 6); g.fill(); } }
     { const [x, y] = at(KART_CELLS.headlight); const gr = g.createRadialGradient(x, y, 0, x, y, 60); gr.addColorStop(0, '#fff'); gr.addColorStop(0.55, 'rgba(255,255,255,0.9)'); gr.addColorStop(0.62, 'rgba(255,255,255,0.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x, y, 62, 0, Math.PI * 2); g.fill(); g.fillStyle = '#fff'; }
+    // contact shadow: a flat dark core out to ~60 % of the radius (the kart footprint), then a soft rim
+    { const [x, y] = at(KART_CELLS.shadow); const gr = g.createRadialGradient(x, y, 0, x, y, 62); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.58, 'rgba(255,255,255,0.92)'); gr.addColorStop(0.8, 'rgba(255,255,255,0.4)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(x - 64, y - 64, 128, 128); g.fillStyle = '#fff'; }
     tex.needsUpdate = true;
   };
   draw();
@@ -172,6 +174,8 @@ export function kartOverlay(): THREE.MeshStandardNodeMaterial {
     m.opacityNode = t.a.mul(s.x);
     m.roughnessNode = s.y;
     m.emissiveNode = c.mul(s.z);
+    // surf.w = 1: the contact shadow, unlit black (see rigs.ts buildKartOverlay)
+    m.outputNode = mix(output, vec4(0, 0, 0, output.a), step(0.5, s.w));
     return m;
   });
 }

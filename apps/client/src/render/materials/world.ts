@@ -16,7 +16,7 @@ export type RoadStyle = 'asphalt' | 'cobble' | 'dirt' | 'ice' | 'metal' | 'wood'
  * `dir`: conveyor scroll direction (+1 forward, −1 back).
  */
 export interface RoadParams { style: RoadStyle; a: string; b: string; line: string; wet?: boolean; glow?: string; shoulder?: boolean; tint?: readonly [number, number, number]; dir?: number }
-export type WallStyle = 'panel' | 'stone' | 'barrier' | 'fence' | 'rock' | 'parapet' | 'building' | 'planter' | 'pillar' | 'curb' | 'glass' | 'neon' | 'ice' | 'hedge';
+export type WallStyle = 'panel' | 'stone' | 'barrier' | 'fence' | 'ranch' | 'rock' | 'parapet' | 'building' | 'planter' | 'pillar' | 'curb' | 'glass' | 'neon' | 'ice' | 'hedge';
 export interface WaterParams { shallow: string; deep: string; foam?: string; opacity?: number; waveScale?: number }
 
 /** Quality profile the node graphs specialise on (set by the RaceRenderer from the tier). */
@@ -255,6 +255,25 @@ export function buildWall(kind: WallStyle, a: string, b: string, prof: MaterialP
       c = mix(A.mul(0.35), mix(A, B, tone.mul(0.6)), gap).mul(n01(vec2(U.y.mul(5), P.y.mul(12))).mul(0.2).add(0.85));
       rough = float(0.85);
       height = gap;
+      break;
+    }
+    case 'ranch': {
+      // see-through post-and-rail fence cut from the wall slab with alpha test (the collision wall is unchanged):
+      // posts every 2.4 m, three rails, a low kick board; the grass behind shows through, so the roadside reads
+      // as a light, ordered edge instead of a solid plank band. Face spans −0.6 m … top; ground ≈ hFrac 0.375.
+      const along = fract(U.y.mul(1.25));
+      const post = step(along, 0.06).add(step(0.94, along));
+      const rail = (h0: number): N => step(h0, hFrac).mul(step(hFrac, h0 + 0.075));
+      const rails = clamp(rail(0.555).add(rail(0.745)).add(rail(0.925)), 0, 1);
+      const kick = step(hFrac, 0.43);
+      const solid = clamp(post.add(rails).add(kick).add(onTop.mul(post)), 0, 1);
+      m.alphaTest = 0.5;
+      m.opacityNode = solid;
+      const postC = A.mul(0.78), railC = A;
+      c = mix(mix(railC, postC, clamp(post, 0, 1)), B, kick);
+      // a thin shadow line under each rail gives the bars depth without texture noise
+      c = c.mul(float(1).sub(step(hFrac, 0.555 + 0.012).mul(step(0.555, hFrac)).mul(0.25)));
+      rough = float(0.82);
       break;
     }
     case 'building': {

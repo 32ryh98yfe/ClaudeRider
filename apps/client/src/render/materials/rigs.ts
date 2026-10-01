@@ -5,8 +5,8 @@
 // and value noise: the physical kart shader was the single most expensive program to link on SwiftShader (≈13 s).
 import * as THREE from 'three/webgpu';
 import {
-  attribute, vertexColor, float, vec2, vec3, max, mix, smoothstep, step, fract, floor, abs, mod, sin, texture, uv, clamp,
-  positionGeometry, mx_noise_float, select, length, color,
+  attribute, vertexColor, float, vec2, vec3, vec4, max, mix, smoothstep, step, fract, floor, abs, mod, sin, texture, uv, clamp,
+  positionGeometry, mx_noise_float, select, length, color, output,
 } from 'three/tsl';
 import { fresnel, fxUniforms, vnoise } from './tsl.ts';
 
@@ -131,7 +131,11 @@ export function buildKartLivery(hq: boolean): THREE.MeshStandardNodeMaterial {
   return lowEnv(m, hq);
 }
 
-/** Transparent kart overlay: race numbers, stickers, crests, glass, underglow. surf.x = opacity, surf.y = roughness, surf.z = glow. */
+/**
+ * Transparent kart overlay: race numbers, stickers, crests, glass, underglow, the contact shadow.
+ * surf.x = opacity, surf.y = roughness, surf.z = glow, surf.w = 1 for the contact shadow (unlit black: a lit dark
+ * plane would mirror the sky at grazing angles and read as a pale halo instead of a shadow).
+ */
 export function buildKartOverlay(atlas: THREE.Texture, hq = true): THREE.MeshStandardNodeMaterial {
   const m = new THREE.MeshStandardNodeMaterial({ transparent: true, depthWrite: false, roughness: 0.25, metalness: 0, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3, side: THREE.DoubleSide });
   const t: N = texture(atlas, uv());
@@ -141,5 +145,6 @@ export function buildKartOverlay(atlas: THREE.Texture, hq = true): THREE.MeshSta
   m.opacityNode = t.a.mul(s.x);
   m.roughnessNode = s.y;
   m.emissiveNode = c.mul(s.z);
+  m.outputNode = mix(output, vec4(0, 0, 0, output.a), step(0.5, s.w));
   return lowEnv(m, hq);
 }

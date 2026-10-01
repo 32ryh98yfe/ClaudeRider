@@ -101,9 +101,11 @@ export function createPost(renderer: THREE.WebGPURenderer, scene: THREE.Scene, c
     const hdr = Fn(() => {
       const st = uv();
       const toC = vec2(0.5, 0.52).sub(st);
-      const ca = ux.chroma.mul(0.012).mul(toC.length());
+      // chromatic aberration: R pushed out, B pulled in (radial), only while boosting. Kept to ≈ 2 px at the frame
+      // edge and none over the middle of the screen, where the player's kart and the road ahead sit: a strong
+      // full-frame split doubled every outline and made the kart look translucent.
+      const ca = ux.chroma.mul(0.0025).mul(smoothstep(0.22, 0.75, toC.length()));
       const dir = toC.normalize();
-      // chromatic aberration: R pushed out, B pulled in (radial), only while boosting
       const col = ((ts.chroma ?? 0) > 0
         ? vec3(beauty.sample(st.sub(dir.mul(ca))).r, beauty.sample(st).g, beauty.sample(st.add(dir.mul(ca))).b)
         : beauty.sample(st).rgb).toVar();
@@ -152,8 +154,8 @@ export function createPost(renderer: THREE.WebGPURenderer, scene: THREE.Scene, c
         const lines = streak.mul(smoothstep(0.0, 0.25, flow).mul(smoothstep(1.0, 0.6, flow))).mul(smoothstep(0.28, 0.62, r));
         c = c.add(vec3(1, 0.98, 0.94).mul(lines.mul(ux.lines).mul(0.55)));
       }
-      // instant/start boost flash: white-cyan bloom from the centre
-      c = mix(c, vec3(0.85, 1.0, 1.0), ux.flash.mul(smoothstep(0.9, 0.1, r)).mul(0.35));
+      // instant/start boost flash: a white-cyan rim from the edges inward (never a wash over the kart in the centre)
+      c = mix(c, vec3(0.85, 1.0, 1.0), ux.flash.mul(smoothstep(0.25, 0.85, r)).mul(0.3));
       // vignette (stronger in boost), red hit edges
       const vig = smoothstep(0.42, 0.92, r).mul(ux.boost.mul(0.32).add(0.24));
       c = c.mul(float(1).sub(vig));
