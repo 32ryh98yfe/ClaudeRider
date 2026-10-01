@@ -43,7 +43,7 @@ Status keys: **[S]** sourced · **[P]** proposed. Ticks at 60 Hz (1 tick = 16.66
 | 3 | u8 | `edges` (latched since the last frame): bit0 USE_ITEM, bit1 SWAP, bit2 TAP_L, bit3 TAP_R, bit4 RESPAWN, bit5 EMOTE; bits 6–7 must be 0 |
 | 4 | u8 | `aim`: target slot 0–7, 255 = none |
 | 5 | u8 | `emote` 0–15 in bits 0–3; bits 4–7 reserved (0) |
-Edges are latched on the client between ticks, so a tap shorter than a tick is never lost; the sim derives drift and throttle edges itself from `prevHeld`/`prevThrottle` (B1).
+Edges are latched on the client between ticks, so a tap shorter than a tick is never lost; the sim derives drift and throttle edges itself from `prevHeld`/`prevThrottle` (B1). Brake and throttle presses are kept the same way (§7.3).
 
 ### 3.2 Client → server
 | Id | Name | Layout | Size (incl. type) |
@@ -225,6 +225,13 @@ Hold the last analog values (steer, throttle, brake, held); no edges are synthes
 
 ### 7.3 Local frame loop
 Fixed-step accumulator at the adjusted rate (59/60/61 Hz, §2), at most 5 steps per frame, `alpha = acc/dt` for interpolation; inputs are sampled every tick from the input system and sent immediately.
+
+**Samples → ticks (`NetClient.submit`, M5).** The client samples input once per rendered frame, which is not once per tick (144 Hz gives 2–3 samples per tick; at 60 Hz a frame can advance 0 or 2 ticks). Every sample reaches exactly one tick:
+- the samples queued since the last tick are spread over the ticks the next `update()` advances, oldest first (a tick takes ⌊queued / remaining⌋ of them; the last planned tick takes the rest, so the newest sample is never delayed);
+- the samples one tick takes are merged: brake and throttle keep their strongest value, edges are ORed, everything else is the newest;
+- a tick that gets no sample of its own holds the previous sample (without edges), as the authority does for a frame it lacks.
+
+So a 1-frame brake tap at 144 Hz, or one whose frame advanced no tick, still reaches a tick, and a frame that advances two ticks does not stretch its sample over both. Measured over 240 phases with ±1 ms vsync jitter at 60 Hz, a 10-frame brake hold becomes 11 ticks (a spin-out) in 37 cases, against 46 with "newest sample per tick" and 64 with a plain max-latch. Late frames on the server (§6.1) are not merged this way: their presses already happened on the authority's timeline, and replaying a brake at N would add a brake tick the player never had.
 
 ### 7.4 Smoothing (`visualOffset`)
 - Critically damped spring per kart on the position offset, time constant 120 ms for remote karts and 80 ms for the local kart [P]; heading offset eased the same way.
