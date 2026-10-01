@@ -22,7 +22,7 @@ S 24                                        @geyser_gap
 WIGGLE R30 50/100/50 R wall=rock:1.5:soft
 S 15                                        @rail_corner_in
 C R35 120 L bank=6 wallL=rock:0.7 wallR=rock:1.5 @rail_corner
-J ramp=30@8 gap=14 drop=4 land=40 wland=14 vmin=25 vmax=46 w=14 wall=rock:1.5 @lava_jump
+J ramp=28@8 gap=14 drop=4 land=42 wland=14 vmin=25 vmax=46 w=14 wall=rock:1.5 @lava_jump  # ramp 28 / land 42 (was 30 / 40, same 84 m): a 52 m/s tap-boost flight lands 49.5 m out, inside V11's 16–51 m
 C R40 54 L w=12 bank=5
 S ?b dy=1.5                                 @conveyors
 CHICANE R22 55/110/55 L w=12                @basalt_chicane

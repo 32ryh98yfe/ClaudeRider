@@ -32,7 +32,9 @@ describe('jumps (§10.3, §13.5, V11)', () => {
     }, (_w, inp) => { inp[0]!.throttle = 0; });
     return { kit, k, takeoffV, landS, impact, air };
   }
-  it.each([25, 30, 35, 40, 46])('taking off at %i m/s: flies, lands in the landing zone, no respawn', (v) => {
+  // 50 and 52 m/s: the M5 tap-boost reach (305 km/h is 50.59 m/s on Balance, about 51.5 on neon_blade), which V11 now
+  // sweeps to past the AI's vmax 46. At 52 the kit lands about 42 m past the lip after about 49 ticks of air.
+  it.each([25, 30, 35, 40, 46, 50, 52])('taking off at %i m/s: flies, lands in the landing zone, no respawn', (v) => {
     // calibrate the entry speed so the lip speed is v (the ramp and overspeed decay cost a little)
     let v0 = v;
     for (let i = 0; i < 3; i++) v0 += v - jump(v0).takeoffV;
@@ -43,7 +45,7 @@ describe('jumps (§10.3, §13.5, V11)', () => {
     expect(impact).toBeGreaterThan(6);
     expect(k.stats.respawns).toBe(0);
     expect(k.body.grounded).toBe(1);
-    expect(air).toBeLessThan(72);
+    expect(air).toBeLessThan(66); // V11's airtime limit, 6 ticks under the 72-tick no-ground respawn
   });
 
   it('landing: the normal speed is removed and v × (1 − min(0.12, 0.01·(v_imp − 6))); no rebound, one land event', () => {

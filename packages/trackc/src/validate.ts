@@ -2,7 +2,7 @@
 // Severity policy: structural rules are always errors. Design/placement rules (V5 V6 V9 V10 V13 V14 V19 V20) are
 // errors in strict mode — any track that declares `@signature` (every roster track, §13) or `--strict` — and
 // warnings otherwise, so M1-era tracks keep baking while their world lane brings them up to the roster rules.
-import { SFLAG, TFLAG, type GroundHit, type Contact } from '@cr/sim';
+import { SFLAG, TFLAG, TICK_HZ, V_BOOST, type GroundHit, type Contact } from '@cr/sim';
 import type { BuildResult } from './build.ts';
 import { inSpans } from './build.ts';
 import { sampleAt, type PathModel, type Sample, type TrackModel } from './paths.ts';
@@ -325,6 +325,8 @@ function v9(r: BuildResult, push: Push): void {
 }
 
 // ------------------------------------------------------------------------------------------------ V10 boost pads
+/** Straight-ahead clearance past a boost pad: 2 s at the Balance vBoost (M5: 45.11 m/s, so 90.2 m; was 88.8 m). */
+export const V10_CLEAR = 2 * V_BOOST;
 function v10(r: BuildResult, push: Push): void {
   const m = r.model, c = r.content, track = r.track;
   const boost = c.pads.filter((p) => p.kind === 'boost' && p.path === 0);
@@ -336,22 +338,32 @@ function v10(r: BuildResult, push: Push): void {
     if (pd.path === 0) for (const ap of tight) if (circDist(m, pd.s0, ap) < 15 || circDist(m, pd.s1, ap) < 15) push('V10', 'pad within 15 m of the apex of an R < 30 corner', pd.s0);
     for (const j of c.jumps) if (j.path === pd.path && pd.kind === 'boost' && (inS(m, pd.path, pd.s0, j.landS0, j.landS1) || inS(m, pd.path, pd.s1, j.landS0, j.landS1))) push('V10', 'boost pad in a jump landing zone', pd.s0, p.id);
     if (pd.kind !== 'boost') continue;
-    // no wall ahead within 2 s × 44.4 m/s: march straight along the pad's tangent at kart height
+    // no wall ahead within 2 s at the Balance vBoost: march straight along the pad's tangent at kart height
     const q = sampleAt(p, pd.s1);
     const d = (pd.d0 + pd.d1) / 2;
     const ox = q.x + q.rx * d + q.ux * 0.8, oy = q.y + q.ry * d + q.uy * 0.8, oz = q.z + q.rz * d + q.uz * 0.8;
-    for (let t = 2; t <= 88.8; t += 1) {
+    for (let t = 2; t <= V10_CLEAR; t += 1) {
       const n = track.sphereWalls(ox + q.tx * t, oy + q.ty * t, oz + q.tz * t, 0.6, cs, 4);
-      if (n > 0) { push('V10', `wall ${t.toFixed(0)} m straight ahead of the boost pad (need ≥ 89 m = 2 s at 44.4 m/s)`, pd.s0, p.id); break; }
+      if (n > 0) { push('V10', `wall ${t.toFixed(0)} m straight ahead of the boost pad (need ≥ ${V10_CLEAR.toFixed(1)} m = 2 s at ${V_BOOST} m/s)`, pd.s0, p.id); break; }
     }
   }
 }
 
 // ------------------------------------------------------------------------------------------------ V11 jumps
+/** Top lip speed V11 sweeps to. The `.ctd` `vmax` is the AI lip window (the speed a racing line carries over the lip);
+ *  M5 techniques reach more right after a corner: drag 48.1 m/s (290 km/h), tap boost 50.59 m/s on Balance and about
+ *  51.5 m/s on neon_blade (305 km/h, doc 15 §1–§2). 52 m/s covers the fastest body with a little margin. */
+export const V11_REACH = 52;
+/** Airtime limit in ticks: flights stay 6 ticks under the 72-tick no-ground respawn (race/progress.ts
+ *  NO_GROUND_RESPAWN), so a jump never leans on the declared-span hold that keeps the counter at 71. */
+export const V11_AIR_TICKS = 66;
+/** Seconds from the lip to touchdown on a plane `dropBelowLip` under it (ballistic, G = 28 m/s², no drag). */
+export function flightTime(v: number, lipDeg: number, dropBelowLip: number): number {
+  const vy = v * Math.sin(lipDeg * DEG);
+  return (vy + Math.sqrt(vy * vy + 2 * G * dropBelowLip)) / G;
+}
 export function landingDistance(v: number, lipDeg: number, dropBelowLip: number): number {
-  const a = lipDeg * DEG, vx = v * Math.cos(a), vy = v * Math.sin(a);
-  const t = (vy + Math.sqrt(vy * vy + 2 * G * dropBelowLip)) / G;
-  return vx * t;
+  return v * Math.cos(lipDeg * DEG) * flightTime(v, lipDeg, dropBelowLip);
 }
 function v11(r: BuildResult, push: Push): void {
   const m = r.model;
@@ -362,11 +374,22 @@ function v11(r: BuildResult, push: Push): void {
     const lipAng = Math.atan2(lip.ty, Math.hypot(lip.tx, lip.tz)) / DEG;
     const drop = lip.y - land.y;
     const lo = j.gapLen + 2, hi = j.gapLen + j.landLen - 5;
+    // sweep past vmax (the AI lip window) up to what a human reaches with drag / tap boost
+    const vTop = Math.max(j.vMax, V11_REACH);
     for (let k = 0; k <= 10; k++) {
-      const v = j.vMin + ((j.vMax - j.vMin) * k) / 10;
+      const v = j.vMin + ((vTop - j.vMin) * k) / 10;
       const x = landingDistance(v, lipAng, drop);
-      if (x < lo - 1e-6 || x > hi + 1e-6) { push('V11', `at ${v.toFixed(0)} m/s the kart lands ${x.toFixed(1)} m past the lip; landing window is ${lo.toFixed(0)}–${hi.toFixed(0)} m (line ${j.line})`, j.lipS, p.id); break; }
+      if (x < lo - 1e-6 || x > hi + 1e-6) {
+        const why = v > j.vMax + 1e-6 ? ` (above vmax ${j.vMax}: drag / tap-boost speed, swept to ${vTop} m/s)` : '';
+        push('V11', `at ${v.toFixed(0)} m/s the kart lands ${x.toFixed(1)} m past the lip; landing window is ${lo.toFixed(0)}–${hi.toFixed(0)} m${why} (line ${j.line})`, j.lipS, p.id);
+        break;
+      }
     }
+    // the flight must end well before the no-ground respawn. Flight time grows with the lip's vertical speed, so the
+    // longest flight is at the top speed on an upward lip (at vMin on a downward one): check both ends of the sweep
+    const tTop = flightTime(vTop, lipAng, drop), tMin = flightTime(j.vMin, lipAng, drop);
+    const air = Math.max(tTop, tMin) * TICK_HZ, vAir = tTop >= tMin ? vTop : j.vMin;
+    if (air >= V11_AIR_TICKS - 1e-6) push('V11', `${air.toFixed(1)} ticks of air at ${vAir.toFixed(0)} m/s (need < ${V11_AIR_TICKS}; the no-ground respawn fires at 72) (line ${j.line})`, j.lipS, p.id);
     if (j.landLen < 40 - 1e-6) push('V11', `landing zone ${j.landLen} m < 40 m (line ${j.line})`, j.lipS, p.id);
     if (j.landW < p.samples[0]!.w - 1e-6 && j.landW > 0 && j.landW < sampleAt(p, j.s0).w - 1e-6) push('V11', `landing narrower (${j.landW} m) than the road (line ${j.line})`, j.lipS, p.id);
     for (let s = j.landS0; s < j.landS1; s += 2) { const q = sampleAt(p, s); if (Math.abs(q.curv) > 1 / 80 + 1e-9) { push('V11', 'landing zone radius < 80 m', s, p.id); break; } if (Math.abs(q.ty) > 0.0995) { push('V11', 'landing grade beyond ±10%', s, p.id); break; } }
@@ -534,7 +557,10 @@ function v18(r: BuildResult, push: Push): void {
 }
 
 // ------------------------------------------------------------------------------------------------ V19 drift demand
-/** gap-2 validated envelope (ADR-012 #16): grip radius needed to hold speed v, and drift radius with no net loss. */
+/** gap-2 validated envelope (ADR-012 #16): grip radius needed to hold speed v, and drift radius with no net loss.
+ *  M5 leaves these numbers alone on purpose: corners() caps the entry speed at vIn = 34 (V_GRIP), so the analytic
+ *  estimate only interpolates up to 34 m/s; anything the tables give above that is clamped, and the 44.4 row is only
+ *  the upper bracket of that clamped range. The M5 boost speeds (vBoost 45.11, drag, tap boost) never enter it. */
 const GRIP_ENV: [number, number][] = [[15, 14.7], [20, 21], [25, 29], [30, 39.5], [34, 50], [44.4, 86]];
 const DRIFT_ENV: [number, number][] = [[15, 11], [20, 14], [25, 21], [30, 26], [34, 47], [44.4, 80]];
 function speedFor(env: [number, number][], R: number): number {

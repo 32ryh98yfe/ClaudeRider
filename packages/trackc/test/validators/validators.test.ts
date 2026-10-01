@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { TRACKS, bakeSrc } from '../helpers.ts';
 import type { BuildOptions } from '../../src/build.ts';
-import { validate } from '../../src/validate.ts';
+import { V11_REACH, validate } from '../../src/validate.ts';
 
 const src = (rel: string): string => readFileSync(TRACKS + rel, 'utf8');
 const MEADOW = src('_test/v_base.ctd'); // frozen copy of meadow_loop: world-lane edits must not move the seeds
@@ -71,6 +71,19 @@ describe('seeded violations', () => {
   });
   it('V11 slow edge of the speed window falls short of the landing', () => {
     expect(errors(edit(MEADOW, 'vmin=25 vmax=46', 'vmin=12 vmax=46'), 'V11')).toContainEqual(expect.stringMatching(/at 12 m\/s/));
+  });
+  it('V11 sweeps past vmax to the M5 reach: a landing that holds at 46 m/s overshoots at 52 m/s', () => {
+    // vmax 46 is the AI lip window; drag and tap boost reach 48–51.5 m/s, so V11 sweeps vmin → max(vmax, 52). Here the
+    // flight is 42.3 m at 52 m/s against a window ending at 41 m. The sweep (22 → 52 in 3 m/s steps) samples 46 and
+    // 49 m/s and both land inside, so only the top speed fails; the same jump passed V11 when the sweep stopped at 46.
+    const s = edit(MEADOW, 'drop=0.5 land=40 vmin=25 vmax=46', 'drop=4.5 land=40 vmin=22 vmax=46');
+    expect(V11_REACH).toBe(52);
+    expect(errors(s, 'V11')).toEqual([expect.stringMatching(/^at 52 m\/s the kart lands 42\.\d m past the lip; landing window is 8–41 m \(above vmax 46/)]);
+  });
+  it('V11 airtime at the top speed must stay under 66 ticks (the no-ground respawn fires at 72)', () => {
+    // a 12 m drop with a 60 m landing: the 52 m/s flight lands inside the window but stays up for about 69 ticks
+    const s = edit(MEADOW, 'drop=0.5 land=40 vmin=25 vmax=46', 'drop=12 land=60 vmin=25 vmax=46');
+    expect(errors(s, 'V11')).toEqual([expect.stringMatching(/^6\d\.\d ticks of air at 52 m\/s \(need < 66/)]);
   });
   it('V12 hazard next to an item row', () => {
     expect(errors(MEADOW + 'HAZ geyser at=165 d=0 r=3 period=3.6 on=0-1 tele=0.8 offset=0\n', 'V12')).toEqual([expect.stringMatching(/within ±15 m of an item row/)]);
