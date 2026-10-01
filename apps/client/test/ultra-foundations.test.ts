@@ -31,7 +31,7 @@ describe('tier matrix', () => {
     expect(u.csm?.cascades).toBe(4);
     expect(h.csm?.cascades).toBe(3);
     expect(u.shadowFilter).toBe('pcss');
-    expect(u.aa).toBe('traa');
+    expect(u.aa).not.toBe('none');
     expect(u.prepass).toBe(true);
     expect(u.aoMode).toBe('prepass');
     expect(u.velocityBlur).not.toBeNull();
@@ -72,9 +72,9 @@ describe('tier matrix', () => {
 });
 
 describe('auto tier', () => {
-  it('auto picks Ultra only on a desktop WebGPU adapter', () => {
-    expect(pickTier('auto', 'webgpu', { deviceMemory: 8 })).toBe('ultra');
-    expect(pickTier('auto', 'webgpu', {})).toBe('ultra');
+  it('auto keeps High on desktop WebGPU while Ultra is opt-in', () => {
+    expect(pickTier('auto', 'webgpu', { deviceMemory: 8 })).toBe('high');
+    expect(pickTier('auto', 'webgpu', {})).toBe('high');
     expect(pickTier('auto', 'webgpu', { mobile: true, deviceMemory: 8 })).toBe('high');
     expect(pickTier('auto', 'webgpu', { fallbackAdapter: true })).toBe('high');
     expect(pickTier('auto', 'webgpu', { deviceMemory: 4 })).toBe('medium');

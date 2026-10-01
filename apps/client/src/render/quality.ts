@@ -132,7 +132,7 @@ export function tierSettings(t: QualityTier, backend: Backend = activeBackend): 
 function gate(ts: TierSettings, backend: Backend): TierSettings {
   let out = ts;
   if (out.shadowFilter === 'pcss' && backend !== 'webgpu') out = { ...out, shadowFilter: 'pcf', pcfRadius: Math.max(out.pcfRadius, 2) };
-  if (backend === 'webgpu' && out.aa === 'msaa' && out.ssao && out.aoMode !== 'prepass') out = { ...out, aa: 'smaa', fxaa: true };
+  if (backend === 'webgpu' && out.aa === 'msaa' && out.ssao) out = { ...out, aa: 'smaa', fxaa: true };
   return out;
 }
 
@@ -184,7 +184,7 @@ function baseSettings(t: QualityTier): TierSettings {
       grass: GRASS_HIGH, forest: 10_000, weather: 30_000, matProfile: 'hq', ocean: false,
     };
     case 'ultra': return {
-      dprCap: 2, dynResMin: 1, shadowSize: 4096, shadowFar: 200, bloom: true, bloomStrength: 0.4, bloomRadius: 0.55, bloomMode: 'mips', fxaa: false, aa: 'traa',
+      dprCap: 2, dynResMin: 1, shadowSize: 4096, shadowFar: 200, bloom: true, bloomStrength: 0.4, bloomRadius: 0.55, bloomMode: 'mips', fxaa: false, aa: 'msaa',
       blurTaps: 32, motionBlur: true, speedLines: true, chroma: 0.25, ssao: true, lut: true, particles: 1.5, foliage: 1, far: 10_000,
       lod: [35, 90], propFar: 600, triplanar: true, liteEnv: false, engineVoices: 3, drawBudget: 800, triBudget: 30_000_000, materialBudget: 40,
       systems: true, shadowTech: 'csm', csm: CSM_ULTRA, shadowFilter: 'pcss', pcfRadius: 2, contactShadows: true, aoMode: 'prepass', prepass: true, sharpen: 0.2,
@@ -247,6 +247,8 @@ export class FrameCap {
 export interface DeviceHints { mobile?: boolean; fallbackAdapter?: boolean; deviceMemory?: number }
 
 const AUTO_KEY = 'cr.render.autoTier';
+/** Flip to true once the Ultra post chain and systems are complete. */
+const ULTRA_AUTO = false;
 let lastPickAuto = false;
 /** True when the current tier came from 'auto' (only then may a slow first race downgrade it). */
 export function tierWasAuto(): boolean { return lastPickAuto; }
@@ -262,7 +264,8 @@ export function pickTier(setting: string, backend: Backend, hints: DeviceHints =
   if (setting === 'low' || setting === 'medium' || setting === 'high' || setting === 'ultra') return setting;
   lastPickAuto = true;
   const mem = hints.deviceMemory ?? 8;
-  if (backend === 'webgpu' && mem >= 8 && !hints.mobile && !hints.fallbackAdapter) return autoDowngraded() ? 'high' : 'ultra';
+  // Ultra stays opt-in until its cinematic chain ships (33-ultra-graphics); auto keeps High on desktop WebGPU
+  if (backend === 'webgpu' && mem >= 8 && ULTRA_AUTO && !hints.mobile && !hints.fallbackAdapter) return autoDowngraded() ? 'high' : 'ultra';
   if (backend === 'webgpu' && mem >= 8) return 'high';
   return mem >= 4 ? 'medium' : 'low';
 }

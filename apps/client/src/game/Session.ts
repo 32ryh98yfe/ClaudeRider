@@ -348,7 +348,23 @@ export class Session {
   get isPaused(): boolean { return this.paused; }
 
   /** The offline race clock: wall time minus paused time, scaled by ?simRate. */
-  private clock(now: number): number { return (now - this.pausedMs) * this.simRate; }
+  private clock(now: number): number { return this.freezeClock((now - this.pausedMs) * this.simRate); }
+
+  /**
+   * Visual checks: `?freezeAt=<tick>` stops the offline race exactly at that tick (rendering goes on), so before/after
+   * screenshots see the same world. The clock is fed at most the time of the ticks still missing; the lockstep
+   * authority then waits for inputs that never come.
+   */
+  private readonly freezeAt = (() => { const v = typeof location !== 'undefined' ? Number(new URLSearchParams(location.search).get('freezeAt') ?? NaN) : NaN; return Number.isFinite(v) ? v : -1; })();
+  private fed = -1;
+  private freezeClock(c: number): number {
+    if (this.freezeAt < 0 || !this.net) return c;
+    if (this.fed < 0) this.fed = c;
+    const left = Math.max(0, this.freezeAt - this.net.world.tick);
+    if (left === 0) (window as unknown as { __cr: Record<string, unknown> }).__cr.frozen = this.net.world.tick;
+    this.fed = Math.min(c, this.fed + left * (1000 / 60));
+    return this.fed;
+  }
 
   /** Time Attack: the PB ghost replays in its own world, one tick per race tick (L1 race/ghost.ts). */
   private async loadGhostRun(track: BakedTrack): Promise<void> {

@@ -35,15 +35,20 @@ export class CameraDirector {
   cinematics = true;
   /** Increments on every cut and teleport (temporal post effects drop their history when it changes). */
   cutSerial = 0;
-  /** Dev only: `?cam=px,py,pz,tx,ty,tz` pins the camera (visual checks of kill planes, plazas, vistas). */
+  /**
+   * Visual checks: `?cam=px,py,pz,tx,ty,tz[,fov]` pins the camera (kill planes, plazas, vistas, before/after shots);
+   * `window.__cr.setCam(...)` with the same numbers re-pins it, or unpins with no arguments.
+   */
   private pinned: number[] | null = null;
 
   constructor(aspect: number, track: BakedTrack | null) {
     this.chase = new ChaseCamera(aspect);
     this.track = track;
-    if (import.meta.env.DEV && typeof location !== 'undefined') {
+    if (typeof location !== 'undefined') {
       const v = new URLSearchParams(location.search).get('cam')?.split(',').map(Number);
-      if (v && v.length === 6 && v.every(Number.isFinite)) this.pinned = v;
+      if (v && v.length >= 6 && v.every(Number.isFinite)) this.pinned = v;
+      const w = window as unknown as { __cr?: Record<string, unknown> };
+      w.__cr = { ...w.__cr, setCam: (...a: number[]): void => { this.pinned = a.length >= 6 && a.every(Number.isFinite) ? a : null; } };
     }
     if (track && track.grid[0]) {
       const g = track.grid[0];
@@ -101,7 +106,7 @@ export class CameraDirector {
       if (this.mode !== 'chase') this.chase.applyFov(this.mode === 'intro' ? 58 : 62);
     }
     const p = this.pinned;
-    if (p) { cam.position.set(p[0]!, p[1]!, p[2]!); cam.up.set(0, 1, 0); cam.lookAt(p[3]!, p[4]!, p[5]!); this.chase.applyFov(60); }
+    if (p) { cam.position.set(p[0]!, p[1]!, p[2]!); cam.up.set(0, 1, 0); cam.lookAt(p[3]!, p[4]!, p[5]!); this.chase.applyFov(p[6] ?? 60); }
   }
 
   /** A teleport of the followed kart (respawn, warp): the image jumps, so temporal history must reset. */
