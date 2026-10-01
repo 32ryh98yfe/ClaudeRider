@@ -102,6 +102,25 @@ export function paving(key: string, p: PavingParams): THREE.Material {
   });
 }
 
+export interface UnderpassParams { a: string; b: string; light: string; gain: number; spacing?: number }
+
+/**
+ * Deck undersides (viaducts, the cloverleaf, the skyway): concrete with a grid of ceiling lights on the faces that
+ * look down, so an underpass reads as a lit tunnel instead of a black hole (the decks block the key light).
+ */
+export function underpass(key: string, p: UnderpassParams): THREE.Material {
+  return MaterialLibrary.custom(`underpass:${key}`, () => {
+    const m = new THREE.MeshStandardNodeMaterial({ roughness: 0.88 });
+    const P = positionWorld;
+    m.colorNode = mix(color(p.a), color(p.b), n01(P.mul(0.3))).mul(vertexColor().rgb);
+    const f: N = fract(P.xz.div(p.spacing ?? 7));
+    const spot: N = smoothstep(0.4, 0.42, f.x).mul(smoothstep(0.6, 0.58, f.x)).mul(smoothstep(0.4, 0.42, f.y)).mul(smoothstep(0.6, 0.58, f.y));
+    const down: N = smoothstep(-0.5, -0.8, normalWorld.y);
+    setEmissive(m, color(p.light).mul(spot.mul(down).mul(p.gain)));
+    return m;
+  });
+}
+
 export interface DeckRoadParams { a: string; b: string; seam: string; paint: string; glow: string; gain: number; tint?: readonly [number, number, number]; rough?: number }
 
 /**

@@ -11,7 +11,7 @@ import type { ContentTables } from '@cr/content';
 import { MaterialLibrary } from '../../materials/library.ts';
 import { makeKit, type ThemeKit, type ThemeLook } from '../kit.ts';
 import { NEON_PROPS } from './props.ts';
-import { ledBarrier, paving, shopWall } from './surfaces.ts';
+import { ledBarrier, paving, shopWall, underpass } from './surfaces.ts';
 
 /** Rainy night (Rainline Boulevard). The `night` sky kind supplies its own moon key; these set fill, sky and grade. */
 export const NEON_NIGHT_LOOK: Partial<ThemeLook> = {
@@ -86,8 +86,8 @@ export default (c: ContentTables, env?: Readonly<Record<string, string>>): Theme
     // as spilt paint at a grazing view; the vis bakes the wet-surface tint (0.8 / 0.85 / 0.95) into the colours
     'road:wet': MaterialLibrary.road({ ...(dusk ? NEON_DUSK_LOOK : NEON_NIGHT_LOOK).road!, wet: false, tint: [0.8, 0.85, 0.95] }),
     'road:cobble': MaterialLibrary.road({ style: 'cobble', a: '#4a4450', b: '#5a5260', line: '#ffb347' }),
-    // skyway decks and ramps: dark concrete undersides with a cool tint instead of the default warm grey
-    underside: MaterialLibrary.world({ color: '#5a5e6c', color2: '#4b4f5b', roughness: 0.88, noiseScale: 0.3, vertexAO: true }),
+    // skyway decks and ramps: cool concrete undersides with ceiling lights, so the underpasses read as lit tunnels
+    underside: underpass(`neon-${mood}`, { a: '#6a6e7c', b: '#5c606c', light: '#e8f3ff', gain: 1.3 }),
   });
   return kit;
 };
