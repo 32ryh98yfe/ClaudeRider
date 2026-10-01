@@ -105,20 +105,23 @@ PROPS kind=planter_bush from=@boulevard+10 to=@boulevard+50 side=L every=9 offse
 PROPS kind=street_bench from=@to_line+24 to=@boulevard+26 side=R every=17 offset=4.2 seed=179
 PROPS kind=street_tree from=@boulevard+34 to=@boulevard+118 side=R every=16 offset=4.6 jitter=0.6 scale=0.9-1.2 seed=177
 PROPS kind=planter_bush from=@tram_s to=@crane_hairpin side=both every=9 offset=2.4 jitter=0.6 seed=162
-PROPS kind=planter_bush from=@sodium_s to=@to_line+50 side=both every=10 offset=2.4 jitter=0.6 seed=163
+# (no planters along the market: the noodle stalls stand on the same 2.4 m kerb line)
+PROPS kind=planter_bush from=@sodium_s to=@market_street side=both every=10 offset=2.4 jitter=0.6 seed=163
+PROPS kind=planter_bush from=@noodle_corner+34 to=@to_line+50 side=both every=10 offset=2.4 jitter=0.6 seed=164
 PROPS kind=street_tree from=@arcade_s to=@crane_corner side=both every=16 offset=4.4 jitter=1 scale=0.9-1.2 seed=164
 PROPS kind=street_tree from=@tram_s to=@crane_hairpin side=both every=16 offset=4.4 jitter=1 scale=0.9-1.2 seed=165
 PROPS kind=street_tree from=@overpass_ramp+20 to=@elevated_deck+48 side=both every=18 offset=4.6 jitter=1 scale=0.9-1.3 seed=166
 PROPS kind=street_tree from=@canal to=@plaza_kink side=both every=14 offset=4.4 jitter=1 scale=0.9-1.3 seed=167
-PROPS kind=street_bench from=@arcade_s to=@crane_corner side=both every=37 offset=2.6 seed=168
+# benches and vending machines run on a 42 m beat (twice the 21 m sign beat), 10 m off the sign posts and 21 m off each other
+PROPS kind=street_bench from=@arcade_s+31 to=@crane_corner side=both every=42 offset=2.6 seed=168
 PROPS kind=street_bench from=@canal to=@plaza_kink side=both every=29 offset=2.6 seed=169
-PROPS kind=vending_machine from=@arcade_s+10 to=@crane_corner side=both every=53 offset=3.2 seed=170
-PROPS kind=vending_machine from=@tram_s+20 to=@crane_hairpin side=both every=61 offset=3.2 seed=171
+PROPS kind=vending_machine from=@arcade_s+10 to=@crane_corner side=both every=42 offset=3.2 seed=170
+PROPS kind=vending_machine from=@tram_s+32 to=@crane_hairpin side=both every=44 offset=3.2 seed=171
 PROPS kind=bus_shelter from=@tram_s+30 to=@crane_hairpin side=L every=70 offset=2.4 seed=172
 # -- neon arcade S and the market: blade signs and billboards (kept clear of the road: ≥ 2.5 m out)
-PROPS kind=neon_sign from=@arcade_s to=@alley_split side=both every=21 offset=3 seed=180
-PROPS kind=neon_sign from=@market_street to=@sodium_straight+40 side=both every=24 offset=3 seed=181
-PROPS kind=neon_sign from=@tram_s+10 to=@crane_hairpin side=both every=44 offset=3 seed=182
+PROPS kind=neon_sign from=@arcade_s to=@alley_split side=both every=21 offset=4.2 seed=180
+PROPS kind=neon_sign from=@market_street to=@sodium_straight+40 side=both every=24 offset=4.2 seed=181
+PROPS kind=neon_sign from=@tram_s+10 to=@crane_hairpin side=both every=44 offset=4.2 seed=182
 PROPS kind=billboard from=@to_line+10 to=@to_line+11 side=R every=50 offset=5 seed=183
 PROPS kind=billboard from=@canal+10 to=@canal+110 side=R every=55 offset=5 seed=184
 PROPS kind=billboard from=@sodium_s+10 to=@sodium_s+70 side=L every=50 offset=5 seed=185

@@ -80,7 +80,8 @@ PROPS kind=pipe_rack from=@rack_canyon to=@pipe_hairpin side=both every=13 offse
 # -- elevator ramp and gantry deck (8 m up): deck-edge bollards and hazard lamps; conveyors, crates, silos and
 # fuel tanks on the floor below (offset > 2 stands on the ground under the deck's side)
 PROPS kind=light_strip from=@elevator_ramp to=@gantry_drop side=both every=12 offset=0.4 seed=330
-PROPS kind=hazard_lamp from=@elevator_ramp to=@gantry_drop side=both every=36 offset=0.8 seed=331
+# warning lamps sit half a beat (6 m) off the 12 m light-strip posts instead of on top of them
+PROPS kind=hazard_lamp from=@elevator_ramp+6 to=@gantry_drop side=both every=36 offset=0.8 seed=331
 PROPS kind=conveyor_rig from=@gantry_deck to=@gantry_drop side=both every=26 offset=4 seed=332
 PROPS kind=cargo_crate from=@gantry_deck+12 to=@gantry_drop side=both every=26 offset=3.6 jitter=1 seed=333
 PROPS kind=robot_arm from=@gantry_deck+6 to=@gantry_drop side=both every=26 offset=8 seed=334
@@ -97,7 +98,7 @@ PROPS kind=silo_tank from=@cooling_s+30 to=@belt_in side=R every=50 offset=12 se
 PROPS kind=token_stack from=@token_s to=@token_straight+70 side=both every=28 offset=3
 PROPS kind=holo_panel from=@token_straight+20 to=@token_straight+100 side=R every=40 offset=4
 PROPS kind=conveyor_rig from=@token_straight to=@kiln_corner side=L every=14 offset=4 seed=340
-PROPS kind=hazard_lamp from=@token_s to=@kiln_corner+40 side=both every=18 offset=0.8 seed=341
+PROPS kind=hazard_lamp from=@token_s+6 to=@kiln_corner+40 side=both every=24 offset=0.8 seed=341
 PROPS kind=fuel_tank from=@kiln_corner to=@kiln_corner+40 side=R every=40 offset=6 seed=342
 PROPS kind=radiator_fin from=@cooling_s to=@belt_in side=both every=12 offset=4 seed=343
 PROPS kind=server_rack from=@cooling_s to=@belt_out+40 side=L every=24 offset=9

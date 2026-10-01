@@ -100,10 +100,10 @@ PROPS kind=ad_board_b from=@tube_exit+1 to=@tube_exit+44 side=R every=8 offset=2
 PROPS kind=light_strip along=main side=both every=12 offset=0.4 seed=420
 # (segments skip the vertical loop, the tube hairpin, the docking helix and the laser descent, where the road
 # passes over itself)
-PROPS kind=antenna_mast from=@sky_rail to=@loop_in-12 side=both every=64 offset=4.5 jitter=1.5 seed=4210
-PROPS kind=antenna_mast from=@zerog_in+24 to=@tube_hairpin-8 side=both every=64 offset=4.5 jitter=1.5 seed=4211
-PROPS kind=antenna_mast from=@glass_s2+10 to=@docking_helix-30 side=both every=64 offset=4.5 jitter=1.5 seed=4212
-PROPS kind=antenna_mast from=@ring_s+40 to=@laser_hairpin-130 side=both every=64 offset=4.5 jitter=1.5 seed=4213
+PROPS kind=antenna_mast from=@sky_rail+40 to=@loop_in-12 side=both every=48 offset=4.5 jitter=1.5 seed=4210
+PROPS kind=antenna_mast from=@zerog_in+64 to=@tube_hairpin-8 side=both every=48 offset=4.5 jitter=1.5 seed=4211
+PROPS kind=antenna_mast from=@glass_s2+50 to=@docking_helix-30 side=both every=48 offset=4.5 jitter=1.5 seed=4212
+PROPS kind=antenna_mast from=@ring_s+80 to=@laser_hairpin-130 side=both every=48 offset=4.5 jitter=1.5 seed=4213
 PROPS kind=solar_array from=@sky_rail to=@loop_in-12 side=both every=48 offset=5 jitter=1.5 seed=4220
 PROPS kind=solar_array from=@zerog_in+24 to=@tube_hairpin-8 side=both every=48 offset=5 jitter=1.5 seed=4221
 PROPS kind=solar_array from=@glass_s2+10 to=@docking_helix-30 side=both every=48 offset=5 jitter=1.5 seed=4222
@@ -112,14 +112,14 @@ PROPS kind=cargo_crate from=@sky_rail to=@loop_in-12 side=both every=26 offset=2
 PROPS kind=cargo_crate from=@zerog_in+24 to=@tube_hairpin-8 side=both every=26 offset=2.4 jitter=1 seed=4231
 PROPS kind=cargo_crate from=@glass_s2+10 to=@docking_helix-30 side=both every=26 offset=2.4 jitter=1 seed=4232
 PROPS kind=cargo_crate from=@ring_s+40 to=@laser_hairpin-130 side=both every=26 offset=2.4 jitter=1 seed=4233
-PROPS kind=fuel_tank from=@sky_rail to=@loop_in-12 side=both every=120 offset=6 seed=4240
-PROPS kind=fuel_tank from=@zerog_in+24 to=@tube_hairpin-8 side=both every=120 offset=6 seed=4241
-PROPS kind=fuel_tank from=@glass_s2+10 to=@docking_helix-30 side=both every=120 offset=6 seed=4242
-PROPS kind=fuel_tank from=@ring_s+40 to=@laser_hairpin-130 side=both every=120 offset=6 seed=4243
-PROPS kind=radiator_fin from=@sky_rail to=@loop_in-12 side=both every=90 offset=4.5 seed=4250
-PROPS kind=radiator_fin from=@zerog_in+24 to=@tube_hairpin-8 side=both every=90 offset=4.5 seed=4251
-PROPS kind=radiator_fin from=@glass_s2+10 to=@docking_helix-30 side=both every=90 offset=4.5 seed=4252
-PROPS kind=radiator_fin from=@ring_s+40 to=@laser_hairpin-130 side=both every=90 offset=4.5 seed=4253
+PROPS kind=fuel_tank from=@sky_rail+30 to=@loop_in-12 side=both every=144 offset=6 seed=4240
+PROPS kind=fuel_tank from=@zerog_in+54 to=@tube_hairpin-8 side=both every=144 offset=6 seed=4241
+PROPS kind=fuel_tank from=@glass_s2+40 to=@docking_helix-30 side=both every=144 offset=6 seed=4242
+PROPS kind=fuel_tank from=@ring_s+70 to=@laser_hairpin-130 side=both every=144 offset=6 seed=4243
+PROPS kind=radiator_fin from=@sky_rail+14 to=@loop_in-12 side=both every=96 offset=4.5 seed=4250
+PROPS kind=radiator_fin from=@zerog_in+38 to=@tube_hairpin-8 side=both every=96 offset=4.5 seed=4251
+PROPS kind=radiator_fin from=@glass_s2+24 to=@docking_helix-30 side=both every=96 offset=4.5 seed=4252
+PROPS kind=radiator_fin from=@ring_s+54 to=@laser_hairpin-130 side=both every=96 offset=4.5 seed=4253
 PROPS kind=habitat_house from=@sky_rail to=@loop_in-12 side=both every=110 offset=14 jitter=4 seed=4260
 PROPS kind=habitat_house from=@zerog_in+24 to=@zerog_out side=both every=110 offset=14 jitter=4 seed=4261
 PROPS kind=habitat_house from=@glass_s2+10 to=@docking_helix-30 side=both every=110 offset=14 jitter=4 seed=4262
