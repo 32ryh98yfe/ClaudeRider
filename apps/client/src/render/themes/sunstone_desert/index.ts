@@ -6,6 +6,7 @@ import type { ContentTables } from '@cr/content';
 import { MaterialLibrary } from '../../materials/library.ts';
 import { makeKit, type ThemeKit, type ThemeLook } from '../kit.ts';
 import { SUNSTONE_PROPS } from './props.ts';
+import { softAoTerrain } from './terrain.ts';
 
 // Stylized arcade read (2026-10 pass, docs/design/34-stylized-pass.md): the Preetham sky plus a peach grade washed
 // every desert frame orange. Now a clear blue gradient sky with a pale warm horizon, a neutral grade, a key sun that
@@ -45,15 +46,18 @@ export default (c: ContentTables, env: Readonly<Record<string, string>> = {}): T
     : SUNSTONE_LOOK;
   const kit = makeKit(c.themes.get('sunstone_desert'), look, SUNSTONE_PROPS);
   const base = kit.materials;
+  const T = kit.look.terrain;
   kit.materials = () => ({
     ...base(),
+    // bright sand: keep only 40 % of the baked terrain AO (no dark diamonds on the open dunes)
+    terrain: softAoTerrain(T.a, T.b, T.rock, 0.4),
     // sandstone paving: warm grey stone (the karts read against it), gold edge paint
     'road:stone': MaterialLibrary.road({ style: 'cobble', a: '#8a7c6b', b: '#9c8d7a', line: '#ffe2a0', tint: [1.05, 1.03, 1.0] }),
     'road:sand': MaterialLibrary.road({ style: 'sand', a: '#cfb283', b: '#dcc193', line: '#ffe2a0', tint: [1.45, 1.3, 0.95] }),
     'shoulder:sand': MaterialLibrary.road({ style: 'sand', a: '#d6bb8a', b: '#e0c697', line: '#ffe2a0', tint: [1.45, 1.3, 0.95], shoulder: true }),
     'wall:building': MaterialLibrary.wall('building', '#ead6b2', '#3fa8a0', 0.9),
     // red-rock canyon walls: terracotta strata, a step deeper than the sand so the corridor has an edge
-    'wall:rock': MaterialLibrary.wall('rock', '#c08458', '#9a6544', 0.85),
+    'wall:rock': MaterialLibrary.wall('rock', '#cc966c', '#ab7754', 0.85),
     'wall:parapet': MaterialLibrary.wall('parapet', '#e2c8a0', '#bf9a70', 0.95),
     underside: MaterialLibrary.world({ color: '#b07e55', color2: '#9a6c48', roughness: 0.92, noiseScale: 0.3, vertexAO: true }),
   });

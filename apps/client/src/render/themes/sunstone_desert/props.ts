@@ -4,6 +4,7 @@ import * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
 import { TRACKSIDE_PROPS } from '../../props/trackside.ts';
+import { AD_BOARD_B_L } from './mirror.ts';
 import { merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../../util/geo.ts';
 import { arcTube, buntingLine, dome, lathe, part, prism, seeded, tubeThrough } from '../clayhill_village/toyshapes.ts';
 
@@ -18,7 +19,8 @@ const STRATA = ['#c27c52', '#e2bf93', '#b06a45', '#d8a06e', '#9e5d3c'] as const;
 const lit = (): THREE.Material => MaterialLibrary.vertexLit(0.85, 0);
 // statues, pots and carts are fired clay, stone and painted wood: satin-matte (gloss stays on kart paint, 34 §1.3)
 const toy = (): THREE.Material => MaterialLibrary.vertexLit(0.62, 0);
-const glow = (): THREE.Material => MaterialLibrary.emissiveVertex(3);
+// daytime lanterns: a gentle glow (emission ×1), so bloom stays a soft halo instead of big blobs in the sun
+const glow = (): THREE.Material => MaterialLibrary.emissiveVertex(1);
 
 /**
  * Layered sandstone strata: stacked, slightly offset slabs with crisp (small-radius) edges in an ordered band palette
@@ -139,13 +141,14 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
     },
   },
   lantern_string: {
-    // glowing brass lanterns strung between two posts across the road (landmark, local X crosses the road)
+    // glowing brass lanterns strung between two posts across the road (landmark, local X crosses the road). One
+    // emissive mesh: posts and wire are painted near-black so only the lanterns glow (and bloom)
     maxInstances: 20,
     build: () => {
-      const p: THREE.BufferGeometry[] = [part(cyl(0.12, 0.15, 7.5, 6), '#7a522e', -13, 3.5, 0), part(cyl(0.12, 0.15, 7.5, 6), '#7a522e', 13, 3.5, 0)];
+      const p: THREE.BufferGeometry[] = [part(cyl(0.12, 0.15, 7.5, 6), '#33251a', -13, 3.5, 0), part(cyl(0.12, 0.15, 7.5, 6), '#33251a', 13, 3.5, 0)];
       const pts: [number, number, number][] = [];
       for (let i = 0; i <= 8; i++) { const t = i / 8; pts.push([-13 + 26 * t, 7 - 1.4 * 4 * t * (1 - t), 0]); }
-      p.push(paint(tubeThrough(pts, 0.035, 24, 4), '#4a3a2a'));
+      p.push(paint(tubeThrough(pts, 0.035, 24, 4), '#241a12'));
       for (let i = 0; i < 9; i++) {
         const t = (i + 0.5) / 9, x = -13 + 26 * t, y = 7 - 1.4 * 4 * t * (1 - t) - 0.55;
         p.push(part(lathe([[0, -0.3], [0.26, -0.15], [0.3, 0.1], [0.16, 0.3], [0, 0.34]], 8), i % 3 === 1 ? '#ff9a52' : '#ffc46b', x, y, 0));
@@ -262,9 +265,21 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
     build: () => ({ geometry: merge([part(cyl(0.12, 0.15, 1.6, 6), '#7a522e', 0, 0.8, 0), part(cyl(0.035, 0.035, 6.2, 4), '#d9c7a0', 0, 1.35, 0, Math.PI / 2, 0, 0), part(sph(0.16, 6, 4), '#6b4a33', 0, 1.62, 0)]), material: lit() }),
   },
   sandfall: {
-    // a pale sheet of falling sand (lit, not emissive: bloom stays on real lights) pouring off the canyon rim (faces the road)
+    // sand pouring off the canyon rim (faces the road): streaked strands that fan out a little as they fall, a lip of
+    // rock at the top, a splash mound and dust puffs at the foot. Lit, not emissive: bloom stays on real lights
     maxInstances: 20,
-    build: () => ({ geometry: merge([part(box(0.4, 22, 5), '#f6d7a7', 0, 11, 0), part(sph(3, 10, 6), '#f0cf96', 1.5, 0, 0, 0, 0, 0, 1, 0.35, 1)]), material: lit() }),
+    build: () => {
+      const r = seeded(157), p: THREE.BufferGeometry[] = [];
+      const SF = ['#eed6a8', '#e3c48f', '#f4e0b8', '#dcb983'];
+      for (let i = 0; i < 6; i++) {
+        const z = -2.1 + i * 0.85 + (r() - 0.5) * 0.2, w = 0.6 + r() * 0.5, h = 20 + r() * 2.5;
+        p.push(part(box(0.25 + r() * 0.2, h, w), SF[i % SF.length]!, (r() - 0.5) * 0.35, 22.2 - h / 2, z, 0, 0, (r() - 0.5) * 0.03, 1, 1, 1));
+      }
+      p.push(part(rbox(2.2, 1.2, 6.4, 0.2, 2), STRATA[2], -0.9, 22.6, 0));
+      p.push(part(sph(3, 12, 6), '#e6c995', 1.2, -0.2, 0, 0, 0, 0, 1.1, 0.4, 1.2), part(sph(1.8, 10, 5), '#f0d8a8', 2.6, 0, 0.8, 0, 0, 0, 1, 0.35, 1));
+      for (let i = 0; i < 5; i++) p.push(part(ico(0.7 + r() * 0.6, 1), '#f2e2c0', 1 + r() * 2.4, 0.6 + r() * 1.4, (r() - 0.5) * 4.5));
+      return { geometry: merge(p), material: lit() };
+    },
   },
   oasis_pond: {
     maxInstances: 4,
@@ -483,5 +498,7 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
 SUNSTONE_PROPS['hazard_car'] = SUNSTONE_PROPS['hazard_pot_cart']!;
 // dressing rows use `tree_palm` (same palm) so Low / Medium thin them like every other tree kind
 SUNSTONE_PROPS['tree_palm'] = SUNSTONE_PROPS['palm']!;
+// left-side chevron board (arrows point forward on side=L rows)
+SUNSTONE_PROPS['ad_board_b_l'] = AD_BOARD_B_L;
 
 export const SUNSTONE_PALETTE = { SAND, SANDSTONE, OASIS, TERRA, CREAM } as const;

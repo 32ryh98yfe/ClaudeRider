@@ -50,16 +50,17 @@ PROPS kind=ice_spire from=424 to=606 side=both every=8 offset=1.7 jitter=1 scale
 PROPS kind=rink_boards from=682 to=745 side=R every=5.5 offset=0.4 scale=1-1 seed=90
 PROPS kind=penguin from=684 to=744 side=L every=8 offset=3 jitter=3 seed=91
 PROPS kind=snowman from=962 to=1036 side=R every=22 offset=5 seed=94
-# village straight: grandstand on the right, penguin crowds and sponsor boards on the left (in front of the globe),
-# lamps both sides, flags; the grid (run-in, behind the line) gets boards and crowds both sides
-PROPS kind=grandstand from=50 to=51 side=R every=100 offset=4.5 seed=201
+# village straight: grandstand on the right (clear of the pads at 50 / 100), penguin crowds and sponsor boards on the
+# left (in front of the globe), lamps both sides, flags; the grid (run-in, behind the line) gets boards and crowds
+PROPS kind=grandstand from=72 to=73 side=R every=100 offset=4.5 seed=201
 PROPS kind=ad_board_a from=4 to=135 side=L every=24 offset=0.4 seed=202
-PROPS kind=ad_board_b from=12 to=135 side=L every=24 offset=0.4 seed=203
+PROPS kind=ad_board_c from=12 to=135 side=L every=24 offset=0.4 seed=203
 PROPS kind=ad_board_c from=20 to=135 side=L every=24 offset=0.4 seed=204
 PROPS kind=flag_pole from=22 to=70 side=L every=6 offset=2.6 seed=205
 PROPS kind=spectators from=88 to=135 side=L every=24 offset=2.4 jitter=1 seed=206
 PROPS kind=lamp_post from=2 to=138 side=both every=20 offset=1.4 seed=207
-PROPS kind=ad_board_b from=1252 to=1299 side=both every=16 offset=0.4 seed=208
+PROPS kind=ad_board_b from=1252 to=1299 side=R every=16 offset=0.4 seed=208
+PROPS kind=ad_board_b_l from=1252 to=1299 side=L every=16 offset=0.4 seed=213
 PROPS kind=ad_board_a from=1260 to=1299 side=both every=16 offset=0.4 seed=209
 PROPS kind=spectators from=1256 to=1299 side=both every=16 offset=1.8 jitter=1 seed=210
 # igloo corner (T1, a left-hander): tyre wall and chevron boards on the outside
@@ -74,8 +75,8 @@ PROPS kind=rock_cluster side=both every=23 offset=4 jitter=12 scale=0.6-1.4 seed
 # ---- fitted rows (village, pines, birches, banks, seracs, big firs, far pine lines): every footprint, over the
 # whole jitter band at the largest scale, stays clear of every road band
 # penguin village: igloos (none behind the grandstand)
-PROPS kind=igloo from=5 to=23 side=R every=18 offset=6 jitter=3 seed=81
-PROPS kind=igloo from=77 to=95 side=R every=18 offset=6 jitter=3 seed=82
+PROPS kind=igloo from=5 to=41 side=R every=18 offset=6 jitter=3 seed=81
+PROPS kind=igloo from=95 to=95 side=R every=18 offset=6 jitter=3 seed=82
 PROPS kind=snow_cabin from=112 to=160 side=L every=16 offset=6 seed=83
 PROPS kind=snow_cabin from=1152 to=1224 side=R every=18 offset=6 jitter=2 seed=96
 # snow pines, birches, seracs and snowbanks along the lap
@@ -100,7 +101,6 @@ PROPS kind=tree_round_big from=707 to=724 side=L every=17 offset=14 jitter=18 sc
 PROPS kind=tree_round_big from=758 to=1234 side=L every=17 offset=14 jitter=18 scale=0.8-1.3 seed=103
 PROPS kind=tree_round_big from=95 to=1234 side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=104
 PROPS kind=tree_round_big from=2 to=19 side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=105
-PROPS kind=tree_round_big from=70 to=87 side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=106
 # far tree lines
 PROPS kind=tree_clump from=0 to=624 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=140
 PROPS kind=tree_clump from=702 to=702 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=141

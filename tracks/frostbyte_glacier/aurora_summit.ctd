@@ -94,7 +94,7 @@ PROPS kind=ice_spire from=1407 to=1484 side=both every=10 offset=2 jitter=2 seed
 # summit gate (grid 0–46, line at 46): a snowy stand on the right, penguin crowds, boards, flags, glowing lamps
 PROPS kind=grandstand from=88 to=89 side=R every=100 offset=4.5 seed=241
 PROPS kind=ad_board_a from=50 to=134 side=L every=24 offset=0.4 seed=242
-PROPS kind=ad_board_b from=58 to=134 side=L every=24 offset=0.4 seed=243
+PROPS kind=ad_board_c from=58 to=134 side=L every=24 offset=0.4 seed=243
 PROPS kind=ad_board_c from=66 to=134 side=L every=24 offset=0.4 seed=244
 PROPS kind=flag_pole from=60 to=118 side=R every=6 offset=2.2 seed=245
 PROPS kind=spectators from=4 to=44 side=both every=14 offset=1.8 jitter=1 seed=246
@@ -245,9 +245,9 @@ PROPS kind=tree_clump from=2145 to=2145 side=R every=55 offset=120 jitter=50 sca
 PROPS kind=tree_clump from=2200 to=2365 side=R every=55 offset=150 jitter=50 scale=1.0-1.6 seed=260
 PROPS kind=tree_clump from=2420 to=3245 side=R every=55 offset=120 jitter=50 scale=1.0-1.6 seed=261
 PROPS kind=tree_clump from=3355 to=3850 side=R every=55 offset=120 jitter=50 scale=1.0-1.6 seed=262
-# landmarks: start-gate fairy lights, the gondola line down the mountain, four aurora curtains in the sky, the glacier
-# hairpin crystals, the gully's crystal arches, ski-jump lights, the frozen-lake igloo, the ski lodge, the chapel and
-# the finish lights
+# landmarks: start-gate fairy lights, the gondola line down the mountain, four aurora curtains in the sky (all lifted
+# above the summit, so none stands on the horizon as a glowing slab), the glacier hairpin crystals, the gully's crystal
+# arches, ski-jump lights, the frozen-lake igloo, the ski lodge, the chapel and the finish lights
 PROP kind=fairy_lights at=(20.0,-0.3,0.0) yaw=-90 scale=1
 PROP kind=fairy_lights at=(56.0,-0.3,0.0) yaw=-90 scale=1
 PROP kind=fairy_lights at=(110.0,-0.3,0.0) yaw=-90 scale=1
@@ -255,10 +255,10 @@ PROP kind=gondola_pylon at=(30.0,-0.3,28.0) yaw=90 scale=1
 PROP kind=gondola_pylon at=(337.6,-20.7,95.8) yaw=65 scale=1
 PROP kind=gondola_pylon at=(805.4,-60.5,-252.6) yaw=147 scale=1
 PROP kind=gondola_pylon at=(649.6,-100.3,-545.3) yaw=-177 scale=1
-PROP kind=aurora_ribbon at=(186.3,-24.8,292.1) yaw=166 scale=1.4
-PROP kind=aurora_ribbon at=(583.1,-95.9,-138.5) yaw=145 scale=1.5
-PROP kind=aurora_ribbon at=(401.5,-112.0,-831.1) yaw=20 scale=1.4
-PROP kind=aurora_ribbon at=(229.6,-122.3,123.3) yaw=165 scale=1.3
+PROP kind=aurora_ribbon at=(186.3,5.0,292.1) yaw=166 scale=1.4
+PROP kind=aurora_ribbon at=(583.1,5.0,-138.5) yaw=145 scale=1.5
+PROP kind=aurora_ribbon at=(401.5,5.0,-831.1) yaw=20 scale=1.4
+PROP kind=aurora_ribbon at=(229.6,5.0,123.3) yaw=165 scale=1.3
 PROP kind=ice_spire at=(894.9,-66.3,-328.1) yaw=-34 scale=1.3
 PROP kind=crystal_arch at=(895.6,-67.0,-342.0) yaw=58 scale=1
 PROP kind=crystal_arch at=(887.0,-67.8,-347.0) yaw=62 scale=1

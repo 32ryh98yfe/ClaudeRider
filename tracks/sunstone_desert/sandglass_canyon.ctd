@@ -72,10 +72,12 @@ PROPS kind=ad_board_b from=12 to=88 side=R every=24 offset=0.4 seed=164
 PROPS kind=ad_board_c from=20 to=88 side=R every=24 offset=0.4 seed=165
 PROPS kind=spectators from=14 to=86 side=R every=24 offset=2.2 jitter=1 seed=166
 PROPS kind=lamp_post from=2 to=90 side=both every=20 offset=1.4 seed=167
-PROPS kind=ad_board_b from=1898 to=1949 side=both every=16 offset=0.4 scale=1.3-1.3 seed=168
+PROPS kind=ad_board_b from=1898 to=1949 side=R every=16 offset=0.4 scale=1.3-1.3 seed=168
+PROPS kind=ad_board_b_l from=1898 to=1949 side=L every=16 offset=0.4 scale=1.3-1.3 seed=182
 PROPS kind=ad_board_a from=1906 to=1949 side=both every=16 offset=0.4 scale=1.3-1.3 seed=169
-# T1 (rim drop-in, a right-hander): chevron boards raised above the 1.4 m rock wall on the outside
-PROPS kind=ad_board_b from=94 to=136 side=L every=9 offset=2.4 scale=1.45-1.45 seed=170
+# T1 (rim drop-in, a right-hander): chevron boards raised above the 1.4 m rock wall on the outside (the left-side
+# twin ad_board_b_l, so the arrows point into the turn, never back up the road)
+PROPS kind=ad_board_b_l from=94 to=136 side=L every=9 offset=2.4 scale=1.45-1.45 seed=170
 # ---- fitted rows (canyon slabs/pillars, saguaros, acacias, buttes, mesas, dunes): every footprint, over the
 # whole jitter band at the largest scale, stays clear of every road band on this folded lap
 # slot canyon: strata slabs and pillars fitted per side (no footprint inside any road band)

@@ -6,6 +6,7 @@ import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
 import { merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../../util/geo.ts';
 import { arcTube, dome, part, prism, seeded, tubeThrough } from '../clayhill_village/toyshapes.ts';
+import { AD_BOARD_B_L } from '../sunstone_desert/mirror.ts';
 
 // snow albedo stays ≈ #e8eef5 so it never clips to pure white under ACES (34-stylized-pass, glacier notes)
 const SNOW = '#e8eef5', SNOW_SH = '#d3dfeb', ICE = '#bee9f7', DEEP = '#2f6fa6', AURORA_G = '#6cf2c2', AURORA_V = '#b57cff';
@@ -26,6 +27,18 @@ function crystalCluster(seed: number, n: number, h: number, spread: number): THR
     const hh = h * (0.45 + r() * 0.55), x = (r() - 0.5) * spread, z = (r() - 0.5) * spread;
     const c = i % 3 === 0 ? '#9fe8ff' : i % 3 === 1 ? ICE : '#d6c8ff';
     out.push(part(cyl(0.08, 0.55 * (hh / h) + 0.25, hh, 6), c, x, hh / 2 - 0.3, z, (r() - 0.5) * 0.5, r() * 3, (r() - 0.5) * 0.5));
+  }
+  return out;
+}
+
+/** Vertex colours fading from `c0` at height y0 to `c1` at y1 (aurora curtains: bright hem, dissolving top). */
+function fade(g: THREE.BufferGeometry, y0: number, y1: number, c0: THREE.Color, c1: THREE.Color): THREE.BufferGeometry {
+  const out = paint(g, c0), pos = out.attributes.position!, col = out.attributes.color!;
+  const c = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const t = Math.min(1, Math.max(0, (pos.getY(i) - y0) / (y1 - y0)));
+    c.copy(c0).lerp(c1, Math.sqrt(t));
+    col.setXYZ(i, c.r, c.g, c.b);
   }
   return out;
 }
@@ -170,25 +183,29 @@ export const FROSTBYTE_PROPS: Record<string, PropFactory> = {
     },
   },
   fairy_lights: {
-    // a string of glowing bulbs across the road between two ice posts (landmark, local X crosses the road)
+    // a string of glowing bulbs across the road between two ice posts (landmark, local X crosses the road). One
+    // emissive mesh: the posts are a dim ice blue and the wire near-black, so only the bulbs glow (and bloom)
     maxInstances: 20,
     build: () => {
-      const p: THREE.BufferGeometry[] = [part(cyl(0.14, 0.18, 7.5, 6), '#9fe8ff', -13, 3.5, 0), part(cyl(0.14, 0.18, 7.5, 6), '#9fe8ff', 13, 3.5, 0)];
+      const p: THREE.BufferGeometry[] = [part(cyl(0.14, 0.18, 7.5, 6), '#2b3d52', -13, 3.5, 0), part(cyl(0.14, 0.18, 7.5, 6), '#2b3d52', 13, 3.5, 0)];
       const pts: [number, number, number][] = [];
       for (let i = 0; i <= 8; i++) { const t = i / 8; pts.push([-13 + 26 * t, 7 - 1.6 * 4 * t * (1 - t), 0]); }
-      p.push(paint(tubeThrough(pts, 0.03, 24, 4), '#3a4a60'));
+      p.push(paint(tubeThrough(pts, 0.03, 24, 4), '#18202c'));
       for (let i = 0; i < 20; i++) { const t = (i + 0.5) / 20; p.push(part(sph(0.16, 6, 4), BULBS[i % BULBS.length]!, -13 + 26 * t, 7 - 1.6 * 4 * t * (1 - t) - 0.22, 0)); }
-      return { geometry: merge(p), material: glow(3.5) };
+      return { geometry: merge(p), material: glow(2.2) };
     },
   },
   aurora_ribbon: {
-    // huge far-field curtain of light (placed well away from the road)
+    // huge far-field curtain of light (placed well above the summit): 64 narrow strips along a wavy line, bright at
+    // the lower hem and fading upward into the night-sky colour, so it reads as a curtain rather than lit slabs
     maxInstances: 12,
     build: () => {
       const p: THREE.BufferGeometry[] = [];
-      for (let i = 0; i < 18; i++) {
-        const x = -90 + i * 10, y = 70 + Math.sin(i * 0.7) * 8, z = Math.sin(i * 0.45) * 18;
-        p.push(part(box(10.5, 34, 0.6), i % 5 === 3 ? AURORA_V : AURORA_G, x, y, z, 0, Math.sin(i * 0.45) * 0.4, 0, 1, 1, 1, 0.25, i + 1));
+      const hem = new THREE.Color(AURORA_G), hemV = new THREE.Color(AURORA_V), top = new THREE.Color('#081a33');
+      for (let i = 0; i < 64; i++) {
+        const x = -96 + i * 3, z = Math.sin(i * 0.16) * 16 + Math.sin(i * 0.05) * 10;
+        const y0 = 52 + Math.sin(i * 0.21) * 6, h = 30 + Math.sin(i * 0.37) * 8;
+        p.push(fade(place(box(3.1, h, 0.4), x, y0 + h / 2, z, 0, Math.cos(i * 0.16) * 0.5, 0), y0, y0 + h, i % 9 === 4 ? hemV : hem, top));
       }
       return { geometry: merge(p), material: glow(1.6) };
     },
@@ -388,5 +405,7 @@ FROSTBYTE_PROPS['hazard_car'] = FROSTBYTE_PROPS['hazard_sled_train']!;
 // dressing rows use `tree_pine_snow` / `tree_birch` (same models) so Low / Medium thin them like every other tree kind
 FROSTBYTE_PROPS['tree_pine_snow'] = FROSTBYTE_PROPS['pine_snow']!;
 FROSTBYTE_PROPS['tree_birch'] = FROSTBYTE_PROPS['birch']!;
+// left-side chevron board (arrows point forward on side=L rows)
+FROSTBYTE_PROPS['ad_board_b_l'] = AD_BOARD_B_L;
 
 export const FROSTBYTE_PALETTE = { SNOW, ICE, DEEP, AURORA_G, AURORA_V } as const;
