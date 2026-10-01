@@ -37,25 +37,32 @@ export const SPARK_LOOK: Partial<ThemeLook> = {
 
 /**
  * Sunset look for Sunset Arena Rally: keeps the low orange sun and the violet-to-amber sky, but fixes the readability —
- * a warm key that still out-weighs the fill, a cool shadowless back fill (the chase camera faces the setting sun on the
- * bowl straight), shadows that never go navy, mid rims, and bloom held for the floodlights.
+ * a warm key that still out-weighs the fill, a near-neutral shadowless back fill (the chase camera faces the setting
+ * sun on the bowl straight), shadows that never go navy, mid rims, and bloom held for the floodlights.
  */
 export const SPARK_SUNSET_LOOK: Partial<ThemeLook> = {
   ...SPARK_LOOK,
   terrain: { a: '#5b8a3e', b: '#76a050', rock: '#a0907f' },
-  sky: { turbidity: 5.0, rayleigh: 2.2, elevationDeg: 8, azimuthDeg: 250, exposure: 1.0, top: '#4a4f8f', bottom: '#f3a36a' },
-  sun: { color: '#ffb67c', intensity: 2.9 },
-  hemi: { sky: '#d9c6e6', ground: '#7a5844', intensity: 1.35 },
-  fill: { color: '#c9d6ff', intensity: 0.5 },
-  shadowStrength: 0.6,
-  fogColor: '#e9b48e',
-  horizon: '#ffc48e',
+  // first cut (horizon #ffc48e, bottom #f3a36a, fog #e9b48e) turned every view salmon: the dome mixes the horizon
+  // up to ~33° and the chase camera sees little else (doc 34 §3). The warmth now lives in a pale band and the key.
+  sky: { turbidity: 5.0, rayleigh: 2.2, elevationDeg: 11, azimuthDeg: 250, exposure: 1.0, top: '#48528f', bottom: '#efcaa8' },
+  sun: { color: '#ffbb82', intensity: 3.0 },
+  // with the sun this low the road takes most of its light from the hemisphere and the dome's violet zenith: a lilac
+  // sky term, a cool back fill and full env light turned the asphalt violet-navy, so the hemisphere is near neutral
+  // and a bit stronger, env light is lower, the tarmac is the doc-34 neutral grey, and the warmth stays on the
+  // sun-facing sides
+  road: { style: 'asphalt', a: '#605e5f', b: '#6e6c6c', line: '#fbf8f0' },
+  hemi: { sky: '#e2dad8', ground: '#7d5c48', intensity: 1.6 },
+  fill: { color: '#e2def0', intensity: 0.45 },
+  shadowStrength: 0.62,
+  fogColor: '#e6d2c2',
+  horizon: '#f4dcc6',
   fog: { near: 220, far: 1300 },
   clouds: 0.3,
-  envIntensity: 0.45,
+  envIntensity: 0.34,
   rimBoost: 0.8,
   bloom: 0.35,
-  grade: { tint: '#ffffff', saturation: 1.05, shadows: '#eeeefc', highlights: '#fff3e4' },
+  grade: { tint: '#ffffff', saturation: 1.05, shadows: '#f2f1f6', highlights: '#fff4e8' },
 };
 
 export default (c: ContentTables, env?: Readonly<Record<string, string>>): ThemeKit => {
