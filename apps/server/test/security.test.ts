@@ -228,4 +228,33 @@ describe('lobby state abuse', () => {
     expect(c.errors()).toEqual([]);
     expect(w.server.roomByCode(other)!.humans()).toHaveLength(2);
   });
+
+  it('resumes: at most one per second per session, and a replaced socket does not re-broadcast the room (item 8)', () => {
+    const w = new World();
+    const a = host(w, 'Host');
+    const b = w.client('Member').hello();
+    b.send({ t: 'join', code: a.last('room')!.room.code });
+    w.advance(1500);
+    const roomsAtA = a.all('room').length;
+    // resume over a second socket while the first is still open: only the resumer gets a view
+    b.reconnect();
+    expect(b.last('welcome')).toBeDefined();
+    expect(b.closed).toBeNull();
+    expect(a.all('room').length).toBe(roomsAtA);
+    // a resume storm: refused until a second has passed
+    const before = b.all('welcome').length;
+    b.reconnect();
+    expect(b.errors()).toContain('rateLimited');
+    expect(b.closed).toBe('resume too soon');
+    expect(b.all('welcome').length).toBe(before);
+    w.advance(1100);
+    b.reconnect();
+    expect(b.all('welcome').length).toBe(before + 1);
+    // a real drop and return changes the member's connected state: everyone is told
+    b.drop();
+    expect(a.all('room').length).toBe(roomsAtA + 1);
+    w.advance(1100);
+    b.reconnect();
+    expect(a.all('room').length).toBe(roomsAtA + 2);
+  });
 });

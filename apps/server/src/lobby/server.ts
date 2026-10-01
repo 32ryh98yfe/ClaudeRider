@@ -103,6 +103,7 @@ export class Session {
   ip: string | null = null;
   msgTimes: number[] = [];
   lastChatMs = -Infinity;
+  lastResumeMs = -Infinity;
   constructor(id: string, token: string, name: string, loadout: Loadout) { this.id = id; this.token = token; this.name = name; this.loadout = loadout; }
 }
 
@@ -278,7 +279,12 @@ export class GameServer {
       s = this.byToken.get(m.resume);
       if (!s) this.sendTo(t, { t: 'error', code: 'resumeExpired' });
     }
+    const now = this.clock.nowMs();
+    // each resume re-sends the race start, a keyframe and the event log: at most one per second per session
+    if (s && now - s.lastResumeMs < this.L.resumeGapMs) { this.sendTo(t, { t: 'error', code: 'rateLimited' }); this.closeConn(t, 4009, 'resume too soon'); return; }
+    const wasConnected = s?.connected === true;
     if (s) {
+      s.lastResumeMs = now;
       if (s.transport && s.transport !== t) { const old = s.transport; this.detachTransport(s); this.closeConn(old, 4003, 'replaced'); }
     } else {
       const name = cleanName(m.name);
@@ -296,7 +302,6 @@ export class GameServer {
     s.mux = mux;
     s.connected = true;
     c.session = s;
-    const now = this.clock.nowMs();
     this.send(s, { t: 'welcome', session: s.id, serverVersion: SERVER_VERSION, simVersion: SIM_VERSION, resume: s.token, serverMs: this.clock.wallMs(now), tickEpochMs: this.clock.epochWallMs });
     const r = s.room;
     if (r) {
@@ -304,7 +309,10 @@ export class GameServer {
         this.sendRaceStart(r, s);
         r.race.attach(s.id, mux);
       }
-      if (r.kind === 'custom') this.broadcastRoom(r); else this.sendQueue(r);
+      // the others only need a new view when this player's connected state changed
+      if (r.kind === 'quick') this.sendQueue(r, s);
+      else if (wasConnected) this.send(s, { t: 'room', room: this.view(r, s) });
+      else this.broadcastRoom(r);
     }
   }
 

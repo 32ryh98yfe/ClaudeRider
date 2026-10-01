@@ -76,7 +76,8 @@ export class TestClient {
     this.mux = new FrameMux(c);
     this.mux.onOther = (b) => { if (b[0] === S2C.LOBBY_JSON) this.got.push(decodeLobby(b) as S2CLobby); else if (b[0] === S2C.PONG) this.pongs++; };
     this.closed = null;
-    this.mux.onClose = (r) => { this.closed = r; };
+    const mux = this.mux;
+    mux.onClose = (r) => { if (this.mux === mux) this.closed = r; }; // the current socket only
     w.server.accept(s, ip);
   }
   send(m: C2SLobby): this { this.transport.send(encodeC2SLobby(m)); this.w.flush(); return this; }
@@ -97,7 +98,8 @@ export class TestClient {
     this.mux = new FrameMux(c);
     this.mux.onOther = (b) => { if (b[0] === S2C.LOBBY_JSON) this.got.push(decodeLobby(b) as S2CLobby); else if (b[0] === S2C.PONG) this.pongs++; };
     this.closed = null;
-    this.mux.onClose = (r) => { this.closed = r; };
+    const mux = this.mux;
+    mux.onClose = (r) => { if (this.mux === mux) this.closed = r; }; // the current socket only
     this.w.server.accept(s, this.ip);
     return this.hello(token);
   }
