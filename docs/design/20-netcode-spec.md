@@ -197,7 +197,9 @@ interface RoomView { code: string | null /* null when hidden and you are not hos
 - **Anti-spoof clamp** (ADR-007, 200 ms = 12 ticks): a stamped tick that differs from the latency estimate by more than 12 ticks is replaced by the estimate (matters for the shield window start and aim validation).
 
 ### 6.2 Missing inputs (same rule on server and clients)
-Hold the last analog values (steer, throttle, brake, held); after 6 ticks without a new frame, steering decays by ×0.85 per tick; no edges are synthesized.
+Hold the last analog values (steer, throttle, brake, held); no edges are synthesized.
+- **Brake:** released after `NET.MISSING_BRAKE_HOLD` = 2 ticks without a new frame. A held brake would turn a short brake drift turn (≤ 8 ticks, doc 15 §4.3) into an 11-tick spin-out during a stall of ≥ 200 ms that the player's own prediction never showed; 8 + 2 = 10 < 11. It must stay ≤ `MISSING_HOLD`, so `RunningInput.seek` can stop early once steering has decayed to 0.
+- **Steering:** after `NET.MISSING_HOLD` = 6 ticks without a new frame, decays by ×0.85 per tick (integer steps).
 
 ---
 

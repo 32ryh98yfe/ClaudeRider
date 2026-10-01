@@ -42,6 +42,8 @@ export interface ScenarioOptions {
   skewPpm?: (slot: number) => number;
   /** S9: cut a client's connection at race tick `atTick` and reconnect `forMs` later. */
   disconnect?: { slot: number; atTick: Tick; forMs: number };
+  /** Stall a client's uplink at race tick `atTick` for `ms` (its inputs reach the server late, nothing is lost). */
+  stall?: { slot: number; atTick: Tick; ms: number };
   /** GC pause injection: every `everyMs` a client stalls for `ms`. */
   gcPause?: { everyMs: number; ms: number };
   realNow?: () => number;
@@ -184,6 +186,8 @@ export function runScenario(o: ScenarioOptions): ScenarioResult {
     authority.tick();
     serverTickMs.push(realNow() - t0);
     record();
+    const st = o.stall;
+    if (st && k === st.atTick) clients.find((x) => x.slot === st.slot)?.links.at(-1)?.stallUp(st.ms);
     const d = o.disconnect;
     if (d && k === d.atTick) {
       const c = clients.find((x) => x.slot === d.slot);
