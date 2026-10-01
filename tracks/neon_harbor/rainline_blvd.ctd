@@ -66,6 +66,9 @@ PROPS kind=planter_bush from=@arcade_corner-4 to=@arcade_corner+34 side=R every=
 PROPS kind=street_bench from=@arcade_corner+2 to=@arcade_corner+34 side=R every=11 offset=6.5 seed=116
 PROPS kind=vending_machine from=@arcade_corner+8 to=@arcade_corner+30 side=R every=16 offset=13 seed=117
 PROPS kind=noodle_stall from=@arcade_corner+4 to=@arcade_corner+30 side=R every=20 offset=18 seed=118
+PROPS kind=planter_bush from=@arcade_corner-6 to=@arcade_corner+36 side=R every=6 offset=11 jitter=1 seed=119
+PROPS kind=street_bench from=@arcade_corner-2 to=@arcade_corner+36 side=R every=12 offset=15 seed=184
+PROPS kind=street_lamp from=@arcade_corner to=@arcade_corner+36 side=R every=14 offset=21 seed=186
 # -- street blocks, both sides, the whole lap (four facade kinds in 24 m slots; setback jitter breaks the wall)
 PROPS kind=building_row_a from=@boulevard+52 to=@arcade_corner side=L every=96 offset=8 jitter=1.5 seed=120
 PROPS kind=building_row_b from=@boulevard+76 to=@arcade_corner side=L every=96 offset=8 jitter=1.5 seed=121
