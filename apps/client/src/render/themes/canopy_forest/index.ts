@@ -21,7 +21,7 @@ export const CANOPY_LOOK: Partial<ThemeLook> = {
   // cool sky over a warm leaf-litter ground (≈ 2.5 : 1 against the sun) and a shadowless back fill so the chase camera,
   // which looks into the low morning sun on both tracks' grids, still sees the mascots in their own colours
   hemi: { sky: '#d3e6ff', ground: '#7a6448', intensity: 1.55 },
-  fill: { color: '#ffe6cc', intensity: 0.45 },
+  fill: { color: '#ffe6cc', intensity: 0.55 },
   // a little softer than Meadow's 0.62: the giant-trunk canopies shade much of the trail, which went muddy brown
   shadowStrength: 0.55,
   fogColor: '#c7e2d6',
