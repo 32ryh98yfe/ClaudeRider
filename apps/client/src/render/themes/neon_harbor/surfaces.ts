@@ -79,10 +79,11 @@ export function paving(key: string, p: PavingParams): THREE.Material {
     c = mix(c, wallC, slope);
     let rough: N = float(p.rough ?? 0.9);
     if (p.wet) {
-      // rain: shallow puddles in large, soft patches (low frequency, so no speckle), darker and mirror-smooth
+      // rain: shallow puddles in large, soft patches (low frequency, so no speckle), darker and satin. A mirror
+      // finish turned the moon and the back fill into hot white blobs on the plazas, so they stop at 0.24
       const puddle: N = smoothstep(0.56, 0.64, n01(vec2(P.x.mul(0.05), P.z.mul(0.05)))).mul(float(1).sub(slope));
-      c = c.mul(mix(float(1), float(0.7), puddle.mul(p.wet)));
-      rough = mix(mix(rough, float(0.45), p.wet), float(0.06), puddle.mul(p.wet));
+      c = c.mul(mix(float(1), float(0.75), puddle.mul(p.wet)));
+      rough = mix(mix(rough, float(0.5), p.wet), float(0.24), puddle.mul(p.wet));
     }
     m.colorNode = c.mul(vertexColor().rgb);
     m.roughnessNode = rough;
