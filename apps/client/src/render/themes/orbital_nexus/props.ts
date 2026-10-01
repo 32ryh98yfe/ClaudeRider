@@ -13,6 +13,7 @@ import { box, cone, cyl, merge, paint, place, rbox, sparkleGeometry, sph, torus 
 import { beam, glow, rng } from '../ember_mine/shapes.ts';
 import { part, prism } from '../clayhill_village/toyshapes.ts';
 import { GlowParts, glowLit } from '../neon_harbor/glowlit.ts';
+import { litChevron } from '../neon_harbor/props.ts';
 
 const hull = (): THREE.Material => MaterialLibrary.vertexLit(0.55, 0.15);
 /** Matte hull bodies with glowing accents (one material for nearly every station prop). */
@@ -459,6 +460,7 @@ export const ORBITAL_PROPS: Record<string, PropFactory> = {
   tyre_wall: F(impactPads, () => MaterialLibrary.vertexLit(0.8, 0), true, 300),
   flag_pole: F(bannerMast, station, true, 200),
   gantry: F(stationArch, station, true),
+  chevron: F(() => litChevron(CYAN, 1.1), station, true, 256),
   // hazards and compiler props
   hazard_press: F(press, hull, true),
   hazard_laser: F(laserGate, hull, false),

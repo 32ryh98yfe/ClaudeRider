@@ -377,6 +377,19 @@ function neonBoard(v: 'a' | 'b' | 'c'): THREE.BufferGeometry {
   return G.build();
 }
 
+/**
+ * Corner chevron board (compiler-placed on the outside of tight corners; faces +Z, chevrons point +X, variant 1 is
+ * mirrored by the instance scale): a dark board whose yellow chevrons are lit, so the next corner reads at night.
+ */
+function litChevron(color: string, gain: number): THREE.BufferGeometry {
+  const G = new GlowParts().add(part(rbox(2.4, 1.0, 0.12, 0.05, 2), '#1c1f26', 0, 0.9, 0), part(box(0.1, 0.9, 0.1), '#6b6f78', -1.0, 0.45, -0.05), part(box(0.1, 0.9, 0.1), '#6b6f78', 1.0, 0.45, -0.05));
+  for (let i = 0; i < 3; i++) {
+    const x = -0.6 + i * 0.6;
+    G.light(gain, part(box(0.14, 0.5, 0.05), color, x - 0.08, 1.06, 0.07, 0, 0, -0.7), part(box(0.14, 0.5, 0.05), color, x - 0.08, 0.74, 0.07, 0, 0, 0.7));
+  }
+  return G.build();
+}
+
 /** City banner pole (start straight): slim light pole, a vertical fabric banner and a small lamp. */
 function bannerPole(): THREE.BufferGeometry {
   const G = new GlowParts();
@@ -537,6 +550,8 @@ function stationCanopy(): THREE.BufferGeometry {
   return G.build();
 }
 
+export { litChevron };
+
 const F = (geometry: () => THREE.BufferGeometry, material: () => THREE.Material, castShadow = true, maxInstances?: number): PropFactory =>
   ({ build: () => ({ geometry: geometry(), material: material(), castShadow }), ...(maxInstances ? { maxInstances } : {}) });
 
@@ -568,6 +583,7 @@ export const NEON_PROPS: Record<string, PropFactory> = {
   ad_board_c: F(() => neonBoard('c'), city, true, 80),
   flag_pole: F(bannerPole, city, true, 200),
   gantry: F(neonGantry, city, true),
+  chevron: F(() => litChevron('#ffd23f', 1.1), city, true, 256),
   // landmarks and hazards
   neon_sign: F(neonSign, city, true, 256),
   billboard: F(billboard, city, true, 128),
