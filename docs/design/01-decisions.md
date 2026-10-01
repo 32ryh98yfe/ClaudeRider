@@ -171,6 +171,20 @@ Kart bodies:
 - pebble (balance), clay_comet (balance), arrowhead (speed), tugboat (balance, weight 1.2), glacier_sled (drift), neon_blade (speed), jet_kettle (drift), crown_cruiser (speed).
 - Minor per-body variation of at most ±1% on top of the archetype.
 
+### Amendment (M5): driving techniques
+`15-driving-techniques.md` is canonical for everything below; where it and the tables above disagree, it wins.
+- **Display factor.** `KMH_PER_MPS = 205/34` (≈ 6.0294): V_GRIP 34 m/s reads 205 km/h. Only the speedometer changes; the physics stays on the gap-2 calibration. Tests of the old validated numbers keep `KMH_GAP2 = 5.4`.
+- **vBoost.** V_BOOST 45.11 m/s (272 km/h). Every body's `vBoost` is scaled ×(45.11/44.4): Balance 45.11, Speed 45.72 (neon_blade 45.92), Drift 44.50. The ±1% archetype rule applies to the scaled archetypes.
+- **Gears and reverse.** Gears STOP / D / N / R (`KartDrive.gear`).
+  - `vReverse` 10.78 m/s (65 km/h; was 10), acceleration −8·(1 − (−u/vReverse)²). Reverse engages after 6 ticks of ↓ at STOP.
+  - With no keys the kart coasts (N) to exactly 0 and stops; zero-lock (u = w = 0) holds it where the tangential gravity is ≤ 4.2 m/s² (about a 15% grade).
+- **Post-boost bleed.** When a boost expires naturally: 30 ticks of u ← vT + (u − vT)·decayF(6) toward the non-boost target with ↑ held, or toward 0 at decayF(0.7) (never weaker) with ↑ released. A boost law, a drift or an instant boost cancels it; cancelled boosts (hard wall hit, hard CC, respawn, start-boost release, spin-out) never bleed.
+- **Drag (끌기).** Boosting, drifting, ↑, no brake, grounded, neutral steer (|s_in| < 0.3), entered at sin β ∈ [sin 20°, sin 35°] and kept within [sin 18°, sin 37°]. Lateral retention η = 1.0, injection 5 m/s², cap vBoost·1.0662 (290 km/h) on planar |v|, no drift drag.
+- **Tap boost (톡톡이).** Corner-direction key taps 6–12 ticks apart while dragging build a streak (max 3): +0.4 rad/s yaw per valid tap, injection ×2 for 8 ticks, cap +0.01839·vBoost per step (305 km/h at 3).
+- **Cut.** Counter-steer s_in ≤ −0.7 for 2 ticks aligns the velocity with the heading (η 0.8) and ends the drift through the normal exit (instant window rule kept). While boosting with DRIFT held it is the reverse gauge instead: drift gauge gain ×3 while s_in ≤ −0.3.
+- **Brake turn (고속턴) and spin-out.** Brake ticks 1–8 in a drift rotate the heading ×2; brake held ≥ 11 ticks in a drift spins out: drift ended without an instant window, active boost cancelled (stored boosters kept), 15 ticks of stun, planar speed 3.317 m/s (20 km/h).
+- Everything else in this ADR is unchanged.
+
 ## ADR-005 Tick order (identical on authority and predictor)
 1. Latch inputs. Derive drift and throttle edges from `prevHeld` and `prevThrottle`.
 2. Apply effects whose start tick is now, in effectId order.
