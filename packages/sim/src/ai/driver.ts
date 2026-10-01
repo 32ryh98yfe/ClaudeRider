@@ -33,6 +33,8 @@ const RAIL_INTENT: Readonly<Record<string, number>> = { rookie: 0.3, racer: 0.6,
 const FORK_GRACE = 40;
 /** Branch ends converge into the host over this many metres; queries there resolve onto the host. */
 const MERGE_BLEND = 20;
+/** Longest brake run while drifting: the sim brake-turns for 8 ticks and spins out at 11 (SHARED.spinTicks). */
+const BRAKE_RUN_MAX = 8;
 /** Validated gap-2 controller constants (docs/research/sim-prototype.md aiDriver). */
 const A = {
   Lk0: 6, Lk1: 0.35, trigDeg: 25, trigLook: 40, gripFrac: 0.9, tLead: 0.5, outBias: 0.6, tHead: 0.45, kHead: 2.5, kLatPos: 0.6,
@@ -130,6 +132,7 @@ class BotDriver implements AiDriverEx {
   // ---- drift state
   private tapLeft = 0; private tapDir = 1; private rek = 0;
   private predDrifting = false;
+  private brakeRun = 0; // consecutive committed frames braking while drifting (spin-out guard, see commit)
   private instOk = true; private instHandled = true; private instPressAt = -1; private instArmed = false;
   private holdExtra = 0; private cornerDrifts = 0;
   // ---- per-corner plan
@@ -284,8 +287,16 @@ class BotDriver implements AiDriverEx {
     this.commit(out);
   }
 
-  /** Every frame goes into the self-prediction pipe (it applies LA ticks from now). */
+  /**
+   * Every frame goes into the self-prediction pipe (it applies LA ticks from now). Safety guard (M5): a brake held
+   * through 11 drift ticks spins the kart out (15-driving-techniques §4.3), so once a brake run while drifting (DRIFT
+   * held or the predicted drift) reaches 8 frames the brake stays off until the run ends — at most one brake turn,
+   * never a spin-out (re-pressing would start a fresh brake turn every 9 ticks).
+   */
   private commit(out: InputFrame): void {
+    if (out.brake > 0 && ((out.held & Held.DRIFT) !== 0 || this.pred.drift === 1)) {
+      if (this.brakeRun >= BRAKE_RUN_MAX) out.brake = 0; else this.brakeRun++;
+    } else this.brakeRun = 0;
     this.pred.push(-out.steer / 127, (out.held & Held.DRIFT) !== 0, out.throttle > 0, out.brake > 0);
   }
 
