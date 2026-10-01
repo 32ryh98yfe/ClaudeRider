@@ -278,6 +278,15 @@ function foundryHall(): THREE.BufferGeometry {
     G.add(part(prism(4, 2.6, W), PANEL, x - 2, H, 0, 0, 0, 0, 1, 1, 1));
     G.light(0.5, part(box(0.06, 2.0, W - 1), '#9fd8f0', x - 0.05, H + 1.1, 0, 0, 0, 0.55));
   }
+  // gable ends (seen from along the road): orange band, clerestory windows, a vent grille and a downpipe
+  for (const sz of [-1, 1]) {
+    const z = sz * (W / 2 + 0.06);
+    G.add(part(box(D, 1.2, 0.12), ORANGE, -D / 2, H - 1.4, z), part(box(D, 0.6, 0.12), NAVY_2, -D / 2, 0.3, z));
+    for (let i = 0; i < 4; i++) G.light(0.55, part(box(3.2, 1.6, 0.08), '#ffd89a', -2.6 - i * 4.6, H - 3.6, z + sz * 0.04));
+    G.add(part(box(5, 3, 0.1), DARK, -D / 2, 3.2, z + sz * 0.02));
+    for (let k = 0; k < 6; k++) G.add(part(box(4.6, 0.16, 0.14), GREY, -D / 2, 2.0 + k * 0.48, z + sz * 0.05));
+    G.add(part(cyl(0.18, 0.18, H, 6), GREY, -0.8, H / 2, z + sz * 0.2));
+  }
   for (const z of [-11, 11]) {
     G.add(part(cyl(0.9, 1.1, 9, 10), GREY, -16, H + 4.5, z), part(cyl(0.95, 0.95, 0.6, 10), ORANGE, -16, H + 8.5, z));
     G.light(2.4, part(sph(0.3, 8, 6), RED, -16, H + 9.4, z));
