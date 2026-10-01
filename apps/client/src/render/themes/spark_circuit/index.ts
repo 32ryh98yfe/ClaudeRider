@@ -6,6 +6,7 @@ import type { ContentTables } from '@cr/content';
 import { MaterialLibrary } from '../../materials/library.ts';
 import { makeKit, type ThemeKit, type ThemeLook } from '../kit.ts';
 import { SPARK_PROPS } from './props.ts';
+import { sparkBarrier } from './barrier.ts';
 
 // Stylized arcade read (2026-10 pass, docs/design/34-stylized-pass.md): the Meadow Loop day recipe on a racing
 // venue — a clear blue gradient sky instead of the peach Preetham haze, a key sun clearly over the fill, neutral grey
@@ -62,13 +63,20 @@ export default (c: ContentTables, env?: Readonly<Record<string, string>>): Theme
   const kit = makeKit(c.themes.get('spark_circuit'), sunset ? SPARK_SUNSET_LOOK : SPARK_LOOK, SPARK_PROPS);
   const base = kit.materials;
   // theme-tinted variants of the per-surface slots the .vis bakes; the tint divides out trackc's per-surface tint
-  kit.materials = () => ({
-    ...base(),
-    // run-off gravel and the rally stage in warm, clean beige so the asphalt edge and kerbs read against it
-    'shoulder:gravel': MaterialLibrary.road({ style: 'gravel', a: '#b6a68c', b: '#c8b99e', line: '#fbf8f0', tint: [1.2, 1.15, 1.08], shoulder: true }),
-    'road:gravel': MaterialLibrary.road({ style: 'gravel', a: '#a8977c', b: '#baa98d', line: '#fbf8f0', tint: [1.2, 1.15, 1.08] }),
-    'road:dirt': MaterialLibrary.road({ style: 'dirt', a: '#9c7552', b: '#ab8460', line: '#fbf8f0', tint: [1.25, 1.0, 0.75] }),
-    'wall:fence': MaterialLibrary.wall('ranch', '#f6f3ec', '#5b4a3a', 1),
-  });
+  // (built inside materials(): the library is configured for the tier and cleared between scenes before this runs)
+  kit.materials = () => {
+    const barrier = sparkBarrier('#f1eee6', '#d8423a', '#2f4a7a');
+    return {
+      ...base(),
+      // run-off gravel and the rally stage in warm, clean beige so the asphalt edge and kerbs read against it
+      'shoulder:gravel': MaterialLibrary.road({ style: 'gravel', a: '#b6a68c', b: '#c8b99e', line: '#fbf8f0', tint: [1.2, 1.15, 1.08], shoulder: true }),
+      'road:gravel': MaterialLibrary.road({ style: 'gravel', a: '#a8977c', b: '#baa98d', line: '#fbf8f0', tint: [1.2, 1.15, 1.08] }),
+      'road:dirt': MaterialLibrary.road({ style: 'dirt', a: '#9c7552', b: '#ab8460', line: '#fbf8f0', tint: [1.25, 1.0, 0.75] }),
+      'wall:fence': MaterialLibrary.wall('ranch', '#f6f3ec', '#5b4a3a', 1),
+      // ivory barrier with a red top band and a navy kick strip (barrier.ts) for the barrier and gore walls
+      wall: barrier,
+      'wall:gore': barrier,
+    };
+  };
   return kit;
 };
