@@ -67,6 +67,8 @@ export class Session {
   private lastInput: InputFrame = makeInput();
   private watchMsgs = -1;
   private watchAt = 0;
+  private watchAsked = false;
+  private watchBackoff = 10_000;
   private doneAt = 0;
   // pause (offline only): the lockstep authority waits for inputs, so stopping inputs and the clock pauses the race
   private paused = false;
@@ -132,7 +134,8 @@ export class Session {
     progress(0.9, t('common.loading'));
     const provider = this.autopilot ? (w: Readonly<WorldState>, out: InputFrame): void => { this.autopilot!.decide(w, out); copyInputInto(this.lastInput, out); } : undefined;
     if (online) {
-      const taken = takeRaceChannel(online.raceId) ?? { channel: conn.raceChannel(), buffered: [] };
+      // a channel opened now (e.g. after a reconnect while loading) missed the keyframe sent at attach: ask for one
+      const taken = takeRaceChannel(online.raceId) ?? { channel: conn.raceChannel(), buffered: [], needKeyframe: true };
       const ch = taken.channel;
       if (!ch) throw new Error('offline');
       this.authorityKind = 'server';
@@ -141,6 +144,7 @@ export class Session {
         mode: 'synced', clock: conn.clock, maxSteps: 8, ...(online.resumeToken ? { resumeToken: online.resumeToken } : {}), ...(provider ? { inputProvider: provider } : {}),
       });
       for (const b of taken.buffered) ch.onMessage?.(b); // frames that arrived while loading
+      if (taken.needKeyframe) this.net.requestKeyframe();
       conn.send({ t: 'loaded', trackHash: track.hash });
     } else {
       const want = this.opts.authority ?? (q.get('authority') === 'main' ? 'main' : 'worker');
@@ -299,11 +303,18 @@ export class Session {
   private watchOnline(now: number): void {
     if (this.ended) return;
     const s = this.net.stats;
-    if (s.msgsIn !== this.watchMsgs) { this.watchMsgs = s.msgsIn; this.watchAt = now; }
-    else if (s.serverTickEst > 60 && conn.connected && now - this.watchAt > 4000) {
-      console.warn('[net] race stream stalled; reconnecting');
-      this.watchAt = now;
-      conn.forceReconnect();
+    if (s.msgsIn !== this.watchMsgs) { this.watchMsgs = s.msgsIn; this.watchAt = now; this.watchAsked = false; this.watchBackoff = 10_000; }
+    else if (s.serverTickEst > 60 && conn.connected) {
+      // escalate gently: first ask for a keyframe over the same socket, reconnect only if that stays unanswered,
+      // and back off, because a starved page that reconnects too eagerly throws away the frames it was about to read
+      const silent = now - this.watchAt;
+      if (!this.watchAsked && silent > 3000) { this.watchAsked = true; this.net.requestKeyframe(); }
+      else if (silent > this.watchBackoff) {
+        console.warn('[net] race stream stalled; reconnecting');
+        this.watchAt = now; this.watchAsked = false;
+        this.watchBackoff = Math.min(60_000, this.watchBackoff * 2);
+        conn.forceReconnect();
+      }
     }
     if (this.net.auth.phase === Phase.DONE) {
       if (!this.doneAt) this.doneAt = now;

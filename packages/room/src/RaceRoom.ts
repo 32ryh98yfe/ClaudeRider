@@ -328,7 +328,8 @@ export class RaceRoom {
     if (u32Hex(m.token) !== p.tokenHex) { this.strike(p, 'resume token'); return; }
     const from = unwrapSeq16(m.lastEventSeq, this.headSeq);
     const oldest = this.oldestSeq();
-    if (from + 1 >= oldest) { if (from > p.sentSeq && from <= this.headSeq) p.sentSeq = from; }
+    // resend everything after the client's last event (it may have lost some, e.g. on a channel nobody read); it dedupes by seq
+    if (from + 1 >= oldest) p.sentSeq = Math.min(Math.max(from, oldest - 1), this.headSeq);
     else { p.sentSeq = Math.max(p.sentSeq, oldest - 1); p.resyncFlag = true; }
     p.needKey = true;
     this.sendCatchUpRelay(p);
