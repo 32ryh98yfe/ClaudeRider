@@ -76,16 +76,18 @@ export const AI_TUNING = {
   fastTapExp: 0,
   // no drift trigger while the velocity already points more than ~trigVPsi rad inside the track tangent
   trigVPsi: 0.2,
+  // hazards that stay active longer than this (ticks) are not waited for (lane choice only)
+  hazardMaxWait: 300,
   // build-up to the entry window: in-steer until the predicted β is dragBuildMargin past dragEnterLo, unless the nose
   // already lags more than dragBuildEhHi (the corner wants plain drift control); the boost must outlast dragBoostMin ticks
-  dragBuildTicks: 12, dragBuildMaxTicks: 40, dragBuildEhLo: 0.1, dragBuildSIn: 0.8, dragBoostMin: 20, dragBuildYaw: 0.3,
+  dragBuildMaxTicks: 40, dragBuildEhLo: 0.1, dragBuildSIn: 1, dragBoostMin: 20, dragBuildYaw: 1.2, dragRekickEh: 0.35,
   // drag yaw regulation: heading gain (1/s) on e, damping on the yaw excess (per rad/s), taps while the yaw is below the
   // wanted yaw + tapYawMargin
   dragKh: 2, dragKd: 0.5, tapYawMargin: 0.2, dragKapLead: 0.2, dragHeldSwap: 0.15,
   // the drag also stops when the kart runs to the inside (outside < -dragIn, a share of the half-width)
   dragIn: 0.45,
   // boosters are kept for a planned drag corner up to dragHoldM ahead, unless one fired now still covers its entry
-  dragHoldM: 450, dragCoverS: 1.2,
+  dragHoldM: 150, dragCoverS: 1.2,
   // deliberate brake turn (고속턴) on a rolled hairpin: one ~5-frame tap while the nose lags by more than bturnEh rad
   bturnFrames: 5, bturnEh: 0.45, hairpinTurn: 2.0, hairpinR: 20, dragMaxTurn: 2.6,
   // Pro/Legend fire straight-line boosters so they run out inside a drift (a drift cancels the bleed): wait at most
@@ -651,11 +653,12 @@ class BotDriver implements AiDriverEx {
       const wantYaw = (kapS > 0 ? kapS : 0) * v + AI_TUNING.dragKh * e;
       const yaw0 = P.y0 / (1 + (pr.dTicks * DT) / P.y0T) + P.y2, yawNow = pr.yaw * dd;
       if (dragCorner && pr.dragT === 0 && pr.sb < P.dragEnterLo) {
-        // build-up: a plain drift often slides at 8–15° and the drag needs β ≥ 20°: more in-steer (DRIFT held) once the
-        // entry has settled, while the nose lags the track and the yaw is not already past what the corner asks for
-        if (this.tapLeft === 0 && pr.dTicks >= AI_TUNING.dragBuildTicks && pr.dTicks <= AI_TUNING.dragBuildMaxTicks && eh > AI_TUNING.dragBuildEhLo && yawNow < wantYaw + AI_TUNING.dragBuildYaw) {
+        // build-up: the AI's plain drift slides at 8–17° and the drag needs β ≥ 20°: a hard entry (full in-steer,
+        // DRIFT held from the entry tap) while the nose lags the track and the yaw is not already past what the corner
+        // asks for; a released DRIFT is re-pressed (double drift: +0.8 rad/s) only when the nose lags a lot
+        if (pr.dTicks <= AI_TUNING.dragBuildMaxTicks && eh > AI_TUNING.dragBuildEhLo && yawNow < wantYaw + AI_TUNING.dragBuildYaw) {
           if (sIn < AI_TUNING.dragBuildSIn) sIn = AI_TUNING.dragBuildSIn;
-          drift = this.lastHeld; thr = 1; keepThrottle = true; // no DRIFT re-press: it would re-kick
+          drift = this.lastHeld || this.tapLeft > 0 || eh > AI_TUNING.dragRekickEh; thr = 1; keepThrottle = true;
           this.dragging = true;
         }
       } else if (dragCorner && eh > AI_TUNING.dragEhLo && eh < AI_TUNING.dragEhHi && (pr.dragT > 0 || pr.sb >= P.dragEnterLo)) {
@@ -1105,7 +1108,9 @@ class BotDriver implements AiDriverEx {
     this.hazardCap = 99;
     const B = this.blocks, chosen = lineAbs + this.lr.laneOff;
     for (let b = 0; b < B.n; b++) {
-      if (chosen <= B.u0[b]! || chosen >= B.u1[b]! || B.ds[b]! > 70 || B.clearTicks[b]! <= 0) continue;
+      // (a hazard that never clears within the 5 s scan — a pendulum swinging all the time — is not waited for:
+      // crawling at 6 m/s behind it only loses the time the lane choice is there to save)
+      if (chosen <= B.u0[b]! || chosen >= B.u1[b]! || B.ds[b]! > 70 || B.clearTicks[b]! <= 0 || B.clearTicks[b]! >= AI_TUNING.hazardMaxWait) continue;
       const vReq = Math.max(6, (B.ds[b]! - 2) / (B.clearTicks[b]! / 60));
       if (vReq < this.hazardCap) this.hazardCap = vReq;
     }
