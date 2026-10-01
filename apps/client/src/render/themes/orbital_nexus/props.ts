@@ -300,7 +300,8 @@ function foundryHall(): THREE.BufferGeometry {
 
 /** Holo sponsor board above the barrier: a lit navy face with our sparkle, bars or chevrons (original art). */
 function holoBoard(v: 'a' | 'b' | 'c'): THREE.BufferGeometry {
-  const W = 3.0, H = 0.95, y = 1.3 + H / 2, G = new GlowParts();
+  // edge rows stand on the ground 0.35–1.2 m below the deck behind a 1.1 m barrier: the 1.8 m posts keep the panel clear of it
+  const W = 3.0, H = 0.95, y = 1.8 + H / 2, G = new GlowParts();
   G.add(part(box(0.09, y, 0.09), GREY, -0.05, y / 2, -W / 2 + 0.25), part(box(0.09, y, 0.09), GREY, -0.05, y / 2, W / 2 - 0.25));
   G.add(part(box(0.12, H + 0.12, W + 0.12), WHITE, -0.07, y, 0));
   G.light(0.45, part(box(0.04, H, W), v === 'a' ? '#14306a' : v === 'b' ? NAVY_2 : '#2a2350', 0.0, y, 0));
@@ -320,11 +321,12 @@ function holoBoard(v: 'a' | 'b' | 'c'): THREE.BufferGeometry {
   return G.build();
 }
 
-/** Impact barrier at corners (station tyre wall): padded white/orange blocks in a 1.3 m run. */
+/** Impact barrier at corners (station tyre wall): padded white/orange blocks in a 1.3 m run, three high so the
+ *  checker reads over the 1.1 m barrier (trackc stands the row on the ground 0.35–0.7 m below the deck). */
 function impactPads(): THREE.BufferGeometry {
   const p: THREE.BufferGeometry[] = [];
-  for (let c = 0; c < 2; c++) for (let h = 0; h < 2; h++) p.push(part(rbox(0.62, 0.48, 0.6, 0.12, 2), (c + h) % 2 ? WHITE : ORANGE, 0, 0.25 + h * 0.5, -0.32 + c * 0.64));
-  p.push(part(box(0.66, 0.06, 1.3), NAVY_2, 0, 1.0, 0));
+  for (let c = 0; c < 2; c++) for (let h = 0; h < 3; h++) p.push(part(rbox(0.62, 0.48, 0.6, 0.12, 2), (c + h) % 2 ? WHITE : ORANGE, 0, 0.25 + h * 0.5, -0.32 + c * 0.64));
+  p.push(part(box(0.66, 0.06, 1.3), NAVY_2, 0, 1.5, 0));
   return merge(p);
 }
 

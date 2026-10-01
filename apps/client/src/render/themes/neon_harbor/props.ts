@@ -356,7 +356,9 @@ function noodleStall(): THREE.BufferGeometry {
 
 /** Neon sponsor board: a lit light-box face above the barrier, our sparkle and bars only (original art). */
 function neonBoard(v: 'a' | 'b' | 'c'): THREE.BufferGeometry {
-  const W = 3.0, H = 0.95, y = 1.25 + H / 2, G = new GlowParts();
+  // trackc stands edge rows on the ground 0.35–1.2 m below the deck, behind a 1.1–1.4 m barrier: a 1.8 m post
+  // keeps the whole panel above the barrier from the chase camera
+  const W = 3.0, H = 0.95, y = 1.8 + H / 2, G = new GlowParts();
   G.add(part(box(0.09, y, 0.09), POLE, -0.05, y / 2, -W / 2 + 0.25), part(box(0.09, y, 0.09), POLE, -0.05, y / 2, W / 2 - 0.25));
   G.add(part(box(0.12, H + 0.12, W + 0.12), '#23262f', -0.07, y, 0));
   const field = v === 'a' ? '#3a1f4a' : v === 'b' ? '#14304a' : '#2a2338';
@@ -533,6 +535,19 @@ function pier(): THREE.BufferGeometry {
     .build();
 }
 
+/** Corner tyre wall: 2 columns × 4 tyres, magenta / white banded. The shared stack is 3 high (1.05 m) and vanishes
+ *  behind the 1.1 m LED barrier once trackc stands the row on the ground 0.35–0.9 m below the deck. */
+function tyreStack(): THREE.BufferGeometry {
+  const p: THREE.BufferGeometry[] = [];
+  for (let c = 0; c < 2; c++) for (let h = 0; h < 4; h++) {
+    const z = -0.32 + c * 0.64, y = 0.15 + h * 0.3;
+    p.push(part(cyl(0.32, 0.32, 0.28, 12), '#23242a', 0, y, z));
+    p.push(part(cyl(0.325, 0.325, 0.1, 12), (c + h) % 2 ? '#f2eef6' : MAGENTA, 0, y, z));
+    p.push(part(cyl(0.16, 0.16, 0.3, 8), '#0f1013', 0, y, z));
+  }
+  return merge(p);
+}
+
 /** Crash cushion at a split gore: water-filled barrels in harbour yellow with a reflective chevron board. */
 function goreCushion(): THREE.BufferGeometry {
   const G = new GlowParts();
@@ -582,6 +597,7 @@ export const NEON_PROPS: Record<string, PropFactory> = {
   ad_board_a: F(() => neonBoard('a'), city, true, 80),
   ad_board_b: F(() => neonBoard('b'), city, true, 80),
   ad_board_c: F(() => neonBoard('c'), city, true, 80),
+  tyre_wall: F(tyreStack, lit, true, 200),
   flag_pole: F(bannerPole, city, true, 200),
   gantry: F(neonGantry, city, true),
   chevron: F(() => litChevron('#ffd23f', 1.1), city, true, 256),
