@@ -12,8 +12,13 @@ const KARTS = ['pebble', 'clay_comet', 'arrowhead', 'tugboat', 'glacier_sled', '
 
 function race(rel: string, mode: 'speed' | 'item', tier: 'pro' | 'racer' = 'pro') {
   const slots = CHARS.map((c, i) => ({ kind: 'bot' as const, characterId: c, kartBodyId: KARTS[i]!, name: c, ai: tier, vMul: AI_TIERS[tier].vMul }));
-  const rig = makeRig(bakedTrack(rel), { mode, slots, seed: 4242 });
-  const lastDist = new Float64Array(8).fill(-1e9), lastMove = new Int32Array(8);
+  const track = bakedTrack(rel);
+  const rig = makeRig(track, { mode, slots, seed: 4242 });
+  // "stuck" is measured on the distance driven along the main line (Δ sMain, wrapped on circuits), not on raceDist:
+  // a kart whose key gate went uncredited (docs/design/contract-requests/S-AI-keygate-quantization.md) loses a lap of
+  // raceDist while it drives on, which is a lap-credit bug and not a stuck bot
+  const L = track.lapLength, circuit = track.topology === 'circuit';
+  const lastDist = new Float64Array(8).fill(-1e9), lastMove = new Int32Array(8), driven = new Float64Array(8), prevS = new Float64Array(8).fill(NaN);
   let maxStuck = 0, maxDriftBrake = 0, spinOuts = 0, ei = 0;
   const w: WorldState = rig.w;
   while (w.phase !== Phase.DONE && w.tick < 60 * 60 * 6) {
@@ -22,8 +27,11 @@ function race(rel: string, mode: 'speed' | 'item', tier: 'pro' | 'racer' = 'pro'
     for (const k of w.karts) if (k.drive.drift === 1 && k.drive.brakeTicks > maxDriftBrake) maxDriftBrake = k.drive.brakeTicks;
     if (w.phase < Phase.RACING) continue;
     for (const k of w.karts) {
+      const sm = k.race.loc.sMain, p = prevS[k.slot]!;
+      prevS[k.slot] = sm;
+      if (p === p) { let d = sm - p; if (circuit) { if (d > L / 2) d -= L; else if (d < -L / 2) d += L; } driven[k.slot]! += d; }
       if (k.race.finishTick >= 0) { lastMove[k.slot] = w.tick; continue; }
-      if (k.race.raceDist > lastDist[k.slot]! + 2) { lastDist[k.slot] = k.race.raceDist; lastMove[k.slot] = w.tick; }
+      if (driven[k.slot]! > lastDist[k.slot]! + 2) { lastDist[k.slot] = driven[k.slot]!; lastMove[k.slot] = w.tick; }
       maxStuck = Math.max(maxStuck, w.tick - lastMove[k.slot]!);
     }
   }
