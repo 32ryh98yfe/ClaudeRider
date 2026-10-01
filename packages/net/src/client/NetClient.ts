@@ -210,17 +210,22 @@ export class NetClient {
       if (!this.clock.ready) return 0;
       const est = this.clock.serverTick(nowMs) - this.startTick;
       const lead = this.clock.leadTicks();
-      const target = est + lead;
       this.stats.serverTickEst = est; this.stats.leadTicks = lead;
       // Never predict more than MAX_PREDICT ticks past the authoritative world: a client that joins (or wakes up) far
       // behind would otherwise replay from a stale base on every update, starve its own main thread and never read
       // the snapshot that would fix it. It waits for a keyframe instead (RESUME doubles as the request).
+      let target = est + lead;
       if (target - this.dec.world.tick > MAX_PREDICT) {
-        this.stats.waitingForKeyframe = true;
-        if (nowMs - this.lastResumeMs > 1000) { this.lastResumeMs = nowMs; this.sendResume(); }
-        this.flushInputs();
-        this.smoother.update(dtMs / 1000);
-        return 0;
+        if (!this.haveSnap) {
+          this.stats.waitingForKeyframe = true;
+          if (nowMs - this.lastResumeMs > 1000) { this.lastResumeMs = nowMs; this.sendResume(); }
+          this.flushInputs();
+          this.smoother.update(dtMs / 1000);
+          this.syncStats();
+          return 0;
+        }
+        // with a base, stay within MAX_PREDICT of it: either the stream paused, or the clock runs ahead of the room
+        target = this.dec.world.tick + MAX_PREDICT;
       }
       this.stats.waitingForKeyframe = false;
       if (!this.started) {
@@ -267,12 +272,16 @@ export class NetClient {
     this.flushInputs();
     this.alphaV = Math.max(0, Math.min(1, this.acc));
     this.smoother.update(dtMs / 1000);
+    this.syncStats();
+    return steps;
+  }
+
+  private syncStats(): void {
     this.stats.predTick = this.pred.tick;
     this.stats.authTick = this.dec.world.tick;
     this.stats.rate = this.rateV;
     this.stats.rttMs = this.clock.rttMs;
     this.stats.jitterMs = this.clock.jitterMs;
-    return steps;
   }
 
   /** Spring-smoothed correction offset for a kart (add to its drawn position). */

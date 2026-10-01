@@ -55,13 +55,15 @@ test('two contexts join a custom room by code, race 1 lap online and both see re
   await a.waitForFunction(() => window.__crNet!.lobby.room.value?.slots.find((s) => s.name === 'Bravo')?.state === 'human');
   await a.evaluate(() => window.__crNet!.actions['start']!());
 
+  const dump = async (): Promise<void> => { for (const p of [a, b]) { try { console.log('DUMP', JSON.stringify(await p.evaluate(() => { const s = (window.__cr!['session'] as { net?: { stats: Record<string, unknown>; auth: { tick: number } } } | undefined)?.net; const st = s?.stats ?? {}; return { race: window.__cr?.race, conn: window.__crNet!.lobby.conn.value, P: st['predTick'], N: st['authTick'], msgsIn: st['msgsIn'], snaps: st['snapshots'], dec: st['decodeErrors'], hard: st['hardResyncs'], resims: st['resims'], conn2: st['connected'], lead: st['leadTicks'], est: Math.round(st['serverTickEst'] as number) }; }))); } catch (e) { console.log('DUMP err', String(e).slice(0, 80)); } } };
+  const iv = process.env['NETDEBUG'] ? setInterval(() => { void dump(); }, 20_000) : null;
   // both load the track, the server starts the race when both reported `loaded`
   for (const p of [a, b]) await p.waitForFunction(() => window.__cr?.race === 'running', null, { timeout: 120_000 });
   expect(await a.evaluate(() => (window.__cr!['session'] as { authorityKind: string }).authorityKind)).toBe('server');
-  for (const p of [a, b]) await p.waitForFunction(() => window.__cr?.race === 'done', null, { timeout: 200_000 });
+  try { for (const p of [a, b]) await p.waitForFunction(() => window.__cr?.race === 'done', null, { timeout: 200_000 }); } finally { if (iv) clearInterval(iv); }
 
   for (const p of [a, b]) {
-    await expect(p.getByTestId('results')).toBeVisible();
+    await expect(p.getByTestId('results')).toBeVisible({ timeout: 90_000 }); // a software-rendered page under load is slow to switch screens
     expect(await p.locator('[data-testid=results] tbody tr').count()).toBe(8);
   }
   const ra = await a.evaluate(() => window.__crNet!.lobby.lastResult.value);

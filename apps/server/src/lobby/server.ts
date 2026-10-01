@@ -159,7 +159,10 @@ export class GameServer {
   private pong(t: Transport, b: Uint8Array): void {
     try {
       const p = PingMsg.decode(this.pr.reset(b));
-      const g = this.clock.serverTick(this.clock.nowMs());
+      const now = this.clock.nowMs();
+      // racing players get their room's actual timeline (it lags the wall clock when the server is starved)
+      const race = this.sessionOf(t)?.room?.race;
+      const g = race?.timelineTick(now) ?? this.clock.serverTick(now);
       this.pw.reset();
       PongMsg.encode(this.pw, { pingId: p.pingId, clientMsEcho: p.clientMs, serverTick: Math.floor(g), tickPhase: (g - Math.floor(g)) * 65536 });
       t.send(this.pw.finish());

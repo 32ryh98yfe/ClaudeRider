@@ -3,7 +3,7 @@
 // up at most 5 ticks per server tick) → results. Humans attach over a race channel of their socket; a returning
 // session re-attaches to the same slot and resumes.
 import type { ContentTables } from '@cr/content';
-import { C2S, u32Hex, type Channel } from '@cr/net';
+import { C2S, NET, u32Hex, type Channel } from '@cr/net';
 import { RaceRoom, randomSecret, type RaceResult } from '@cr/room';
 import type { BakedTrack, RaceConfig } from '@cr/sim';
 
@@ -32,6 +32,8 @@ export class RaceHost {
   endedAtTick = -1;
   /** Wall time of each room.tick() in ms (load statistics). */
   lastTickMs = 0;
+  /** Clock time of the last room.tick(), for the room-aligned PONG timeline. */
+  private lastTickAt = 0;
   private readonly log: (m: string) => void;
 
   constructor(o: RaceHostOptions) {
@@ -81,10 +83,21 @@ export class RaceHost {
     while (this.room.tickNo < target && n < 5) {
       const t0 = now();
       this.room.tick();
-      this.lastTickMs = now() - t0;
+      this.lastTickAt = now();
+      this.lastTickMs = this.lastTickAt - t0;
       n++;
       if (this.result && this.endedAtTick < 0) this.endedAtTick = G;
     }
+  }
+
+  /**
+   * The global tick this race is actually at (fractional), or null before it runs. A CPU-starved server lets rooms
+   * fall behind the wall clock (they catch up at most 5 ticks per server tick); PONGs report this timeline so the
+   * players' clocks follow the simulation they must stay ahead of, not the wall clock.
+   */
+  timelineTick(nowMs: number): number | null {
+    if (!this.final || this.room.tickNo === 0 || this.result) return null;
+    return this.startTick + this.room.tickNo + Math.max(0, Math.min(1, (nowMs - this.lastTickAt) / NET.TICK_MS));
   }
 
   dispose(): void {
