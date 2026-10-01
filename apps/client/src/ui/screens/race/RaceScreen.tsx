@@ -24,6 +24,7 @@ import { Confirm } from '../../components/common.tsx';
 import { Stars, Bar, lapsText } from '../../components/controls.tsx';
 import { TrackArt } from '../../components/TrackArt.tsx';
 import { Portrait } from '../../components/Portrait.tsx';
+import { ArtOverride } from '../../components/ArtOverride.tsx';
 import { Icon } from '../../icons/Icon.tsx';
 import { SettingsScreen } from '../settings/SettingsScreen.tsx';
 import './race.css';
@@ -44,7 +45,7 @@ function Loading({ params, progress, slots, me }: { params: Record<string, strin
   const cards = slots ?? Array.from({ length: mode === 'timeAttack' ? 1 : 8 }, (_, i) => (i === 0 ? { kind: 'human', name: prof.name, characterId: prof.characterId, kartBodyId: prof.kartBodyId } : { kind: 'bot', name: '', characterId: '', kartBodyId: '' }) as unknown as SlotConfig);
   return (
     <div class="screen loading fade-in" aria-busy="true">
-      <TrackArt id={track} class="load-bg" />
+      <ArtOverride id={`loading.${track}`} class="load-bg load-art"><TrackArt id={track} class="load-bg" /></ArtOverride>
       <div class="load-shade" />
       <aside class="load-tip card" key={tip}><span class="eyebrow">{t('lobby.tipLabel')}</span><p>{t(`common.tip.${tip}`)}</p></aside>
       <div class="load-main">
@@ -57,7 +58,7 @@ function Loading({ params, progress, slots, me }: { params: Record<string, strin
       <div class="load-players">
         {cards.map((c, i) => (c.kind === 'empty' ? null : (
           <div key={i} class={`lp-card ${i === me ? 'me' : ''} ${c.characterId ? '' : 'pending'}`}>
-            {c.characterId ? <Portrait id={c.characterId} size={44} /> : <span class="lp-q"><Icon name="bot" size={22} /></span>}
+            {c.characterId ? <ArtOverride id={`hero.${c.characterId}`} class="lp-hero"><Portrait id={c.characterId} size={44} /></ArtOverride> : <span class="lp-q"><Icon name="bot" size={22} /></span>}
             <span class="lp-name">{c.name || t('common.ai')}</span>
             {c.kind === 'bot' ? <span class="badge ai">AI</span> : i === me ? <span class="badge coral">{t('common.you')}</span> : null}
           </div>

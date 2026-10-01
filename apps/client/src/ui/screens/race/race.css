@@ -1,6 +1,7 @@
 /* loading poster */
 .loading { background: var(--ink); overflow: hidden; }
 .load-bg { position: absolute; inset: -4%; width: 108%; height: 108%; animation: loadPan 12s ease-in-out infinite alternate; }
+.load-art { object-fit: cover; }
 .load-bg svg { opacity: 0.9; }
 @keyframes loadPan { from { transform: scale(1.02) translateX(0); } to { transform: scale(1.08) translateX(-2%); } }
 .load-shade { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(20, 20, 19, 0.92) 0%, rgba(20, 20, 19, 0.55) 45%, rgba(20, 20, 19, 0.25) 75%, rgba(20, 20, 19, 0.6) 100%); }
@@ -17,6 +18,7 @@
 .lp-card { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding: 0.7rem 0.4rem 0.6rem; border-radius: 16px; background: rgba(250, 249, 245, 0.1); box-shadow: 0 0 0 1px var(--glass-line); backdrop-filter: blur(8px); animation: screenIn 320ms var(--ease-out) both; min-width: 0; }
 .lp-card.me { background: linear-gradient(160deg, rgba(217, 119, 87, 0.9), rgba(242, 166, 90, 0.75)); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4); }
 .lp-card .portrait { border-radius: 12px; background: radial-gradient(circle at 50% 40%, #fff, #e8d9cb); }
+.lp-hero { display: block; width: 100%; height: 44px; object-fit: contain; }
 .lp-card.pending { opacity: 0.6; }
 .lp-q { width: 44px; height: 44px; border-radius: 12px; background: rgba(250, 249, 245, 0.12); display: flex; align-items: center; justify-content: center; animation: pulse 1.2s infinite; }
 .lp-name { font-size: 0.8rem; font-weight: 800; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

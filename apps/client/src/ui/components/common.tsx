@@ -14,6 +14,7 @@ import { useBack } from '../hooks.ts';
 import { Icon, SparkGlyph } from '../icons/Icon.tsx';
 import { itemIconSvg, boosterSvg } from '../icons/itemIcons.ts';
 import { Portrait } from './Portrait.tsx';
+import { useArtOverride } from './ArtOverride.tsx';
 
 export function ScreenHead({ title, sub, onBack, right }: { title: string; sub?: ComponentChildren; onBack?: () => void; right?: ComponentChildren }) {
   return (
@@ -84,6 +85,8 @@ export function ProfileChip({ onClick }: { onClick?: () => void }) {
 }
 
 export function ItemIcon({ id, size, class: cls }: { id: string; size?: number; class?: string }) {
+  const { url, onError } = useArtOverride(id === 'booster' || id === 'teamBooster' ? null : `icon.item.${id}`);
+  if (url) return <span class={`item-icon ${cls ?? ''}`} style={size ? { width: `${size}px`, height: `${size}px` } : undefined} aria-hidden="true"><img src={url} data-art-slot={`icon.item.${id}`} alt="" draggable={false} onError={onError} /></span>;
   const svg = id === 'booster' ? boosterSvg(false) : id === 'teamBooster' ? boosterSvg(true) : itemIconSvg(id);
   return <span class={`item-icon ${cls ?? ''}`} style={size ? { width: `${size}px`, height: `${size}px` } : undefined} aria-hidden="true" dangerouslySetInnerHTML={{ __html: svg }} />;
 }

@@ -7,6 +7,7 @@ import { Stage } from '../../../game/Stage.ts';
 import { save } from '../../../meta/save.ts';
 import { Audio } from '../../../audio/engine.ts';
 import { Logo } from '../../components/Logo.tsx';
+import { ArtOverride } from '../../components/ArtOverride.tsx';
 import './title.css';
 
 const VERSION = '0.2.0';
@@ -32,6 +33,7 @@ export function TitleScreen() {
   const pad = inputDevice.value === 'pad';
   return (
     <div class="screen title fade-in">
+      <ArtOverride id="keyart.title" class="title-keyart" />
       <div class="title-vignette" />
       <div class="title-top">
         <Logo size={1} stacked />

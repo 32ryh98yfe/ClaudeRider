@@ -1,4 +1,5 @@
 .title { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 5vh 2rem 1.4rem; cursor: pointer; }
+.title-keyart { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 .title-vignette { position: absolute; inset: 0; pointer-events: none;
   background: radial-gradient(ellipse 70% 55% at 50% 58%, transparent 40%, rgba(20, 20, 19, 0.55) 100%), linear-gradient(180deg, rgba(20, 20, 19, 0.55), transparent 32%, transparent 70%, rgba(20, 20, 19, 0.75)); }
 .title-top { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.9rem; font-size: min(2.25vh, 1.55vw); animation: titleIn 700ms var(--ease-out) both; }

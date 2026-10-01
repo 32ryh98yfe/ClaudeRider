@@ -19,6 +19,7 @@ import { Seg, Stars, Bar, lapsText } from '../../components/controls.tsx';
 import { TrackArt } from '../../components/TrackArt.tsx';
 import { ChallengePanel } from '../../components/ChallengePanel.tsx';
 import { Portrait } from '../../components/Portrait.tsx';
+import { ArtOverride, ArtPaper } from '../../components/ArtOverride.tsx';
 import './lobby.css';
 
 const TIP_COUNT = 10;
@@ -53,6 +54,7 @@ export function LobbyScreen() {
   const online = lobby.conn.value === 'online';
   return (
     <div class="screen lobby fade-in" data-testid="lobby">
+      <ArtOverride id="ui.lobby_bg" class="screen-art-backdrop" />
       <div class="scrim-top" /><div class="scrim-bottom" /><div class="scrim-right" />
       <header class="lobby-top">
         <Logo size={0.42} />
@@ -66,7 +68,8 @@ export function LobbyScreen() {
       </header>
 
       <aside class="lobby-left stagger">
-        <section class="pass card" aria-label={t('lobby.pass.title')}>
+        <section class="pass card art-paper" aria-label={t('lobby.pass.title')}>
+          <ArtPaper />
           <div class="pass-lv"><span class="eyebrow">{t('lobby.pass.title')}</span><b class="num">{lp.level}</b></div>
           <div class="pass-body">
             <div class="pass-row"><Bar frac={lp.frac} /><span class="num pass-xp">{lp.level >= MAX_LEVEL ? 'MAX' : t('lobby.pass.progress', { into: Math.floor(lp.into), need: lp.need })}</span></div>

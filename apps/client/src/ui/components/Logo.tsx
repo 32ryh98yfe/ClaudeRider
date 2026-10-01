@@ -1,5 +1,8 @@
 // Wordmark: original parametric sparkle (10 rays, radii 0.85–1.05, inner 0.3, seeded jitter; ADR-011) + the title.
 // Never the Claude/Anthropic logo path.
+import { t } from '../../i18n/index.ts';
+import { useArtOverride } from './ArtOverride.tsx';
+
 export function sparklePath(cx = 50, cy = 50, r = 46): string {
   let d = '';
   for (let i = 0; i < 10; i++) {
@@ -18,10 +21,16 @@ export function Sparkle({ size = 24, class: cls }: { size?: number; class?: stri
 }
 
 export function Logo({ size = 1, stacked = false }: { size?: number; stacked?: boolean }) {
+  const title = (import.meta.env['VITE_PUBLIC_TITLE'] as string | undefined)?.trim() || t('common.appNameLatin');
+  // The shipped wordmark spells ClaudeRider; custom public titles must remain accurate without regenerated artwork.
+  const { url, onError } = useArtOverride(title === 'ClaudeRider' ? 'logo.wordmark' : null);
+  const localTitle = t('common.appName');
   return (
-    <div class={`logo ${stacked ? 'stacked' : ''}`} style={{ fontSize: `${size}em` }} role="img" aria-label="ClaudeRider 클로드라이더">
-      <svg viewBox="0 0 100 100" class="spark" aria-hidden="true"><path d={SPARK} /></svg>
-      <div class="words"><div class="en">Claude<b>Rider</b></div><div class="ko">클로드라이더</div></div>
+    <div class={`logo ${stacked ? 'stacked' : ''}`} style={{ fontSize: `${size}em` }} role="img" aria-label={title}>
+      {url ? <img class="wordmark-art" src={url} data-art-slot="logo.wordmark" alt="" draggable={false} onError={onError} /> : <>
+        <svg viewBox="0 0 100 100" class="spark" aria-hidden="true"><path d={SPARK} /></svg>
+        <div class="words"><div class="en">{title === 'ClaudeRider' ? <>Claude<b>Rider</b></> : title}</div>{title === 'ClaudeRider' && localTitle !== title ? <div class="ko">{localTitle}</div> : null}</div>
+      </>}
     </div>
   );
 }

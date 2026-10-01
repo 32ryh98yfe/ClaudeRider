@@ -1,8 +1,7 @@
 // Track thumbnail: art override `thumb.<trackId>` when present; otherwise the procedural fallback from 60-codex §4.1 —
 // a route line on the theme gradient (the route is a deterministic stylised loop until L4's preview SVGs land).
-import { useEffect, useState } from 'preact/hooks';
 import { loadContent } from '@cr/content';
-import { artUrl } from '../../art/loader.ts';
+import { useArtOverride } from './ArtOverride.tsx';
 import { hash32 } from '../../meta/challenges.ts';
 
 const routeCache = new Map<string, string>();
@@ -36,9 +35,8 @@ export function themeColors(trackId: string): string[] {
 }
 
 export function TrackArt({ id, class: cls, random }: { id: string; class?: string; random?: boolean }) {
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => { let alive = true; if (!random) void artUrl(`thumb.${id}`).then((u) => { if (alive) setUrl(u); }); return () => { alive = false; }; }, [id, random]);
-  if (url) return <div class={`track-art ${cls ?? ''}`}><img src={url} alt="" draggable={false} /></div>;
+  const { url, onError } = useArtOverride(random ? null : `thumb.${id}`);
+  if (url) return <div class={`track-art ${cls ?? ''}`}><img src={url} data-art-slot={`thumb.${id}`} alt="" draggable={false} onError={onError} /></div>;
   if (random) {
     return (
       <div class={`track-art random ${cls ?? ''}`} style={{ background: 'linear-gradient(135deg, #30302e, #5e5d59 55%, #c96442)' }}>

@@ -16,6 +16,7 @@ import { mockLobby } from '../../dev/demo.ts';
 import { useBack, useNow } from '../../hooks.ts';
 import { trackInfo, refLapTicks } from '../../store/tracks.ts';
 import { Portrait } from '../../components/Portrait.tsx';
+import { ArtOverride, ArtPaper } from '../../components/ArtOverride.tsx';
 import { Icon, SparkGlyph } from '../../icons/Icon.tsx';
 import { MedalBadge } from '../timeAttack/TimeAttackScreen.tsx';
 import './results.css';
@@ -93,6 +94,7 @@ export function ResultsScreen() {
   const again = (): void => { Audio.sfx('uiOk'); navigate('loading', { ...(last.again ?? { track: r.trackId, mode: r.mode, tier: 'racer' }), nonce: String(Date.now()) }); };
   return (
     <div class="screen results fade-in" data-testid="results">
+      <ArtOverride id="ui.results_bg" class="screen-art-backdrop" />
       <div class="res-scrim" />
       <section class="res-left">
         <div class="res-banner">
@@ -107,8 +109,10 @@ export function ResultsScreen() {
             {report?.ghostBeaten ? <span class="badge coral"><Icon name="ghost" size={12} />{t('results.ghostBeaten')}</span> : null}
           </div>
         </div>
+        <ArtOverride id={`hero.${last.slots?.[meSlot]?.characterId ?? save.get().profile.characterId}`} class="res-character-art" />
         {report ? (
-          <div class="res-rewards card">
+          <div class="res-rewards card art-paper">
+            <ArtPaper />
             <header><h2>{t('results.rewards')}</h2>{report.levelAfter > report.levelBefore ? <span class="badge new lvup">{t('results.levelUp', { n: report.levelAfter })}</span> : null}</header>
             <XpBar before={report.xpBefore} after={report.xpAfter} />
             <div class="rw-lines">

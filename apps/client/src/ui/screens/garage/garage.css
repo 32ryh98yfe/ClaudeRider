@@ -22,6 +22,9 @@
 
 .kart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
 .ktile { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.7rem 0.8rem; text-align: left; }
+.kt-art, .gd-kart-art { width: 100%; aspect-ratio: 8 / 5; object-fit: contain; display: block; flex: none; }
+.kt-art { max-height: 6rem; }
+.gd-kart-art { max-height: 8rem; }
 .kt-top { display: flex; justify-content: space-between; gap: 0.3rem; }
 .kt-name { font-weight: 800; font-size: 0.98rem; }
 .kt-mini { display: flex; flex-direction: column; gap: 3px; }
@@ -65,6 +68,7 @@
 
 /* detail panel */
 .gd-hero { display: flex; justify-content: center; padding: 0.4rem 0; }
+.gd-character-art { display: block; width: 100%; height: 10rem; object-fit: contain; }
 .gd-hero .portrait { background: radial-gradient(circle at 50% 40%, #fff, #efe7dc); border-radius: 22px; }
 .gd-hero .ico { color: var(--terracotta); }
 .gd-name { font-size: 1.9rem; color: var(--ink); }

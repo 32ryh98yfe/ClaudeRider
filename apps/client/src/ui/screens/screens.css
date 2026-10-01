@@ -10,6 +10,13 @@
 .logo .ko { font-family: var(--font-display); font-size: 1.45em; letter-spacing: 0.32em; opacity: 0.92; margin-top: 0.15em; white-space: nowrap; }
 .logo.stacked { flex-direction: column; gap: 0.2em; text-align: center; }
 .logo.stacked .spark { width: 2.6em; height: 2.6em; }
+.logo .wordmark-art { display: block; width: 23em; height: 8.625em; max-width: 80vw; object-fit: contain; }
+
+/* Art plates frame the live showcase without covering its central subject or intercepting controls. */
+.screen-art-backdrop { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; opacity: 0.65;
+  mask-image: radial-gradient(ellipse 28% 56% at var(--art-focus-x, 48%) 58%, transparent 35%, #000 100%); }
+.art-paper { position: relative; isolation: isolate; }
+.art-paper-texture { position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; opacity: 0.5; background-repeat: repeat; background-size: 256px 256px; }
 
 /* ---------------------------------------------------------------- chips used across menus */
 .sparks-chip { display: inline-flex; align-items: center; gap: 0.4rem; height: 2.6rem; padding: 0 1rem 0 0.75rem; border-radius: 99px; background: rgba(20, 20, 19, 0.55); box-shadow: 0 0 0 1px var(--glass-line); backdrop-filter: blur(10px); color: var(--ivory); }
@@ -27,7 +34,7 @@
 .pc-bar { position: relative; width: 6.5rem; height: 0.4rem; border-radius: 99px; background: rgba(250, 249, 245, 0.18); overflow: hidden; }
 .pc-bar i { position: absolute; inset: 0; transform-origin: left; background: linear-gradient(90deg, var(--terracotta), var(--coral-soft)); border-radius: inherit; }
 .item-icon { display: inline-block; width: 2.4rem; height: 2.4rem; flex: none; }
-.item-icon svg { width: 100%; height: 100%; display: block; }
+.item-icon svg, .item-icon img { width: 100%; height: 100%; display: block; object-fit: contain; }
 .portrait { display: block; flex: none; }
 .track-art { position: relative; overflow: hidden; background: var(--surface-dark); }
 .track-art svg, .track-art img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; }

@@ -14,6 +14,7 @@ import { toast } from '../../store/uiToast.ts';
 import { ScreenHead, SparksChip, Confirm } from '../../components/common.tsx';
 import { Tabs } from '../../components/controls.tsx';
 import { Portrait } from '../../components/Portrait.tsx';
+import { ArtOverride, ArtPaper } from '../../components/ArtOverride.tsx';
 import { Icon, SparkGlyph } from '../../icons/Icon.tsx';
 import './garage.css';
 
@@ -110,7 +111,10 @@ export function GarageScreen() {
     const owned = isOwned(u, s), equipped = s.profile.characterId === selChar;
     detail = (
       <>
-        <div class="gd-hero"><Portrait id={selChar} size={96} {...(s.profile.palette ? { palette: s.profile.palette } : {})} /></div>
+        <div class="gd-hero">
+          {s.profile.palette && s.profile.palette !== 'classic' ? <Portrait id={selChar} size={96} palette={s.profile.palette} /> :
+            <ArtOverride id={`hero.${selChar}`} class="gd-character-art"><Portrait id={selChar} size={96} /></ArtOverride>}
+        </div>
         <h2 class="gd-name display">{t(`chars.${selChar}.name`)}</h2>
         <p class="gd-desc">{t(`garage.charDesc.${selChar}`)}</p>
         <p class="gd-note">{t('garage.cosmeticNote')}</p>
@@ -129,6 +133,7 @@ export function GarageScreen() {
     const owned = isOwned(u, s), equipped = s.profile.kartBodyId === selKart;
     detail = (
       <>
+        <ArtOverride id={`kart.${selKart}`} class="gd-kart-art" />
         <span class={`badge arch-${k.archetype}`}>{t(`garage.archetype.${k.archetype}`)}</span>
         <h2 class="gd-name display">{t(`karts.${selKart}.name`)}</h2>
         <p class="gd-desc">{t(`garage.kartDesc.${selKart}`)}</p>
@@ -160,9 +165,11 @@ export function GarageScreen() {
 
   return (
     <div class="screen garage fade-in" data-testid="garage">
+      <ArtOverride id="ui.garage_backdrop" class="screen-art-backdrop" />
       <div class="scrim-top" /><div class="scrim-left" />
       <ScreenHead title={t('garage.title')} sub={t('garage.sub')} onBack={() => navigate('lobby')} right={<SparksChip />} />
-      <section class="gar-left card" aria-label={t('garage.title')}>
+      <section class="gar-left card art-paper" aria-label={t('garage.title')}>
+        <ArtPaper />
         <Tabs label={t('garage.title')} value={tab} onChange={(v) => { setTab(v); setSelUnlock(null); }}
           tabs={TABS.map((id) => ({ id, label: <>{t(`garage.${id}`)}{tabBadge(id === 'emotes' ? 'emote' : id) ? <i class="dot-new" /> : null}</> }))} />
         <div class="gar-list">
@@ -189,6 +196,7 @@ export function GarageScreen() {
                 const eq = s.profile.kartBodyId === k.id;
                 return (
                   <button key={k.id} type="button" class={`ktile ${selKart === k.id ? 'sel' : ''} ${isUnlocked(u, s) ? '' : 'locked'}`} onClick={click(() => setSelKart(k.id))}>
+                    <ArtOverride id={`kart.${k.id}`} class="kt-art" />
                     <span class="kt-top"><span class={`badge arch-${k.archetype}`}>{t(`garage.archetype.${k.archetype}`)}</span>{eq ? <span class="badge coral">{t('garage.equipped')}</span> : lockTag(u)}</span>
                     <span class="kt-name">{t(`karts.${k.id}.name`)}</span>
                     <span class="kt-mini">{kartStats(k).slice(0, 3).map((x) => <i key={x.id} style={{ width: `${x.v * 10}%` }} />)}</span>

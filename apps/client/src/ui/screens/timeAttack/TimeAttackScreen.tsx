@@ -14,6 +14,7 @@ import { bakedIndex, loadTrackIndex, refLapTicks, trackInfos, type TrackInfo } f
 import { ScreenHead, keyText, NavHints } from '../../components/common.tsx';
 import { Toggle, Stars, lapsText } from '../../components/controls.tsx';
 import { TrackArt } from '../../components/TrackArt.tsx';
+import { ArtOverride } from '../../components/ArtOverride.tsx';
 import { Icon } from '../../icons/Icon.tsx';
 import './timeAttack.css';
 
@@ -64,10 +65,13 @@ export function TimeAttackScreen() {
         </section>
         {cur ? (
           <section class="ta-detail card" aria-label={t(`tracks.${cur.id}.name`)}>
-            <TrackArt id={cur.id} class="ta-hero" />
+            <div class="ta-theme-header">
+              <ArtOverride id={`keyart.${cur.themeId}`} class="ta-theme-image"><TrackArt id={cur.id} class="ta-hero" /></ArtOverride>
+              <span class="ta-theme-name">{t(`themes.${cur.themeId}.name`)}</span>
+            </div>
             <div class="ta-detail-head">
               <h2 class="display">{t(`tracks.${cur.id}.name`)}</h2>
-              <div class="ta-tags"><span class="badge">{t(`themes.${cur.themeId}.name`)}</span><Stars n={cur.difficulty} /><span class="badge">{lapsText(cur.laps)}</span></div>
+              <div class="ta-tags"><Stars n={cur.difficulty} /><span class="badge">{lapsText(cur.laps)}</span></div>
             </div>
             <div class="ta-records">
               <div><span class="eyebrow">{t('lobby.ta.pbRace')}</span><b class="num">{fmtTicks(pbRace)}</b><MedalBadge m={medalFor(pbRace, refRace)} size={20} /></div>

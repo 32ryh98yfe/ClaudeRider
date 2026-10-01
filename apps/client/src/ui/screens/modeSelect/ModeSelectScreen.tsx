@@ -11,6 +11,7 @@ import { bakedIndex, loadTrackIndex, playableTracks, resolveTrack, trackInfos } 
 import { ScreenHead, NavHints } from '../../components/common.tsx';
 import { Seg, Stars, lapsText } from '../../components/controls.tsx';
 import { TrackArt } from '../../components/TrackArt.tsx';
+import { ArtOverride, ArtPaper } from '../../components/ArtOverride.tsx';
 import { Icon } from '../../icons/Icon.tsx';
 import './modeSelect.css';
 
@@ -50,7 +51,7 @@ export function ModeSelectScreen() {
             return (
               <button key={c} type="button" role="radio" data-testid={`mode-card-${c}`} aria-checked={sel ? 'true' : 'false'} class={`mode-card mc-${c} ${sel ? 'sel' : ''} ${focus === c ? 'focus' : 'unfocus'}`}
                 onClick={() => pick(c)} onMouseEnter={() => setHover(c)} onMouseLeave={() => setHover(null)} onFocus={() => setHover(c)} onBlur={() => setHover(null)}>
-                <span class="mc-art" aria-hidden="true"><i /><i /><i /><Icon name={CARD_ICON[c]} size={72} class="mc-glyph" /></span>
+                <span class="mc-art" aria-hidden="true"><ArtOverride id={`card.${c}`} class="mc-image"><i /><i /><i /><Icon name={CARD_ICON[c]} size={72} class="mc-glyph" /></ArtOverride></span>
                 <span class="mc-text">
                   <span class="mc-title display">{t(`common.mode.${c}`)}</span>
                   <span class="mc-desc">{t(`common.modeDesc.${c}`)}</span>
@@ -62,7 +63,8 @@ export function ModeSelectScreen() {
         </div>
 
         <div class="ms-options">
-          <section class="card ms-rules">
+          <section class="card ms-rules art-paper">
+            <ArtPaper />
             <div class="opt">
               <h3 class="eyebrow">{t('lobby.modeSelect.format')}</h3>
               <Seg label={t('lobby.modeSelect.format')} value={raceTeams.value} onChange={(v) => { Audio.sfx('uiMove'); raceTeams.value = v as 'solo' | 'duo' | 'squad'; }}

@@ -2,7 +2,7 @@
 // (`getPortrait`, transparent, cached per size and palette; docs/design/contract-requests/L8-portraits.md). The original
 // SVG Clawd silhouette (portraitSvg.ts) shows instantly while the render resolves, and stays if rendering fails.
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { artUrl } from '../../art/loader.ts';
+import { useArtOverride } from './ArtOverride.tsx';
 import { getPortrait } from '../../render/portrait/portrait.ts';
 import { stageInfo } from '../../game/Stage.ts';
 import { portraitSvg, PALETTE_SKIN } from './portraitSvg.ts';
@@ -19,23 +19,18 @@ function renders3d(): boolean {
 function renderPx(size: number): number { return Math.max(64, Math.min(256, Math.ceil((size * 2) / 32) * 32)); }
 
 export function Portrait({ id, size = 64, ring, palette, class: cls }: { id: string; size?: number; ring?: string; palette?: string; class?: string }) {
-  const [url, setUrl] = useState<string | null>(null);
   const [bmp, setBmp] = useState<ImageBitmap | HTMLCanvasElement | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const px = renderPx(size);
   const skin = palette && palette !== 'classic' ? PALETTE_SKIN[palette]?.body : undefined;
+  const { url, pending, onError } = useArtOverride(skin ? null : `portrait.${id}`);
   useEffect(() => {
     let alive = true;
     setBmp(null);
-    void artUrl(`portrait.${id}`).then((u) => {
-      if (!alive) return;
-      if (u && !skin) { setUrl(u); return; }
-      setUrl(null);
-      if (!renders3d()) return;
-      getPortrait(id, px, skin ? { bodyColor: skin } : undefined).then((b) => { if (alive) setBmp(b); }).catch(() => undefined);
-    });
+    if (!pending && !url && renders3d())
+      void getPortrait(id, px, skin ? { bodyColor: skin } : undefined).then((b) => { if (alive) setBmp(b); }).catch(() => undefined);
     return () => { alive = false; };
-  }, [id, px, skin]);
+  }, [id, px, skin, pending, url]);
   useEffect(() => {
     const c = canvas.current;
     if (!c || !bmp) return;
@@ -45,7 +40,7 @@ export function Portrait({ id, size = 64, ring, palette, class: cls }: { id: str
     g.drawImage(bmp, 0, 0, c.width, c.height);
   }, [bmp]);
   const style = { width: `${size}px`, height: `${size}px`, ...(ring ? { boxShadow: `0 0 0 2px ${ring}` } : {}) };
-  if (url) return <img class={`portrait ${cls ?? ''}`} src={url} style={style} alt="" draggable={false} />;
+  if (url) return <img class={`portrait ${cls ?? ''}`} src={url} style={{ ...style, objectFit: 'cover' }} data-art-slot={`portrait.${id}`} alt="" draggable={false} onError={onError} />;
   if (bmp) return <canvas ref={canvas} class={`portrait ${cls ?? ''}`} width={px} height={px} style={style} aria-hidden="true" />;
   return <svg class={`portrait ${cls ?? ''}`} style={style} viewBox="6 4 88 88" aria-hidden="true" dangerouslySetInnerHTML={{ __html: portraitSvg(id, palette) }} />;
 }
