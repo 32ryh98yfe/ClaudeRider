@@ -35,11 +35,36 @@ export const DEFAULT_TIMINGS: LobbyTimings = {
   reconnectMs: NET.RECONNECT_MS, lobbyGraceMs: 20_000, helloMs: 10_000,
 };
 
+/** Abuse limits (M4 security review). Per-address limits apply only to sockets accepted with an address. */
+export interface ServerLimits {
+  maxSessions: number;
+  /** Races running at once, server-wide. */
+  maxRaces: number;
+  /** Per remote address: open sockets, live sessions, races at once, failed room-code joins per minute. */
+  ipConnections: number;
+  ipSessions: number;
+  ipRaces: number;
+  ipJoinFailsPerMin: number;
+  /** Frames a socket may send outside its race channel: a token bucket refilled at this rate, and its size. */
+  framesPerSec: number;
+  frameBurst: number;
+  /** A socket with more unsent bytes than this is not reading: it is closed. */
+  maxBufferedBytes: number;
+  /** Shortest gap between two resumes of one session. */
+  resumeGapMs: number;
+}
+export const DEFAULT_LIMITS: ServerLimits = {
+  maxSessions: 5000, maxRaces: 50, ipConnections: 8, ipSessions: 16, ipRaces: 2, ipJoinFailsPerMin: 10,
+  framesPerSec: 30, frameBurst: 60, maxBufferedBytes: 1 << 20, resumeGapMs: 1000,
+};
+
 export interface GameServerOptions {
   tracks: TrackSource;
   content: ContentTables;
   clock: ServerClock;
   timings?: Partial<LobbyTimings>;
+  limits?: Partial<ServerLimits>;
+  /** @deprecated use limits.maxSessions */
   maxSessions?: number;
   log?: (m: string) => void;
   /** Race intro length (ticks) for online races. */
@@ -50,7 +75,11 @@ export interface GameServerOptions {
 type Phase = 'search' | 'stage' | 'waiting' | 'countdown' | 'roulette' | 'loading' | 'racing' | 'results';
 
 /** One accepted socket: its session once welcomed (sessionOf is a lookup, not a scan of every session). */
-interface Conn { readonly mux: FrameMux; session: Session | null; helloUntil: number }
+interface Conn {
+  readonly mux: FrameMux; session: Session | null; helloUntil: number;
+  /** Frame token bucket, and when `rateLimited` was last sent (at most once a second). */
+  tokens: number; refillAt: number; limitedAt: number;
+}
 
 interface Slot { state: 'open' | 'closed' | 'human' | 'bot'; session: Session | null; ready: boolean; team: number; tier: AiTier; joinedAt: number }
 
@@ -97,6 +126,7 @@ export class LobbyRoom {
 export class GameServer {
   private readonly o: GameServerOptions;
   private readonly t: LobbyTimings;
+  private readonly L: ServerLimits;
   private readonly clock: ServerClock;
   private readonly sessions = new Map<string, Session>();       // by public id
   private readonly byToken = new Map<string, Session>();
@@ -115,6 +145,7 @@ export class GameServer {
   constructor(o: GameServerOptions) {
     this.o = o;
     this.t = { ...DEFAULT_TIMINGS, ...o.timings };
+    this.L = { ...DEFAULT_LIMITS, ...(o.maxSessions ? { maxSessions: o.maxSessions } : {}), ...o.limits };
     this.clock = o.clock;
     this.log = o.log ?? ((): void => { /* quiet */ });
     this.rand = o.rand ?? ((n) => { const a = new Uint8Array(n); globalThis.crypto.getRandomValues(a); return a; });
@@ -124,7 +155,8 @@ export class GameServer {
 
   accept(t: Transport): void {
     const mux = new FrameMux(t);
-    this.conns.set(t, { mux, session: null, helloUntil: this.clock.nowMs() + this.t.helloMs });
+    const now = this.clock.nowMs();
+    this.conns.set(t, { mux, session: null, helloUntil: now + this.t.helloMs, tokens: this.L.frameBurst, refillAt: now, limitedAt: -Infinity });
     mux.onOther = (b) => this.onFrame(t, mux, b);
     mux.onClose = () => this.onClose(t);
   }
@@ -135,6 +167,14 @@ export class GameServer {
   }
 
   private onFrame(t: Transport, mux: FrameMux, b: Uint8Array): void {
+    const c = this.conns.get(t);
+    if (!c) return;
+    // the budget is spent before any work on the frame: a flood costs a subtraction per frame, not a JSON parse
+    const now = this.clock.nowMs();
+    c.tokens = Math.min(this.L.frameBurst, c.tokens + ((now - c.refillAt) * this.L.framesPerSec) / 1000);
+    c.refillAt = now;
+    if (c.tokens < 1) { this.limited(t, c, now); return; }
+    c.tokens -= 1;
     const type = b[0];
     if (type === C2S.PING) { this.pong(t, b); return; }
     if (type !== C2S.LOBBY_JSON) return; // race frames outside a race are ignored
@@ -146,7 +186,7 @@ export class GameServer {
     if (!msg || typeof msg !== 'object' || typeof msg.t !== 'string') { this.sendTo(t, { t: 'error', code: 'badMessage' }); return; }
     const s = this.sessionOf(t);
     if (!s) { if (msg.t === 'hello') this.hello(t, mux, msg); else this.sendTo(t, { t: 'error', code: 'badMessage' }); return; }
-    if (!this.admit(s)) { this.send(s, { t: 'error', code: 'rateLimited' }); return; }
+    if (!this.admit(s)) { this.limited(t, c, now); return; }
     try { this.dispatch(s, msg); } catch (e) { this.log(`dispatch ${msg.t}: ${String((e as Error)?.stack ?? e)}`); this.send(s, { t: 'error', code: 'internal' }); }
   }
 
@@ -159,6 +199,13 @@ export class GameServer {
     return true;
   }
 
+  /** Tells a flooding socket once per second, not once per dropped frame. */
+  private limited(t: Transport, c: Conn, now: number): void {
+    if (now - c.limitedAt < 1000) return;
+    c.limitedAt = now;
+    this.sendTo(t, { t: 'error', code: 'rateLimited' });
+  }
+
   private pong(t: Transport, b: Uint8Array): void {
     try {
       const p = PingMsg.decode(this.pr.reset(b));
@@ -168,7 +215,7 @@ export class GameServer {
       const g = race?.timelineTick(now) ?? this.clock.serverTick(now);
       this.pw.reset();
       PongMsg.encode(this.pw, { pingId: p.pingId, clientMsEcho: p.clientMs, serverTick: Math.floor(g), tickPhase: (g - Math.floor(g)) * 65536 });
-      t.send(this.pw.finish());
+      this.out(t, this.pw.finish());
     } catch (e) { if (!(e instanceof ProtocolError)) throw e; }
   }
 
@@ -207,7 +254,7 @@ export class GameServer {
     } else {
       const name = cleanName(m.name);
       if (!name) { this.sendTo(t, { t: 'error', code: 'nameInvalid' }); return; }
-      if (this.sessions.size >= (this.o.maxSessions ?? 5000)) { this.sendTo(t, { t: 'error', code: 'serverFull' }); this.closeConn(t, 4004, 'full'); return; }
+      if (this.sessions.size >= this.L.maxSessions) { this.sendTo(t, { t: 'error', code: 'serverFull' }); this.closeConn(t, 4004, 'full'); return; }
       s = new Session(`s${(this.nextId++).toString(36)}${u32Hex(randomSecret()).slice(0, 6)}`, u32Hex(randomSecret()), name, cleanLoadout(m.loadout));
       this.sessions.set(s.id, s);
       this.byToken.set(s.token, s);
@@ -689,8 +736,16 @@ export class GameServer {
     for (const s of r.humans()) this.send(s, { t: 'roulette', endsAt: this.clock.wallMs(r.deadline), votes });
   }
 
-  private send(s: Session, m: S2CLobby): void { if (s.transport && s.connected) s.transport.send(encodeS2CLobby(m)); }
-  private sendTo(t: Transport, m: S2CLobby): void { t.send(encodeS2CLobby(m)); }
+  private send(s: Session, m: S2CLobby): void { if (s.transport && s.connected) this.out(s.transport, encodeS2CLobby(m)); }
+  private sendTo(t: Transport, m: S2CLobby): void { this.out(t, encodeS2CLobby(m)); }
+
+  /** Every lobby send: a socket that stopped reading is closed instead of buffering without bound. */
+  private out(t: Transport, b: Uint8Array): void {
+    if (!this.conns.has(t)) return;
+    const queued = t.bufferedAmount();
+    if (queued > this.L.maxBufferedBytes) { this.log(`closing ${t.id}: ${queued} bytes unsent`); this.closeConn(t, 4008, 'not reading'); return; }
+    t.send(b);
+  }
 
   // ------------------------------------------------------------ introspection
 

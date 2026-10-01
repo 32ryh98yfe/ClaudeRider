@@ -4,7 +4,7 @@ import { loadContent, type TrackId } from '@cr/content';
 import { loadCtrk, toArrayBuffer, type BakedTrack } from '@cr/sim';
 import { buildTrack } from '@cr/trackc/build.ts';
 import { FrameMux, NET, decodeLobby, encodeC2SLobby, loopbackPair, S2C, type C2SLobby, type Loadout, type S2CLobby, type Transport } from '@cr/net';
-import { GameServer, type LobbyTimings, type TrackSource } from '../src/lobby/server.ts';
+import { GameServer, type LobbyTimings, type ServerLimits, type TrackSource } from '../src/lobby/server.ts';
 
 const trackCache = new Map<string, BakedTrack>();
 function bake(dir: string, id: string): BakedTrack {
@@ -37,8 +37,8 @@ export class World {
   readonly server: GameServer;
   G = 0;
   readonly onTick: (() => void)[] = [];
-  constructor(timings: Partial<LobbyTimings> = {}) {
-    this.server = new GameServer({ tracks: memoryTracks(), content: loadContent(), clock: this.clock, timings, introTicks: 30 });
+  constructor(timings: Partial<LobbyTimings> = {}, limits: Partial<ServerLimits> = {}) {
+    this.server = new GameServer({ tracks: memoryTracks(), content: loadContent(), clock: this.clock, timings, limits, introTicks: 30 });
   }
   /** Delivers queued messages (repeatedly, until quiet). */
   flush(): void { for (let i = 0; i < 100 && this.queue.length; i++) { const q = this.queue.splice(0); for (const f of q) f(); } }
@@ -66,12 +66,13 @@ export class TestClient {
   readonly got: S2CLobby[] = [];
   /** The close reason once the server closed this connection. */
   closed: string | null = null;
+  pongs = 0;
   constructor(w: World, name: string) {
     this.w = w; this.name = name;
     const [c, s] = loopbackPair(1, (fn) => { w.queue.push(fn); });
     this.transport = c; this.serverSide = s;
     this.mux = new FrameMux(c);
-    this.mux.onOther = (b) => { if (b[0] === S2C.LOBBY_JSON) this.got.push(decodeLobby(b) as S2CLobby); };
+    this.mux.onOther = (b) => { if (b[0] === S2C.LOBBY_JSON) this.got.push(decodeLobby(b) as S2CLobby); else if (b[0] === S2C.PONG) this.pongs++; };
     this.closed = null;
     this.mux.onClose = (r) => { this.closed = r; };
     w.server.accept(s);
@@ -92,7 +93,7 @@ export class TestClient {
     const [c, s] = loopbackPair(1, (fn) => { this.w.queue.push(fn); });
     this.transport = c; this.serverSide = s;
     this.mux = new FrameMux(c);
-    this.mux.onOther = (b) => { if (b[0] === S2C.LOBBY_JSON) this.got.push(decodeLobby(b) as S2CLobby); };
+    this.mux.onOther = (b) => { if (b[0] === S2C.LOBBY_JSON) this.got.push(decodeLobby(b) as S2CLobby); else if (b[0] === S2C.PONG) this.pongs++; };
     this.closed = null;
     this.mux.onClose = (r) => { this.closed = r; };
     this.w.server.accept(s);
