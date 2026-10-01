@@ -41,10 +41,11 @@ export const SUNSTONE_LOOK: Partial<ThemeLook> = {
 };
 
 export default (c: ContentTables, env: Readonly<Record<string, string>> = {}): ThemeKit => {
-  // afternoon tracks (Sunstone Bazaar 16:00): a slightly warmer, lower key and a touch more fill for the long shadows
+  // afternoon tracks (Sunstone Bazaar 16:00) get their own light; the sun elevation follows the THEME time
   const hour = env['time'] ? Number(env['time'].split(':')[0]) : 12;
   const look: Partial<ThemeLook> = hour >= 15
-    ? { ...SUNSTONE_LOOK, sun: { color: '#ffe9cf', intensity: 3.0 }, fill: { color: '#ffe6d2', intensity: 0.5 }, horizon: '#d8e2ea', fogColor: '#cfdce6' }
+    // 16:00: a warm, lower key (the THEME time puts the sun ≈ 31° up), a pale warm horizon and fog, neutral grade
+    ? { ...SUNSTONE_LOOK, sun: { color: '#ffdcae', intensity: 2.9 }, fill: { color: '#ffe6d2', intensity: 0.5 }, horizon: '#e4dccf', fogColor: '#ddd6cb' }
     : SUNSTONE_LOOK;
   const kit = makeKit(c.themes.get('sunstone_desert'), look, SUNSTONE_PROPS);
   const base = kit.materials;
