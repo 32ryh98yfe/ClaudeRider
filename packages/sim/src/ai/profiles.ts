@@ -62,8 +62,8 @@ export interface AiExecution {
   brakeTurnRate: number;
   /** Tightest corner radius (m) a drag is planned on (the drag holds ~48–50 m/s on a fixed yaw). */
   dragMinR: number;
-  /** A booster for a planned drag fires when the corner is 5 m … v·dragLeadS ahead (0: never fired for it). 1.3–1.5 s
-   *  covers the straight before the corner, the drag, and runs out inside the drift (no bleed). */
+  /** A booster for a planned drag fires when the corner is 5 m … v·dragLeadS ahead (0: never fired for it). Longer
+   *  leads (1.3–1.5 s) give more drags but speed up the Legend ghost more than the tiers (M5-ai-pace review). */
   dragLeadS: number;
   /** ± jitter on the 8-tick tap rhythm (clamped to the valid 6–12 ticks). */
   tapJitterTicks: number;
@@ -76,15 +76,15 @@ export const AI_EXECUTION: Readonly<Record<AiTier, AiExecution>> = {
   },
   racer: {
     cornerSpeedMul: 0.95, gripSpeedMul: 0.96, sloppyLateM: [4, 9], sloppyHoldTicks: [6, 12], boostSkill: 1, boostDelayTicks: [10, 60], lineTrack: 0.75, laneEvalTicks: 9, ttcHorizon: 1.2, mistakeLateTicks: 18, mistakeHoldTicks: 20, panicBrakeTicks: [10, 20], chainRate: 0, gripViable: 0.85,
-    dragRate: 0.25, tapRate: 0.05, brakeTurnRate: 0.1, dragMinR: 50, dragLeadS: 0.9, tapJitterTicks: 2,
+    dragRate: 0.25, tapRate: 0.05, brakeTurnRate: 0.1, dragMinR: 50, dragLeadS: 0.5, tapJitterTicks: 2,
   },
   pro: {
     cornerSpeedMul: 0.99, gripSpeedMul: 0.99, sloppyLateM: [3, 7], sloppyHoldTicks: [5, 10], boostSkill: 2, boostDelayTicks: [0, 12], lineTrack: 1, laneEvalTicks: 6, ttcHorizon: 1.5, mistakeLateTicks: 18, mistakeHoldTicks: 20, panicBrakeTicks: [8, 16], chainRate: 0, gripViable: 0.9,
-    dragRate: 0.75, tapRate: 0.3, brakeTurnRate: 0.35, dragMinR: 40, dragLeadS: 1.3, tapJitterTicks: 1,
+    dragRate: 0.75, tapRate: 0.3, brakeTurnRate: 0.35, dragMinR: 40, dragLeadS: 0.7, tapJitterTicks: 1,
   },
   legend: {
     cornerSpeedMul: 1.0, gripSpeedMul: 1.0, sloppyLateM: [2, 5], sloppyHoldTicks: [4, 8], boostSkill: 3, boostDelayTicks: [0, 3], lineTrack: 1, laneEvalTicks: 6, ttcHorizon: 1.6, mistakeLateTicks: 18, mistakeHoldTicks: 20, panicBrakeTicks: [6, 12], chainRate: 0, gripViable: 0.9,
-    dragRate: 0.95, tapRate: 0.9, brakeTurnRate: 0.7, dragMinR: 35, dragLeadS: 1.5, tapJitterTicks: 0,
+    dragRate: 0.95, tapRate: 0.9, brakeTurnRate: 0.7, dragMinR: 35, dragLeadS: 0.8, tapJitterTicks: 0,
   },
 };
 

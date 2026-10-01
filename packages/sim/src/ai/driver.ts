@@ -58,7 +58,7 @@ const A = {
  */
 export const AI_TUNING = {
   lineClampFrac: 9, holdTurn: 0.5, holdMinSIn: -0.3, holdMode: 0, holdKeyEh: -0.05, holdSbMax: 0.45, minZones: 6, eExit: 0.05, hazards: 1,
-  chainMinTurn: 0, chainMaxTurn: 0, chainEExit: -0.02, chainShift: 0.3, longEExit: 0.03, longShift: 0.25, longRekickTurn: 2.0,
+  chainMinTurn: 0, chainMaxTurn: 0, chainEExit: -0.02, chainShift: 0.3, longEExit: 0.03, longShift: 0.3, longRekickTurn: 2.0,
   // M5 drift exit (15-driving-techniques §4.5): a full counter-steer cuts (β → 0 at once, the drift ends). The exit
   // cuts only when the corner is done (≤ cutTurn rad left), the nose is at most cutPsi rad past the local tangent and
   // cutRoom m are free on the inside; otherwise the counter-steer is a trim below the threshold (the old gradual exit).
@@ -646,7 +646,17 @@ class BotDriver implements AiDriverEx {
       // ---- drag (끌기, 14-ai §3.11): on a planned drag corner, once the boosted drift has built β into the entry
       // window, hold DRIFT with the wheel neutral while the nose follows the track; the drag law then carries the kart
       // past vBoost (290 km/h). Taps on the corner key every 6–12 ticks (톡톡이) add yaw and lift the cap to 305.
-      const dragCorner = AI_TUNING.drag && this.cDrag && !e_forceExit && corner !== null && corner.dir === dd && (inCorner || cornerDist < 15)
+      // a kart alongside (the side-contact reflex below would push the wheel): no drag beside it — a drag holds its
+      // line at boost speed and rubs a kart there for a second or more
+      let sideRep = 0;
+      if (this.tapLeft === 0 && AI_TUNING.sideDrift > 0 && !jumpNear && !ledgeHere && prof.aggression < 0.8) {
+        // (the station lookup is restored: later checks read the last looked-up point)
+        const rp = this.rp, ri = this.ri, rj = this.rj, rf = this.rf, rs = this.rs;
+        this.qs = s; this.at(path);
+        if (ppS.PIPE[this.ri] === 0) sideRep = this.sideRepel(w, k, s, u, vU, path) * dd * AI_TUNING.sideDrift;
+        this.rp = rp; this.ri = ri; this.rj = rj; this.rf = rf; this.rs = rs;
+      }
+      const dragCorner = AI_TUNING.drag && this.cDrag && !e_forceExit && sideRep === 0 && corner !== null && corner.dir === dd && (inCorner || cornerDist < 15)
         && pr.boost > AI_TUNING.dragBoostMin && outside < AI_TUNING.dragOut && outside > -AI_TUNING.dragIn
         && (!inCorner || this.remainingTurn(corner, ppS.length) > AI_TUNING.dragEndTurn);
       // yaw the corner asks for at the apply tick: path curvature × speed, plus a heading correction (rad/s, + = into
@@ -702,10 +712,8 @@ class BotDriver implements AiDriverEx {
       }
       // side contact in a drift: the slide carries the kart to the outside of its line, into a kart running alongside
       // there. A rival on the outside tightens the drift (more in-steer); one on the inside only eases it, never into
-      // the cut zone (sIn ≤ −0.7). Not while dragging (the drag needs the wheel centred) or on an entry tap.
-      if (!this.dragging && this.tapLeft === 0 && AI_TUNING.sideDrift > 0 && !jumpNear && !ledgeHere && prof.aggression < 0.8) {
-        this.qs = s; this.at(path);
-        const rep = ppS.PIPE[this.ri] === 0 ? this.sideRepel(w, k, s, u, vU, path) * dd * AI_TUNING.sideDrift : 0;
+      // the cut zone (sIn ≤ −0.7). Not on an entry tap; no drag is held beside a rival (see dragCorner).
+      { const rep = sideRep;
         if (rep > 0) sIn = sIn + rep > 1 ? 1 : sIn + rep;
         else if (rep < 0 && sIn > AI_TUNING.sideDriftMin) sIn = sIn + rep < AI_TUNING.sideDriftMin ? AI_TUNING.sideDriftMin : sIn + rep;
       }

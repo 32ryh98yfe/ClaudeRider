@@ -20,17 +20,26 @@ const FIELD: readonly CharacterId[] = ['clay', 'pixel', 'turbo', 'anchor', 'rune
 
 describe('AI field racing', () => {
   it('8 Pro bots on meadow_loop: all finish, no start pile-up, no ramming, nobody stuck', () => {
-    const r = runRace({ track: bakedTrack(MEADOW), content: getContent(), seed: 1, lookahead: 8, laps: 1, bots: FIELD.map((c) => ({ tier: 'pro' as const, character: c })) });
-    const stuck = Math.max(...r.karts.map((k) => k.maxStuckTicks));
-    console.log(`field: bumps ${r.bumps} (hard ${r.hardBumps}, start ${r.startHardBumps}), max stuck ${stuck} ticks, overtaking lanes ${r.karts.reduce((a, k) => a + k.ai.overtakeLanes, 0)}, draft follows ${r.karts.reduce((a, k) => a + k.ai.draftFollows, 0)}`);
-    expect(r.karts.every((k) => k.finished)).toBe(true);
-    expect(r.karts.reduce((a, k) => a + k.respawns, 0)).toBe(0);
-    expect(stuck).toBeLessThanOrEqual(300);
-    // a hard bump closes at ≥ 2 m/s; the start is a clean launch, and racing contact stays rare
-    expect(r.startHardBumps).toBeLessThanOrEqual(6);
-    expect(r.hardBumps / r.karts.length).toBeLessThanOrEqual(3);
+    // three seeds: contact in an 8-kart field is chaotic (one seed's count swings 2× with any AI change), so the
+    // ramming bound is on the mean, with a looser bound on the worst seed
+    const hard: number[] = [];
+    let lanes = 0;
+    for (const seed of [1, 2, 3]) {
+      const r = runRace({ track: bakedTrack(MEADOW), content: getContent(), seed, lookahead: 8, laps: 1, bots: FIELD.map((c) => ({ tier: 'pro' as const, character: c })) });
+      const stuck = Math.max(...r.karts.map((k) => k.maxStuckTicks));
+      console.log(`field seed ${seed}: bumps ${r.bumps} (hard ${r.hardBumps}, start ${r.startHardBumps}), max stuck ${stuck} ticks, overtaking lanes ${r.karts.reduce((a, k) => a + k.ai.overtakeLanes, 0)}, draft follows ${r.karts.reduce((a, k) => a + k.ai.draftFollows, 0)}`);
+      expect(r.karts.every((k) => k.finished)).toBe(true);
+      expect(r.karts.reduce((a, k) => a + k.respawns, 0)).toBe(0);
+      expect(stuck).toBeLessThanOrEqual(300);
+      // a hard bump closes at ≥ 2 m/s; the start is a clean launch, and racing contact stays rare
+      expect(r.startHardBumps).toBeLessThanOrEqual(6);
+      hard.push(r.hardBumps / r.karts.length);
+      lanes += r.karts.reduce((a, k) => a + k.ai.overtakeLanes, 0);
+    }
+    expect(hard.reduce((a, b) => a + b, 0) / hard.length, `hard bumps per kart ${hard.map((h) => h.toFixed(2)).join(', ')}`).toBeLessThanOrEqual(2.5);
+    expect(Math.max(...hard)).toBeLessThanOrEqual(4);
     // bots do use lanes to pass and follow in the draft
-    expect(r.karts.reduce((a, k) => a + k.ai.overtakeLanes, 0)).toBeGreaterThan(0);
+    expect(lanes).toBeGreaterThan(0);
   });
 
   it('bot races are reproducible (same seed, same lookahead)', () => {
