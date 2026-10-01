@@ -209,3 +209,23 @@ describe('race spam (item 1)', () => {
     expect(w.server.stats().races).toBe(1);
   });
 });
+
+describe('lobby state abuse', () => {
+  it('join is refused while the player is loading or racing, so their race room is not orphaned (item 7)', () => {
+    const w = new World();
+    const a = host(w, 'Racer').send({ t: 'start' });
+    const raceRoom = a.last('room')!.room.code;
+    expect(w.server.roomByCode(raceRoom)!.phase).toBe('loading');
+    const b = host(w, 'Other');
+    const other = b.last('room')!.room.code;
+    a.send({ t: 'join', code: other });
+    expect(a.errors()).toContain('inRace');
+    expect(w.server.roomByCode(other)!.humans()).toHaveLength(1);
+    expect(w.server.roomByCode(raceRoom)!.humans()).toHaveLength(1);
+    // outside a race the same join works
+    const c = w.client('Idle').hello();
+    c.send({ t: 'join', code: other });
+    expect(c.errors()).toEqual([]);
+    expect(w.server.roomByCode(other)!.humans()).toHaveLength(2);
+  });
+});

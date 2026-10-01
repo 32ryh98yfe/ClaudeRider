@@ -412,6 +412,8 @@ export class GameServer {
     const r = this.rooms.get(code);
     if (!r) return this.send(s, { t: 'error', code: 'notFound' });
     if (s.room === r) return this.broadcastRoom(r);
+    // a player loading or racing stays in that race (leaving it would orphan their slot and keep the room alive)
+    if (s.room && (s.room.phase === 'racing' || s.room.phase === 'loading')) return this.send(s, { t: 'error', code: 'inRace' });
     if (r.phase !== 'waiting' && r.phase !== 'countdown') return this.send(s, { t: 'error', code: 'inRace' });
     const humans = r.humans().length;
     const free = r.slots.findIndex((x) => x.state === 'open');
@@ -751,7 +753,7 @@ export class GameServer {
   private afterResults(r: LobbyRoom): void {
     r.race?.dispose();
     r.race = null;
-    if (r.kind === 'quick') { this.closeRoom(r); return; }
+    if (r.kind === 'quick' || !r.humans().length) { this.closeRoom(r); return; }
     r.phase = 'waiting';
     r.trackId = null;
     for (const x of r.slots) if (x.state === 'human') x.ready = false;
