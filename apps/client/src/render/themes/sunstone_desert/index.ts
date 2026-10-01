@@ -7,6 +7,7 @@ import { MaterialLibrary } from '../../materials/library.ts';
 import { makeKit, type ThemeKit, type ThemeLook } from '../kit.ts';
 import { SUNSTONE_PROPS } from './props.ts';
 import { softAoTerrain } from './terrain.ts';
+import { paving } from './paving.ts';
 
 // Stylized arcade read (2026-10 pass, docs/design/34-stylized-pass.md): the Preetham sky plus a peach grade washed
 // every desert frame orange. Now a clear blue gradient sky with a pale warm horizon, a neutral grade, a key sun that
@@ -52,8 +53,11 @@ export default (c: ContentTables, env: Readonly<Record<string, string>> = {}): T
     ...base(),
     // bright sand: keep 60 % of the baked terrain AO (soft, clean ground; wall bases and gullies keep their shade)
     terrain: softAoTerrain(T.a, T.b, T.rock, 0.6),
-    // sandstone paving: warm grey stone (the karts read against it), gold edge paint
-    'road:stone': MaterialLibrary.road({ style: 'cobble', a: '#8a7c6b', b: '#9c8d7a', line: '#ffe2a0', tint: [1.05, 1.03, 1.0] }),
+    // sandstone paving: warm grey stone in a narrow tone range with soft joints (the karts read against it), gold paint
+    'road:stone': paving({ a: '#8f8270', b: '#968977', line: '#ffe2a0', tint: [1.05, 1.03, 1.0] }),
+    // the kit road and the Bazaar shortcut's cobble lane use the same calm paving
+    road: paving({ a: '#8f8270', b: '#968977', line: '#ffe2a0', tint: [1, 1, 1] }),
+    'road:cobble': paving({ a: '#8f8270', b: '#968977', line: '#ffe2a0', tint: [1.08, 1.02, 0.95] }),
     'road:sand': MaterialLibrary.road({ style: 'sand', a: '#cfb283', b: '#dcc193', line: '#ffe2a0', tint: [1.45, 1.3, 0.95] }),
     'shoulder:sand': MaterialLibrary.road({ style: 'sand', a: '#d6bb8a', b: '#e0c697', line: '#ffe2a0', tint: [1.45, 1.3, 0.95], shoulder: true }),
     'wall:building': MaterialLibrary.wall('building', '#ead6b2', '#3fa8a0', 0.9),
