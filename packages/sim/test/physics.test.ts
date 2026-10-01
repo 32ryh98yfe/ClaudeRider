@@ -2,7 +2,7 @@
 // Fixtures are built in code (test/fixtures): a 1 km flat plane, a 16 m corridor and 12 m corner kits.
 // M5 (docs/design/15-driving-techniques.md): the display reads 205 km/h at vGrip (KMH); rows whose physics is
 // unchanged keep their validated gap-2 numbers on the old scale (KMH_GAP2). Numbers that the new vBoost or the new
-// laws (bleed, cut, drag, gears) move are marked REMEASURE(M5) with the expected value; the techniques themselves
+// laws (bleed, cut, drag, gears) move carry an "M5" note with the re-measured value; the techniques themselves
 // are pinned in techniques.test.ts.
 import { describe, expect, it } from 'vitest';
 import { Edge, Held, V_REF, makeInput, copyInput, paramsFor, type InputFrame, type KartState } from '@cr/sim';
@@ -72,7 +72,7 @@ describe('physics: acceleration (§14.1)', () => {
   });
 });
 
-// REMEASURE(M5): the booster rows below moved with vBoost 45.11 (272 km/h on the new display) and, after expiry, with
+// M5: the booster rows below moved with vBoost 45.11 (272 km/h on the new display) and, after expiry, with
 // the post-boost bleed. The expected values are a pre-merge measurement of the unchanged boost law with the M5 vBoost
 // (during the boost) and the oracle's bleed prediction (after expiry); the reconcile step confirms them on the merged sim.
 describe('physics: booster (§14.2)', () => {
@@ -85,31 +85,31 @@ describe('physics: booster (§14.2)', () => {
     const at: Record<number, number> = {};
     rig.run(160, (w, inp) => { inp[0]!.throttle = 15; if (w.tick === use) inp[0]!.edges |= Edge.USE_ITEM; at[w.tick - use] = fwdKmh(w.karts[0]!); });
     expect(rig.w.karts[0]!.stats.boostsUsed).toBe(1);
-    expect(at[61]!).toBeGreaterThanOrEqual(270); // REMEASURE(M5): pre-merge 270.73 (gap-2: ≥ 237)
-    expect(at[150]!).toBeGreaterThanOrEqual(271.5); // REMEASURE(M5): pre-merge 271.98 (gap-2: 239–240.5)
+    expect(at[61]!).toBeGreaterThanOrEqual(270); // M5 measured: 270.73 (gap-2: ≥ 237)
+    expect(at[150]!).toBeGreaterThanOrEqual(271.5); // M5 measured: 271.98 (gap-2: 239–240.5)
     expect(at[150]!).toBeLessThanOrEqual(272.5);
   });
 
   it('from 205 km/h: 242, 261, 268, 271 (1.0 s), plateau to 3.0 s, then the 0.5 s post-boost bleed', () => {
     const s = series(34, 300, (k) => { k.drive.boosters = 1; }, [0]);
-    // REMEASURE(M5): pre-merge 242.0 261.3 268.2 270.6 (gap-2: 216, 231, 237, 239)
+    // M5 measured: 242.0 261.3 268.2 270.6 (gap-2: 216, 231, 237, 239)
     [242.0, 261.3, 268.2, 270.6].forEach((v, i) => expect(Math.abs(s[i + 1]! - v)).toBeLessThanOrEqual(3));
-    // REMEASURE(M5): pre-merge plateau 271.5 … 272.0 (1.25 … 3.0 s)
+    // M5 measured: plateau 271.5 … 272.0 (1.25 … 3.0 s)
     for (let i = 5; i <= 12; i++) { expect(s[i]!).toBeGreaterThanOrEqual(271); expect(s[i]!).toBeLessThanOrEqual(272.5); }
-    // REMEASURE(M5): the bleed (doc 15 §4.8) replaces the τ ≈ 1.1 s overspeed decay (gap-2: 229, 220, 212, 207, 202);
+    // M5: the bleed (doc 15 §4.8) replaces the τ ≈ 1.1 s overspeed decay (gap-2: 229, 220, 212, 207, 202);
     // oracle prediction 219.9, 208.3, 207.7, 207.1, 206.7. The bleed law itself is pinned in techniques.test.ts.
     [219.9, 208.3, 207.7, 207.1, 206.7].forEach((v, i) => expect(Math.abs(s[13 + i]! - v)).toBeLessThanOrEqual(3));
   });
 
   it('from 169 km/h: 207, 243, 262 at 0.75 s (± 3 km/h)', () => {
     const s = series(28, 60, (k) => { k.drive.boosters = 1; }, [0]);
-    // REMEASURE(M5): pre-merge 206.5 243.3 261.8 (gap-2 from 151 km/h: 185, 217, 232)
+    // M5 measured: 206.5 243.3 261.8 (gap-2 from 151 km/h: 185, 217, 232)
     [206.5, 243.3, 261.8].forEach((v, i) => expect(Math.abs(s[i + 1]! - v)).toBeLessThanOrEqual(3));
   });
 
   it('two chained boosters (second at tick 172) hold the plateau to ≈ 6 s without a dip below 270', () => {
     const s = series(34, 360, (k) => { k.drive.boosters = 2; }, [0, 172]);
-    // REMEASURE(M5): pre-merge minimum 270.64 over 1.0 … 5.75 s (gap-2: ≥ 238)
+    // M5 measured: minimum 270.64 over 1.0 … 5.75 s (gap-2: ≥ 238)
     for (let i = 4; i <= 23; i++) expect(s[i]!).toBeGreaterThanOrEqual(270); // 1.0 … 5.75 s
   });
 });
@@ -243,7 +243,7 @@ describe('physics: start boost (§7.1, §14.5)', () => {
     for (const d of [0, 3, 6]) {
       const g = gain(d);
       expect(g.tier).toBe(5);
-      // REMEASURE(M5): gap-2 +35 m (pre-merge 35.46 m with the M5 vBoost). The PERFECT boost expires at 42.4 m/s, above
+      // M5: gap-2 +35 m (pre-merge 35.46 m with the M5 vBoost). The PERFECT boost expires at 42.4 m/s, above
       // vGrip, so the 0.5 s post-boost bleed now replaces the τ 1.1 s decay: a 1D replay of that bleed from the measured
       // expiry speed predicts −7.1 m, i.e. ≈ 28.3 m. (GREAT and GOOD expire below vGrip: no bleed, unchanged.)
       if (d === 0) { expect(g.gain).toBeGreaterThan(25.3); expect(g.gain).toBeLessThan(31.3); }
@@ -265,7 +265,7 @@ describe('physics: start boost (§7.1, §14.5)', () => {
   });
 });
 
-// REMEASURE(M5): every corner plan ends its drift with a counter-steer and DRIFT released (corner.ts phase 3, cCs 0.6
+// M5: every corner plan ends its drift with a counter-steer and DRIFT released (corner.ts phase 3, cCs 0.6
 // or 1). A full counter-steer (cCs 1) now cuts on its 2nd tick (doc 15 §4.5: u += 0.8·(v − u), β → 0, instant window
 // kept), where gap-2 let kLatCounter end the drift over several ticks; cCs 0.6 does not cut. Speeds stay on the gap-2
 // scale (KMH_GAP2). Expect the cut rows to land within a few km/h and ±0.1 s of the current numbers; re-measure them.
@@ -279,35 +279,35 @@ describe('physics: corners on a 12 m road at 34 m/s (§14.6)', () => {
     expect(1 - r.vMin / 34).toBeLessThanOrEqual(0.08);
     expect(r.gauge).toBeGreaterThanOrEqual(0.3); expect(r.gauge).toBeLessThanOrEqual(0.43);
     expect(Math.abs(r.time - 3.38)).toBeLessThanOrEqual(0.1);
-    expect(r.vX * KMH_GAP2).toBeGreaterThanOrEqual(186); // REMEASURE(M5): cut exit (cCs 1)
+    expect(r.vX * KMH_GAP2).toBeGreaterThanOrEqual(186); // M5: cut exit (cCs 1)
   });
   it('90° R12 clumsy long drift: drop 35–45 km/h', () => {
     const c = bestClumsy(kit, 34);
     expect(c).not.toBeNull();
     const drop = 34 * KMH_GAP2 - c!.res.vMin * KMH_GAP2;
-    expect(drop).toBeGreaterThanOrEqual(35); expect(drop).toBeLessThanOrEqual(45); // REMEASURE(M5): cut exit (cCs 1)
+    expect(drop).toBeGreaterThanOrEqual(35); expect(drop).toBeLessThanOrEqual(45); // M5: cut exit (cCs 1)
     expect(Math.abs(c!.res.time - 3.65)).toBeLessThanOrEqual(0.1); // REMEASURE(M5)
   });
 
   // Regression rows: the fastest plans found by the full gap-2 grid search on these kits, with their measured
   // results. gap-2's values are in the comments; 180° R9/R12 optimal plans are faster here than in gap-2 because
   // the grid finds a better double-drift line on the 3D kit (10-sim-spec §14.6 lists them as regression values).
-  // REMEASURE(M5): every row with cCs 1 (all OPT rows but 90° R16, and every CLUMSY row) now exits by a cut; the
-  // numbers are the pre-M5 measurements on the KMH_GAP2 scale and are expected to move by a few km/h at most.
+  // M5: plans with cCs 1 exit by the explicit cut (doc 15 §4.5); the OPT rows were re-searched with bestDrift and the
+  // CLUMSY rows re-measured (KMH_GAP2 scale). The cut keeps more exit speed, so 180° corners are 0.1–0.3 s faster.
   const OPT: [number, number, Plan, number, number, number][] = [
-    // deg, Rc, plan, min km/h, exit km/h, time s            gap-2: min, exit, t
-    [90, 9, { dTrig: 20, tSh: 0.3, sD: 0.45, phiCs: 20, cCs: 1, rek: 0, vBr: 34, inst: true }, 173, 189, 3.28], // 167 189 3.28
-    [90, 16, { dTrig: 20, tSh: 0.05, sD: 0.45, phiCs: 20, cCs: 0.6, rek: 0, vBr: 34, inst: true }, 176, 193, 3.57], // 176 193 3.57
-    [180, 9, { dTrig: 15, tSh: 0.3, sD: 1, phiCs: 60, cCs: 1, rek: 0.3, vBr: 34, inst: true }, 124, 156, 4.62], // 91 138 4.95
-    [180, 12, { dTrig: 20, tSh: 0.05, sD: 1, phiCs: 30, cCs: 1, rek: 0.5, vBr: 34, inst: true }, 115, 144, 4.63], // 107 152 4.77
-    [180, 16, { dTrig: 15, tSh: 0.05, sD: 1, phiCs: 45, cCs: 1, rek: 0.3, vBr: 34, inst: true }, 122, 159, 4.80], // 122 159 4.78
+    // deg, Rc, plan, min km/h, exit km/h, time s — re-searched with the M5 cut          pre-M5: min, exit, t
+    [90, 9, { dTrig: 20, tSh: 0.1, sD: 0.7, phiCs: 30, cCs: 1, rek: 0, vBr: 34, inst: true }, 172, 192, 3.27], // 173 189 3.28
+    [90, 16, { dTrig: 20, tSh: 0.05, sD: 0.45, phiCs: 20, cCs: 1, rek: 0, vBr: 34, inst: true }, 177, 193, 3.55], // 176 193 3.57
+    [180, 9, { dTrig: 20, tSh: 0.3, sD: 1, phiCs: 45, cCs: 1, rek: 0.5, vBr: 34, inst: true }, 113, 148, 4.30], // 124 156 4.62
+    [180, 12, { dTrig: 20, tSh: 0.05, sD: 1, phiCs: 45, cCs: 1, rek: 0.5, vBr: 34, inst: true }, 125, 158, 4.37], // 115 144 4.63
+    [180, 16, { dTrig: 15, tSh: 0.18, sD: 1, phiCs: 45, cCs: 1, rek: 0, vBr: 34, inst: true }, 134, 167, 4.70], // 122 159 4.80
   ];
   const CLUMSY: [number, number, Partial<Plan>, number, number, number][] = [
-    [90, 9, { dTrig: 16, tSh: 0.5, phiCs: 0, mid: true }, 142, 155, 3.53], // 142 155 3.55
-    [90, 16, { dTrig: 16, tSh: 0.9, phiCs: -10, mid: true }, 142, 164, 3.85], // 142 161 3.88
-    [180, 9, { dTrig: 20, tSh: 0.7, phiCs: 0, mid: false }, 82, 130, 4.87], // 82 130 4.87
-    [180, 12, { dTrig: 16, tSh: 0.5, phiCs: 0, mid: false }, 102, 139, 4.95], // 102 139 4.95
-    [180, 16, { dTrig: 12, tSh: 0.5, phiCs: 0, mid: true }, 102, 146, 5.22], // 102 145 5.23
+    [90, 9, { dTrig: 16, tSh: 0.5, phiCs: 0, mid: true }, 143, 160, 3.50], // pre-M5 142 155 3.53
+    [90, 16, { dTrig: 16, tSh: 0.9, phiCs: -10, mid: true }, 142, 164, 3.85], // 142 164 3.85
+    [180, 9, { dTrig: 20, tSh: 0.7, phiCs: 0, mid: false }, 82, 134, 4.77], // 82 130 4.87
+    [180, 12, { dTrig: 16, tSh: 0.5, phiCs: 0, mid: false }, 101, 143, 4.88], // 102 139 4.95
+    [180, 16, { dTrig: 12, tSh: 0.5, phiCs: 0, mid: true }, 101, 149, 5.15], // 102 146 5.22
   ];
   it.each(OPT)('regression: %i° R%i optimal plan', (deg, rc, plan, vMin, vX, t) => {
     const k2 = cornerKit(rc, deg, 12);
@@ -456,6 +456,8 @@ describe('physics: flat-plane oracle (§14.7, doc 15 §5 item 9)', () => {
     const f: InputFrame = makeInput();
     let maxErr = 0, gaugeErr = 0, boosterMismatch = 0, first = '';
     for (let t = 0; t < 600; t++) {
+      // the oracle models dynamics only: keep the race rules (wrong way / off graph → respawn) out of the comparison
+      k.race.wrongWayTicks = 0; k.race.offGraphTicks = 0;
       rig.tick((_w, inp) => { log.frame(t, k, inp[0]!); copyInput(f, inp[0]!); });
       oracleStep(o, {
         steer: -f.steer / 127, thr: f.throttle > 0 ? 1 : 0, brk: f.brake > 0 ? 1 : 0, drift: (f.held & Held.DRIFT) !== 0, boost: (f.edges & Edge.USE_ITEM) !== 0,
