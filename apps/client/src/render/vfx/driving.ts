@@ -44,7 +44,7 @@ const CUT_PUFF = o(Shape.SMOKE, false, 0.3, 1.5, 0.6, 2.8, { alpha: 0.5 });
 const BRAKE_LIGHT = o(Shape.SOFT, true, 0.42, 0.3, 0, 0.0005, { emissive: 3 });
 const BRAKE_SMOKE = o(Shape.SMOKE, false, 0.35, 1.8, 0.5, 2.4, { alpha: 0.5 });
 const SPIN_RING = o(Shape.SMOKE, false, 0.55, 2.6, 0.3, 2.2, { alpha: 0.55 });
-const REV_LIGHT = o(Shape.SOFT, true, 0.3, 0.28, 0, 0.0005, { emissive: 1.5 });
+const REV_LIGHT = o(Shape.SOFT, true, 0.4, 0.36, 0, 0.0005, { emissive: 2 });
 
 const C = (h: string): THREE.Color => new THREE.Color(h);
 const CONFETTI_GOLD = ['#FFD23F', '#FFC857', '#FAF9F5', '#D97757'].map(C);

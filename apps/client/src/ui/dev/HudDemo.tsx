@@ -1,5 +1,5 @@
-// ?demo=hud[&v=speed|item|events|ta] — the race HUD over the showcase with fixture signals, for screenshot review of
-// every HUD element without driving a race. Never used in normal play.
+// ?demo=hud[&v=speed|item|events|ta|drag|reverse] — the race HUD over the showcase with fixture signals, for screenshot
+// review of every HUD element without driving a race. Never used in normal play.
 import { useEffect, useState } from 'preact/hooks';
 import { ITEM_IDS, codeOf } from '@cr/content';
 import { hud } from '../store/hud.ts';
@@ -60,6 +60,10 @@ export function HudDemo() {
     if (v === 'go') { hud.countdown.value = 0; hudX.perfect.value = true; }
     if (v === 'wrong') hud.wrongWay.value = true;
     if (v === 'finish') { banner.show(t('hud.finish'), 'finish', 600_000); hudX.finishAt.value = now; }
+    // driving techniques: drag at 296 km/h with a 2-tap streak and its pop; reversing at 42 km/h
+    hudX.gear.value = v === 'reverse' ? 'R' : 'D';
+    if (v === 'drag') { hud.kmh.value = 296; hud.boosting.value = true; hudX.drag.value = { on: true, streak: 2 }; hudX.technique.value = { kind: 'tap', streak: 2, at: now + 600_000 }; }
+    if (v === 'reverse') { hud.kmh.value = 42; hud.boosting.value = false; hud.draft.value = 0; hudX.drag.value = { on: false, streak: 0 }; }
     mission.value = null;
   }, []);
   return <Hud minimap={map} />;
