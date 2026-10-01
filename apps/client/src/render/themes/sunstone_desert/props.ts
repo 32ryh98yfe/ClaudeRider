@@ -36,6 +36,16 @@ function strata(w: number, h: number, d: number, layers: number, seed: number, l
   return out;
 }
 
+/** Vertex colours from `c0` at height y0 to `c1` at y1 (sandfall strands). */
+function gradient(g: THREE.BufferGeometry, y0: number, y1: number, c0: THREE.Color, c1: THREE.Color): THREE.BufferGeometry {
+  const out = paint(g, c0), pos = out.attributes.position!, col = out.attributes.color!, c = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    c.copy(c0).lerp(c1, Math.min(1, Math.max(0, (pos.getY(i) - y0) / (y1 - y0))));
+    col.setXYZ(i, c.r, c.g, c.b);
+  }
+  return out;
+}
+
 /** Low-detail palm (far groves): a leaning tube trunk and five drooping fronds. */
 function palmLite(x: number, z: number, k: number, yaw: number, seed: number): THREE.BufferGeometry[] {
   const lean = 0.6 + (seed % 3) * 0.3, c = Math.cos(yaw), s = Math.sin(yaw);
@@ -265,19 +275,26 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
     build: () => ({ geometry: merge([part(cyl(0.12, 0.15, 1.6, 6), '#7a522e', 0, 0.8, 0), part(cyl(0.035, 0.035, 6.2, 4), '#d9c7a0', 0, 1.35, 0, Math.PI / 2, 0, 0), part(sph(0.16, 6, 4), '#6b4a33', 0, 1.62, 0)]), material: lit() }),
   },
   sandfall: {
-    // sand pouring off the canyon rim (faces the road): streaked strands that fan out a little as they fall, a lip of
-    // rock at the top, a splash mound and dust puffs at the foot. Lit, not emissive: bloom stays on real lights
+    // sand pouring off the canyon rim (faces the road): light strands (#f6e6c4 at the rim → #e3c48f at the foot) with
+    // gaps between them, each breaking into clumps near the bottom, a rock lip at the top, a flat splash mound and a few
+    // small puffs behind the wall line (x ≤ 0) so nothing solid stands on the racing line. Lit, not emissive
     maxInstances: 20,
     build: () => {
       const r = seeded(157), p: THREE.BufferGeometry[] = [];
-      const SF = ['#eed6a8', '#e3c48f', '#f4e0b8', '#dcb983'];
-      for (let i = 0; i < 6; i++) {
-        const z = -2.1 + i * 0.85 + (r() - 0.5) * 0.2, w = 0.6 + r() * 0.5, h = 20 + r() * 2.5;
-        p.push(part(box(0.25 + r() * 0.2, h, w), SF[i % SF.length]!, (r() - 0.5) * 0.35, 22.2 - h / 2, z, 0, 0, (r() - 0.5) * 0.03, 1, 1, 1));
+      const TOP = new THREE.Color('#f6e6c4'), FOOT = new THREE.Color('#e3c48f');
+      const strand = (x: number, y0: number, y1: number, z: number, w: number, t: number): void => {
+        p.push(gradient(place(box(t, y1 - y0, w), x, (y0 + y1) / 2, z), 0, 22.2, FOOT, TOP));
+      };
+      for (let i = 0; i < 7; i++) {
+        const z = -2.4 + i * 0.8 + (r() - 0.5) * 0.15, w = 0.32 + r() * 0.22, t = 0.2 + r() * 0.15, x = -0.6 + (r() - 0.5) * 0.3;
+        const brk = 3 + r() * 4;                                     // the strand breaks into clumps below this height
+        strand(x, brk, 22.2, z, w, t);
+        strand(x, brk * 0.45, brk - 0.5, z, w * 0.8, t);
+        strand(x, 0, brk * 0.45 - 0.4, z, w * 0.6, t);
       }
-      p.push(part(rbox(2.2, 1.2, 6.4, 0.2, 2), STRATA[2], -0.9, 22.6, 0));
-      p.push(part(sph(3, 12, 6), '#e6c995', 1.2, -0.2, 0, 0, 0, 0, 1.1, 0.4, 1.2), part(sph(1.8, 10, 5), '#f0d8a8', 2.6, 0, 0.8, 0, 0, 0, 1, 0.35, 1));
-      for (let i = 0; i < 5; i++) p.push(part(ico(0.7 + r() * 0.6, 1), '#f2e2c0', 1 + r() * 2.4, 0.6 + r() * 1.4, (r() - 0.5) * 4.5));
+      p.push(part(rbox(2.2, 1.2, 6.4, 0.2, 2), STRATA[2], -1.4, 22.6, 0));
+      p.push(part(sph(3, 12, 6), '#e6c995', -0.6, 0, 0, 0, 0, 0, 1.1, 0.15, 1.2), part(sph(1.8, 10, 5), '#f0d8a8', 0.6, 0, 0.8, 0, 0, 0, 1, 0.15, 1));
+      for (let i = 0; i < 3; i++) p.push(part(ico(0.4 + r() * 0.3, 1), '#f2e2c0', -0.8 - r() * 1.6, 0.4 + r() * 0.6, (r() - 0.5) * 4));
       return { geometry: merge(p), material: lit() };
     },
   },
