@@ -147,7 +147,8 @@ Decay factors per tick come from `decayF(k, DT)` (`core/math.ts`); never `Math.e
        - not in R → STOP: hold u = 0. `brakeTicks` restarts at the STOP transition, which counts as ↓ tick 1 (`brakeTicks = 1`);
        - in STOP with `brakeTicks > revEngageTicks` → R: accelerate `−aReverse·(1 − (−u/vReverse)²)` toward −vReverse. So every path spends exactly `revEngageTicks` (6) ↓ ticks at STOP and R engages on the 7th: braking to a stop, a STOP reached by coasting, the start grid and a respawn alike (M5 fix: the sim used to engage one tick early from a STOP it was already in).
      - No keys: D → N, coasting at aCoast 2.5.
-     - N or R reaching u = 0 with tangential gravity ≤ zeroLockGt → STOP. In STOP with no ↑ on such a grade, u = wl = 0 (zero-lock).
+     - N or R reaching u = 0 with tangential gravity ≤ zeroLockGt and planar speed at most 0.5 m/s (`wl² ≤ 0.25`) → STOP. In STOP with no ↑ on such a grade, u = wl = 0 (zero-lock).
+     - STOP with no keys goes back to N when the grade is too steep, the driver has no control, or something pushed the kart (`u² + wl² > 0.25`). A kart bumped from the side therefore slides in N until the push dies down, then locks (M5 fix: the N → STOP test used to ignore wl, so the lock wiped the push on every contact tick).
      - ↑ in R → D (the forward law brakes the backward motion).
      - Emit `gear{gear}` on every change.
      - In the air: no gear change. The drag ends, the cut counter is reset, and the bleed is cancelled by any boost, drift or instant boost.
@@ -157,7 +158,7 @@ Decay factors per tick come from `decayF(k, DT)` (`core/math.ts`); never `Math.e
 | # | Area | Must hold |
 |---|---|---|
 | 1 | Display | 34 m/s reads 205.0 km/h; booster plateau reads 272 ± 0.5. |
-| 2 | Coast and zero-lock | Coast from 20 m/s reaches exactly 0, then STOP and position frozen. Zero-lock holds on a 10% grade; on a 20% grade the kart rolls. |
+| 2 | Coast and zero-lock | Coast from 20 m/s reaches exactly 0, then STOP and position frozen. Zero-lock holds on a 10% grade; on a 20% grade the kart rolls. A STOP kart hit side-on goes N once, keeps its push, and locks again at rest. |
 | 3 | Gears | Brake to 0, STOP, R after 6 ticks, reverse capped at −10.78 m/s (65.0 ± 0.3 km/h). The same 6 ↓ ticks at STOP from a coasted stop, the grid and a respawn. ↑ in R → D. |
 | 4 | Post-boost bleed | Per-tick factor `decayF(6)` toward vGrip; \|v\| at +30 ticks ≈ 34.55. Release rule as in §4.8. Cancelled by drift, booster or instant boost. A 60° wall hit before expiry gives no bleed. |
 | 5 | Drag | Entry and exit events fire. \|v\| rises to 48.10 m/s (290 km/h) at most. No drag without boost, without ↑, with brake, or with in-steer held and no tap. A sustained neutral drag entered near β 30° reaches at least 288 km/h. |

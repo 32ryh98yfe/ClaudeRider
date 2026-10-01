@@ -269,8 +269,9 @@ export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): vo
     if ((thr === 0 || brk) && u >= 0 && uN < 0) uN = 0;
     else if (thr === 0 && u < 0 && uN > 0) uN = 0;
   }
-  // N or R coasting to exactly 0 on flat ground → STOP (the zero-lock holds from the next tick)
-  if ((gear === N || gear === R) && uN === 0) gear = STOP;
+  // N or R coasting to exactly 0 on flat ground, with the planar speed under 0.5 m/s → STOP (the zero-lock holds
+  // from the next tick)
+  if ((gear === N || gear === R) && uN === 0 && w * w <= 0.25) gear = STOP;
   k.gear = gear;
   u = uN;
   // K16 drift drag (skipped while dragging)

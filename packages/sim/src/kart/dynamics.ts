@@ -396,8 +396,9 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
         else if (thr === 0 && u < 0 && uN > 0) uN = 0;
       }
       u = uN;
-      // N or R rolling to rest on a gentle grade stops (zero-lock from this tick)
-      if (u === 0 && !thrIn && !brk && lockOk) { setGear(w, k, ctx, Gear.STOP); wl = 0; }
+      // N or R rolling to rest on a gentle grade stops (zero-lock from this tick). At rest means planar speed too,
+      // the same 0.5 m/s as the STOP → N exit above: a kart bumped sideways keeps its push until it has died down
+      if (u === 0 && !thrIn && !brk && lockOk && wl * wl <= 0.25) { setGear(w, k, ctx, Gear.STOP); wl = 0; }
     }
 
     // -------------------------------------------------------------- K16 drift drag (not while dragging)

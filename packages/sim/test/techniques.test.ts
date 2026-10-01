@@ -168,6 +168,33 @@ describe('physics: coast and zero-lock (doc 15 §4.8, §5 item 2)', () => {
     expect(roll.k.body.px - r0[0]!).toBeLessThan(-2);
   });
 
+  it('a kart in STOP hit side-on keeps its push: the zero-lock waits for the planar speed to die down', () => {
+    // kart 1 coasts at 8 m/s into the side of kart 0, which sits at rest in STOP
+    const rig = racingRig(flat, { slots: [{}, {}] });
+    const k = place(rig, 0, { s: 300, speed: 0 });
+    const o = place(rig, 1, { s: 300, u: -5, speed: 8, yawDeg: -90 });
+    expect(k.drive.gear).toBe(Gear.STOP);
+    expect(o.drive.gear).toBe(Gear.D);
+    const p0 = [k.body.px, k.body.pz];
+    let bumps = 0, maxLat = 0;
+    const gears: number[] = [];
+    for (let t = 0; t < 120; t++) {
+      const ev = tick(rig, { thr: 0 });
+      if (ev.some((e) => e.t === 'bump')) bumps++;
+      for (const e of ev) if (e.t === 'gear' && e.kart === 0) gears.push(e.gear);
+      maxLat = Math.max(maxLat, Math.abs(lat(k)));
+    }
+    expect(bumps).toBeGreaterThan(0);
+    // pushed out of STOP once, slides in N, and locks again only when it has come to rest (no N ↔ STOP flicker)
+    expect(gears).toEqual([Gear.N, Gear.STOP]);
+    expect(maxLat).toBeGreaterThan(1);
+    // the grip damping (kLatGrip) stops the slide after ≈ 0.32 m; the kart moved 0.05 m when the lock wiped the
+    // sideways speed on every contact tick
+    expect(Math.hypot(k.body.px - p0[0]!, k.body.pz - p0[1]!)).toBeGreaterThan(0.25);
+    expect(k.drive.gear).toBe(Gear.STOP);
+    expect(planar(k)).toBe(0);
+  });
+
   it('coasting uphill on a 10% grade comes to rest, locks in STOP and stays there', () => {
     const { rig, k } = rigAt(8, undefined, slope(0.1), 200);
     let stopAt = -1;
