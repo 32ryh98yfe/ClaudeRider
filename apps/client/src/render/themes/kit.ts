@@ -4,6 +4,7 @@ import type { ThemeDataDef } from '@cr/content';
 import { MaterialLibrary, type RoadStyle, type WallStyle } from '../materials/library.ts';
 import type { ThemeLookFx } from '../env/look.ts';
 import { DEFAULT_PROPS, type PropFactory } from '../props/defaults.ts';
+import { TRACKSIDE_PROPS } from '../props/trackside.ts';
 
 /** Colour/look data per theme. Optional FX fields (sky details, grade, weather, water…) come from ThemeLookFx (L11). */
 export interface ThemeLook extends ThemeLookFx {
@@ -54,7 +55,8 @@ export function makeKit(data: ThemeDataDef, look: Partial<ThemeLook> = {}, props
       startline: MaterialLibrary.startLine(),
       boostpad: MaterialLibrary.boostPad(),
     }),
-    props: { ...DEFAULT_PROPS, ...props },
+    // shared racing furniture and dressing layers (34-stylized-pass) under the kit's own kinds, which win on a name clash
+    props: { ...DEFAULT_PROPS, ...TRACKSIDE_PROPS, ...props },
     grade: { slope: 1.05, saturation: 1.1 },
   };
 }
