@@ -1,5 +1,5 @@
 // Continuous race loops (32-audio-spec §3.3, §4.1): drift screech, spark crackle, wall grind, surface beds
-// (offroad, gravel, sand, snow, wood, metal, wet), draft wind, rail hum, trap wobble, drone wobble.
+// (offroad, gravel, sand, snow, wood, metal, wet), draft wind, drag hiss, rail hum, trap wobble, drone wobble.
 // Each loop is a filtered noise (or oscillator) bed with smoothed gain/frequency controls.
 import type { NoiseBank } from './api.ts';
 
@@ -94,7 +94,7 @@ export class ToneLoop {
 
 /** The player's continuous loop set. */
 export class RaceLoops {
-  readonly screech: NoiseLoop; readonly crackle: NoiseLoop; readonly grind: NoiseLoop; readonly draft: NoiseLoop;
+  readonly screech: NoiseLoop; readonly crackle: NoiseLoop; readonly grind: NoiseLoop; readonly draft: NoiseLoop; readonly drag: NoiseLoop;
   readonly offroad: NoiseLoop; readonly gravel: NoiseLoop; readonly sand: NoiseLoop; readonly snow: NoiseLoop; readonly wet: NoiseLoop;
   readonly wood: NoiseLoop; readonly metal: NoiseLoop;
   readonly rail: ToneLoop; readonly trap: ToneLoop; readonly drone: ToneLoop;
@@ -103,6 +103,8 @@ export class RaceLoops {
     this.crackle = new NoiseLoop(ac, sfx, bank, 'white', 'highpass', 3000, 0.7, { pulses: 30 });
     this.grind = new NoiseLoop(ac, sfx, bank, 'brown', 'lowpass', 900, 0.8, { amHz: 23, amDepth: 0.2 });
     this.draft = new NoiseLoop(ac, sfx, bank, 'pink', 'lowpass', 500, 0.7);
+    // drag (끌기): a bright, fluttering hiss over the screech; the band rises with the tap streak
+    this.drag = new NoiseLoop(ac, sfx, bank, 'white', 'bandpass', 2800, 1.2, { amHz: 13, amDepth: 0.25 });
     this.offroad = new NoiseLoop(ac, sfx, bank, 'brown', 'lowpass', 400, 0.7, { amHz: 8, amDepth: 0.35 });
     this.gravel = new NoiseLoop(ac, sfx, bank, 'white', 'bandpass', 1500, 1.2, { pulses: 40 });
     this.sand = new NoiseLoop(ac, sfx, bank, 'pink', 'lowpass', 1200, 0.7);
@@ -114,6 +116,6 @@ export class RaceLoops {
     this.trap = new ToneLoop(ac, sfx, 'sine', 320, 2000, 5, 90);
     this.drone = new ToneLoop(ac, sfx, 'sawtooth', 90, 700, 6, 80);
   }
-  all(): (NoiseLoop | ToneLoop)[] { return [this.screech, this.crackle, this.grind, this.draft, this.offroad, this.gravel, this.sand, this.snow, this.wet, this.wood, this.metal, this.rail, this.trap, this.drone]; }
+  all(): (NoiseLoop | ToneLoop)[] { return [this.screech, this.crackle, this.grind, this.draft, this.drag, this.offroad, this.gravel, this.sand, this.snow, this.wet, this.wood, this.metal, this.rail, this.trap, this.drone]; }
   stop(): void { for (const l of this.all()) l.stop(); }
 }

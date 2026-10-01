@@ -1,12 +1,15 @@
 // Race audio hooks called by game/Session (lane L11 owns everything behind these functions; signatures are
 // the contract). One-shots come from de-duplicated SimEvents; continuous sound (engines, screech, surfaces,
 // boost roar, loops) reads kart state every frame. RaceRenderer calls raceAudioPrepare() with the track info.
+// Driving techniques (15-driving-techniques): drag start + drag hiss loop, tap boost (pitch by streak), cut,
+// brake turn, spin-out and the reverse beep (on engaging R, then repeating while backing up).
 import { ITEM_IDS, EFFECT_IDS, SURFACE_BY_CODE, loadContent, type ModeId } from '@cr/content';
-import { Attach, Boost, Phase, type InputFrame, type SimEvent, type WorldState } from '@cr/sim';
+import { Attach, Boost, Gear, Phase, type InputFrame, type SimEvent, type WorldState } from '@cr/sim';
 import { Audio } from './engine.ts';
 import { RaceLoops } from './loops.ts';
 import { Ambience } from './ambience.ts';
 import { listenerDist, listenerPan } from './listener.ts';
+import { RPM_REF_MPS } from './engine-synth.ts';
 
 export interface RaceAudioInfo { trackId: string; themeId: string; songId: string; ambient?: string; sky?: string }
 
@@ -18,6 +21,9 @@ let local = 0;
 let lastPhase = -1;
 let assignT = 0; let grindLevel = 0; let lastAttach = 0; let lastRankSfx = 0;
 let nextIncoming = 0; let lastRetireTick = -1; let started = false;
+/** Next tick for the repeating reverse beep (0 = not reversing). */
+let revBeepTick = 0;
+const REV_BEEP_TICKS = 54;
 const positions: ({ x: number; y: number; z: number } | null)[] = [];
 const posScratch = Array.from({ length: 8 }, () => ({ x: 0, y: 0, z: 0 }));
 const vel = { x: 0, y: 0, z: 0 };
@@ -37,7 +43,7 @@ export function raceAudioPrepare(i: RaceAudioInfo): void { info = i; }
 export function raceAudioStart(mode: ModeId): void {
   void mode;
   const ac = Audio.ctx, mx = Audio.mixer, bank = Audio.noise;
-  started = true; lastPhase = -1; world = null; grindLevel = 0; lastAttach = 0; lastRetireTick = -1; projPos.clear();
+  started = true; lastPhase = -1; world = null; grindLevel = 0; lastAttach = 0; lastRetireTick = -1; revBeepTick = 0; projPos.clear();
   if (!ac || !mx || !bank) return;
   Audio.ensurePool();
   loops = new RaceLoops(ac, mx.buses.sfx, bank);
@@ -88,7 +94,7 @@ export function raceAudioFrame(w: Readonly<WorldState>, me: number, inp: Readonl
     const kb = kk.body, kd = kk.drive;
     const s = speedOf(kb);
     const thr = i === me ? (racing ? inp.throttle / 15 : inp.throttle > 0 ? 0.6 : 0) : kd.boostTicks > 0 ? 1 : 0.8;
-    eParams.rpm01 = s / 44; eParams.throttle = thr; eParams.boost = kd.boostTicks > 0 || kd.startTicks > 0 ? Boost.NORMAL : 0;
+    eParams.rpm01 = s / RPM_REF_MPS; eParams.throttle = thr; eParams.boost = kd.boostTicks > 0 || kd.startTicks > 0 ? Boost.NORMAL : 0;
     eParams.slip = kd.drift ? 0.3 : 0;
     eParams.pos.x = kb.px; eParams.pos.y = kb.py; eParams.pos.z = kb.pz; vel.x = kb.vx; vel.y = kb.vy; vel.z = kb.vz;
     Audio.engines.update(i, eParams as never);
@@ -115,6 +121,10 @@ export function raceAudioFrame(w: Readonly<WorldState>, me: number, inp: Readonl
     L.wood.set(surf === 'wood' ? sv * 0.12 : 0); L.wood.setRate(Math.max(2, sp / 1.5));
     L.metal.set(surf === 'metal' ? sv * 0.06 : 0); L.metal.setRate(Math.max(2, sp / 2));
     L.draft.set(dr.draftCharge > 0 ? Math.min(1, dr.draftCharge / 90) * 0.14 : 0, 500 + 1500 * Math.min(1, dr.draftCharge / 90));
+    L.drag.set(dr.dragTicks > 0 && grounded ? 0.06 + 0.02 * dr.tapStreak : 0, 2800 + 600 * dr.tapStreak);
+    // reverse: the gear event beeps once on engaging R; keep beeping while actually backing up
+    if (dr.gear !== Gear.R) revBeepTick = 0;
+    else if (revBeepTick > 0 && w.tick >= revBeepTick && u < -0.5) { Audio.sfx('kart.reverse_beep', { gain: 0.7 }); revBeepTick = w.tick + REV_BEEP_TICKS; }
     const railed = b.attachKind === Attach.RAIL;
     L.rail.set(railed ? 0.06 : 0, 110 + sp * 3);
     const ccName = EFFECT_IDS[k.status.cc - 1];
@@ -213,6 +223,12 @@ export function raceAudioEvent(e: SimEvent, me: number): void {
     }
     case 'boostEnd': at(e.kart, 'boost.end'); if (e.kart === me) mx?.unduck('boost'); break;
     case 'draft': if (e.kart === me && e.on) Audio.sfx('boost.draft_on'); break;
+    case 'drag': if (e.on) at(e.kart, 'kart.drag_start'); break;
+    case 'tapBoost': { const st = Math.max(1, Math.min(3, e.streak)); at(e.kart, 'kart.tap_boost', { pitch: 1 + 0.12 * (st - 1), k: st / 3 }); break; }
+    case 'cut': at(e.kart, 'kart.cut'); break;
+    case 'brakeTurn': at(e.kart, 'kart.brake_turn'); break;
+    case 'spinOut': at(e.kart, 'kart.spin_out'); break;
+    case 'gear': if (e.kart === me && e.gear === Gear.R) { Audio.sfx('kart.reverse_beep'); revBeepTick = e.tick + REV_BEEP_TICKS; } break;
     case 'wall': {
       if (e.severity === 0) { if (e.kart === me) grindLevel = Math.min(1, grindLevel + 0.5); else at(e.kart, 'kart.wall_grind', { k: Math.min(1, e.speed / 20) }); break; }
       const id = e.severity === 2 ? 'kart.wall_hit_hard' : 'kart.wall_hit_soft';

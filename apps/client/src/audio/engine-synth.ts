@@ -1,15 +1,18 @@
-// Engine synth (32-audio-spec §3): toy-range fundamental f0 = 55 + 180·rpm01 over 4 fake gears (+ a top gear),
-// shift dips, throttle-driven low-pass, rasp noise, boost jet roar, drift pitch +3 % with 6 Hz AM, throttle-off
-// burble. Profiles: player (full graph, stereo), near (saw + square + low-pass, HRTF panner), far (single saw,
-// equal-power pan, gain by distance, culled beyond 150 m). Doppler: f · c/(c − v_radial), clamped ±10 %.
+// Engine synth (32-audio-spec §3): toy-range fundamental f0 = 55 + 180·rpm01 over 6 fake gears (the top one spans
+// drag and tap boost, 46–54 m/s), shift dips, throttle-driven low-pass, rasp noise, boost jet roar, drift pitch
+// +3 % with 6 Hz AM, throttle-off burble. Profiles: player (full graph, stereo), near (saw + square + low-pass,
+// HRTF panner), far (single saw, equal-power pan, gain by distance, culled beyond 150 m). Doppler: f · c/(c − v_radial),
+// clamped ±10 %.
 import type { NoiseBank } from './api.ts';
 import { listenerDist, listenerPan, radialSpeed } from './listener.ts';
 
 export type EngineProfile = 'player' | 'near' | 'far';
 export interface EngineInput { speed: number; throttle: number; boost: boolean; drift: boolean; slip: number; x: number; y: number; z: number; vx: number; vy: number; vz: number }
 
-/** Gear thresholds (m/s): 0–10, 10–20, 20–30, 30–38, 38+. */
-export const GEARS = [0, 10, 20, 30, 38, 48] as const;
+/** Gear thresholds (m/s): 0–10, 10–20, 20–30, 30–38, 38–46, 46–54 (booster 45.1, drag 48.1, tap boost 50.6). */
+export const GEARS = [0, 10, 20, 30, 38, 46, 54] as const;
+/** EngineParams.rpm01 = speed / RPM_REF_MPS (1.0 just above the tap-boost cap, 50.6 m/s = 305 km/h). */
+export const RPM_REF_MPS = 52;
 
 /** rpm01 for a speed: idle 0.1 below 1 m/s; within a gear 0.3 + 0.7·(u − lo)/(hi − lo). Returns [rpm01, gear]. */
 export function rpmFor(speed: number, out: [number, number]): [number, number] {
@@ -131,7 +134,7 @@ export class EngineVoice {
     this.lp.frequency.setTargetAtTime(cutoff, t, 0.05);
     this.out.gain.setTargetAtTime(gain, t, 0.05);
     if (this.rasp) { this.rasp.bp.frequency.setTargetAtTime(f * 4, t, tau); this.rasp.g.gain.setTargetAtTime((0.1 + 0.2 * inp.throttle) * 0.25, t, 0.05); }
-    if (this.jet) { this.jet.g.gain.setTargetAtTime(inp.boost ? 0.3 * 0.3 : 0, t, 0.08); this.jet.bp.frequency.setTargetAtTime(inp.boost ? 800 + 2200 * Math.min(1, inp.speed / 44) : 1200, t, 0.1); }
+    if (this.jet) { this.jet.g.gain.setTargetAtTime(inp.boost ? 0.3 * 0.3 : 0, t, 0.08); this.jet.bp.frequency.setTargetAtTime(inp.boost ? 800 + 2200 * Math.min(1, inp.speed / RPM_REF_MPS) : 1200, t, 0.1); }
     if (this.amLfo && this.amDepth) {
       // drift: 6 Hz wobble; throttle off: 2 Hz burble (depth 0.15)
       const hz = inp.drift ? 6 : 2, depth = inp.drift ? 0.12 : inp.throttle < 0.1 && inp.speed > 3 ? 0.15 : 0;

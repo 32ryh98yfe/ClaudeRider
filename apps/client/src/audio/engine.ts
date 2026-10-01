@@ -6,7 +6,7 @@ import type { AudioApi, BusName, EngineParams, MusicState, NoiseBank, SfxDef, Sf
 import { Mixer } from './mixer.ts';
 import { makeNoiseBank } from './sfx/lib.ts';
 import { sfxDef, sfxIds } from './sfx/registry.ts';
-import { EnginePool, type EngineProfile, type EngineInput } from './engine-synth.ts';
+import { EnginePool, RPM_REF_MPS, type EngineProfile, type EngineInput } from './engine-synth.ts';
 import { listener, setListener as writeListener, applyListener, listenerDist } from './listener.ts';
 import { MusicDirector } from './music/director.ts';
 
@@ -99,7 +99,7 @@ class AudioEngineImpl implements AudioApi {
     attach: (slot: number, profile: EngineProfile): void => { this.ensurePool(); this.pool?.attach(slot, profile); },
     update: (slot: number, p: EngineParams): void => {
       const e = this.einp;
-      e.speed = p.rpm01 * 44; e.throttle = p.throttle; e.boost = p.boost !== 0; e.drift = p.slip > 0.05; e.slip = p.slip;
+      e.speed = p.rpm01 * RPM_REF_MPS; e.throttle = p.throttle; e.boost = p.boost !== 0; e.drift = p.slip > 0.05; e.slip = p.slip;
       e.x = p.pos.x; e.y = p.pos.y; e.z = p.pos.z; e.vx = p.vel.x; e.vy = p.vel.y; e.vz = p.vel.z;
       this.pool?.update(slot, e);
     },
@@ -129,7 +129,7 @@ class AudioEngineImpl implements AudioApi {
   startEngine(): void { this.ensurePool(); this.pool?.attach(-1, 'player'); }
   updateEngine(speed01: number, throttle: number, boosting: boolean, slip: number): void {
     const e = this.einp;
-    e.speed = speed01 * 44; e.throttle = throttle; e.boost = boosting; e.drift = slip > 0.05; e.slip = slip;
+    e.speed = speed01 * RPM_REF_MPS; e.throttle = throttle; e.boost = boosting; e.drift = slip > 0.05; e.slip = slip;
     this.pool?.update(-1, e);
   }
   stopEngine(): void { this.pool?.detach(-1); }
