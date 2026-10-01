@@ -297,7 +297,7 @@ class BotDriver implements AiDriverEx {
     if (out.brake > 0 && ((out.held & Held.DRIFT) !== 0 || this.pred.drift === 1)) {
       if (this.brakeRun >= BRAKE_RUN_MAX) out.brake = 0; else this.brakeRun++;
     } else this.brakeRun = 0;
-    this.pred.push(-out.steer / 127, (out.held & Held.DRIFT) !== 0, out.throttle > 0, out.brake > 0);
+    this.pred.push(-out.steer / 127, (out.held & Held.DRIFT) !== 0, out.throttle > 0, out.brake > 0, out.edges, (out.edges & Edge.USE_ITEM) !== 0);
   }
 
   private rollStart(w: Readonly<WorldState>): void {
@@ -316,7 +316,8 @@ class BotDriver implements AiDriverEx {
     const highRate = (w.tick + this.slot) % 3 === 0;
     // ---- perception at the apply tick: replay our own pending frames (14-ai §1)
     const pr = this.pred;
-    pr.run(k, P, prof.vMul);
+    const surf = this.content.surfaceByCode[b.surf];
+    pr.run(k, P, prof.vMul, surf ? surf.grip : 1, surf ? surf.vMul : 1);
     const hx = pr.hx, hy = pr.hy, vx = pr.vx, vy = pr.vy, kx = pr.px, ky = pr.py;
     const v = Math.sqrt(vx * vx + vy * vy);
     const drifting = pr.drift === 1;

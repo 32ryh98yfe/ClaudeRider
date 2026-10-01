@@ -25,6 +25,15 @@ export function loadBalanceTracks(filter?: readonly string[]): { id: string; tra
       if (filter && !filter.includes(id)) continue;
       out.push({ id, track: loadCtrk(toArrayBuffer(readFileSync(new URL(`${id}.ctrk`, pub)))) });
     }
+  } else {
+    // not baked into the client yet (a fresh worktree): build the roster's DSL in memory, like the test rig does
+    for (const t of loadContent().tracks.all) {
+      if (filter && !filter.includes(t.id)) continue;
+      const file = new URL(`tracks/${t.themeId}/${t.id}.ctd`, ROOT);
+      if (!existsSync(file)) continue;
+      const r = buildTrack(readFileSync(file, 'utf8'), file.pathname);
+      out.push({ id: t.id, track: loadCtrk(toArrayBuffer(r.ctrk)) });
+    }
   }
   const fx = new URL('tools/balance/tracks/', ROOT);
   for (const f of readdirSync(fx).filter((x) => x.endsWith('.ctd')).sort()) {
