@@ -28,19 +28,28 @@ export function mirrorZ(src: THREE.BufferGeometry): THREE.BufferGeometry {
  * back that out-shouts the track; a back in the trackside navy reads as an ordered row instead. Plate size matches
  * the shared board (3 m × 0.95 m panel centred 1.595 m up, frame back face at x = −0.11).
  */
-function backed(kind: string, mirror: boolean): PropFactory {
+function backed(kind: string, mirror: boolean, lift = 0): PropFactory {
   return {
     maxInstances: 60,
     build: (pal) => {
       const b = TRACKSIDE_PROPS[kind]!.build(pal);
-      const g = merge([mirror ? mirrorZ(b.geometry) : b.geometry, paint(place(box(0.02, 1.05, 3.1), -0.12, 1.595, 0), '#2f4a7a')]);
-      return { geometry: g, material: b.material, castShadow: b.castShadow ?? true };
+      const parts = [mirror ? mirrorZ(b.geometry) : b.geometry, paint(place(box(0.02, 1.05, 3.1), -0.12, 1.595, 0), '#2f4a7a')];
+      if (lift > 0) {
+        // raised variant: the whole board moves up `lift` (local m) and its two posts are extended down to the ground
+        for (const g of parts) g.translate(0, lift, 0);
+        for (const z of [-1.25, 1.25]) parts.push(paint(place(box(0.09, lift + 0.02, 0.09), -0.05, lift / 2, z), '#5b4a3a'));
+      }
+      return { geometry: merge(parts), material: b.material, castShadow: b.castShadow ?? true };
     },
   };
 }
 
-/** The three shared boards with navy backs, plus `ad_board_b_l`: the chevron board for side=L rows (arrows forward). */
+/** The three shared boards with navy backs, `ad_board_b_l` (the chevron board for side=L rows, arrows forward) and
+ *  tall chevron twins for corners. */
 export const BACKED_BOARDS: Record<string, PropFactory> = {
   ad_board_a: backed('ad_board_a', false), ad_board_b: backed('ad_board_b', false), ad_board_c: backed('ad_board_c', false),
   ad_board_b_l: backed('ad_board_b', true),
+  // tall corner chevrons: posts 0.8 m higher at the scale 1.8 the corner rows use (0.8 / 1.8 local), so the arrows read
+  // above a 1.4 m rock wall and over a crest
+  ad_board_b_tall: backed('ad_board_b', false, 0.8 / 1.8), ad_board_b_l_tall: backed('ad_board_b', true, 0.8 / 1.8),
 };
