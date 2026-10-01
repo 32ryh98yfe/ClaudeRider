@@ -10,7 +10,7 @@ import { startGameServer } from '../src/game/run.ts';
 import { ByteWriter, PingMsg, encodeC2SLobby, type RoomSettings, type Transport } from '@cr/net';
 import { wsTransport } from '../src/net/wsTransport.ts';
 import { addressKey } from '../src/net/address.ts';
-import { LOADOUT, World } from './fixture.ts';
+import { LOADOUT, World, type TestClient } from './fixture.ts';
 
 const SETTINGS: RoomSettings = { mode: 'speed', teams: 'solo', track: 'proving_ring', laps: 1, fillBots: true, botTier: 'rookie', isPrivate: true, maxHumans: 8 };
 const ping = (id: number): Uint8Array => { const w = new ByteWriter(16); PingMsg.encode(w, { pingId: id, clientMs: id }); return w.finish().slice(); };
@@ -160,5 +160,52 @@ describe('floods and sockets that never read (item 2)', () => {
     wsTransport(ws2 as unknown as WebSocket).close(4008, 'not reading');
     expect(ws2.terminated).toBe(1);
     expect(ws2.closedGracefully).toBe(0);
+  });
+});
+
+const host = (w: World, name: string, ip?: string): TestClient => {
+  const h = w.client(name, ip).hello();
+  h.send({ t: 'create', settings: SETTINGS });
+  return h;
+};
+
+describe('race spam (item 1)', () => {
+  it('a global race cap answers serverFull; the room stays and can start once a slot frees', () => {
+    const w = new World({}, { maxRaces: 2 });
+    const a = host(w, 'A').send({ t: 'start' });
+    const b = host(w, 'B').send({ t: 'start' });
+    expect(w.server.stats().races).toBe(2);
+    const c = host(w, 'C').send({ t: 'start' });
+    expect(c.errors()).toContain('serverFull');
+    expect(w.server.stats().races).toBe(2);
+    expect(c.last('room')!.room.phase).toBe('waiting');
+    expect(a.errors()).toEqual([]);
+    expect(b.errors()).toEqual([]);
+  });
+
+  it('one address runs at most 2 races at once; others are unaffected', () => {
+    const w = new World();
+    host(w, 'A1', '10.1.0.1').send({ t: 'start' });
+    host(w, 'A2', '10.1.0.1').send({ t: 'start' });
+    const a3 = host(w, 'A3', '10.1.0.1').send({ t: 'start' });
+    expect(a3.errors()).toContain('rateLimited');
+    expect(w.server.stats().races).toBe(2);
+    host(w, 'B1', '10.1.0.2').send({ t: 'start' });
+    expect(w.server.stats().races).toBe(3);
+  });
+
+  it('a race whose humans all left is stopped after the resume window, freeing the address', () => {
+    const w = new World({ reconnectMs: 5000 });
+    const hosts = [host(w, 'S1', '10.2.0.1').send({ t: 'start' }), host(w, 'S2', '10.2.0.1').send({ t: 'start' })];
+    expect(w.server.stats().races).toBe(2);
+    for (const h of hosts) h.drop();
+    w.advance(3000);
+    expect(w.server.stats().races).toBe(2); // still resumable
+    w.advance(4000);
+    expect(w.server.stats().races).toBe(0);
+    expect(w.server.stats().rooms).toBe(0);
+    const again = host(w, 'S3', '10.2.0.1').send({ t: 'start' });
+    expect(again.errors()).toEqual([]);
+    expect(w.server.stats().races).toBe(1);
   });
 });

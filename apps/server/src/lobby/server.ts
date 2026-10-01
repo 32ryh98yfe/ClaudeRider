@@ -120,6 +120,8 @@ export class LobbyRoom {
   race: RaceHost | null = null;
   resultsUntil = 0;
   queueKey = '';
+  /** Since when no human of its race has been connected (-1: someone is). */
+  orphanSince = -1;
   constructor(kind: 'custom' | 'quick', code: string, settings: RoomSettings) {
     this.kind = kind; this.code = code; this.settings = settings;
     this.phase = kind === 'quick' ? 'search' : 'waiting';
@@ -510,6 +512,8 @@ export class GameServer {
     if (r.host !== s) return this.send(s, { t: 'error', code: 'notHost' });
     if (r.phase !== 'waiting' && r.phase !== 'countdown') return;
     if (!this.everyoneReady(r)) return this.send(s, { t: 'error', code: 'notReady' });
+    const refused = this.raceRefusal(r.humans()).code;
+    if (refused) return this.send(s, { t: 'error', code: refused });
     this.beginStart(r);
   }
 
@@ -579,9 +583,43 @@ export class GameServer {
 
   // ------------------------------------------------------------ races
 
+  /**
+   * Whether these humans may start a race now: at most `maxRaces` server-wide (serverFull), and no address in more
+   * than `ipRaces` at once (rateLimited; `over` lists the humans at their address's cap).
+   */
+  private raceRefusal(humans: readonly Session[]): { code: 'serverFull' | 'rateLimited' | null; over: Session[] } {
+    let races = 0;
+    const perIp = new Map<string, number>();
+    for (const room of this.active) {
+      if (!room.race) continue;
+      races++;
+      const ips = new Set<string>();
+      for (const id of room.race.humans.keys()) { const ip = this.sessions.get(id)?.ip; if (ip != null) ips.add(ip); }
+      for (const ip of ips) bump(perIp, ip, 1);
+    }
+    if (races >= this.L.maxRaces) return { code: 'serverFull', over: [...humans] };
+    const over = humans.filter((h) => h.ip !== null && (perIp.get(h.ip) ?? 0) >= this.L.ipRaces);
+    return { code: over.length ? 'rateLimited' : null, over };
+  }
+
   private enterLoading(r: LobbyRoom): void {
     const trackId = r.trackId!;
     const track = this.o.tracks.get(trackId);
+    const refused = this.raceRefusal(r.humans());
+    if (refused.code) {
+      this.log(`race refused in room ${r.code || r.queueKey}: ${refused.code}`);
+      if (r.kind === 'custom') {
+        // the room stays; the host may try again once a race slot frees up
+        r.phase = 'waiting'; r.deadline = 0; r.trackId = null;
+        for (const s of r.humans()) this.send(s, { t: 'error', code: refused.code });
+        this.broadcastRoom(r);
+        return;
+      }
+      // quick match: humans over their address's cap leave the match; a full server ends it for everyone
+      for (const s of refused.over) { this.leaveRoom(s); this.send(s, { t: 'error', code: refused.code }); }
+      if (refused.code === 'serverFull' && this.active.has(r)) this.closeRoom(r);
+      if (!this.active.has(r)) return;
+    }
     const humans = r.humans();
     if (!humans.length) { this.closeRoom(r); return; }
     const cfg = this.buildConfig(r, trackId, track.hash, track.laps);
@@ -723,6 +761,16 @@ export class GameServer {
   }
 
   private housekeeping(now: number): void {
+    // a race nobody is connected to any more is stopped once they could no longer resume (race spam: start, leave)
+    for (const r of [...this.active]) {
+      const race = r.race;
+      if (!race || race.result) { r.orphanSince = -1; continue; }
+      let anyone = false;
+      for (const id of race.humans.keys()) if (this.sessions.get(id)?.connected) { anyone = true; break; }
+      if (anyone) r.orphanSince = -1;
+      else if (r.orphanSince < 0) r.orphanSince = now;
+      else if (now - r.orphanSince > this.t.reconnectMs) { this.log(`race ${race.raceId} stopped: no human connected for ${this.t.reconnectMs} ms`); this.afterResults(r); }
+    }
     for (const [t, c] of [...this.conns]) if (!c.session && now > c.helloUntil) this.closeConn(t, 4005, 'hello timeout');
     for (const s of [...this.sessions.values()]) {
       if (s.connected) continue;
