@@ -91,6 +91,8 @@ PROPS kind=traffic_signal from=@boulevard+70 to=@boulevard+71 side=R every=100 o
 PROPS kind=traffic_signal from=@tram_s+30 to=@tram_s+120 side=both every=90 offset=0.8 seed=174
 PROPS kind=traffic_signal from=@sodium_straight+6 to=@sodium_straight+7 side=R every=100 offset=0.8 seed=175
 PROPS kind=planter_bush from=@boulevard+118 to=@crane_corner side=both every=9 offset=2.4 jitter=0.6 seed=161
+PROPS kind=planter_bush from=@boulevard+28 to=@boulevard+118 side=R every=12 offset=2.4 jitter=0.4 seed=176
+PROPS kind=street_tree from=@boulevard+34 to=@boulevard+118 side=R every=16 offset=4.6 jitter=0.6 scale=0.9-1.2 seed=177
 PROPS kind=planter_bush from=@tram_s to=@crane_hairpin side=both every=9 offset=2.4 jitter=0.6 seed=162
 PROPS kind=planter_bush from=@sodium_s to=@to_line+50 side=both every=10 offset=2.4 jitter=0.6 seed=163
 PROPS kind=street_tree from=@arcade_s to=@crane_corner side=both every=16 offset=4.4 jitter=1 scale=0.9-1.2 seed=164
