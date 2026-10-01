@@ -56,6 +56,9 @@ export function endDrift(w: WorldState, k: KartState, P: KartParams, ctx: StepCo
   clearDriftTech(w, k, ctx);
 }
 
+/** A valid tap's key may stay down this long: in-direction steer is tolerated by the drag and steers like neutral (§4.4–§4.6). */
+const inTapGrace = (d: Readonly<KartState['drive']>, P: KartParams): boolean => d.tapStreak > 0 && d.tapGap <= P.tapGrace;
+
 /** Bonus-charge multiplier: Infinite Boost doubles start, instant and draft charges (ADR-008). */
 const bonusMul = (opt: Readonly<DynamicsIn>): number => (opt.infinite ? 2 : 1);
 
@@ -193,7 +196,10 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
       rT = steer * gripGain(u, P);
       if (u < -0.5) rT = -steer * P.yGrip * 0.5 * (-u) / (-u + P.gripV0);
     } else {
-      rT = d.driftDir * (P.y0 / (1 + (d.driftTicks * DT) / P.y0T) + P.y1 * sIn + (driftHeld ? P.y2 : 0));
+      // §4.4: the key of a valid tap, still held inside the grace, steers like neutral (a real keyboard press lasts
+      // several frames; its full in-steer would drive β past dragExitHi within a few ticks)
+      const sY = d.dragTicks > 0 && inTapGrace(d, P) && sIn > P.dragNeutral ? P.dragNeutral : sIn;
+      rT = d.driftDir * (P.y0 / (1 + (d.driftTicks * DT) / P.y0T) + P.y1 * sY + (driftHeld ? P.y2 : 0));
     }
     if (wallStun) rT *= 0.3;
     b.yawRate += (rT - b.yawRate) * (1 - decayF(d.drift === 0 ? P.kYawGrip : P.kYawDrift, DT));
@@ -234,7 +240,7 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
         ev.push({ t: 'cut', kart: k.slot, tick, key: evKey(tick, 12, k.slot) });
       }
       // drag: boosting, ↑, no brake, on the ground, steering neutral (or the key of a valid tap still held)
-      const steerOk = sIn > -P.dragNeutral && (sIn < P.dragNeutral || (d.tapStreak > 0 && d.tapGap <= P.tapGrace));
+      const steerOk = sIn > -P.dragNeutral && (sIn < P.dragNeutral || inTapGrace(d, P));
       const ok = !cut && boosting && thrIn === 1 && !brk && b.grounded === 1 && steerOk;
       const sb7 = v > 0.1 ? (-d.driftDir * wl) / v : 0;
       if (ok && d.dragTicks === 0 && sb7 >= P.dragEnterLo && sb7 <= P.dragEnterHi) {
@@ -251,9 +257,11 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
     if (d.drift === 0) { kL = P.kLatGrip; eta = P.etaGrip; }
     else {
       eta = dragging ? P.etaDrag : P.etaDrift; // §4.6: the drag turns the scrubbed lateral speed into forward speed
-      if (sIn >= 0.3) kL = P.kLatNeutral + (P.kLatIn - P.kLatNeutral) * ((sIn - 0.3) / 0.7);
-      else if (sIn > -0.3) kL = P.kLatNeutral;
-      else kL = P.kLatNeutral + (P.kLatCounter - P.kLatNeutral) * ((-sIn - 0.3) / 0.7);
+      // §4.6: a tap key held inside the grace selects the neutral band, as in K4
+      const sL = dragging && inTapGrace(d, P) && sIn > P.dragNeutral ? P.dragNeutral : sIn;
+      if (sL >= 0.3) kL = P.kLatNeutral + (P.kLatIn - P.kLatNeutral) * ((sL - 0.3) / 0.7);
+      else if (sL > -0.3) kL = P.kLatNeutral;
+      else kL = P.kLatNeutral + (P.kLatCounter - P.kLatNeutral) * ((-sL - 0.3) / 0.7);
       if (driftHeld) kL *= P.kLatShift;
     }
     kL *= surf.grip;

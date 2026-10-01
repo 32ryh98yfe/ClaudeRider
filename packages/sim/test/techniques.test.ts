@@ -23,7 +23,7 @@ const Q2 = 2 / 4096; // two velocity quanta
 /** doc 15 §2, verbatim. */
 const DOC15: Record<keyof TechParams, number> = {
   vReverse: 10.78, aReverse: 8, revEngageTicks: 6, zeroLockGt: 4.2, postTicks: 30, kPostHold: 6, kPostRel: 0.7,
-  aDrag: 5, etaDrag: 1.0, dragCapMul: 1.0662, tapCapStep: 0.01839, tapStreakMax: 3, tapYaw: 0.4, tapAccelMul: 2,
+  aDrag: 5, etaDrag: 1.0, dragCapMul: 1.0662, tapCapStep: 0.01839, tapStreakMax: 3, tapYaw: 0.7, tapAccelMul: 2,
   tapTicks: 8, tapGrace: 8, tapMinGap: 6, tapMaxGap: 12, dragNeutral: 0.3,
   dragEnterLo: 0.3420201433256687, dragEnterHi: 0.573576436351046, dragExitLo: 0.3090169943749474, dragExitHi: 0.6018150231520483,
   cutSteer: 0.7, cutTicks: 2, etaCut: 0.8, revGaugeMul: 3, brakeTurnTicks: 8, brakeTurnMul: 2, spinTicks: 11,
@@ -448,6 +448,26 @@ function tapRun(n: number, gap: number, o: { side?: 'L' | 'R'; press?: number } 
     return { drift: true, steer, edges: m === 0 ? (side === 'L' ? Edge.TAP_L : Edge.TAP_R) : 0 };
   });
 }
+/**
+ * The client's keyboard steer (apps/client/src/input/keyboard.ts sampleInput): each frame x += (target − x)·0.6,
+ * snapping to the target within 0.02. One frame is one tick at 60 Hz. Starts at `x0`.
+ */
+function keyboardSteer(x0 = 0): (target: number) => number {
+  let x = x0;
+  return (target) => { x += (target - x) * 0.6; if (Math.abs(x - target) < 0.02) x = target; return x; };
+}
+/**
+ * tapRun with a real keyboard press: from D + 4 the left key goes down every `gap` frames (TAP_L on the press frame)
+ * and stays down for `hold` frames; the steer ramps through the keyboard smoothing, including the release of the
+ * 24-frame drift-building press.
+ */
+function keyTapRun(n: number, gap: number, hold: number): DragRun {
+  const key = keyboardSteer(1);
+  return dragRun(n, (t, on) => {
+    const m = on < 0 || t < on + 4 ? -1 : (t - on - 4) % gap;
+    return { drift: true, steer: key(m >= 0 && m < hold ? 1 : 0), edges: m === 0 ? Edge.TAP_L : 0 };
+  }, { boost: 400 });
+}
 const streaks = (r: DragRun): number[] => r.ev.map(streakOf).filter((s) => s > 0);
 /** Longest run of consecutive ticks with dragTicks > 0. */
 const longestDrag = (r: DragRun): number => { let best = 0, cur = 0; for (const d of r.drag) { cur = d > 0 ? cur + 1 : 0; best = Math.max(best, cur); } return best; };
@@ -467,6 +487,34 @@ describe('physics: tap boost (톡톡이) (doc 15 §4.3, §4.8, §5 item 6)', () 
     expect(maxV).toBeLessThanOrEqual(50.59 + 0.002);
     expect(maxV).toBeGreaterThan(50.4);
     expect(maxV * KMH).toBeGreaterThan(303.5);
+  });
+
+  // §4.4/§4.6 tap grace: a keyboard press lasts several frames and ramps through the client smoothing; inside the
+  // grace the in-steer counts as neutral, so the press neither ends the drag nor drives β past dragExitHi
+  it.each([8, 10, 12])('keyboard-shaped taps every %i frames, held 2–5 frames: the drag lasts ≥ 150 ticks and reaches 305 km/h', (gap) => {
+    for (let hold = 2; hold <= 5; hold++) {
+      const r = keyTapRun(260, gap, hold);
+      expect(r.onAt, `hold ${hold}`).toBeGreaterThan(0);
+      expect(streaks(r).slice(0, 4), `hold ${hold}`).toEqual([1, 2, 3, 3]);
+      expect(longestDrag(r), `hold ${hold}`).toBeGreaterThanOrEqual(150);
+      const maxV = Math.max(...r.v);
+      expect(maxV, `hold ${hold}`).toBeLessThanOrEqual(50.59 + 0.002);
+      expect(maxV * KMH, `hold ${hold}`).toBeGreaterThan(304.5);
+    }
+  });
+
+  it('a held tap key past the grace is in-steer again: the drag ends', () => {
+    // one tap, then the key stays down: tolerated for tapGrace ticks after the tap, then steerOk fails
+    const key = keyboardSteer(1);
+    const r = dragRun(120, (t, on) => {
+      const m = on < 0 || t < on + 4 ? -1 : t - on - 4;
+      return { drift: true, steer: key(m >= 0 ? 1 : 0), edges: m === 0 ? Edge.TAP_L : 0 };
+    });
+    const tapAt = r.onAt + 4;
+    expect(streakOf(r.ev[tapAt]!)).toBe(1);
+    for (let t = tapAt; t <= tapAt + P.tapGrace; t++) expect(r.drag[t]!, `grace tick ${t - tapAt}`).toBeGreaterThan(0);
+    expect(r.drag[tapAt + P.tapGrace + 1]!).toBe(0);
+    expect(dragOff(r.ev[tapAt + P.tapGrace + 1]!)).toBe(true);
   });
 
   it('a sustained tap rhythm keeps the drag going until dragTicks saturates at 255', () => {

@@ -60,10 +60,10 @@ Units are m/s, m/s², s⁻¹ and ticks (60 Hz). `core/math.ts` `SIN` gains:
 | dragCapMul | 1.0662 | drag cap = vBoost·1.0662, on planar \|v\| (290 km/h on Balance) |
 | tapCapStep | 0.01839 | +cap per streak step: streak 1/2/3 → 295/300/305 km/h (Balance) |
 | tapStreakMax | 3 | |
-| tapYaw | 0.4 | rad/s yaw pulse per valid tap |
+| tapYaw | 0.7 | rad/s yaw pulse per valid tap (M5 fix: was 0.4; see the tap grace in §4.4) |
 | tapAccelMul | 2 | injection multiplier inside the tap window |
 | tapTicks | 8 | injection window after a valid tap |
-| tapGrace | 8 | in-direction steer is tolerated this long after a valid tap |
+| tapGrace | 8 | in-direction steer is tolerated this long after a valid tap, and steers like neutral (§4.4, §4.6) |
 | tapMinGap, tapMaxGap | 6, 12 | valid tap rhythm (0.1–0.2 s) |
 | dragNeutral | 0.3 | \|sIn\| below this counts as neutral steering |
 | dragEnterLo, dragEnterHi | SIN.d20, SIN.d35 | drag entry window for sb = sin β |
@@ -107,7 +107,10 @@ Decay factors per tick come from `decayF(k, DT)` (`core/math.ts`); never `Math.e
        - gap < tapMinGap → streak 0 (mashing is invalid);
        - then `tapGap = 0`.
      - A valid tap (streak > 0) adds `yawRate += driftDir·tapYaw` and emits `tapBoost{streak}`.
-4. **K5.** `rotateForward(yawRate·DT·(brakeTurn ? 2 : 1))`.
+4. **K4 tap grace and K5.**
+   - **Tap grace** = `dragTicks > 0 && tapStreak > 0 && tapGap ≤ tapGrace`. Inside it, in-direction steer counts as neutral for the drift laws: the K4 yaw target uses `min(sIn, dragNeutral)` in place of sIn (`rT = driftDir·(y0/(1 + t/y0T) + y1·min(sIn, dragNeutral) + y2·DRIFT)`). The cut, the drag's steerOk and the reverse gauge keep the raw sIn.
+   - Why: a keyboard tap is a press of several frames that the client smooths (`x += (target − x)·0.6` per frame). With the full y1·sIn the press drove β past dragExitHi in about 5 ticks, so only 1–3-frame presses kept the drag. With the grace and tapYaw 0.7, keyboard taps every 8–12 frames held 2–5 frames all keep the drag at 305 km/h (Balance: 21 of the 24 gap 6/8/10/12 × hold 1–6 cases, against 13 before; the misses are 4–6-frame holds at the fastest gap, 6).
+   - **K5.** `rotateForward(yawRate·DT·(brakeTurn ? 2 : 1))`.
 5. **K7b cut, reverse gauge and drag** (after the u/wl/vn decomposition and slope gravity).
    - **Cut.**
      - `counterTicks = sIn ≤ −cutSteer ? +1 : 0`.
@@ -120,7 +123,7 @@ Decay factors per tick come from `decayF(k, DT)` (`core/math.ts`); never `Math.e
      - **Enter** when ok and sb ∈ [dragEnterLo, dragEnterHi]: `dragTicks = 1`, streak 0, gap 255, emit `drag{on:true}`.
      - **Stay** while ok and sb ∈ [dragExitLo, dragExitHi]; `dragTicks` saturates at 255.
      - **Otherwise end the drag**: dragTicks 0, streak 0, gap 255, emit `drag{on:false}`.
-6. **K8.** While dragging, drift retention η = `etaDrag` (1.0).
+6. **K8.** While dragging, drift retention η = `etaDrag` (1.0). Inside the tap grace (§4.4) the lateral-damping band is chosen with `min(sIn, dragNeutral)`, which is the neutral band (kLatNeutral).
 7. **K11.**
    - Reverse gauge: the drift gauge gain is ×`revGaugeMul` while boosting and sIn ≤ −0.3.
    - The exit condition gains `cut`.
@@ -158,7 +161,7 @@ Decay factors per tick come from `decayF(k, DT)` (`core/math.ts`); never `Math.e
 | 3 | Gears | Brake to 0, STOP, R after 6 ticks, reverse capped at −10.78 m/s (65.0 ± 0.3 km/h). ↑ in R → D. |
 | 4 | Post-boost bleed | Per-tick factor `decayF(6)` toward vGrip; \|v\| at +30 ticks ≈ 34.55. Release rule as in §4.8. Cancelled by drift, booster or instant boost. A 60° wall hit before expiry gives no bleed. |
 | 5 | Drag | Entry and exit events fire. \|v\| rises to 48.10 m/s (290 km/h) at most. No drag without boost, without ↑, with brake, or with in-steer held and no tap. A sustained neutral drag entered near β 30° reaches at least 288 km/h. |
-| 6 | Tap | Taps every 8 ticks give streak 1, 2, 3, 3; max \|v\| ≈ 50.59 m/s (305 km/h); the drag lasts at least 90 ticks. Gaps of 4 ticks give no streak ≥ 2; gaps of 14 stay at streak 1; a wrong-direction tap does nothing. |
+| 6 | Tap | Taps every 8 ticks give streak 1, 2, 3, 3; max \|v\| ≈ 50.59 m/s (305 km/h); the drag lasts at least 90 ticks. Keyboard-shaped taps (0.6 smoothing per frame) every 8, 10 or 12 frames held 2–5 frames keep the drag ≥ 150 ticks and reach 305 km/h; a key held past the grace ends the drag. Gaps of 4 ticks give no streak ≥ 2; gaps of 14 stay at streak 1; a wrong-direction tap does nothing. |
 | 7 | Cut and reverse gauge | A full counter-steer cuts on its 2nd tick with \|wl\| ≈ 0 and the instant window open. Half counter does not cut. Boosting with DRIFT held: no cut, and gauge gain is ×3. |
 | 8 | Brake turn and spin-out | Ticks 1–8 rotate the heading at 2·yawRate·DT; ticks 9–10 at 1×; tick 11 spins out to 3.317 m/s with the drift ended, boost cancelled and 15 ticks of stun. |
 | 9 | Determinism | Bumping any `KartDrive` field changes `hashWorld`. The oracle (`test/oracle/proto2d.ts`) implements all of §4 and matches to ≤ 1e-6 m on the old logs plus six new ones: post-boost, drag, tap, cut/reverse gauge, brake turn/spin, gears. |

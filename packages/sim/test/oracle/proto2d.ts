@@ -137,7 +137,11 @@ export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): vo
     const vv = u > 0 ? u : 0; const qq = vv / P.gripV1;
     rT = steer * P.yGrip * vv / (vv + P.gripV0) / (1 + qq * qq);
     if (u < -0.5) rT = -steer * P.yGrip * 0.5 * (-u) / (-u + P.gripV0);
-  } else rT = k.dDir * (P.y0 / (1 + (k.dT * DT) / P.y0T) + P.y1 * sIn + (inp.drift ? P.y2 : 0));
+  } else {
+    // §4.4: inside the tap grace of a drag, in-direction steer counts as neutral (clamped to dragNeutral)
+    const grace = k.dragT > 0 && k.streak > 0 && k.tapGap <= P.tapGrace;
+    rT = k.dDir * (P.y0 / (1 + (k.dT * DT) / P.y0T) + P.y1 * (grace ? Math.min(sIn, P.dragNeutral) : sIn) + (inp.drift ? P.y2 : 0));
+  }
   if (stunned) rT *= 0.3;
   k.r += (rT - k.r) * (1 - decayF(k.drift === 0 ? P.kYawGrip : P.kYawDrift));
   // K5 heading rotation (×brakeTurnMul on brake-turn ticks)
@@ -167,8 +171,10 @@ export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): vo
   if (k.drift === 0) { kL = P.kLatGrip; eta = P.etaGrip; }
   else {
     eta = k.dragT > 0 ? P.etaDrag : P.etaDrift;
-    if (sIn >= 0.3) kL = P.kLatNeutral + (P.kLatIn - P.kLatNeutral) * ((sIn - 0.3) / 0.7); else if (sIn > -0.3) kL = P.kLatNeutral;
-    else kL = P.kLatNeutral + (P.kLatCounter - P.kLatNeutral) * ((-sIn - 0.3) / 0.7);
+    // §4.6: the same grace clamp picks the neutral band
+    const sL = k.dragT > 0 && k.streak > 0 && k.tapGap <= P.tapGrace ? Math.min(sIn, P.dragNeutral) : sIn;
+    if (sL >= 0.3) kL = P.kLatNeutral + (P.kLatIn - P.kLatNeutral) * ((sL - 0.3) / 0.7); else if (sL > -0.3) kL = P.kLatNeutral;
+    else kL = P.kLatNeutral + (P.kLatCounter - P.kLatNeutral) * ((-sL - 0.3) / 0.7);
     if (inp.drift) kL *= P.kLatShift;
   }
   const w2 = w * decayF(kL);
