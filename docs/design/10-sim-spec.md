@@ -1,5 +1,7 @@
 # 10 — Kart simulation spec
 
+> **M5:** `15-driving-techniques.md` supersedes this document for the driving techniques (gears and reverse, post-boost bleed, drag, tap boost, cut and reverse gauge, brake turn and spin-out) and for the display factor (205/34) and V_BOOST (45.11).
+
 Owner: L1 SIM (dynamics, race rules), with L2 ITEMS (effects hooks) and L3 AI (inputs only).
 Code: `packages/sim/src/{core,kart,race,track}/**`, `step.ts`. Contracts: B1–B5 in `02-contracts.md`.
 Sources: ADR-003, ADR-004, ADR-005, ADR-006 (collision), ADR-008 (race flow); gap-2 report and `docs/research/sim-prototype.md` (the validated oracle, copied to `packages/sim/test/oracle/proto2d.ts`).

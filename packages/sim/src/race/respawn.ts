@@ -4,12 +4,14 @@
 //            a kill inside a declared jump (J) span places the kart on the landing side instead (see gapRespawn)
 //   t0 + 54  control returns (phase 0)
 //   t0 + 144 kart–kart contacts resume (ghost 120 ticks from placement)
-// Cancelled: active boosts, the drift and the draft. Kept: stored boosters, gauge and items.
+// Cancelled: active boosts (no post-boost bleed), the drift and its techniques, and the draft; the gear returns to
+// STOP. Kept: stored boosters, gauge and items.
 import { NEUTRAL_INPUT } from '../core/input.ts';
-import { Attach, Boost, type KartState, type TrackLoc, type WorldState } from '../core/state.ts';
+import { Attach, Boost, Gear, type KartState, type TrackLoc, type WorldState } from '../core/state.ts';
 import type { StepContext } from '../api.ts';
 import { copyLoc } from '../track/BakedTrack.ts';
 import { evKey } from '../kart/evkey.ts';
+import { clearDriftTech, setGear } from '../kart/tech.ts';
 import { paramsFor } from '../kart/params.ts';
 import { kartDynamics, type DynamicsIn } from '../kart/dynamics.ts';
 import { halfStep, type MotionState } from '../kart/motion.ts';
@@ -57,6 +59,9 @@ export function updateRespawn(w: WorldState, k: KartState, ctx: StepContext): vo
     b.ghostTicks = RESPAWN_GHOST;
     d.drift = 0; d.driftDir = 1; d.driftTicks = 0; d.driftPeak = 0;
     d.boostTicks = 0; d.boostKind = Boost.NONE; d.instTicks = 0; d.instWindow = 0; d.startTicks = 0; d.stunTicks = 0; d.wheelspinTicks = 0;
+    clearDriftTech(w, k, ctx); // drag, taps, cut and brake counters (brakeTicks = 0)
+    d.postTicks = 0;
+    setGear(w, k, ctx, Gear.STOP);
     d.draftCharge = 0; d.draftTicks = 0; d.lowSpeedTicks = 0;
     // the placed sample may be one the track walked back to (respawn-ok slots, .ctrk v2)
     if (ctx.track.respawnLoc) ctx.track.respawnLoc(r.lastValid, r.loc); else copyLoc(r.loc, r.lastValid);

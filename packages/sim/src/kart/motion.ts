@@ -9,6 +9,7 @@ import type { Contact } from '../track/BakedTrack.ts';
 import { TFLAG } from '../track/format.ts';
 import type { KartParams } from './params.ts';
 import { evKey } from './evkey.ts';
+import { clearDriftTech } from './tech.ts';
 import { railHalfStep } from './rail.ts';
 import { gravityFor } from './zones.ts';
 import { hasZones } from './trackinfo.ts';
@@ -195,6 +196,7 @@ function wallResponse(w: WorldState, k: KartState, P: KartParams, ctx: StepConte
       d.gauge *= P.wallGaugeKeep;
       d.drift = 0; d.reDriftLock = P.reDriftTicks; d.driftDir = 1; d.driftTicks = 0; d.driftPeak = 0;
       ctx.events.push({ t: 'driftEnd', kart: k.slot, tick: w.tick, key: evKey(w.tick, 4, k.slot) });
+      clearDriftTech(w, k, ctx);
     }
     d.instTicks = 0; d.instWindow = 0;
     const hard = sinT >= SIN.d45;
@@ -202,7 +204,7 @@ function wallResponse(w: WorldState, k: KartState, P: KartParams, ctx: StepConte
       k.stats.hardHits++;
       d.stunTicks = P.wallStunTicks + 1;
       if (d.boostTicks > 0) ctx.events.push({ t: 'boostEnd', kart: k.slot, kind: d.boostKind, tick: w.tick, key: evKey(w.tick, 1, k.slot) });
-      d.boostTicks = 0; d.boostKind = Boost.NONE; d.startTicks = 0;
+      d.boostTicks = 0; d.boostKind = Boost.NONE; d.startTicks = 0; d.postTicks = 0; // a cancelled boost never bleeds
       b.yawRate = 0;
       // nose realigned along the track tangent (projected on the ground plane), toward the side the kart faced,
       // turned slightly away from the wall

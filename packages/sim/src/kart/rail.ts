@@ -10,6 +10,7 @@ import type { DynamicsIn } from './dynamics.ts';
 import { addGauge, GaugeSrc } from './gauge.ts';
 import { trackInfo } from './trackinfo.ts';
 import { evKey } from './evkey.ts';
+import { clearDriftTech } from './tech.ts';
 
 const F: FrameSample = { px: 0, py: 0, pz: 0, tx: 0, ty: 0, tz: 0, rx: 0, ry: 0, rz: 0, ux: 0, uy: 0, uz: 0, wL: 0, wR: 0, sMain: 0, flags: 0 };
 
@@ -51,6 +52,7 @@ export function tryCaptureRail(w: WorldState, k: KartState, ctx: StepContext): b
     if (d.drift === 1) {
       d.drift = 0; d.driftDir = 1; d.driftTicks = 0; d.driftPeak = 0; d.reDriftLock = 6;
       ctx.events.push({ t: 'driftEnd', kart: k.slot, tick: w.tick, key: evKey(w.tick, 4, k.slot) });
+      clearDriftTech(w, k, ctx);
     }
     b.attachKind = Attach.RAIL; b.attachId = r; b.attachS = sr; b.attachT = 0;
     const u0 = b.vx * F.tx + b.vy * F.ty + b.vz * F.tz;

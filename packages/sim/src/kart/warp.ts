@@ -5,6 +5,7 @@ import { Attach, type KartState, type TrackLoc, type WorldState } from '../core/
 import type { StepContext } from '../api.ts';
 import type { FrameSample } from '../track/BakedTrack.ts';
 import { evKey } from './evkey.ts';
+import { clearDriftTech } from './tech.ts';
 
 const F: FrameSample = { px: 0, py: 0, pz: 0, tx: 0, ty: 0, tz: 0, rx: 0, ry: 0, rz: 0, ux: 0, uy: 0, uz: 0, wL: 0, wR: 0, sMain: 0, flags: 0 };
 const GUESS: TrackLoc = { path: 0, i: 0, s: 0, u: 0, h: 0, sMain: 0, valid: 0 };
@@ -37,6 +38,7 @@ export function tryEnterWarp(w: WorldState, k: KartState, ctx: StepContext, prev
     if (d.drift === 1) {
       d.drift = 0; d.driftDir = 1; d.driftTicks = 0; d.driftPeak = 0; d.reDriftLock = 6;
       ctx.events.push({ t: 'driftEnd', kart: k.slot, tick: w.tick, key: evKey(w.tick, 4, k.slot) });
+      clearDriftTech(w, k, ctx);
     }
     b.attachKind = Attach.WARP; b.attachId = i; b.attachT = 0;
     b.attachS = Math.sqrt(b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);

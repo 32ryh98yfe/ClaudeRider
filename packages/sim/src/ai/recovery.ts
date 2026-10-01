@@ -29,7 +29,7 @@ export interface RecoveryIn {
 
 export interface RecoveryOut { steer: number; thr: number; brk: number; reset: boolean }
 
-const SLOW_V = 2, SLOW_TICKS = 90, PIN_TICKS = 24, MAX_TRIES = 2, REVERSE_TICKS = 48, DRIVE_OUT_TICKS = 60, RESET_AT = 200, PROGRESS_M = 12, WRONG_DEG = 110 * Math.PI / 180, TURN_LIMIT = 150;
+const SLOW_V = 2, SLOW_TICKS = 90, PIN_TICKS = 24, MAX_TRIES = 2, REVERSE_TICKS = 54, DRIVE_OUT_TICKS = 60, RESET_AT = 200, PROGRESS_M = 12, WRONG_DEG = 110 * Math.PI / 180, TURN_LIMIT = 150;
 
 export class Recovery {
   mode: number = RecoveryMode.NONE;

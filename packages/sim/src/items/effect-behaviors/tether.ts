@@ -9,6 +9,7 @@ import { EFlag } from '../codes.ts';
 import { planarSpeed } from '../effects.ts';
 import { setPlanarSpeed, steerToward } from '../kinematics.ts';
 import { inRace, inWarp } from '../team.ts';
+import { clearDriftTech } from '../../kart/tech.ts';
 
 export const TETHER_SLINGSHOT_M = 4, TETHER_WALL_TICKS = 18;
 const MAX_TURN = 0.05; // rad per tick (3 rad/s): the pull bends the user's path hard but not instantly
@@ -16,9 +17,10 @@ const MAX_TURN = 0.05; // rad per tick (3 rad/s): the pull bends the user's path
 export const tetherTarget = (e: Readonly<EffectInstance>): number => e.param & 15;
 
 const behavior: EffectBehavior = {
-  onStart(w, e) {
+  onStart(w, e, ctx) {
     const k = w.karts[e.victim]!;
     k.drive.drift = 0; k.drive.driftTicks = 0; k.drive.driftPeak = 0; k.drive.driftDir = 1;
+    clearDriftTech(w, k, ctx);
     const t = w.karts[tetherTarget(e)];
     if (!t || !inRace(t) || inWarp(t)) e.flags |= EFlag.ENDED;
   },
