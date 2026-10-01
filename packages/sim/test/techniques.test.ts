@@ -101,7 +101,8 @@ describe('physics: M5 display and constants (doc 15 §1–§2, §5 item 1)', () 
 
   it('SHARED gains the §2 constants and SIN gains d18, d20, d35, d37', () => {
     const p = P as unknown as Record<string, number>;
-    for (const [key, v] of Object.entries(DOC15)) expect(p[key], key).toBeCloseTo(v, 12);
+    // spinSpeed is given as 20 / (205/34) = 3.317073: either form is accepted
+    for (const [key, v] of Object.entries(DOC15)) expect(p[key], key).toBeCloseTo(v, key === 'spinSpeed' ? 6 : 12);
     const S = SIN as unknown as Readonly<Record<string, number>>;
     expect(S['d18']).toBe(0.3090169943749474);
     expect(S['d20']).toBe(0.3420201433256687);
@@ -396,6 +397,29 @@ describe('physics: drag (끌기) (doc 15 §4.5–§4.8, §5 item 5)', () => {
     const brk = dragRun(32, () => ({ drift: true, brk: 1 }));
     for (let t = 24; t < 32; t++) expect(brk.drag[t]!, `tick ${t}`).toBe(0);
     expect(brk.onAt).toBe(-1);
+  });
+
+  it('a wall impact that ends the drift also ends the drag and resets the technique fields (§4.7)', () => {
+    // 4 m right of centre in a 16 m corridor: the left drag reaches the left wall (u = −8) mid-drag at ≈ 50°
+    const rig = racingRig(corridor(16).track);
+    const k = place(rig, 0, { s: 300, u: 4, speed: 45 });
+    k.drive.prevThrottle = 1; k.drive.boostTicks = 300; k.drive.boostKind = Boost.NORMAL;
+    let hit = -1, dragBefore = 0;
+    for (let t = 0; t < 90 && hit < 0; t++) {
+      dragBefore = k.drive.dragTicks;
+      const ev = tick(rig, t < 24 ? { steer: 1, drift: true } : { drift: true });
+      const w = ev.find((e) => e.t === 'wall' && e.kart === 0 && e.severity > 0);
+      if (w) {
+        hit = t;
+        expect(dragOff(ev)).toBe(true);
+        expect(has(ev, 'driftEnd')).toBe(true);
+      }
+    }
+    expect(hit).toBeGreaterThan(24);
+    expect(dragBefore).toBeGreaterThan(0);
+    const d = k.drive;
+    expect(d.drift).toBe(0);
+    expect(d.dragTicks).toBe(0); expect(d.tapStreak).toBe(0); expect(d.tapGap).toBe(255); expect(d.counterTicks).toBe(0);
   });
 
   it('a drag ends when ↑ is lifted, and the boost ending ends it', () => {
