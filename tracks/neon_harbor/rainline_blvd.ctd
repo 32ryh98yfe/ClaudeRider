@@ -36,13 +36,392 @@ HAZ traffic cars at=@boulevard+62 to=@boulevard+128 lanes=[(d -5, speed 16, coun
 BRANCH alley from=@alley_split+4 to=@container_row+48 kind=shortcut aiMin=0.5 w=8 wall=building:3.5 surf=cobble {
   C R20 45 L wallR=building:3.5:soft ; S ?x wallR=building:3.5:soft ; C R20 45 L ; S ?y
 }
-# ---- dressing (Neon Harbor kit): sodium lamps, arcade signs, harbour cranes and containers, the tram stop ----
-PROPS kind=street_lamp along=main side=both every=38 offset=0.6
-PROPS kind=neon_sign from=@arcade_corner to=@alley_split side=both every=21 offset=2.5
-PROPS kind=neon_sign from=@market_street to=@sodium_straight+40 side=both every=24 offset=2.5
-PROPS kind=billboard from=@boulevard+30 to=@boulevard+130 side=L every=50 offset=4
-PROPS kind=billboard from=@canal+10 to=@canal+110 side=R every=55 offset=5
-PROPS kind=container_stack from=@container_row to=@container_row+90 side=R every=17 offset=4
-PROPS kind=harbor_crane from=@crane_corner to=@crane_corner+60 side=L every=60 offset=20
+# ---- dressing (Neon Harbor kit, stylized pass 2026-10, render-only: the .ctrk is unchanged) ----
+# A rainy night street: shop-front blocks line both sides (fronts 7–9 m behind the barrier, alleys between them),
+# slim towers behind, the skyline beyond; lamps, planters, street trees and benches on the sidewalks; harbour cranes,
+# containers and a warehouse at the yard; shophouses, noodle stalls and lantern strings in the market.
+# The a3 start-wide camera stands 8 m beyond the right edge before the grid and the b2 camera 30 m outside T1, so
+# those patches keep low furniture only.
+# The towers are placed as PROPs by a clearance pass (end of file): every footprint keeps ≥ 26 m from all road
+# surfaces at any height, so no tower stands under or beside the overpass and the street blocks stay in front.
+THEME scatter=none hills=0 sky=night fogNear=90 fogFar=720
+# -- start straight (to_line + boulevard): grandstand opposite the grid, banner poles, spectators, neon boards
+PROPS kind=grandstand from=@boulevard+34 to=@boulevard+35 side=L every=100 offset=5.5 seed=101
+PROPS kind=flag_pole from=@boulevard+6 to=@boulevard+110 side=L every=9 offset=2.2 seed=102
+PROPS kind=spectators from=@boulevard+66 to=@boulevard+112 side=L every=14 offset=2.6 jitter=1 seed=103
+PROPS kind=spectators from=@to_line+8 to=@to_line+50 side=R every=16 offset=2.4 jitter=1 seed=104
+PROPS kind=ad_board_a from=@boulevard+30 to=@boulevard+116 side=R every=24 offset=0.4 seed=105
+PROPS kind=ad_board_b from=@boulevard+38 to=@boulevard+116 side=R every=24 offset=0.4 seed=106
+PROPS kind=ad_board_c from=@boulevard+46 to=@boulevard+116 side=R every=24 offset=0.4 seed=107
+PROPS kind=ad_board_c from=@to_line+4 to=@to_line+52 side=both every=16 offset=0.4 seed=108
+# -- T1 (arcade corner, left): tyre wall and chevron boards on the outside, an open plaza behind them
+PROPS kind=tyre_wall from=@arcade_corner-2 to=@arcade_corner+32 side=R every=1.3 offset=0.6 seed=110
+PROPS kind=ad_board_b from=@arcade_corner+1 to=@arcade_corner+30 side=R every=8 offset=2.6 seed=111
+PROPS kind=street_lamp from=@arcade_corner+4 to=@arcade_corner+30 side=R every=13 offset=5 seed=112
+PROPS kind=bus_shelter from=@arcade_corner+38 to=@arcade_corner+39 side=R every=50 offset=2.2 seed=113
+# -- street blocks, both sides, the whole lap (four facade kinds in 24 m slots; setback jitter breaks the wall)
+PROPS kind=building_row_a from=@boulevard+52 to=@arcade_corner side=L every=96 offset=8 jitter=1.5 seed=120
+PROPS kind=building_row_b from=@boulevard+76 to=@arcade_corner side=L every=96 offset=8 jitter=1.5 seed=121
+PROPS kind=building_row_d from=@boulevard+30 to=@boulevard+31 side=L every=96 offset=16 seed=122
+# (the right side of the start straight is only 8 m from the spiral exit, and the overpass crosses the run-in:
+# one block by T1, no blocks on the run-in)
+PROPS kind=building_row_c from=@boulevard+97 to=@boulevard+98 side=R every=72 offset=8 seed=123
+PROPS kind=building_row_a from=@arcade_s to=@crane_corner side=both every=96 offset=8 jitter=2 seed=126
+PROPS kind=building_row_b from=@arcade_s+24 to=@crane_corner side=both every=96 offset=8 jitter=2 seed=127
+PROPS kind=building_row_c from=@arcade_s+48 to=@crane_corner side=both every=96 offset=8 jitter=2 seed=128
+PROPS kind=building_row_d from=@arcade_s+72 to=@crane_corner side=both every=96 offset=8 jitter=2 seed=129
+PROPS kind=building_row_a from=@tram_s to=@crane_hairpin-40 side=both every=96 offset=8 jitter=2 seed=130
+PROPS kind=building_row_d from=@tram_s+24 to=@crane_hairpin-40 side=both every=96 offset=8 jitter=2 seed=131
+PROPS kind=building_row_b from=@tram_s+48 to=@crane_hairpin-40 side=both every=96 offset=8 jitter=2 seed=132
+PROPS kind=building_row_c from=@tram_s+72 to=@crane_hairpin-40 side=both every=96 offset=8 jitter=2 seed=133
+# beside the overpass the blocks stand on the ground below the deck (trackc: offset > 2 → ground), 9 m out
+# (the deck crosses the run-in and the sodium S between elevated_deck+50 and the spiral: no blocks there)
+PROPS kind=building_row_d from=@overpass_ramp+20 to=@elevated_deck+48 side=both every=96 offset=9 jitter=2 seed=134
+PROPS kind=building_row_b from=@overpass_ramp+44 to=@elevated_deck+48 side=both every=96 offset=9 jitter=2 seed=135
+PROPS kind=building_row_a from=@overpass_ramp+68 to=@elevated_deck+48 side=both every=96 offset=9 jitter=2 seed=136
+PROPS kind=building_row_c from=@overpass_ramp+92 to=@elevated_deck+48 side=both every=96 offset=9 jitter=2 seed=137
+PROPS kind=building_row_b from=@spiral_exit+20 to=@spiral_exit+110 side=R every=26 offset=10 jitter=2 seed=142
+# (sodium S: the right side backs onto the start straight and the bridge descends over the left: shophouses only)
+PROPS kind=building_row_d from=@canal+10 to=@plaza_kink side=L every=48 offset=9 jitter=2 seed=140
+PROPS kind=building_row_c from=@canal+34 to=@plaza_kink side=L every=48 offset=9 jitter=2 seed=141
+# -- sidewalk life: lamps (on the deck edge over the overpass), planters, street trees, benches, vending machines
+PROPS kind=street_lamp along=main side=both every=30 offset=0.6 seed=160
+PROPS kind=planter_bush from=@boulevard+118 to=@crane_corner side=both every=9 offset=2.4 jitter=0.6 seed=161
+PROPS kind=planter_bush from=@tram_s to=@crane_hairpin side=both every=9 offset=2.4 jitter=0.6 seed=162
+PROPS kind=planter_bush from=@sodium_s to=@to_line+50 side=both every=10 offset=2.4 jitter=0.6 seed=163
+PROPS kind=street_tree from=@arcade_s to=@crane_corner side=both every=16 offset=4.4 jitter=1 scale=0.9-1.2 seed=164
+PROPS kind=street_tree from=@tram_s to=@crane_hairpin side=both every=16 offset=4.4 jitter=1 scale=0.9-1.2 seed=165
+PROPS kind=street_tree from=@overpass_ramp+20 to=@elevated_deck+48 side=both every=18 offset=4.6 jitter=1 scale=0.9-1.3 seed=166
+PROPS kind=street_tree from=@canal to=@plaza_kink side=both every=14 offset=4.4 jitter=1 scale=0.9-1.3 seed=167
+PROPS kind=street_bench from=@arcade_s to=@crane_corner side=both every=37 offset=2.6 seed=168
+PROPS kind=street_bench from=@canal to=@plaza_kink side=both every=29 offset=2.6 seed=169
+PROPS kind=vending_machine from=@arcade_s+10 to=@crane_corner side=both every=53 offset=3.2 seed=170
+PROPS kind=vending_machine from=@tram_s+20 to=@crane_hairpin side=both every=61 offset=3.2 seed=171
+PROPS kind=bus_shelter from=@tram_s+30 to=@crane_hairpin side=L every=70 offset=2.4 seed=172
+# -- neon arcade S and the market: blade signs and billboards (kept clear of the road: ≥ 2.5 m out)
+PROPS kind=neon_sign from=@arcade_s to=@alley_split side=both every=21 offset=3 seed=180
+PROPS kind=neon_sign from=@market_street to=@sodium_straight+40 side=both every=24 offset=3 seed=181
+PROPS kind=neon_sign from=@tram_s+10 to=@crane_hairpin side=both every=44 offset=3 seed=182
+PROPS kind=billboard from=@to_line+10 to=@to_line+11 side=R every=50 offset=5 seed=183
+PROPS kind=billboard from=@canal+10 to=@canal+110 side=R every=55 offset=5 seed=184
+PROPS kind=billboard from=@sodium_s+10 to=@sodium_s+70 side=L every=50 offset=5 seed=185
+# -- harbour: containers and crates on the yard side, cranes, a warehouse, the tram stop
+PROPS kind=container_stack from=@crane_corner+10 to=@container_row+90 side=R every=17 offset=4 seed=190
+PROPS kind=container_stack from=@crane_corner+18 to=@container_row+90 side=R every=17 offset=12 jitter=2 seed=191
+PROPS kind=container_stack from=@container_row to=@container_row+80 side=L every=21 offset=14 jitter=2 seed=192
+PROPS kind=cargo_crate from=@crane_corner to=@tram_s side=both every=13 offset=2.4 jitter=1 seed=193
+PROPS kind=harbor_crane from=@crane_corner to=@crane_corner+60 side=L every=60 offset=20 seed=194
+PROPS kind=harbor_crane from=@container_row+40 to=@container_row+41 side=R every=60 offset=26 seed=195
+PROPS kind=warehouse_building from=@container_row+20 to=@container_row+21 side=L every=60 offset=4 seed=196
 PROPS kind=station_canopy from=@tram_s+12 to=@tram_s+12 side=R every=100 offset=2.5
-THEME scatter=tower_a,tower_b density=6 hills=0 sky=night
+# -- market street and the noodle corner: shophouses, stalls, lanterns across the street
+PROPS kind=shophouse from=@sodium_s+75 to=@noodle_corner side=both every=15 offset=6 jitter=1 seed=200
+PROPS kind=noodle_stall from=@market_street to=@noodle_corner+30 side=both every=19 offset=2.4 seed=201
+PROPS kind=vending_machine from=@market_street+8 to=@noodle_corner side=both every=27 offset=3.4 seed=202
+PROP kind=lantern_string at=(-76.5,-0.4,89.6) yaw=119 scale=1
+PROP kind=lantern_string at=(-86.1,-0.4,94.9) yaw=119 scale=1
+PROP kind=lantern_string at=(-95.7,-0.4,100.2) yaw=119 scale=1
+# -- landmark: a neon tower in the eye of the spiral exit
+PROP kind=tower_b at=(50.3,-0.4,53.5) yaw=20 scale=1.35
+# -- skyline (generated: slim towers 26–64 m and 74–175 m from every road, yaw along the nearest street, y = baked terrain − 0.3 m; keep-outs around the a3 and b2 cameras)
+PROP kind=tower_b at=(-190.3,-1.8,-153.8) yaw=-14 scale=1.21
+PROP kind=tower_a at=(91.5,-1.8,-53.1) yaw=90 scale=0.89
+PROP kind=tower_a at=(-159.0,-1.8,149.2) yaw=-126 scale=1.37
+PROP kind=tower_a at=(-12.6,-1.8,-198.0) yaw=-71 scale=0.82
+PROP kind=tower_a at=(60.4,-1.8,-205.9) yaw=0 scale=1.37
+PROP kind=tower_a at=(78.9,-1.8,-79.5) yaw=-135 scale=0.95
+PROP kind=tower_a at=(125.7,-1.8,90.1) yaw=245 scale=0.94
+PROP kind=tower_a at=(195.8,-1.8,-134.2) yaw=-169 scale=1.36
+PROP kind=tower_b at=(201.4,-1.8,-25.0) yaw=251 scale=1.06
+PROP kind=tower_a at=(49.1,-1.8,-105.9) yaw=0 scale=1.14
+PROP kind=tower_b at=(-83.8,-1.8,-198.4) yaw=-103 scale=1.36
+PROP kind=tower_a at=(-79.6,-1.8,160.0) yaw=-63 scale=0.88
+PROP kind=tower_b at=(-17.6,-1.8,108.0) yaw=-61 scale=1.23
+PROP kind=tower_a at=(-179.9,-1.8,-142.7) yaw=-7 scale=1.28
+PROP kind=tower_b at=(40.1,-1.6,124.4) yaw=172 scale=1.15
+PROP kind=tower_b at=(-146.3,-1.8,6.9) yaw=231 scale=0.91
+PROP kind=tower_a at=(187.9,-1.8,28.9) yaw=146 scale=0.98
+PROP kind=tower_a at=(-128.6,-1.8,-18.3) yaw=127 scale=1.44
+PROP kind=tower_b at=(21.5,-1.8,-73.2) yaw=18 scale=1.27
+PROP kind=tower_b at=(-123.7,-1.8,163.1) yaw=-98 scale=1.17
+PROP kind=tower_b at=(69.3,-1.8,-193.4) yaw=0 scale=1.29
+PROP kind=tower_a at=(151.7,-1.8,61.8) yaw=201 scale=1.43
+PROP kind=tower_b at=(-191.0,-1.8,-117.5) yaw=11 scale=0.91
+PROP kind=tower_b at=(-139.0,-1.8,-29.9) yaw=128 scale=0.89
+PROP kind=tower_b at=(-4.1,-1.8,-78.4) yaw=22 scale=0.89
+PROP kind=tower_b at=(34.8,-1.8,-54.0) yaw=180 scale=1.04
+PROP kind=tower_b at=(-114.6,-1.8,-62.8) yaw=150 scale=1.16
+PROP kind=tower_a at=(-30.0,-1.8,115.2) yaw=29 scale=0.83
+PROP kind=tower_b at=(218.7,-1.8,-61.8) yaw=-84 scale=1.15
+PROP kind=tower_b at=(-180.3,-1.8,89.7) yaw=-178 scale=1.40
+PROP kind=tower_a at=(188.2,-1.8,-181.5) yaw=-53 scale=1.10
+PROP kind=tower_b at=(-178.0,-1.8,-163.9) yaw=-25 scale=1.29
+PROP kind=tower_b at=(-168.4,-1.8,-119.3) yaw=104 scale=1.48
+PROP kind=tower_a at=(-170.4,-1.8,38.8) yaw=248 scale=1.32
+PROP kind=tower_a at=(-91.6,-1.8,167.5) yaw=-72 scale=0.99
+PROP kind=tower_a at=(8.6,-1.8,-88.8) yaw=24 scale=1.35
+PROP kind=tower_b at=(181.0,-1.8,-101.8) yaw=270 scale=1.49
+PROP kind=tower_b at=(-178.1,-1.8,23.7) yaw=244 scale=1.00
+PROP kind=tower_b at=(19.2,-1.8,-216.0) yaw=4 scale=1.04
+PROP kind=tower_a at=(81.0,-1.8,137.5) yaw=111 scale=1.04
+PROP kind=tower_b at=(122.0,-1.8,77.1) yaw=253 scale=1.09
+PROP kind=tower_a at=(181.0,-1.8,-8.7) yaw=169 scale=1.45
+PROP kind=tower_a at=(164.8,-1.8,57.3) yaw=210 scale=0.81
+PROP kind=tower_a at=(-142.6,-1.8,145.6) yaw=-115 scale=1.35
+PROP kind=tower_a at=(-34.5,-1.8,148.0) yaw=-61 scale=1.28
+PROP kind=tower_a at=(-164.6,-1.8,134.5) yaw=-48 scale=1.43
+PROP kind=tower_b at=(-85.3,-1.8,-215.4) yaw=-101 scale=1.08
+PROP kind=tower_b at=(-67.9,-1.8,150.9) yaw=-61 scale=1.05
+PROP kind=tower_a at=(35.5,-1.8,-79.0) yaw=-90 scale=1.37
+PROP kind=tower_b at=(168.0,-1.8,-195.0) yaw=-127 scale=1.31
+PROP kind=tower_a at=(46.0,-1.8,140.5) yaw=178 scale=1.41
+PROP kind=tower_b at=(-139.1,-1.8,173.8) yaw=-16 scale=1.15
+PROP kind=tower_b at=(58.9,-1.8,-47.7) yaw=180 scale=1.38
+PROP kind=tower_a at=(76.8,-1.8,-99.8) yaw=-135 scale=1.26
+PROP kind=tower_a at=(102.6,-1.5,96.4) yaw=232 scale=0.86
+PROP kind=tower_a at=(198.0,-1.8,-41.5) yaw=171 scale=1.32
+PROP kind=tower_a at=(56.9,-1.8,-90.2) yaw=-90 scale=1.16
+PROP kind=tower_b at=(-187.6,-1.8,35.2) yaw=249 scale=1.41
+PROP kind=tower_a at=(201.7,-1.8,-87.0) yaw=-66 scale=1.24
+PROP kind=tower_b at=(-190.3,-1.8,70.2) yaw=263 scale=0.89
+PROP kind=tower_a at=(213.2,-1.8,-74.6) yaw=-76 scale=1.32
+PROP kind=tower_b at=(-38.1,-1.8,128.2) yaw=29 scale=1.44
+PROP kind=tower_b at=(183.5,-1.8,-156.9) yaw=-62 scale=1.46
+PROP kind=tower_b at=(-144.2,-1.8,-204.5) yaw=25 scale=0.85
+PROP kind=tower_a at=(-49.8,-1.8,-171.4) yaw=-107 scale=1.03
+PROP kind=tower_b at=(147.5,-1.8,-206.2) yaw=-114 scale=1.41
+PROP kind=tower_b at=(209.7,-1.8,-100.1) yaw=270 scale=0.83
+PROP kind=tower_b at=(-202.1,-1.8,113.9) yaw=-164 scale=1.26
+PROP kind=tower_b at=(-149.7,-1.8,-55.2) yaw=60 scale=1.43
+PROP kind=tower_b at=(20.8,-1.8,-40.9) yaw=90 scale=1.18
+PROP kind=tower_a at=(191.1,-1.8,-119.1) yaw=-90 scale=1.26
+PROP kind=tower_a at=(-160.3,-1.8,26.3) yaw=241 scale=1.39
+PROP kind=tower_b at=(-179.2,-1.8,136.6) yaw=-54 scale=1.36
+PROP kind=tower_a at=(26.5,-1.8,-102.4) yaw=5 scale=1.40
+PROP kind=tower_a at=(123.4,-1.8,53.2) yaw=270 scale=1.20
+PROP kind=tower_b at=(-161.9,-1.8,-180.8) yaw=47 scale=0.82
+PROP kind=tower_b at=(151.8,-1.8,-179.5) yaw=-125 scale=1.29
+PROP kind=tower_a at=(75.1,-1.8,-61.7) yaw=90 scale=0.93
+PROP kind=tower_b at=(200.8,-1.8,-151.7) yaw=-70 scale=1.36
+PROP kind=tower_b at=(-145.2,-1.8,-85.2) yaw=54 scale=0.89
+PROP kind=tower_a at=(-39.4,-1.8,-199.6) yaw=-61 scale=1.31
+PROP kind=tower_a at=(115.9,-1.8,129.9) yaw=220 scale=0.81
+PROP kind=tower_b at=(-130.2,-1.8,-40.6) yaw=213 scale=0.95
+PROP kind=tower_a at=(46.6,-1.8,-190.2) yaw=0 scale=0.95
+PROP kind=tower_b at=(-112.9,-1.8,-31.6) yaw=119 scale=1.04
+PROP kind=tower_b at=(-139.2,-1.8,-184.6) yaw=29 scale=1.23
+PROP kind=tower_a at=(-96.9,-1.8,147.9) yaw=-72 scale=0.92
+PROP kind=tower_b at=(134.5,-1.8,41.7) yaw=196 scale=1.09
+PROP kind=tower_b at=(-0.8,-1.8,109.8) yaw=48 scale=0.84
+PROP kind=tower_b at=(108.7,-1.8,-208.0) yaw=-90 scale=1.11
+PROP kind=tower_a at=(100.2,-1.8,126.9) yaw=124 scale=0.98
+PROP kind=tower_b at=(2.5,-1.8,-206.4) yaw=12 scale=1.04
+PROP kind=tower_a at=(-109.1,-1.8,175.2) yaw=4 scale=1.48
+PROP kind=tower_a at=(-57.3,-1.8,-192.3) yaw=-25 scale=1.20
+PROP kind=tower_a at=(122.3,-1.8,-194.6) yaw=-9 scale=1.29
+PROP kind=tower_a at=(33.4,-1.8,149.7) yaw=171 scale=1.22
+PROP kind=tower_a at=(82.6,-1.8,-210.8) yaw=-90 scale=1.14
+PROP kind=tower_a at=(214.9,-1.8,-33.6) yaw=169 scale=1.45
+PROP kind=tower_a at=(34.7,-1.8,-216.9) yaw=-90 scale=1.09
+PROP kind=tower_b at=(124.0,-1.8,104.9) yaw=145 scale=1.27
+PROP kind=tower_b at=(-28.0,-1.8,-185.8) yaw=28 scale=1.11
+PROP kind=tower_b at=(-184.0,-1.8,-177.6) yaw=58 scale=1.04
+PROP kind=tower_a at=(2.5,-1.8,-52.2) yaw=114 scale=1.47
+PROP kind=tower_a at=(89.1,-1.8,-193.8) yaw=0 scale=1.48
+PROP kind=tower_a at=(199.6,-1.8,2.3) yaw=163 scale=1.05
+PROP kind=tower_a at=(-120.6,-1.8,-216.0) yaw=-82 scale=1.23
+PROP kind=tower_a at=(58.3,-1.8,-62.0) yaw=180 scale=0.99
+PROP kind=tower_b at=(-24.0,-1.8,132.0) yaw=-61 scale=1.20
+PROP kind=tower_a at=(95.3,-1.8,142.2) yaw=117 scale=1.18
+PROP kind=tower_a at=(138.1,-1.8,-193.4) yaw=-110 scale=1.34
+PROP kind=tower_a at=(-101.1,-1.8,-52.1) yaw=150 scale=1.45
+PROP kind=tower_a at=(-106.4,-1.8,160.5) yaw=-83 scale=0.99
+PROP kind=tower_b at=(-167.8,-1.7,116.6) yaw=-152 scale=1.03
+PROP kind=tower_b at=(62.0,-1.8,127.2) yaw=100 scale=1.18
+PROP kind=tower_a at=(-190.1,-1.8,105.8) yaw=-77 scale=1.25
+PROP kind=tower_a at=(21.8,-1.8,127.5) yaw=69 scale=1.10
+PROP kind=tower_a at=(131.7,-1.8,65.5) yaw=172 scale=1.40
+PROP kind=tower_b at=(182.9,-1.8,-84.7) yaw=-152 scale=1.00
+PROP kind=tower_b at=(9.0,-1.8,118.8) yaw=58 scale=0.80
+PROP kind=tower_a at=(110.3,-1.8,114.7) yaw=134 scale=1.25
+PROP kind=tower_a at=(203.5,-1.8,-55.2) yaw=-178 scale=1.23
+PROP kind=tower_b at=(-194.4,-1.8,57.3) yaw=168 scale=1.16
+PROP kind=tower_b at=(-131.3,-1.8,-57.1) yaw=60 scale=1.39
+PROP kind=tower_b at=(210.8,-1.8,-11.7) yaw=155 scale=1.05
+PROP kind=tower_a at=(23.1,-1.8,-200.7) yaw=3 scale=1.46
+PROP kind=tower_a at=(-166.1,-1.8,11.2) yaw=147 scale=1.15
+PROP kind=tower_b at=(-156.8,-1.8,-4.3) yaw=230 scale=1.22
+PROP kind=tower_a at=(-101.2,-1.8,-217.1) yaw=-4 scale=1.29
+PROP kind=tower_b at=(-115.4,-1.8,148.3) yaw=-89 scale=1.32
+PROP kind=tower_b at=(-162.9,-1.8,163.4) yaw=-124 scale=0.98
+PROP kind=tower_b at=(82.8,-1.7,-38.5) yaw=180 scale=0.80
+PROP kind=tower_b at=(-160.3,-1.8,-19.0) yaw=227 scale=0.89
+PROP kind=tower_a at=(-8.2,-1.5,-64.3) yaw=108 scale=1.30
+PROP kind=tower_a at=(98.3,-1.8,-84.3) yaw=-90 scale=0.81
+PROP kind=tower_b at=(-89.5,-1.8,-35.4) yaw=110 scale=1.00
+PROP kind=tower_b at=(179.6,-1.8,-132.5) yaw=-169 scale=0.97
+PROP kind=tower_b at=(105.0,-1.8,-53.7) yaw=-155 scale=1.35
+PROP kind=tower_a at=(-172.0,-1.8,-77.7) yaw=133 scale=1.06
+PROP kind=tower_a at=(187.0,-1.8,12.2) yaw=154 scale=0.98
+PROP kind=tower_b at=(-60.7,-1.8,138.3) yaw=-61 scale=1.16
+PROP kind=tower_b at=(-204.2,-1.8,68.1) yaw=173 scale=0.85
+PROP kind=tower_a at=(207.4,-1.8,-119.5) yaw=-180 scale=1.12
+PROP kind=tower_a at=(64.7,-1.8,-75.3) yaw=-45 scale=1.38
+PROP kind=tower_b at=(-130.6,-1.8,-197.4) yaw=-72 scale=1.02
+PROP kind=tower_b at=(-156.9,-1.8,-195.8) yaw=-54 scale=1.02
+PROP kind=tower_b at=(92.4,-1.8,-70.6) yaw=-79 scale=0.84
+PROP kind=tower_a at=(-175.6,-1.8,-92.9) yaw=32 scale=0.88
+PROP kind=tower_a at=(-180.3,-1.8,-108.0) yaw=111 scale=0.97
+PROP kind=tower_b at=(167.2,-1.8,-165.6) yaw=-141 scale=1.30
+PROP kind=tower_a at=(-126.7,-1.8,-72.3) yaw=150 scale=1.39
+PROP kind=tower_b at=(-206.0,-1.8,98.7) yaw=-172 scale=1.06
+PROP kind=tower_a at=(-1.8,-1.8,-99.3) yaw=21 scale=0.87
+PROP kind=tower_b at=(2.7,-1.8,140.3) yaw=61 scale=1.08
+PROP kind=tower_a at=(188.3,-1.8,-55.4) yaw=-86 scale=1.04
+PROP kind=tower_b at=(11.0,-1.8,-64.1) yaw=109 scale=0.82
+PROP kind=tower_a at=(-19.9,-1.6,-93.8) yaw=11 scale=0.97
+PROP kind=tower_a at=(-50.4,-1.8,146.8) yaw=-61 scale=0.93
+PROP kind=tower_a at=(-71.8,-1.8,-204.3) yaw=-107 scale=0.87
+PROP kind=tower_a at=(127.4,-1.8,-216.6) yaw=-11 scale=1.39
+PROP kind=tower_a at=(-159.1,-1.8,-84.7) yaw=46 scale=1.02
+PROP kind=tower_a at=(124.2,-1.8,120.0) yaw=138 scale=1.05
+PROP kind=tower_a at=(-118.6,-1.8,-191.0) yaw=-82 scale=1.16
+PROP kind=tower_a at=(-76.1,-1.8,134.4) yaw=-61 scale=0.98
+PROP kind=tower_b at=(30.8,-1.8,-188.0) yaw=0 scale=1.02
+PROP kind=tower_b at=(89.9,-1.8,-96.2) yaw=-135 scale=0.88
+PROP kind=tower_b at=(75.6,-1.8,150.8) yaw=195 scale=0.97
+PROP kind=tower_a at=(-12.9,-1.8,122.3) yaw=29 scale=0.82
+PROP kind=tower_a at=(53.5,-1.8,153.0) yaw=92 scale=1.16
+PROP kind=tower_a at=(-58.7,-1.8,-208.7) yaw=-112 scale=1.32
+PROP kind=tower_a at=(-206.4,-1.8,84.7) yaw=268 scale=1.43
+PROP kind=tower_a at=(-2.1,-1.8,191.2) yaw=69 scale=1.03
+PROP kind=tower_a at=(188.0,-1.8,107.3) yaw=159 scale=1.38
+PROP kind=tower_a at=(-40.1,-1.8,275.9) yaw=21 scale=1.37
+PROP kind=tower_b at=(251.6,-1.8,-130.2) yaw=-85 scale=1.50
+PROP kind=tower_b at=(-170.0,-1.8,-38.8) yaw=134 scale=1.15
+PROP kind=tower_a at=(-101.8,-1.8,243.9) yaw=-86 scale=1.31
+PROP kind=tower_b at=(-201.9,-1.8,213.3) yaw=-34 scale=1.33
+PROP kind=tower_a at=(-237.7,-1.8,225.3) yaw=-42 scale=1.55
+PROP kind=tower_b at=(324.3,-1.8,-62.9) yaw=-176 scale=1.58
+PROP kind=tower_a at=(-286.1,-1.8,107.7) yaw=-82 scale=1.02
+PROP kind=tower_a at=(-212.0,-1.8,-162.3) yaw=76 scale=1.34
+PROP kind=tower_a at=(299.5,-1.8,63.4) yaw=244 scale=1.07
+PROP kind=tower_b at=(-271.4,-1.8,-186.6) yaw=-18 scale=1.18
+PROP kind=tower_b at=(-309.3,-1.8,85.4) yaw=270 scale=1.10
+PROP kind=tower_a at=(246.1,-1.8,-5.0) yaw=159 scale=1.14
+PROP kind=tower_a at=(120.8,-1.8,-314.8) yaw=-93 scale=1.25
+PROP kind=tower_b at=(75.1,-1.8,251.2) yaw=188 scale=1.02
+PROP kind=tower_b at=(282.2,-1.8,-102.3) yaw=-162 scale=1.51
+PROP kind=tower_a at=(-177.0,-1.8,254.1) yaw=-109 scale=1.06
+PROP kind=tower_a at=(-243.9,-1.8,-113.9) yaw=7 scale=1.13
+PROP kind=tower_a at=(79.1,-1.8,-281.8) yaw=-90 scale=1.58
+PROP kind=tower_b at=(49.0,-1.8,-319.5) yaw=0 scale=1.45
+PROP kind=tower_b at=(126.0,-1.8,190.8) yaw=209 scale=1.45
+PROP kind=tower_b at=(-294.9,-1.8,-18.2) yaw=247 scale=1.51
+PROP kind=tower_b at=(-146.0,-1.8,-286.1) yaw=-79 scale=1.01
+PROP kind=tower_a at=(291.5,-1.8,-0.9) yaw=253 scale=1.23
+PROP kind=tower_a at=(-262.8,-1.8,-58.9) yaw=115 scale=1.33
+PROP kind=tower_b at=(193.9,-1.8,68.3) yaw=131 scale=1.39
+PROP kind=tower_b at=(-261.5,-1.8,225.7) yaw=-138 scale=1.55
+PROP kind=tower_b at=(-236.5,-1.8,-84.5) yaw=111 scale=1.23
+PROP kind=tower_a at=(-249.4,-1.8,-4.8) yaw=155 scale=1.35
+PROP kind=tower_a at=(111.9,-1.8,-281.5) yaw=-91 scale=1.45
+PROP kind=tower_a at=(-212.1,-1.8,-289.3) yaw=-57 scale=1.39
+PROP kind=tower_a at=(-127.2,-1.8,-306.6) yaw=4 scale=1.32
+PROP kind=tower_a at=(-307.9,-1.8,-121.8) yaw=93 scale=1.10
+PROP kind=tower_b at=(-166.0,-1.8,-237.5) yaw=29 scale=1.01
+PROP kind=tower_a at=(-247.9,-1.8,-230.6) yaw=-36 scale=1.54
+PROP kind=tower_a at=(268.4,-1.8,-2.8) yaw=251 scale=1.16
+PROP kind=tower_a at=(-141.5,-1.8,268.7) yaw=-98 scale=1.46
+PROP kind=tower_b at=(172.4,-1.8,192.3) yaw=132 scale=1.21
+PROP kind=tower_a at=(-87.8,-1.8,204.1) yaw=-78 scale=1.46
+PROP kind=tower_a at=(20.9,-1.8,201.2) yaw=79 scale=1.58
+PROP kind=tower_b at=(221.4,-1.8,-201.4) yaw=-144 scale=1.45
+PROP kind=tower_a at=(-262.4,-1.8,-90.9) yaw=14 scale=1.24
+PROP kind=tower_b at=(-40.7,-1.8,185.3) yaw=-61 scale=1.43
+PROP kind=tower_a at=(164.8,-1.8,212.7) yaw=126 scale=1.58
+PROP kind=tower_b at=(-288.2,-1.8,28.3) yaw=166 scale=1.24
+PROP kind=tower_b at=(-80.5,-1.8,-242.5) yaw=-11 scale=1.50
+PROP kind=tower_a at=(37.7,-1.8,235.6) yaw=176 scale=1.04
+PROP kind=tower_b at=(-29.7,-1.8,237.6) yaw=29 scale=1.58
+PROP kind=tower_a at=(129.8,-1.8,144.2) yaw=222 scale=1.38
+PROP kind=tower_a at=(-98.4,-1.8,-292.9) yaw=-3 scale=1.38
+PROP kind=tower_b at=(150.5,-1.8,-296.5) yaw=-102 scale=1.27
+PROP kind=tower_b at=(-85.7,-1.8,264.0) yaw=-81 scale=1.14
+PROP kind=tower_a at=(-294.1,-1.8,-76.5) yaw=18 scale=1.23
+PROP kind=tower_a at=(-30.1,-1.8,-322.5) yaw=-76 scale=1.21
+PROP kind=tower_a at=(-228.7,-1.8,-195.8) yaw=-29 scale=1.01
+PROP kind=tower_a at=(-160.5,-1.8,203.3) yaw=-112 scale=1.08
+PROP kind=tower_a at=(229.1,-1.8,-164.2) yaw=-160 scale=1.37
+PROP kind=tower_a at=(285.3,-1.8,-224.2) yaw=-58 scale=1.54
+PROP kind=tower_a at=(154.7,-1.8,115.6) yaw=239 scale=1.08
+PROP kind=tower_a at=(302.9,-1.8,-146.8) yaw=-81 scale=1.18
+PROP kind=tower_a at=(222.7,-1.8,34.8) yaw=151 scale=1.20
+PROP kind=tower_b at=(253.5,-1.8,-66.4) yaw=-84 scale=1.36
+PROP kind=tower_a at=(-211.4,-1.8,-26.2) yaw=145 scale=1.50
+PROP kind=tower_b at=(-13.2,-1.8,-235.3) yaw=-75 scale=1.08
+PROP kind=tower_a at=(206.8,-1.8,-244.7) yaw=-37 scale=1.34
+PROP kind=tower_b at=(-210.6,-1.8,22.4) yaw=158 scale=1.10
+PROP kind=tower_a at=(-263.6,-1.8,121.5) yaw=-77 scale=1.40
+PROP kind=tower_b at=(248.0,-1.8,123.4) yaw=221 scale=1.51
+PROP kind=tower_b at=(-189.9,-1.8,-31.0) yaw=140 scale=1.17
+PROP kind=tower_a at=(298.5,-1.8,-35.4) yaw=176 scale=1.46
+PROP kind=tower_a at=(23.4,-1.8,172.7) yaw=77 scale=1.51
+PROP kind=tower_a at=(-202.9,-1.8,249.9) yaw=-118 scale=1.19
+PROP kind=tower_b at=(-32.1,-1.8,-253.1) yaw=-71 scale=1.60
+PROP kind=tower_a at=(272.3,-1.8,-148.9) yaw=-169 scale=1.23
+PROP kind=tower_b at=(-274.2,-1.8,11.3) yaw=251 scale=1.10
+PROP kind=tower_a at=(-195.8,-1.8,-68.9) yaw=36 scale=1.06
+PROP kind=tower_a at=(-202.1,-1.8,-215.4) yaw=-43 scale=1.26
+PROP kind=tower_b at=(-227.0,-1.8,44.3) yaw=256 scale=1.20
+PROP kind=tower_a at=(-72.0,-1.8,-271.4) yaw=-101 scale=1.29
+PROP kind=tower_a at=(-57.1,-1.8,200.6) yaw=-63 scale=1.12
+PROP kind=tower_a at=(43.0,-1.8,184.5) yaw=86 scale=1.38
+PROP kind=tower_b at=(-132.2,-1.8,231.9) yaw=-8 scale=1.11
+PROP kind=tower_b at=(40.7,-1.8,-251.0) yaw=0 scale=1.34
+PROP kind=tower_a at=(232.9,-1.8,-234.4) yaw=-47 scale=1.42
+PROP kind=tower_a at=(47.7,-1.8,-276.3) yaw=0 scale=1.51
+PROP kind=tower_b at=(260.8,-1.8,-92.6) yaw=-164 scale=1.45
+PROP kind=tower_b at=(-213.7,-1.8,-110.8) yaw=14 scale=1.16
+PROP kind=tower_a at=(277.2,-1.8,60.9) yaw=241 scale=1.29
+PROP kind=tower_a at=(-73.1,-1.8,232.8) yaw=15 scale=1.32
+PROP kind=tower_b at=(-284.6,-1.8,60.3) yaw=173 scale=1.03
+PROP kind=tower_a at=(162.0,-1.8,172.1) yaw=134 scale=1.40
+PROP kind=tower_b at=(-288.7,-1.8,144.3) yaw=-161 scale=1.10
+PROP kind=tower_b at=(248.9,-1.8,55.0) yaw=239 scale=1.23
+PROP kind=tower_b at=(-246.3,-1.8,58.7) yaw=261 scale=1.03
+PROP kind=tower_a at=(98.6,-1.8,220.3) yaw=105 scale=1.10
+PROP kind=tower_a at=(219.5,-1.8,87.5) yaw=134 scale=1.18
+PROP kind=tower_a at=(-249.3,-1.8,-192.0) yaw=68 scale=1.21
+PROP kind=tower_a at=(135.2,-1.8,231.7) yaw=115 scale=1.38
+PROP kind=tower_b at=(-22.7,-1.8,-284.4) yaw=14 scale=1.05
+PROP kind=tower_a at=(218.4,-1.8,-278.5) yaw=-123 scale=1.25
+PROP kind=tower_a at=(178.4,-1.8,-305.5) yaw=-110 scale=1.00
+PROP kind=tower_a at=(252.6,-1.8,-171.5) yaw=-160 scale=1.19
+PROP kind=tower_b at=(177.3,-1.8,-271.1) yaw=-114 scale=1.20
+PROP kind=tower_b at=(235.4,-1.8,-25.1) yaw=167 scale=1.10
+PROP kind=tower_a at=(-9.2,-1.8,-305.4) yaw=-80 scale=1.28
+PROP kind=tower_a at=(-119.8,-1.8,274.3) yaw=-92 scale=1.47
+PROP kind=tower_a at=(-178.3,-1.8,277.9) yaw=-19 scale=1.02
+PROP kind=tower_a at=(251.0,-1.8,-213.4) yaw=-56 scale=1.54
+PROP kind=tower_b at=(-108.7,-1.8,211.7) yaw=4 scale=1.34
+PROP kind=tower_b at=(-42.3,-1.8,-304.6) yaw=-107 scale=1.35
+PROP kind=tower_b at=(-207.5,-1.8,151.1) yaw=-146 scale=1.26
+PROP kind=tower_b at=(257.8,-1.8,-239.5) yaw=-51 scale=1.42
+PROP kind=tower_a at=(191.2,-1.8,181.9) yaw=228 scale=1.33
+PROP kind=tower_b at=(166.7,-1.8,82.1) yaw=256 scale=1.04
+PROP kind=tower_a at=(-288.0,-1.8,-112.6) yaw=7 scale=1.22
+PROP kind=tower_a at=(-207.1,-1.8,-89.6) yaw=115 scale=1.44
+PROP kind=tower_a at=(-63.1,-1.8,-294.1) yaw=-13 scale=1.54
+PROP kind=tower_b at=(-260.1,-1.8,156.4) yaw=-155 scale=1.05
+PROP kind=tower_b at=(-273.3,-1.8,-27.1) yaw=153 scale=1.28
+PROP kind=tower_b at=(318.4,-1.8,-132.0) yaw=-87 scale=1.41
+PROP kind=tower_a at=(23.1,-1.8,-316.8) yaw=1 scale=1.30
+PROP kind=tower_a at=(154.3,-1.8,-243.7) yaw=-20 scale=1.40
+PROP kind=tower_a at=(241.1,-1.8,76.1) yaw=143 scale=1.05
+PROP kind=tower_b at=(-277.3,-1.8,-158.8) yaw=83 scale=1.38
+PROP kind=tower_a at=(246.9,-1.8,15.7) yaw=253 scale=1.27
+PROP kind=tower_a at=(196.8,-1.8,202.3) yaw=134 scale=1.11
+PROP kind=tower_a at=(312.9,-1.8,17.5) yaw=249 scale=1.12
+PROP kind=tower_a at=(86.6,-1.8,-253.5) yaw=0 scale=1.21
+# -- end skyline
