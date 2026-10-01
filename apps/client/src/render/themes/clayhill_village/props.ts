@@ -15,13 +15,14 @@ const lit = (): THREE.Material => MaterialLibrary.vertexLit(0.8, 0);
 const toy = (): THREE.Material => MaterialLibrary.vinyl({ rim: '#ffd9c7', clearcoat: 0.6, roughness: 0.42 });
 const metal = (): THREE.Material => MaterialLibrary.vertexLit(0.35, 0.55);
 
-function windowRow(parts: THREE.BufferGeometry[], x: number, y: number, zs: readonly number[], w = 0.9, h = 1.1): void {
+/** A row of framed windows with flower boxes on the +X face (`dir` = -1 puts them on the −X face). */
+function windowRow(parts: THREE.BufferGeometry[], x: number, y: number, zs: readonly number[], w = 0.9, h = 1.1, dir = 1): void {
   for (const z of zs) {
-    parts.push(part(box(0.12, h + 0.2, w + 0.2), CREAM, x + 0.02, y, z));
-    parts.push(part(box(0.12, h, w), '#7cb8d8', x + 0.06, y, z));
-    parts.push(part(box(0.1, 0.25, w + 0.3), TERRACOTTA, x + 0.1, y - h / 2 - 0.12, z)); // flower box
-    parts.push(part(ico(0.16, 0), '#f25f7a', x + 0.18, y - h / 2 + 0.02, z - 0.25));
-    parts.push(part(ico(0.16, 0), '#f2c14e', x + 0.18, y - h / 2 + 0.02, z + 0.2));
+    parts.push(part(box(0.12, h + 0.2, w + 0.2), CREAM, x + 0.02 * dir, y, z));
+    parts.push(part(box(0.12, h, w), '#7cb8d8', x + 0.06 * dir, y, z));
+    parts.push(part(box(0.1, 0.25, w + 0.3), TERRACOTTA, x + 0.1 * dir, y - h / 2 - 0.12, z)); // flower box
+    parts.push(part(ico(0.16, 0), '#f25f7a', x + 0.18 * dir, y - h / 2 + 0.02, z - 0.25));
+    parts.push(part(ico(0.16, 0), '#f2c14e', x + 0.18 * dir, y - h / 2 + 0.02, z + 0.2));
   }
 }
 
@@ -187,9 +188,12 @@ export const CLAYHILL_PROPS: Record<string, PropFactory> = {
       // a paved plinth round the house that runs on into the next one, so terraces stand on a street, not on lawn
       // flush with the ground and 1.8 m deep: where the terrain falls away behind a house its exposed edge reads as a
       // stone terrace in the house's foundation colour instead of a thin slab on pallets
-      p.push(part(box(9.2, 1.8, 12.6), PAVING, -0.9, -0.85, 0));
+      p.push(part(box(8.0, 1.8, 11.4), PAVING, -0.6, -0.85, 0));
       windowRow(p, 3.0, 5.2, [-2.2, 2.2], 0.9, 1.3);
       windowRow(p, 3.0, 1.4, [0.4, 2.3], 1.1, 1.1);
+      // the back faces the next lap section in town and the piazza: windows there too, not a blank wall
+      windowRow(p, -3.0, 5.2, [-2.2, 2.2], 0.9, 1.3, -1);
+      windowRow(p, -3.0, 1.6, [-1.4, 1.4], 0.9, 1.1, -1);
       return { geometry: merge(p), material: lit(), castShadow: true };
     },
   },
