@@ -50,12 +50,14 @@ PROPS kind=palm along=62-140 side=L every=24 offset=4 jitter=6
 PROPS kind=palm along=1172-1346 side=both every=17 offset=5 jitter=9
 PROPS kind=lifeguard_tower along=124-124 side=R every=10 offset=6
 # the pier over open water: pilings, boats and buoys, the moored galleon, and the drive-through galleon on the deck
+# (sea-level kinds float at road height − 1.3 m, so they stay beside the sea-level road, not the raised pier S)
 PROPS kind=pier_post along=150-466 side=both every=6 offset=0.2
 # the drive-through galleon is hand-placed over the deck (PROPS rows never land on a drivable surface)
 PROP kind=galleon_deck at=(130.00,2.80,-257.02) yaw=180.0 scale=1   # galleon deck, s=383
 PROPS kind=galleon along=270-270 side=R every=100 offset=34
-PROPS kind=boat along=160-460 side=R every=48 offset=20 jitter=34
-PROPS kind=buoy along=150-470 side=both every=32 offset=10 jitter=22
+PROPS kind=boat along=160-280 side=R every=48 offset=20 jitter=34
+PROPS kind=boat along=470-560 side=R every=48 offset=24 jitter=20
+PROPS kind=buoy along=150-280 side=both every=32 offset=10 jitter=22
 # fish market, net sheds and the market lane waterfront (outside), a lagoon shore (inside)
 PROPS kind=beach along=464-1170 side=both every=14 offset=0.3
 PROPS kind=market_stall along=470-500 side=R every=10 offset=4
@@ -71,14 +73,15 @@ PROPS kind=cannon along=640-760 side=L every=40 offset=6
 PROPS kind=palm along=796-1170 side=both every=11 offset=4 jitter=9
 PROPS kind=bush along=980-1106 side=both every=7 offset=2 jitter=6
 # the lagoon: coral heads, islets, a few boats
-PROPS kind=coral along=150-470 side=L every=24 offset=26 jitter=50
+PROPS kind=coral along=150-280 side=L every=24 offset=26 jitter=50
 PROPS kind=coral along=620-1300 side=L every=40 offset=30 jitter=60
 PROPS kind=islet along=300-300 side=L every=100 offset=75
 PROPS kind=islet along=1000-1000 side=L every=100 offset=95
 PROPS kind=boat along=700-900 side=L every=60 offset=45 jitter=30
 # the far water: lighthouse islet across the bay, sea stacks, a kraken cameo
 PROPS kind=lighthouse along=1250-1250 side=R every=100 offset=150
-PROPS kind=sea_stack along=0-1350 side=R every=120 offset=95 jitter=120
+PROPS kind=sea_stack along=470-1350 side=R every=120 offset=95 jitter=120
+PROPS kind=sea_stack along=0-280 side=R every=120 offset=95 jitter=80
 PROPS kind=kraken_tentacle along=470-470 side=R every=100 offset=125
 # ---- stylized dressing pass (2026-10, docs/design/34-stylized-pass.md; render-only, the .ctrk is unchanged) ----
 # Land is only where a `beach` bank lies (0-152 and 464-1350, ~30 m out from each edge): ground cover, shrubs and palm
