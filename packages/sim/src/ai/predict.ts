@@ -166,7 +166,11 @@ export class SelfPredictor {
         const uu = u > 0 ? u : 0, qq = uu / P.gripV1;
         rT = sig * (P.yGrip * uu) / (uu + P.gripV0) / (1 + qq * qq);
         if (u < -0.5) rT = -sig * P.yGrip * 0.5 * (-u) / (-u + P.gripV0);
-      } else rT = dir * (P.y0 / (1 + (dT * DT) / P.y0T) + P.y1 * sIn + (held ? P.y2 : 0));
+      } else {
+        // a valid tap's key still held inside the grace of a drag steers like neutral (§4.4)
+        const sY = dragT > 0 && streak > 0 && gap <= P.tapGrace && sIn > P.dragNeutral ? P.dragNeutral : sIn;
+        rT = dir * (P.y0 / (1 + (dT * DT) / P.y0T) + P.y1 * sY + (held ? P.y2 : 0));
+      }
       if (wallStun) rT *= 0.3;
       yaw += (rT - yaw) * (1 - (drift === 0 ? decGrip : decDrift));
       { const a = yaw * DT * turnMul, s = smallSin(a), c = smallCos(a), nx = hx * c - hy * s, ny = hy * c + hx * s, nl = Math.sqrt(nx * nx + ny * ny) || 1; hx = nx / nl; hy = ny / nl; }
@@ -194,9 +198,10 @@ export class SelfPredictor {
       if (drift === 0) { kL = P.kLatGrip; eta = P.etaGrip; }
       else {
         eta = dragging ? P.etaDrag : P.etaDrift;
-        if (sIn >= 0.3) kL = P.kLatNeutral + (P.kLatIn - P.kLatNeutral) * ((sIn - 0.3) / 0.7);
-        else if (sIn > -0.3) kL = P.kLatNeutral;
-        else kL = P.kLatNeutral + (P.kLatCounter - P.kLatNeutral) * ((-sIn - 0.3) / 0.7);
+        const sL = dragging && streak > 0 && gap <= P.tapGrace && sIn > P.dragNeutral ? P.dragNeutral : sIn; // §4.6, as in K4
+        if (sL >= 0.3) kL = P.kLatNeutral + (P.kLatIn - P.kLatNeutral) * ((sL - 0.3) / 0.7);
+        else if (sL > -0.3) kL = P.kLatNeutral;
+        else kL = P.kLatNeutral + (P.kLatCounter - P.kLatNeutral) * ((-sL - 0.3) / 0.7);
         if (held) kL *= P.kLatShift;
       }
       kL *= grip;
@@ -237,8 +242,9 @@ export class SelfPredictor {
       else if (brk) {
         if (u > 0.5) gear = Gear.D;
         else if (gear !== Gear.R) {
-          if (gear !== Gear.STOP) { gear = Gear.STOP; brakeT = 0; }
-          if (brakeT >= P.revEngageTicks) gear = Gear.R;
+          // the transition tick is ↓ tick 1 at STOP; R after revEngageTicks of them, however STOP was reached
+          if (gear !== Gear.STOP) { gear = Gear.STOP; brakeT = 1; }
+          else if (brakeT > P.revEngageTicks) gear = Gear.R;
         }
         reverse = gear === Gear.R;
       } else if (gear === Gear.D || (gear === Gear.STOP && u * u + w * w > 0.25)) gear = Gear.N;
@@ -295,7 +301,7 @@ export class SelfPredictor {
           else if (thrA === 0 && u < 0 && uN > 0) uN = 0;
         }
         u = uN;
-        if (u === 0 && !thr && !brk) { gear = Gear.STOP; w = 0; }
+        if (u === 0 && !thr && !brk && w * w <= 0.25) { gear = Gear.STOP; w = 0; } // at rest: planar speed too
       }
       // ---- K16 drift drag (not while dragging), spin-out speed
       if (drift === 1 && sb > 0 && dragT === 0) { let f = 1 - P.cBeta * sb * sb * DT; if (f < 0) f = 0; u *= f; w *= f; }
