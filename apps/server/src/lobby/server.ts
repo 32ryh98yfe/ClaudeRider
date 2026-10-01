@@ -149,6 +149,8 @@ export class GameServer {
   private readonly conns = new Map<Transport, Conn>();
   private readonly ipConns = new Map<string, number>();
   private readonly ipSessions = new Map<string, number>();
+  /** Room codes looked up in vain, per address, in fixed one-minute windows (code guessing). */
+  private readonly joinFails = new Map<string, { since: number; n: number }>();
   private readonly rooms = new Map<string, LobbyRoom>();         // custom, by code
   private readonly quick = new Map<string, { pending: LobbyRoom | null; lastTracks: TrackId[] }>();
   private readonly active = new Set<LobbyRoom>();                // every room with timers or a race
@@ -417,8 +419,15 @@ export class GameServer {
   private joinRoom(s: Session, raw: unknown): void {
     const code = normalizeCode(raw);
     if (!code) return this.send(s, { t: 'error', code: 'badCode' });
+    const now = this.clock.nowMs();
+    let fails = s.ip !== null ? this.joinFails.get(s.ip) : undefined;
+    if (fails && now - fails.since >= 60_000) { this.joinFails.delete(s.ip!); fails = undefined; }
+    if (fails && fails.n >= this.L.ipJoinFailsPerMin) return this.send(s, { t: 'error', code: 'rateLimited' });
     const r = this.rooms.get(code);
-    if (!r) return this.send(s, { t: 'error', code: 'notFound' });
+    if (!r) {
+      if (s.ip !== null) { if (fails) fails.n++; else this.joinFails.set(s.ip, { since: now, n: 1 }); }
+      return this.send(s, { t: 'error', code: 'notFound' });
+    }
     if (s.room === r) return this.broadcastRoom(r);
     // a player loading or racing stays in that race (leaving it would orphan their slot and keep the room alive)
     if (s.room && (s.room.phase === 'racing' || s.room.phase === 'loading')) return this.send(s, { t: 'error', code: 'inRace' });
@@ -771,6 +780,7 @@ export class GameServer {
   }
 
   private housekeeping(now: number): void {
+    for (const [ip, f] of this.joinFails) if (now - f.since >= 60_000) this.joinFails.delete(ip);
     // a race nobody is connected to any more is stopped once they could no longer resume (race spam: start, leave)
     for (const r of [...this.active]) {
       const race = r.race;

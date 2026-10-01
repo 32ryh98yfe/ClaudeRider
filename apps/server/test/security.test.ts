@@ -258,6 +258,25 @@ describe('lobby state abuse', () => {
     b.reconnect();
     expect(a.all('room').length).toBe(roomsAtA + 2);
   });
+
+  it('room-code guessing: 10 failed joins per address per minute, then every join is refused until the minute ends (item 11)', () => {
+    const w = new World();
+    const real = host(w, 'Host').last('room')!.room.code;
+    const g = w.client('Guess', '10.3.0.1').hello();
+    const wrong = real === 'ZZZZZZ' ? 'YYYYYY' : 'ZZZZZZ';
+    for (let i = 0; i < 10; i++) { g.send({ t: 'join', code: wrong }); w.advance(200); }
+    expect(g.errors().filter((e) => e === 'notFound')).toHaveLength(10);
+    g.send({ t: 'join', code: real });
+    expect(g.errors().at(-1)).toBe('rateLimited');
+    expect(w.server.roomByCode(real)!.humans()).toHaveLength(1);
+    // another address is not affected, and the guesser can join again a minute later
+    const other = w.client('Friend', '10.3.0.2').hello();
+    other.send({ t: 'join', code: real });
+    expect(other.errors()).toEqual([]);
+    w.advance(60_000);
+    g.send({ t: 'join', code: real });
+    expect(w.server.roomByCode(real)!.humans()).toHaveLength(3);
+  });
 });
 
 describe('input filters', () => {
