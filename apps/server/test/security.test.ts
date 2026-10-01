@@ -2,11 +2,17 @@
 // never read, frame floods, lobby state abuse and input filters, on the fake clock with scripted clients.
 import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
-import type { WebSocket } from 'ws';
-import { ByteWriter, PingMsg, encodeC2SLobby, type Transport } from '@cr/net';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { WebSocket, WebSocketServer } from 'ws';
+import { loadContent } from '@cr/content';
+import { startGameServer } from '../src/game/run.ts';
+import { ByteWriter, PingMsg, encodeC2SLobby, type RoomSettings, type Transport } from '@cr/net';
 import { wsTransport } from '../src/net/wsTransport.ts';
+import { addressKey } from '../src/net/address.ts';
 import { LOADOUT, World } from './fixture.ts';
 
+const SETTINGS: RoomSettings = { mode: 'speed', teams: 'solo', track: 'proving_ring', laps: 1, fillBots: true, botTier: 'rookie', isPrivate: true, maxHumans: 8 };
 const ping = (id: number): Uint8Array => { const w = new ByteWriter(16); PingMsg.encode(w, { pingId: id, clientMs: id }); return w.finish().slice(); };
 
 /** A socket that never reads: everything sent to it stays queued, so its bufferedAmount only grows. */
@@ -20,6 +26,71 @@ function deafSocket(): Transport & { queued: number; sends: number; closedWith: 
 }
 
 describe('connections', () => {
+  it('per-address caps: 8 sockets and 16 sessions per address by default; other addresses are unaffected (item 3)', () => {
+    const w = new World();
+    const a = Array.from({ length: 8 }, (_, i) => w.client(`A${i}`, '10.0.0.1').hello());
+    expect(a.every((c) => c.last('welcome') && !c.closed)).toBe(true);
+    const ninth = w.client('A8', '10.0.0.1');
+    w.flush();
+    expect(ninth.closed).toBe('too many connections');
+    expect(ninth.errors()).toEqual(['serverFull']);
+    expect(w.client('B', '10.0.0.2').hello().last('welcome')).toBeDefined();
+    // a closed socket frees its slot
+    a[0]!.drop();
+    expect(w.client('A9', '10.0.0.1').hello().last('welcome')).toBeDefined();
+    // hello → disconnect loops (the review's 5000-session lockout) stop at the per-address session cap
+    const w2 = new World();
+    const welcomed: boolean[] = [];
+    for (let i = 0; i < 20; i++) { const c = w2.client(`L${i}`, '10.0.0.3').hello(); welcomed.push(!!c.last('welcome')); c.drop(); }
+    expect(welcomed.filter(Boolean)).toHaveLength(16);
+    expect(w2.client('Other', '10.0.0.4').hello().last('welcome')).toBeDefined();
+    // sessions that never joined a room expire ~10 s after their socket closed, freeing the address again
+    w2.advance(12_000);
+    expect(w2.server.stats().sessions).toBe(1);
+    expect(w2.client('Back', '10.0.0.3').hello().last('welcome')).toBeDefined();
+  });
+
+  it('the ws heartbeat terminates a peer that stops answering pings; a live peer stays (item 3)', async () => {
+    const game = startGameServer({ content: loadContent(), tracksDirs: [], heartbeatMs: 40 });
+    const http = createServer();
+    const wss = new WebSocketServer({ server: http });
+    wss.on('connection', (ws, req) => game.accept(ws, req.socket.remoteAddress));
+    await new Promise<void>((r) => http.listen(0, '127.0.0.1', r));
+    const url = `ws://127.0.0.1:${(http.address() as AddressInfo).port}`;
+    const connect = (autoPong: boolean): Promise<{ ws: WebSocket; closed: Promise<number> }> => new Promise((ok) => {
+      const ws = new WebSocket(url, { autoPong });
+      const closed = new Promise<number>((r) => ws.on('close', (code) => r(code)));
+      ws.on('open', () => ok({ ws, closed }));
+    });
+    try {
+      const deaf = await connect(false);
+      const live = await connect(true);
+      const code = await Promise.race([deaf.closed, new Promise<number>((r) => setTimeout(() => r(-1), 2000))]);
+      expect(code).toBe(1006); // terminated, no close handshake
+      expect(live.ws.readyState).toBe(WebSocket.OPEN);
+      live.ws.close();
+    } finally {
+      game.stop(); wss.close(); http.close();
+    }
+  });
+
+  it('a session in a room keeps its resume window; address keys group IPv6 by /64', () => {
+    const w = new World();
+    const h = w.client('Host', '10.0.0.5').hello();
+    h.send({ t: 'create', settings: SETTINGS });
+    h.drop();
+    w.advance(12_000);
+    h.reconnect();
+    expect(h.errors()).not.toContain('resumeExpired');
+    expect(h.last('room')).toBeDefined();
+    expect(addressKey('::ffff:127.0.0.1')).toBe('127.0.0.1');
+    expect(addressKey('203.0.113.9')).toBe('203.0.113.9');
+    expect(addressKey('2001:db8:1:2:aaaa::1')).toBe('2001:db8:1:2::/64');
+    expect(addressKey('2001:db8:1:2:ffff:0:0:9')).toBe('2001:db8:1:2::/64');
+    expect(addressKey('::1')).toBe('0:0:0:0::/64');
+    expect(addressKey(undefined)).toBe('unknown');
+  });
+
   it('a socket whose hello is refused (bad name) is still closed by the hello timeout (item 6)', () => {
     const w = new World();
     const c = w.client('');

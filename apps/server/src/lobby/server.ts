@@ -29,10 +29,14 @@ export interface ServerClock {
   readonly epochWallMs: number;
 }
 
-export interface LobbyTimings { searchMs: number; stageMs: number; rouletteMs: number; autoStartMs: number; resultsMs: number; loadMaxMs: number; reconnectMs: number; lobbyGraceMs: number; helloMs: number }
+export interface LobbyTimings {
+  searchMs: number; stageMs: number; rouletteMs: number; autoStartMs: number; resultsMs: number; loadMaxMs: number; reconnectMs: number; lobbyGraceMs: number; helloMs: number;
+  /** A disconnected session in no room holds nothing worth resuming: it expires this soon. */
+  idleSessionMs: number;
+}
 export const DEFAULT_TIMINGS: LobbyTimings = {
   searchMs: 20_000, stageMs: 15_000, rouletteMs: 20_000, autoStartMs: 10_000, resultsMs: 12_000, loadMaxMs: 15_000,
-  reconnectMs: NET.RECONNECT_MS, lobbyGraceMs: 20_000, helloMs: 10_000,
+  reconnectMs: NET.RECONNECT_MS, lobbyGraceMs: 20_000, helloMs: 10_000, idleSessionMs: 10_000,
 };
 
 /** Abuse limits (M4 security review). Per-address limits apply only to sockets accepted with an address. */
@@ -76,6 +80,8 @@ type Phase = 'search' | 'stage' | 'waiting' | 'countdown' | 'roulette' | 'loadin
 
 /** One accepted socket: its session once welcomed (sessionOf is a lookup, not a scan of every session). */
 interface Conn {
+  /** Remote address key (null: in-process, no per-address limits). */
+  readonly ip: string | null;
   readonly mux: FrameMux; session: Session | null; helloUntil: number;
   /** Frame token bucket, and when `rateLimited` was last sent (at most once a second). */
   tokens: number; refillAt: number; limitedAt: number;
@@ -93,6 +99,8 @@ export class Session {
   connected = false;
   disconnectedAt = 0;
   room: LobbyRoom | null = null;
+  /** The address this session was created from (per-address session and race counts). */
+  ip: string | null = null;
   msgTimes: number[] = [];
   lastChatMs = -Infinity;
   constructor(id: string, token: string, name: string, loadout: Loadout) { this.id = id; this.token = token; this.name = name; this.loadout = loadout; }
@@ -123,6 +131,11 @@ export class LobbyRoom {
 }
 
 
+function bump(m: Map<string, number>, k: string, d: number): void {
+  const n = (m.get(k) ?? 0) + d;
+  if (n > 0) m.set(k, n); else m.delete(k);
+}
+
 export class GameServer {
   private readonly o: GameServerOptions;
   private readonly t: LobbyTimings;
@@ -131,6 +144,8 @@ export class GameServer {
   private readonly sessions = new Map<string, Session>();       // by public id
   private readonly byToken = new Map<string, Session>();
   private readonly conns = new Map<Transport, Conn>();
+  private readonly ipConns = new Map<string, number>();
+  private readonly ipSessions = new Map<string, number>();
   private readonly rooms = new Map<string, LobbyRoom>();         // custom, by code
   private readonly quick = new Map<string, { pending: LobbyRoom | null; lastTracks: TrackId[] }>();
   private readonly active = new Set<LobbyRoom>();                // every room with timers or a race
@@ -153,10 +168,19 @@ export class GameServer {
 
   // ------------------------------------------------------------ connections
 
-  accept(t: Transport): void {
+  /** A new socket. `ip` is the remote address key; without one (in-process transports) no per-address limit applies. */
+  accept(t: Transport, ip?: string): void {
+    const key = ip ?? null;
+    if (key !== null && (this.ipConns.get(key) ?? 0) >= this.L.ipConnections) {
+      t.send(encodeS2CLobby({ t: 'error', code: 'serverFull' }));
+      t.close(4004, 'too many connections');
+      this.log(`refused a connection from ${key}: ${this.L.ipConnections} open`);
+      return;
+    }
+    if (key !== null) bump(this.ipConns, key, 1);
     const mux = new FrameMux(t);
     const now = this.clock.nowMs();
-    this.conns.set(t, { mux, session: null, helloUntil: now + this.t.helloMs, tokens: this.L.frameBurst, refillAt: now, limitedAt: -Infinity });
+    this.conns.set(t, { ip: key, mux, session: null, helloUntil: now + this.t.helloMs, tokens: this.L.frameBurst, refillAt: now, limitedAt: -Infinity });
     mux.onOther = (b) => this.onFrame(t, mux, b);
     mux.onClose = () => this.onClose(t);
   }
@@ -226,8 +250,11 @@ export class GameServer {
   }
 
   private onClose(t: Transport): void {
+    const c = this.conns.get(t);
+    if (!c) return;
     const s = this.sessionOf(t);
     this.conns.delete(t);
+    if (c.ip !== null) bump(this.ipConns, c.ip, -1);
     if (!s) return;
     s.connected = false;
     s.transport = null;
@@ -254,8 +281,12 @@ export class GameServer {
     } else {
       const name = cleanName(m.name);
       if (!name) { this.sendTo(t, { t: 'error', code: 'nameInvalid' }); return; }
-      if (this.sessions.size >= this.L.maxSessions) { this.sendTo(t, { t: 'error', code: 'serverFull' }); this.closeConn(t, 4004, 'full'); return; }
+      if (this.sessions.size >= this.L.maxSessions || (c.ip !== null && (this.ipSessions.get(c.ip) ?? 0) >= this.L.ipSessions)) {
+        this.sendTo(t, { t: 'error', code: 'serverFull' }); this.closeConn(t, 4004, 'full'); return;
+      }
       s = new Session(`s${(this.nextId++).toString(36)}${u32Hex(randomSecret()).slice(0, 6)}`, u32Hex(randomSecret()), name, cleanLoadout(m.loadout));
+      s.ip = c.ip;
+      if (s.ip !== null) bump(this.ipSessions, s.ip, 1);
       this.sessions.set(s.id, s);
       this.byToken.set(s.token, s);
     }
@@ -699,10 +730,11 @@ export class GameServer {
       const r = s.room;
       const inRace = r?.race?.humans.has(s.id) === true;
       if (r && !inRace && r.kind === 'custom' && r.phase === 'waiting' && away > this.t.lobbyGraceMs) this.leaveRoom(s);
-      if (away > this.t.reconnectMs && !inRace) {
+      if (!inRace && (away > this.t.reconnectMs || (!s.room && away > this.t.idleSessionMs))) {
         if (s.room) this.leaveRoom(s);
         this.sessions.delete(s.id);
         this.byToken.delete(s.token);
+        if (s.ip !== null) bump(this.ipSessions, s.ip, -1);
       }
     }
   }

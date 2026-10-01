@@ -54,7 +54,8 @@ export class World {
       this.flush();
     }
   }
-  client(name: string): TestClient { return new TestClient(this, name); }
+  /** A scripted client; with `ip`, the server applies its per-address limits to it. */
+  client(name: string, ip?: string): TestClient { return new TestClient(this, name, ip); }
 }
 
 export class TestClient {
@@ -67,15 +68,16 @@ export class TestClient {
   /** The close reason once the server closed this connection. */
   closed: string | null = null;
   pongs = 0;
-  constructor(w: World, name: string) {
-    this.w = w; this.name = name;
+  readonly ip: string | undefined;
+  constructor(w: World, name: string, ip?: string) {
+    this.w = w; this.name = name; this.ip = ip;
     const [c, s] = loopbackPair(1, (fn) => { w.queue.push(fn); });
     this.transport = c; this.serverSide = s;
     this.mux = new FrameMux(c);
     this.mux.onOther = (b) => { if (b[0] === S2C.LOBBY_JSON) this.got.push(decodeLobby(b) as S2CLobby); else if (b[0] === S2C.PONG) this.pongs++; };
     this.closed = null;
     this.mux.onClose = (r) => { this.closed = r; };
-    w.server.accept(s);
+    w.server.accept(s, ip);
   }
   send(m: C2SLobby): this { this.transport.send(encodeC2SLobby(m)); this.w.flush(); return this; }
   hello(resume?: string): this { return this.send({ t: 'hello', v: 1, name: this.name, loadout: LOADOUT, ...(resume ? { resume } : {}) }); }
@@ -96,7 +98,7 @@ export class TestClient {
     this.mux.onOther = (b) => { if (b[0] === S2C.LOBBY_JSON) this.got.push(decodeLobby(b) as S2CLobby); else if (b[0] === S2C.PONG) this.pongs++; };
     this.closed = null;
     this.mux.onClose = (r) => { this.closed = r; };
-    this.w.server.accept(s);
+    this.w.server.accept(s, this.ip);
     return this.hello(token);
   }
 }
