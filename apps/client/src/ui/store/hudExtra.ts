@@ -3,6 +3,10 @@ import { signal } from '@preact/signals';
 
 export interface FeedLine { id: number; attacker: string; victim: string; itemId: string; result: 'hit' | 'blocked' | 'immune' | 'miss' | 'late'; mine: boolean; until: number }
 export interface RailDot { p: number; me: boolean; rank: number; team: number }
+/** Gear letter on the speedometer badge (Gear.STOP shows as N). */
+export type GearLetter = 'D' | 'N' | 'R';
+/** Driving-technique pop above the speedometer (15-driving-techniques): kind, tap streak (tap only), ms timestamp. */
+export interface TechniquePop { kind: 'tap' | 'cut' | 'brakeTurn'; streak: number; at: number }
 
 export const hudX = {
   /** item feed lines with structure (the frozen feed carries only text) */
@@ -49,6 +53,14 @@ export const hudX = {
   lapBanner: signal<{ lap: number; laps: number; at: number } | null>(null),
   /** ghost row for Time Attack standings: delta vs PB race (ticks) */
   ghostDelta: signal<number | null>(null),
+  /** gear badge on the speedometer: D / N / R (STOP reads N) */
+  gear: signal<GearLetter>('N'),
+  /** drag state (끌기) with its tap-boost streak 0..3 (pips); streak is 0 whenever on is false */
+  drag: signal<{ on: boolean; streak: number }>({ on: false, streak: 0 }),
+  /** technique pop (tap boost, cut, brake turn) */
+  technique: signal<TechniquePop | null>(null),
+  /** spin-out (brake held too long in a drift): ms timestamp, drives the speedometer shake */
+  spinAt: signal<number | null>(null),
 };
 
 /** Clears per-race HUD state (called when a race starts). */
@@ -57,4 +69,5 @@ export function resetHudX(): void {
   x.feed.value = []; x.rail.value = []; x.roulette.value = null; x.slotLock.value = false; x.instantWindow.value = false; x.startResult.value = null;
   x.lapPopup.value = null; x.redaction.value = null; x.mirror.value = false; x.shield.value = false; x.respawn.value = false; x.alert.value = null;
   x.perfect.value = false; x.finishAt.value = null; x.hitAt.value = null; x.gaugeFullAt.value = null; x.rankFlash.value = null; x.lapBanner.value = null; x.ghostDelta.value = null;
+  x.gear.value = 'N'; x.drag.value = { on: false, streak: 0 }; x.technique.value = null; x.spinAt.value = null;
 }

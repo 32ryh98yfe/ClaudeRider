@@ -2,6 +2,7 @@
 // level locks and Sparks purchases (13-modes-rules §12). Cosmetic only.
 import { useEffect, useState } from 'preact/hooks';
 import { loadContent, type CharacterId, type KartBodyId, type KartSpec } from '@cr/content';
+import { V_BOOST } from '@cr/sim';
 import { navigate, route } from '../../store/route.ts';
 import { t, locale } from '../../../i18n/index.ts';
 import { Stage } from '../../../game/Stage.ts';
@@ -24,11 +25,12 @@ const PRIMARY = ['#d97757', '#c96442', '#e8b04b', '#788c5d', '#6a9bcc', '#8a5cff
 const SECONDARY = ['#faf9f5', '#141413', '#f2a65a', '#9fd3f5', '#ffd23f', '#b0aea5'];
 const EMOTES = ['win', 'podium', 'lose', 'attackLanded', 'gotHit', 'lobby'] as const;
 
-/** Kart stat bars on a 1–10 scale from KartSpec (ADR-004 archetypes). */
+/** Kart stat bars on a 1–10 scale from KartSpec (ADR-004 archetypes). Top speed adds half the body's booster
+ *  offset from the Balance booster (V_BOOST, 272 km/h) to its grip speed. */
 export function kartStats(k: KartSpec): { id: string; v: number }[] {
   const n = (x: number, lo: number, hi: number): number => Math.max(1, Math.min(10, Math.round(3 + ((x - lo) / (hi - lo)) * 7)));
   return [
-    { id: 'topSpeed', v: n(k.vGrip + (k.vBoost - 44.4) * 0.5, 33.4, 34.5) },
+    { id: 'topSpeed', v: n(k.vGrip + (k.vBoost - V_BOOST) * 0.5, 33.4, 34.5) },
     { id: 'accel', v: n(k.a0, 16, 20) },
     { id: 'drift', v: n(k.kLatIn - (k.cBeta - 0.8) * 4, 2.7, 3.5) },
     { id: 'gauge', v: n(k.g0, 0.62, 0.8) },

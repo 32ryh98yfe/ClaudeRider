@@ -11,6 +11,8 @@ export default {
   disconnected: '연결 끊김', reconnecting: '재연결 중…', mirror: '좌우 반전!', redacted: '시야 차단!', locked: '아이템 잠김',
   finished: '완주!', waiting: '다른 레이서를 기다리는 중', ghost: '고스트', ghostAhead: '고스트보다 {d} 빠름', ghostBehind: '고스트보다 {d} 느림',
   standings: '순위', emptySlot: '비어 있음', useKey: '사용', swapKey: '교체', lapTime: '랩 기록',
+  // driving techniques (15-driving-techniques)
+  gear: { d: 'D', n: 'N', r: 'R' }, drag: '끌기', tap: '톡톡이', cut: '커팅', brakeTurn: '고속턴', spinOut: '스핀!', reverse: '후진',
   pause: {
     title: '일시정지', resume: '계속', restart: '재시작', settings: '설정', leave: '레이스 나가기',
     leaveTitle: '레이스를 나갈까요?', leaveBody: '진행 중인 레이스 기록과 보상은 사라집니다.', onlineNote: '온라인 레이스는 멈추지 않아요. 카트는 계속 달립니다.',

@@ -2,14 +2,15 @@
 // turns sim events into banners, toasts, the item feed and the race-stat collector (challenges, missions, splits).
 import { batch } from '@preact/signals';
 import { EFFECT_IDS, ITEM_IDS, idOf, loadContent } from '@cr/content';
-import { KMH_PER_MPS, Phase, type BakedTrack, type RaceConfig, type SimEvent, type WorldState } from '@cr/sim';
+import { Gear, KMH_PER_MPS, Phase, type BakedTrack, type RaceConfig, type SimEvent, type WorldState } from '@cr/sim';
 import { hud, type Standing } from '../ui/store/hud.ts';
-import { hudX, resetHudX, type FeedLine, type RailDot } from '../ui/store/hudExtra.ts';
+import { hudX, resetHudX, type FeedLine, type GearLetter, type RailDot, type TechniquePop } from '../ui/store/hudExtra.ts';
 import { banner } from '../ui/store/banner.ts';
 import { t } from '../i18n/index.ts';
 import { save } from '../meta/save.ts';
 import { RaceStatsCollector, setCurrentRace, mission } from '../meta/raceStats.ts';
 import { itemName } from '../ui/icons/itemIcons.ts';
+import { devForce, forcedStreak } from '../dev/force.ts';
 
 export type ProjectFn = (slot: number, out: { x: number; y: number; visible: boolean; dist: number }) => void;
 /** What the HUD reads from the race: the (predicted or authoritative) world and the baked track. A RaceRoom fits, and so does a NetClient view. */
@@ -34,6 +35,9 @@ const TICK_MS = 1000 / 60;
 // EffectInstance.flags / ProjectileState.phase values from sim/items/codes.ts (not exported by @cr/sim)
 const F_RESOLVED = 1, F_ENDED = 16, F_DEAD = 64, P_DEAD = 255;
 const MPH_PER_KMH = 0.621371;
+/** Gear badge letter per KartDrive.gear: STOP reads N (the kart is parked, not in drive). */
+const GEAR_LETTER: Record<number, GearLetter> = { [Gear.STOP]: 'N', [Gear.D]: 'D', [Gear.N]: 'N', [Gear.R]: 'R' };
+const NO_DRAG = { on: false, streak: 0 } as const;
 
 export class HudPresenter {
   private lastFast = 0;
@@ -99,6 +103,7 @@ export class HudPresenter {
       hud.draft.value = k.drive.draftTicks > 0 ? 1 : Math.min(0.99, k.drive.draftCharge / 120);
       hud.boosting.value = k.drive.boostTicks > 0 || k.drive.startTicks > 0 || k.drive.instTicks > 0;
       hudX.instantWindow.value = k.drive.instWindow > 0 && save.get().settings.instantHint !== false;
+      this.updateTechniques(nowMs);
     }
     for (const n of nameTags) { this.project(n.slot, n); n.rank = w.karts[n.slot]!.race.rank; }
     if (nowMs - this.lastSlow < 50) return;
@@ -178,6 +183,19 @@ export class HudPresenter {
     });
   }
 
+  /** Gear badge and drag chip. Signals are only written on change (the speedometer re-renders at 30 Hz anyway). */
+  private updateTechniques(nowMs: number): void {
+    const d = this.room.world.karts[this.me]!.drive;
+    const gear = devForce.reverse ? 'R' : GEAR_LETTER[d.gear] ?? 'N';
+    if (hudX.gear.value !== gear) hudX.gear.value = gear;
+    const on = d.dragTicks > 0 || devForce.drag;
+    const streak = on ? (devForce.drag ? forcedStreak(nowMs) : d.tapStreak) : 0;
+    const cur = hudX.drag.value;
+    if (cur.on !== on || cur.streak !== streak) hudX.drag.value = on ? { on, streak } : NO_DRAG;
+  }
+
+  private technique(kind: TechniquePop['kind'], streak = 0): void { hudX.technique.value = { kind, streak, at: performance.now() }; }
+
   private updateIncoming(w: Readonly<WorldState>): void {
     const k = w.karts[this.me]!;
     let best: { dir: number; etaTicks: number } | null = null;
@@ -251,6 +269,11 @@ export class HudPresenter {
         break;
       case 'effect': this.feed(e); break;
       case 'retire': if (e.kart === me) banner.show(t('hud.retire'), 'bad', 2000); break;
+      // driving techniques (15-driving-techniques): pops above the speedometer; a spin-out also toasts
+      case 'tapBoost': if (e.kart === me) this.technique('tap', e.streak); break;
+      case 'cut': if (e.kart === me) this.technique('cut'); break;
+      case 'brakeTurn': if (e.kart === me) this.technique('brakeTurn'); break;
+      case 'spinOut': if (e.kart === me) { hudX.spinAt.value = performance.now(); hudX.technique.value = null; this.toast(t('hud.spinOut'), 'bad', 1400); } break;
       default: break;
     }
   }

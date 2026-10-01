@@ -22,7 +22,7 @@ import { Portrait } from '../../components/Portrait.tsx';
 import { ArtOverride, ArtPaper } from '../../components/ArtOverride.tsx';
 import './lobby.css';
 
-const TIP_COUNT = 10;
+const TIP_COUNT = 15;
 
 export function LobbyScreen() {
   const s = saveState.value;
