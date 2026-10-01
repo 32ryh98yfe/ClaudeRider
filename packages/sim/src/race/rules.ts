@@ -57,7 +57,7 @@ export function updateStartBoost(w: WorldState, k: KartState, inp: Readonly<Inpu
   const d = k.drive;
   if (k.stats.startTier !== StartTier.UNSET) {
     // releasing the throttle cancels a running start boost
-    if (d.startTicks > 0 && inp.throttle === 0) { d.startTicks = 0; if (d.boostKind === Boost.START) d.boostKind = Boost.NONE; }
+    if (d.startTicks > 0 && inp.throttle === 0) { d.startTicks = 0; d.postTicks = 0; if (d.boostKind === Boost.START) d.boostKind = Boost.NONE; }
     return;
   }
   const held = inp.throttle > 0;

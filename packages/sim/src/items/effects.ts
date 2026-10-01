@@ -9,6 +9,7 @@ import { V_REF } from '../core/units.ts';
 import { neutralMods, type KartMods, type StepContext } from '../api.ts';
 import { paramsFor } from '../kart/params.ts';
 import { evKey } from '../kart/evkey.ts';
+import { clearDriftTech } from '../kart/tech.ts';
 import { EFFECT_BEHAVIORS } from '../generated/effect-behaviors.gen.ts';
 import type { EffectBehavior } from './behavior.ts';
 import { EF, EFlag, Kin, RESULT_NAME, Res, effectDef, warnOnce } from './codes.ts';
@@ -195,8 +196,9 @@ function applyHardCC(w: WorldState, ctx: StepContext, e: EffectInstance, k: Kart
   st.mashCredits = 0; st.lastTapDir = 0; st.lastTapTick = 0;
   // hard CC cancels the active boost and the drift; stored boosters and items are kept (§6.3)
   if (d.boostTicks > 0) ctx.events.push({ t: 'boostEnd', kart: k.slot, kind: d.boostKind, tick: w.tick, key: evKey(w.tick, 91, k.slot, 1) });
-  d.boostTicks = 0; d.boostKind = Boost.NONE; d.startTicks = 0; d.instTicks = 0; d.instWindow = 0;
+  d.boostTicks = 0; d.boostKind = Boost.NONE; d.startTicks = 0; d.instTicks = 0; d.instWindow = 0; d.postTicks = 0;
   d.drift = 0; d.driftTicks = 0; d.driftPeak = 0; d.driftDir = 1;
+  clearDriftTech(w, k, ctx);
   // a hard CC breaks the kart's own tether pull (no slingshot)
   for (const o of w.effects) if (o.victim === k.slot && o.code === EF.tether_pull && (o.flags & EFlag.RESOLVED) !== 0) o.flags |= EFlag.ENDED;
 }
