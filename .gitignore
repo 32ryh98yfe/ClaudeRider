@@ -12,7 +12,7 @@ playwright-report/
 *.log
 .DS_Store
 coverage/
-shots/
+/shots/
 tools/scratch/
 .claude/worktrees/
 art/codex/refs/
