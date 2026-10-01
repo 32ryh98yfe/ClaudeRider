@@ -26,7 +26,7 @@ export const NEON_NIGHT_LOOK: Partial<ThemeLook> = {
   // cool sky fill from above, warm sodium bounce from the street, and a sodium back fill so the karts' shaded side
   // keeps its colour against the moon
   hemi: { sky: '#94a0ec', ground: '#ffb088', intensity: 2.4 },
-  fill: { color: '#ffc890', intensity: 0.8 },
+  fill: { color: '#ffc890', intensity: 1.0 },
   fogColor: '#2b2244',
   stars: 0.25,
   ambient: 'rain',
@@ -71,7 +71,7 @@ export default (c: ContentTables, env?: Readonly<Record<string, string>>): Theme
   const kit = makeKit(c.themes.get('neon_harbor'), dusk ? NEON_DUSK_LOOK : NEON_NIGHT_LOOK, NEON_PROPS);
   const base = kit.materials;
   const mood = dusk ? 'dusk' : 'night';
-  const barrier = { body: dusk ? '#b3b6c0' : '#a3a7b2', base: dusk ? '#6a6d77' : '#575a65', cap: '#d83a8e', strip: '#5fe8ff', gain: dusk ? 0.7 : 0.95 };
+  const barrier = { body: dusk ? '#b3b6c0' : '#a3a7b2', base: dusk ? '#6a6d77' : '#575a65', cap: '#d83a8e', strip: '#5fe8ff', gain: dusk ? 0.6 : 1.1 };
   kit.materials = () => ({
     ...base(),
     // barriers: concrete with a magenta cap and a segmented cyan LED strip (the road edge reads at night)

@@ -38,7 +38,7 @@ export function ledBarrier(key: string, p: BarrierParams): THREE.Material {
     let cap: N = color(p.cap);
     if (p.hazard) cap = mix(cap, color(p.hazard), step(0.5, fract(U.y.mul(6).add(hFrac.mul(1.2)))));
     c = mix(c, cap, clamp(band, 0, 1)).mul(seam.mul(-0.35).add(1));
-    const strip: N = smoothstep(0.7, 0.715, hFrac).mul(smoothstep(0.795, 0.78, hFrac)).mul(innerFace)
+    const strip: N = smoothstep(0.72, 0.732, hFrac).mul(smoothstep(0.788, 0.776, hFrac)).mul(innerFace)
       .mul(step(0.03, seg)).mul(step(seg, 0.97));
     c = mix(c, color('#000000'), strip);
     m.colorNode = c.mul(vertexColor().rgb.div(p.tint ?? 1));

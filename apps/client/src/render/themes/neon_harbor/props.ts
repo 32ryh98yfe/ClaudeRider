@@ -82,7 +82,7 @@ function towerB(): THREE.BufferGeometry {
 
 // ---- street facades ---------------------------------------------------------------------------------------------
 
-interface FacadeSpec { w: number; d: number; floors: number; floorH: number; tone: number; seed: number; sign: boolean; roof: 'tank' | 'board' | 'ac' }
+interface FacadeSpec { w: number; d: number; floors: number; floorH: number; tone: number; seed: number; sign: boolean; roof: 'tank' | 'board' | 'ac'; lit: number; panes: readonly string[] }
 
 /**
  * A mid-rise street block: lit shop fronts with fabric awnings and sign boxes at street level, a grid of windows
@@ -114,8 +114,8 @@ function facade(f: FacadeSpec): THREE.BufferGeometry {
     const y0 = GF + k * f.floorH;
     G.add(part(box(0.24, 0.22, f.w + 0.06), trim, 0.06, y0 + 0.11, 0));
     for (let j = 0; j < nW; j++) {
-      const z = -f.w / 2 + (j + 0.5) * ww, on = R() < 0.55;
-      const pane = part(box(0.08, 1.55, ww - 1.0), on ? WINDOW_LIT[Math.floor(R() * WINDOW_LIT.length)]! : GLASS_DK, 0.03, y0 + f.floorH * 0.55, z);
+      const z = -f.w / 2 + (j + 0.5) * ww, on = R() < f.lit;
+      const pane = part(box(0.08, 1.55, ww - 1.0), on ? f.panes[Math.floor(R() * f.panes.length)]! : GLASS_DK, 0.03, y0 + f.floorH * 0.55, z);
       if (on) G.light(0.5 + R() * 0.3, pane); else G.add(pane);
       G.add(part(box(0.22, 0.1, ww - 0.8), trim, 0.08, y0 + f.floorH * 0.55 - 0.85, z));
     }
@@ -559,10 +559,11 @@ export const NEON_PROPS: Record<string, PropFactory> = {
   // skyline and street blocks
   tower_a: F(towerA, city, false, 512),
   tower_b: F(towerB, city, false, 512),
-  building_row_a: F(() => facade({ w: 20, d: 12, floors: 5, floorH: 3.3, tone: 0, seed: 101, sign: true, roof: 'tank' }), city, true, 256),
-  building_row_b: F(() => facade({ w: 16, d: 12, floors: 8, floorH: 3.2, tone: 2, seed: 202, sign: false, roof: 'board' }), city, true, 256),
-  building_row_c: F(() => facade({ w: 22, d: 14, floors: 3, floorH: 3.4, tone: 1, seed: 303, sign: true, roof: 'ac' }), city, true, 256),
-  building_row_d: F(() => facade({ w: 18, d: 12, floors: 11, floorH: 3.2, tone: 3, seed: 404, sign: true, roof: 'ac' }), city, true, 256),
+  // each block kind has its own lit share and window palette (warm flats, cool offices), so a row never repeats one face
+  building_row_a: F(() => facade({ w: 20, d: 12, floors: 5, floorH: 3.3, tone: 0, seed: 101, sign: true, roof: 'tank', lit: 0.55, panes: [WARM, WARM, SODIUM, '#ffe6c4'] }), city, true, 256),
+  building_row_b: F(() => facade({ w: 16, d: 12, floors: 8, floorH: 3.2, tone: 2, seed: 202, sign: false, roof: 'board', lit: 0.4, panes: [COOL, COOL, '#bfe4ff', WARM] }), city, true, 256),
+  building_row_c: F(() => facade({ w: 22, d: 14, floors: 3, floorH: 3.4, tone: 1, seed: 303, sign: true, roof: 'ac', lit: 0.65, panes: [WARM, SODIUM, '#ffd0a0'] }), city, true, 256),
+  building_row_d: F(() => facade({ w: 18, d: 12, floors: 11, floorH: 3.2, tone: 3, seed: 404, sign: true, roof: 'ac', lit: 0.35, panes: [COOL, '#d8e8ff', WARM, '#ffe6c4'] }), city, true, 256),
   shophouse: F(() => shophouse(7), city, true, 128),
   warehouse_building: F(warehouse, city, true, 64),
   // street furniture and ground cover (bush/crate/lamp names thin on Low/Medium)
