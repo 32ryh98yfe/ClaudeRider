@@ -41,7 +41,10 @@ HAZ train metro at=@subway_platform+25 d=0 box=(24,3.4,4) period=10 on=0-2.5 tel
 # cloverleaf entry, so those patches keep low furniture only.
 THEME scatter=none hills=0 sky=sunset fogNear=160 fogFar=1100
 # -- toll plaza (start straight): toll booths, grandstand opposite the a3 camera, banner poles, neon boards
-PROPS kind=toll_booth from=@toll_plaza+68 to=@toll_plaza+68 side=both every=100 offset=1.5
+PROPS kind=toll_booth from=@toll_plaza+68 to=@toll_plaza+68 side=R every=100 offset=1.5
+# the left booth stands at the foot of the cloverleaf embankment (+58, where the left ground is still level with the
+# road); at +68 the embankment starts 2 m up right at the barrier, so a row booth there stood on the slope
+PROP kind=toll_booth at=(88.0,-0.4,-8.6) yaw=270 scale=0.80
 # (the stand sits before the line keep-out: the pads at +50 and the skyway embankment at +66 leave no room past it)
 PROPS kind=grandstand from=@toll_plaza+8 to=@toll_plaza+9 side=L every=100 offset=5.5 seed=201
 PROPS kind=flag_pole from=@frontage_s2+150 to=@toll_plaza+60 side=L every=9 offset=2.2 seed=202
