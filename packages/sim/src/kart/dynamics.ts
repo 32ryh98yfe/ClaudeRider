@@ -6,15 +6,20 @@
 // Timer convention: countdowns are decremented here, at the start of phase 3, and a countdown is active while it
 // is > 0 after that decrement. A value set later in the tick (phases 4–7) or earlier (phases 1–2) is therefore
 // written N + 1 to cover N dynamics phases (10-sim-spec §1.3).
+//
+// Driving techniques (M5) follow docs/design/15-driving-techniques.md §4, which supersedes 10-sim-spec for them:
+// post-boost bleed, brake turn / spin-out, tap boost, cut, reverse gauge, drag and gears. Their steps are marked
+// "§4.n" below. With no boost, no technique input and no full counter-steer, the gap-2 path is unchanged.
 import type { InputFrame } from '../core/input.ts';
 import { Held, Edge } from '../core/input.ts';
-import { Attach, Boost, type KartState, type WorldState } from '../core/state.ts';
+import { Attach, Boost, Gear, type GearState, type KartState, type WorldState } from '../core/state.ts';
 import { DT } from '../core/units.ts';
 import { decayF, smallCos, smallSin } from '../core/math.ts';
 import type { KartMods, StepContext } from '../api.ts';
 import type { SurfaceDef } from '@cr/content';
-import { gripGain, type KartParams } from './params.ts';
+import { DECAY_POST_HOLD, DECAY_POST_REL, gripGain, type KartParams } from './params.ts';
 import { evKey } from './evkey.ts';
+import { clearDriftTech, endDrag, resetTech, setGear, spinOut } from './tech.ts';
 import { addGauge, GaugeSrc } from './gauge.ts';
 import { conveyorMul, effectiveSurface, gravityFor } from './zones.ts';
 import { railDynamics } from './rail.ts';
@@ -38,13 +43,17 @@ function rotateForward(k: KartState, a: number): void {
   b.fx = fx; b.fy = fy; b.fz = fz;
 }
 
-/** Ends a drift: lockout, canonical drift fields (10-sim-spec §15.2) and the driftEnd event. */
+/**
+ * Ends a drift: lockout, canonical drift fields (10-sim-spec §15.2) and the driftEnd event. The drag ends and the
+ * technique fields reset with it (15-driving-techniques §4.7).
+ */
 export function endDrift(w: WorldState, k: KartState, P: KartParams, ctx: StepContext): void {
   const d = k.drive;
   if (d.drift === 0) return;
   d.drift = 0; d.reDriftLock = P.reDriftTicks;
   d.driftDir = 1; d.driftTicks = 0; d.driftPeak = 0;
   ctx.events.push({ t: 'driftEnd', kart: k.slot, tick: w.tick, key: evKey(w.tick, 4, k.slot) });
+  clearDriftTech(w, k, ctx);
 }
 
 /** Bonus-charge multiplier: Infinite Boost doubles start, instant and draft charges (ADR-008). */
@@ -61,6 +70,7 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
   if (zoned) gravityFor(T, k.race.loc, ctx.scratch.grav);
 
   // ---------------------------------------------------------------- timers (phase-3 decrement, see header)
+  const wasBoost = d.boostTicks > 0 || d.startTicks > 0;
   if (d.boostTicks > 0) { d.boostTicks--; if (d.boostTicks === 0) { ev.push({ t: 'boostEnd', kart: k.slot, kind: d.boostKind, tick, key: evKey(tick, 1, k.slot) }); d.boostKind = Boost.NONE; } }
   if (d.startTicks > 0) d.startTicks--;
   if (d.instTicks > 0) d.instTicks--;
@@ -71,6 +81,10 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
   if (d.draftTicks > 0) { d.draftTicks--; if (d.draftTicks === 0) ev.push({ t: 'draft', kart: k.slot, on: false, tick, key: evKey(tick, 31, k.slot) }); }
   if (!b.grounded && b.coyote > 0) b.coyote--;
   if (k.race.slowTicks > 0 && k.race.respawnPhase === 0) k.race.slowTicks--;
+  if (d.postTicks > 0) d.postTicks--;
+  // §4.1 post-boost bleed: armed only when the last running boost expires here. Every cancellation (hard wall hit,
+  // hard CC, respawn, start-boost throttle release, spin-out) zeroes the boost timers elsewhere, and postTicks too.
+  if (wasBoost && d.boostTicks === 0 && d.startTicks === 0) d.postTicks = P.postTicks;
 
   // ---------------------------------------------------------------- phase 1: input latch (§5.1)
   const locked = mods.noControl || k.race.respawnPhase !== 0;
@@ -117,10 +131,14 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
     let fx = b.fx, fy = b.fy, fz = b.fz;
     let u = b.vx * fx + b.vy * fy + b.vz * fz;
 
+    // §4.2 consecutive brake ticks (brake turn, spin-out, reverse engage)
+    d.brakeTicks = brk ? (d.brakeTicks < 255 ? d.brakeTicks + 1 : 255) : 0;
+
     // -------------------------------------------------------------- K2 drift entry / double drift
     if (d.drift === 0) {
       if (driftHeld && (steer >= P.driftMinSteer || steer <= -P.driftMinSteer) && u >= P.driftMinSpeed && d.reDriftLock <= 0 && !wallStun) {
         d.drift = 1; d.driftDir = steer > 0 ? 1 : -1; d.driftTicks = 0; d.driftPeak = 0;
+        resetTech(d); d.brakeTicks = brk ? 1 : 0; d.postTicks = 0;
         k.stats.drifts++;
         b.yawRate += d.driftDir * P.kickR;
         rotateForward(k, d.driftDir * P.kickAngle);
@@ -136,6 +154,38 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
     fx = b.fx; fy = b.fy; fz = b.fz;
     u = b.vx * fx + b.vy * fy + b.vz * fz;
 
+    // -------------------------------------------------------------- K3 brake turn, spin-out, taps (§4.3)
+    let turnMul = 1, spun = false;
+    if (d.drift === 1) {
+      if (d.brakeTicks >= P.spinTicks) {
+        endDrift(w, k, P, ctx); // no instant window: the K11 exit path is not taken
+        spinOut(w, k, P, ctx);
+        spun = true;
+      } else {
+        if (d.brakeTicks >= 1 && d.brakeTicks <= P.brakeTurnTicks) {
+          turnMul = P.brakeTurnMul;
+          if (d.brakeTicks === 1) ev.push({ t: 'brakeTurn', kart: k.slot, tick, key: evKey(tick, 13, k.slot) });
+        }
+        if (d.dragTicks > 0) {
+          if (d.tapGap < 255) d.tapGap++;
+          // the corner-direction key; Mirror Mode swaps the keys, so it swaps the edge bits too
+          const inv = mods.steerInvert;
+          const tapIn = d.driftDir > 0 ? (inv ? Edge.TAP_R : Edge.TAP_L) : (inv ? Edge.TAP_L : Edge.TAP_R);
+          if (!locked && (inp.edges & tapIn) !== 0) {
+            const gap = d.tapGap;
+            if (gap > P.tapMaxGap) d.tapStreak = 1;
+            else if (gap >= P.tapMinGap) d.tapStreak = d.tapStreak < P.tapStreakMax ? d.tapStreak + 1 : P.tapStreakMax;
+            else d.tapStreak = 0; // mashing faster than tapMinGap is not a tap
+            d.tapGap = 0;
+            if (d.tapStreak > 0) {
+              b.yawRate += d.driftDir * P.tapYaw;
+              ev.push({ t: 'tapBoost', kart: k.slot, streak: d.tapStreak, tick, key: evKey(tick, 11, k.slot, d.tapStreak) });
+            }
+          }
+        }
+      }
+    }
+
     // -------------------------------------------------------------- K4 yaw target and lag
     const sIn = steer * d.driftDir;
     let rT: number;
@@ -148,8 +198,8 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
     if (wallStun) rT *= 0.3;
     b.yawRate += (rT - b.yawRate) * (1 - decayF(d.drift === 0 ? P.kYawGrip : P.kYawDrift, DT));
 
-    // -------------------------------------------------------------- K5 heading rotation
-    rotateForward(k, b.yawRate * DT);
+    // -------------------------------------------------------------- K5 heading rotation (×brakeTurnMul in a brake turn)
+    rotateForward(k, b.yawRate * DT * turnMul);
     fx = b.fx; fy = b.fy; fz = b.fz;
     const lx = ny * fz - nz * fy, ly = nz * fx - nx * fz, lz = nx * fy - ny * fx;
 
@@ -159,19 +209,48 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
     const vn = b.vx * nx + b.vy * ny + b.vz * nz;
 
     // -------------------------------------------------------------- K7 slope gravity (tangential part; the ground takes the rest)
+    let gt2 = Infinity; // squared tangential gravity (zero-lock grade test); no lock off the ground
     if (b.grounded) {
       const gn = g.x * nx + g.y * ny + g.z * nz;
       const gtx = g.x - gn * nx, gty = g.y - gn * ny, gtz = g.z - gn * nz;
       u += (gtx * fx + gty * fy + gtz * fz) * DT;
       wl += (gtx * lx + gty * ly + gtz * lz) * DT;
+      gt2 = gtx * gtx + gty * gty + gtz * gtz;
     }
     let v = Math.sqrt(u * u + wl * wl);
+
+    // -------------------------------------------------------------- K7b cut and drag (§4.5)
+    const boosting = d.boostTicks > 0 || d.startTicks > 0;
+    let cut = false;
+    if (d.drift === 1) {
+      // cut: a full counter-steer for cutTicks ticks snaps the velocity onto the heading (β → 0) and ends the drift
+      // in K11. While boosting with DRIFT held the counter-steer charges the reverse gauge instead.
+      d.counterTicks = sIn <= -P.cutSteer ? (d.counterTicks < 255 ? d.counterTicks + 1 : 255) : 0;
+      cut = d.counterTicks >= P.cutTicks && !(boosting && driftHeld);
+      if (cut) {
+        if (u > 0) u += P.etaCut * (v - u);
+        wl = 0; b.yawRate = 0;
+        v = u < 0 ? -u : u;
+        ev.push({ t: 'cut', kart: k.slot, tick, key: evKey(tick, 12, k.slot) });
+      }
+      // drag: boosting, ↑, no brake, on the ground, steering neutral (or the key of a valid tap still held)
+      const steerOk = sIn > -P.dragNeutral && (sIn < P.dragNeutral || (d.tapStreak > 0 && d.tapGap <= P.tapGrace));
+      const ok = !cut && boosting && thrIn === 1 && !brk && b.grounded === 1 && steerOk;
+      const sb7 = v > 0.1 ? (-d.driftDir * wl) / v : 0;
+      if (ok && d.dragTicks === 0 && sb7 >= P.dragEnterLo && sb7 <= P.dragEnterHi) {
+        d.dragTicks = 1; d.tapStreak = 0; d.tapGap = 255;
+        ev.push({ t: 'drag', kart: k.slot, on: true, tick, key: evKey(tick, 10, k.slot, 1) });
+      } else if (ok && d.dragTicks > 0 && sb7 >= P.dragExitLo && sb7 <= P.dragExitHi) {
+        if (d.dragTicks < 255) d.dragTicks++;
+      } else endDrag(w, k, ctx);
+    } else d.counterTicks = 0;
+    const dragging = d.dragTicks > 0;
 
     // -------------------------------------------------------------- K8 lateral damping with momentum retention
     let kL: number, eta: number;
     if (d.drift === 0) { kL = P.kLatGrip; eta = P.etaGrip; }
     else {
-      eta = P.etaDrift;
+      eta = dragging ? P.etaDrag : P.etaDrift; // §4.6: the drag turns the scrubbed lateral speed into forward speed
       if (sIn >= 0.3) kL = P.kLatNeutral + (P.kLatIn - P.kLatNeutral) * ((sIn - 0.3) / 0.7);
       else if (sIn > -0.3) kL = P.kLatNeutral;
       else kL = P.kLatNeutral + (P.kLatCounter - P.kLatNeutral) * ((-sIn - 0.3) / 0.7);
@@ -197,9 +276,10 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
       if (opt.gaugeOn && b.grounded && v >= 10 && sb > 0 && !b.wallContact) {
         let sl = sb / P.gSlipRef; if (sl > 1) sl = 1; sl = Math.sqrt(sl);
         const dg = P.g0 * sl * (v / P.vGrip) / (1 + (d.fatigueTicks * DT) / P.gTau) * DT * mods.gaugeMul;
-        addGauge(w, k, dg, GaugeSrc.DRIFT, opt.teamSize, ctx);
+        // §4.7 reverse gauge: counter-steering a boosted drift charges ×revGaugeMul
+        addGauge(w, k, boosting && sIn <= -0.3 ? dg * P.revGaugeMul : dg, GaugeSrc.DRIFT, opt.teamSize, ctx);
       }
-      if ((d.driftTicks >= P.exitMinTicks && sb < P.exitSin) || u < 5) {
+      if ((d.driftTicks >= P.exitMinTicks && sb < P.exitSin) || u < 5 || cut) {
         const allowInst = !opt.itemMode || opt.instantAllowed;
         if (allowInst && d.driftTicks >= P.instMinDriftTicks && d.driftPeak >= P.instMinSlip) d.instWindow = P.instWindowTicks;
         endDrift(w, k, P, ctx);
@@ -222,46 +302,102 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
     if (k.race.slowTicks > 0) { const sc = SLOW_CAP * P.vGrip; if (vT > sc) vT = sc; }
     const vInst = P.vInst * capMul;
     const instOn = d.instTicks > 0 && !boostLaw && u < vInst;
+    // §4.8 a boost law (any source, including effect targets), a drift or an instant boost ends the bleed for good
+    if (d.postTicks > 0 && (boostLaw || d.drift === 1 || d.instTicks > 0)) d.postTicks = 0;
 
-    // -------------------------------------------------------------- K15 acceleration
-    const A0 = P.a0 * (d.draftTicks > 0 && !boostLaw ? P.draftAccelMul : 1) * mods.accelMul;
-    let a: number;
-    if (thr) {
-      if (u < vT) {
-        if (boostLaw) {
-          a = P.kBoost * (vT - u);
-          if (a > cap) a = cap;
-          const base = P.a0 * (1 - u / P.vGrip);
-          if (a < base) a = base;
-        } else {
-          const q = u / vT;
-          a = A0 * tau * (1 - q * q);
-          if (d.drift === 1 && a > P.aDrift) a = P.aDrift;
-        }
-        if (instOn && a < P.aInst) a = P.aInst;
-      } else {
-        a = -P.kOver * (u - vT);
-        if (instOn) a = P.aInst;
+    // -------------------------------------------------------------- K15a gears (§4.8), before the longitudinal law
+    // zero-lock only on the ground, on a gentle grade and with the driver in control (a tether or CC moves the kart)
+    const lockOk = !locked && gt2 <= P.zeroLockGt * P.zeroLockGt;
+    let gear: GearState = d.gear, reverse = false;
+    if (thrIn) gear = Gear.D;
+    else if (brk) {
+      if (u > 0.5) gear = Gear.D; // strong braking
+      else if (gear !== Gear.R) {
+        if (gear !== Gear.STOP) { gear = Gear.STOP; d.brakeTicks = 0; } // the reverse-engage count starts at the stop
+        if (d.brakeTicks >= P.revEngageTicks) gear = Gear.R;
       }
-      if (d.wheelspinTicks > 0) a *= 0.3;
-    } else {
-      a = u >= 0 ? -P.aCoast * surf.dragMul : P.aCoast * surf.dragMul; // coasting rolls toward rest either way
-      if (u > vT) a -= P.kOver * (u - vT);
+      reverse = gear === Gear.R;
+    } else if (gear === Gear.D || (gear === Gear.STOP && (!lockOk || u * u + wl * wl > 0.25))) {
+      // no keys: D coasts in N; a stop that cannot hold (steep grade, no control) or that something pushed rolls
+      gear = Gear.N;
     }
-    let reverse = false;
-    if (brk) {
-      if (u > 0.5 || thrIn) { if (u > 0) a = -(d.drift === 1 ? P.aBrakeDrift : P.aBrake); }
-      else { const r = u < 0 ? -u / P.vReverse : 0; a = -8 * (1 - r * r); reverse = true; }
-    }
-    let uN = u + a * DT;
-    if (!reverse) {
-      if ((thr === 0 || brk) && u >= 0 && uN < 0) uN = 0;
-      else if (thr === 0 && u < 0 && uN > 0) uN = 0;
-    }
-    u = uN;
+    setGear(w, k, ctx, gear);
 
-    // -------------------------------------------------------------- K16 drift drag
-    if (d.drift === 1 && sb > 0) { let f = 1 - P.cBeta * sb * sb * DT; if (f < 0) f = 0; u *= f; wl *= f; }
+    if (gear === Gear.STOP) {
+      // stopped (no ↑ here): the brake holds u = 0; on a gentle grade the kart is zero-locked
+      u = 0;
+      if (lockOk) wl = 0;
+    } else {
+      // ------------------------------------------------------------ K15 acceleration
+      const A0 = P.a0 * (d.draftTicks > 0 && !boostLaw ? P.draftAccelMul : 1) * mods.accelMul;
+      let a: number;
+      if (thr) {
+        if (u < vT) {
+          if (boostLaw) {
+            a = P.kBoost * (vT - u);
+            if (a > cap) a = cap;
+            const base = P.a0 * (1 - u / P.vGrip);
+            if (a < base) a = base;
+          } else {
+            const q = u / vT;
+            a = A0 * tau * (1 - q * q);
+            if (d.drift === 1 && a > P.aDrift) a = P.aDrift;
+          }
+          if (instOn && a < P.aInst) a = P.aInst;
+        } else {
+          a = -P.kOver * (u - vT);
+          if (instOn) a = P.aInst;
+        }
+        if (d.wheelspinTicks > 0) a *= 0.3;
+      } else {
+        a = u >= 0 ? -P.aCoast * surf.dragMul : P.aCoast * surf.dragMul; // coasting rolls toward rest either way
+        if (u > vT) a -= P.kOver * (u - vT);
+      }
+      if (brk) {
+        if (reverse) { const r = u < 0 ? -u / P.vReverse : 0; a = -P.aReverse * (1 - r * r); }
+        else if (u > 0) a = -(d.drift === 1 ? P.aBrakeDrift : P.aBrake);
+      }
+      let uN: number;
+      if (d.dragTicks > 0 && thr && boostLaw) {
+        // drag law: the injection carries u past vBoost; the cap (lifted by the tap streak) is on planar |v|
+        const aI = P.aDrag * (d.tapStreak > 0 && d.tapGap < P.tapTicks ? P.tapAccelMul : 1);
+        let vCap = P.vBoost * (P.dragCapMul + P.tapCapStep * d.tapStreak) * surf.vMul * conv * capMul;
+        if (k.race.slowTicks > 0) { const sc = SLOW_CAP * P.vGrip; if (vCap > sc) vCap = sc; }
+        const vp = Math.sqrt(u * u + wl * wl);
+        if (vp > vCap) uN = u - P.kOver * (vp - vCap) * DT;
+        else {
+          uN = u + (a > aI ? a : aI) * DT;
+          if (uN * uN + wl * wl > vCap * vCap) { const room = vCap * vCap - wl * wl; uN = room > u * u ? Math.sqrt(room) : u; }
+        }
+      } else if (d.postTicks > 0 && u > 0) {
+        // post-boost bleed: near-critical decay toward the non-boost target with ↑ held, toward 0 with ↑ released
+        // (never weaker than the held rule); a brake still wins when it is stronger
+        if (thr) uN = u > vT ? vT + (u - vT) * DECAY_POST_HOLD : u + a * DT;
+        else {
+          let du = (vT - u) * (1 - DECAY_POST_HOLD);
+          const dz = -u * (1 - DECAY_POST_REL);
+          if (dz < du) du = dz;
+          uN = u + du;
+        }
+        if (brk) { const ub = u + a * DT; if (ub < uN) uN = ub; }
+      } else uN = u + a * DT;
+      if (!reverse) {
+        if ((thr === 0 || brk) && u >= 0 && uN < 0) uN = 0;
+        else if (thr === 0 && u < 0 && uN > 0) uN = 0;
+      }
+      u = uN;
+      // N or R rolling to rest on a gentle grade stops (zero-lock from this tick)
+      if (u === 0 && !thrIn && !brk && lockOk) { setGear(w, k, ctx, Gear.STOP); wl = 0; }
+    }
+
+    // -------------------------------------------------------------- K16 drift drag (not while dragging)
+    if (d.drift === 1 && sb > 0 && d.dragTicks === 0) { let f = 1 - P.cBeta * sb * sb * DT; if (f < 0) f = 0; u *= f; wl *= f; }
+
+    // §4.9 spin-out: the planar speed drops to spinSpeed
+    if (spun) {
+      const vp = Math.sqrt(u * u + wl * wl);
+      if (vp > 1e-9) { const s = P.spinSpeed / vp; u *= s; wl *= s; } else u = P.spinSpeed;
+    }
 
     // -------------------------------------------------------------- K17 recompose (coyote: full gravity, the kart is falling)
     b.vx = u * fx + wl * lx + vn * nx;
@@ -275,6 +411,11 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
     airAttitude(k, g.x, g.y, g.z);
     instantTrigger(w, k, P, ctx, opt, thrEdge, gm);
     fireBooster(w, k, P, ctx, opt, useEdge || autoFire);
+    // §4.8 in the air: no gear change; the drag ends, the cut counter resets; a boost, drift or instant boost
+    // still cancels the bleed
+    endDrag(w, k, ctx);
+    d.counterTicks = 0;
+    if (d.postTicks > 0 && (d.boostTicks > 0 || d.startTicks > 0 || mods.vTarget > 0 || d.drift === 1 || d.instTicks > 0)) d.postTicks = 0;
     b.vx += g.x * DT; b.vy += g.y * DT; b.vz += g.z * DT;
   }
 
