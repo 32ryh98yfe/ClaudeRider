@@ -172,13 +172,16 @@ describe('gap-3 Magma fixture (verbatim)', () => {
     expect(b.model.solved['?c']).toBeCloseTo(1.51, 1);
     expect(b.model.paths[0]!.length).toBeCloseTo(1850, 3);
   });
-  it('matches the derived checks: helix 263.9 m, elevation 8.5–30 m, stacked with no V2/V1/V11 findings', () => {
+  it('matches the derived checks: helix 263.9 m, elevation 8.5–30 m, stacked with no V2/V1 findings; V11 only past vmax', () => {
     const helix = b.model.paths[0]!.prims.find((q) => q.line === 9)!;
     expect(helix.len).toBeCloseTo(263.9, 1);
     expect(b.meta.bounds[1]).toBeCloseTo(8.5, 1);
     expect(b.meta.bounds[4]).toBeCloseTo(30, 1);
     expect(Math.round(b.model.paths[0]!.turn / 360)).toBe(2);
-    expect(b.findings.filter((f) => ['V0', 'V1', 'V2', 'V3', 'V11', 'V12'].includes(f.rule) && f.severity === 'error')).toEqual([]);
+    expect(b.findings.filter((f) => ['V0', 'V1', 'V2', 'V3', 'V12'].includes(f.rule) && f.severity === 'error')).toEqual([]);
+    // the verbatim example predates the M5 techniques: its 46 m/s window is clean, but the V11 sweep now runs on to the
+    // 52 m/s tap-boost reach, where this jump lands 0.8 m past the window (the roster track moved 2 m of ramp to landing)
+    expect(b.findings.filter((f) => f.rule === 'V11').map((f) => f.msg)).toEqual([expect.stringMatching(/^at 52 m\/s the kart lands 49\.8 m past the lip; landing window is 16–49 m \(above vmax 46/)]);
     expect(b.model.paths.find((p) => p.id === 'ledge')!.length).toBeCloseTo(203.8, 1);
     expect(b.meta.hazards.map((h) => [h.kind, h.offsetTicks])).toEqual([['geyser', 0], ['geyser', 72], ['geyser', 144]]);
   });
