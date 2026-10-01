@@ -22,3 +22,4 @@ Source: the user's "Part 1: physics engine reverse-engineering spec". The plan a
   - `draft` group: `gear`.
 - **`simVersion` literals** in `Session.ts` (which keys the ghosts), `ai/balance.ts`, `testing/scenario.ts` and `trackc/src/ghost.ts` now use `SIM_VERSION`.
 - SIM_VERSION 3 after the M5 review fixes (A1 tap grace/tapYaw 0.7, A2 reverse engage, A3 zero-lock).
+- SIM_VERSION 4: key gates / point-to-point finish compared on the sMain quantization grid (S-AI-keygate-quantization.md).

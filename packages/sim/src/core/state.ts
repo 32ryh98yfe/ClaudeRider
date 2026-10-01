@@ -209,4 +209,4 @@ export interface RaceConfig {
   countdownTicks: number;                  // 3 beats × 60
 }
 
-export const SIM_VERSION = 3; // 3: M5 driving techniques after review fixes (2 was the first M5 build)
+export const SIM_VERSION = 4; // 4: key gates and the point-to-point finish compared on the sMain grid (3: M5 review fixes, 2: first M5 build)

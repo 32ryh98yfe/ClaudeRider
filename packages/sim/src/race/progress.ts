@@ -2,6 +2,7 @@
 // Threshold crossings use (prev <= g < new): quantization may land a stored value exactly on a gate.
 import { Attach, Phase, type KartState, type TrackLoc, type WorldState } from '../core/state.ts';
 import { DT } from '../core/units.ts';
+import { Q } from '../core/quant.ts';
 import { COS110 } from '../core/math.ts';
 import type { StepContext } from '../api.ts';
 import type { BakedTrack } from '../track/BakedTrack.ts';
@@ -137,13 +138,20 @@ function respawnSafe(T: BakedTrack, loc: Readonly<TrackLoc>): boolean {
   return true;
 }
 
+/**
+ * A station on the grid `sMain` is stored on (quantizeWorld, Q.POS). Gates baked a hair below a grid point
+ * (1299.9999999999998) were missed when a kart's raw station landed between the two: it was not past the gate this
+ * tick, and quantizing rounded it past the gate for the next one, so the lap needed one more lap to count.
+ */
+const onGrid = (s: number): number => Math.round(s * Q.POS) / Q.POS;
+
 export function advanceLaps(w: WorldState, k: KartState, ctx: StepContext, prevS: number, newS: number, L: number): void {
   const T = ctx.track, r = k.race, gates = T.keyGates, nKeys = gates.length, full = nKeys >= 31 ? 0x7fffffff : (1 << nKeys) - 1;
   if (T.topology === 'circuit') {
     // key gates, in order
     if (r.lap >= 0 && newS > prevS) {
       for (let g = 0; g < nKeys; g++) {
-        const gs = gates[g]!;
+        const gs = onGrid(gates[g]!);
         if (prevS <= gs && newS > gs && (g === 0 || (r.keyMask & (1 << (g - 1))) !== 0)) r.keyMask |= 1 << g;
       }
     }
@@ -172,11 +180,12 @@ export function advanceLaps(w: WorldState, k: KartState, ctx: StepContext, prevS
     // point-to-point: sMain measured from the start line (negative on the grid); finish at L
     if (r.lap < 0 && prevS <= 0 && newS > 0) { r.lap = 0; r.lapStartTick = w.goTick; }
     for (let g = 0; g < nKeys; g++) {
-      const gs = gates[g]!;
+      const gs = onGrid(gates[g]!);
       if (prevS <= gs && newS > gs && (g === 0 || (r.keyMask & (1 << (g - 1))) !== 0)) r.keyMask |= 1 << g;
     }
-    if (r.finishTick < 0 && r.lap >= 0 && prevS <= L && newS > L && r.keyMask === full) {
-      const frac = newS > prevS ? (L - prevS) / (newS - prevS) : 1;
+    const Lg = onGrid(L);
+    if (r.finishTick < 0 && r.lap >= 0 && prevS <= Lg && newS > Lg && r.keyMask === full) {
+      const frac = newS > prevS ? (Lg - prevS) / (newS - prevS) : 1;
       r.lap = 1;
       r.lastLapTicks = r.bestLapTicks = Math.round((w.tick - 1 + frac - r.lapStartTick) * 64) / 64;
       finish(w, k, ctx, frac);
