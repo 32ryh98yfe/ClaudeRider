@@ -45,21 +45,21 @@ export const FROSTBYTE_LOOK: Partial<ThemeLook> = {
 /** Aurora Summit (22:00): moonlit snow, a cool back fill and strong rims so karts read; never turned into daytime. */
 const NIGHT_LOOK: Partial<ThemeLook> = {
   // a mid-grey night road so the lane paint, the karts and the next corner separate from the dark verges
-  road: { style: 'asphalt', a: '#5a616c', b: '#666d78', line: '#bee9f7' },
+  road: { style: 'asphalt', a: '#6e7684', b: '#7a8290', line: '#bee9f7' },
   // the aurora dome reads sky.top / bottom / horizon too: keep them night colours (the day kit's would wash it white)
   sky: { turbidity: 6, rayleigh: 0.9, elevationDeg: 28, azimuthDeg: 200, exposure: 1, top: '#050c22', bottom: '#14345e' },
   horizon: '#21507a',
-  // moonlight: a brighter, less saturated sky fill so snow reads pale blue-grey (not navy), plus a cool back fill for
+  // moonlight: a bright, nearly neutral sky fill so snow reads pale blue-grey (not royal blue), plus a cool back fill for
   // the chase camera; the sun-like key stays the weak moon, so it is still night
-  hemi: { sky: '#a6b8dc', ground: '#46526c', intensity: 2.0 },
-  fill: { color: '#b4c8ff', intensity: 0.8 },
-  fogColor: '#1c3552',
+  hemi: { sky: '#c0c9dc', ground: '#46526c', intensity: 2.0 },
+  fill: { color: '#c3cbe6', intensity: 0.8 },
+  fogColor: '#26374f',
   exposure: 1.08,
   bloom: 0.3,
   envIntensity: 0.35,
   shadowStrength: 0.7,
   rimBoost: 1.9,
-  grade: { tint: '#f4f7ff', saturation: 1.0, shadows: '#dfe6ff', highlights: '#f6faff' },
+  grade: { tint: '#f4f7ff', saturation: 0.9, shadows: '#dfe6ff', highlights: '#f6faff' },
 };
 
 export default (c: ContentTables, env: Readonly<Record<string, string>> = {}): ThemeKit => {
