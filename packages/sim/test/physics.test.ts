@@ -286,7 +286,7 @@ describe('physics: corners on a 12 m road at 34 m/s (§14.6)', () => {
     expect(c).not.toBeNull();
     const drop = 34 * KMH_GAP2 - c!.res.vMin * KMH_GAP2;
     expect(drop).toBeGreaterThanOrEqual(35); expect(drop).toBeLessThanOrEqual(45); // M5: cut exit (cCs 1)
-    expect(Math.abs(c!.res.time - 3.65)).toBeLessThanOrEqual(0.1); // REMEASURE(M5)
+    expect(Math.abs(c!.res.time - 3.65)).toBeLessThanOrEqual(0.1); // M5: still holds with the cut exit
   });
 
   // Regression rows: the fastest plans found by the full gap-2 grid search on these kits, with their measured
