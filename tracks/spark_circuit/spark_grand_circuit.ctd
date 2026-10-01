@@ -114,4 +114,6 @@ PROPS kind=tree_clump side=both every=34 offset=125 jitter=50 scale=1.0-1.6 seed
 PROP kind=hot_air_balloon at=(120.0,50.0,-180.0) yaw=0 scale=1
 PROP kind=hot_air_balloon at=(340.0,58.0,-300.0) yaw=40 scale=1.2
 PROP kind=hot_air_balloon at=(-70.0,46.0,-110.0) yaw=10 scale=0.9
-THEME scatter=tree_round,tree_round,tree_round_big,bush,bush_round,pine,pine,tree_clump,rock_cluster,flower_patch density=36 hills=5 sky=day time=13:00 fogNear=250 fogFar=1500
+# field scatter is low cover only: the random 8–78 m scatter put big trees in front of the grandstands and over the grid;
+# the tree belts and tree lines come from the PROPS rows above, which keep the stands, pits and grid clear
+THEME scatter=bush_round,bush_round,bush,rock_cluster,flower_patch,flower_patch,grass_tuft,grass_tuft density=36 hills=5 sky=day time=13:00 fogNear=250 fogFar=1500
