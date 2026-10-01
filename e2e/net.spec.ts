@@ -39,6 +39,11 @@ async function boot(page: Page, query: string): Promise<void> {
 test('two contexts join a custom room by code, race 1 lap online and both see results', async ({ browser }) => {
   test.setTimeout(480_000); // two software-rendered pages on a shared CPU
   const ctxA = await browser.newContext(), ctxB = await browser.newContext();
+  // results are shown for 12 s online (then the room screen returns); record that the screen appeared at all
+  for (const c of [ctxA, ctxB]) await c.addInitScript(() => {
+    new MutationObserver(() => { if (document.querySelector('[data-testid=results] tbody tr')) (window as unknown as { __sawResults?: number }).__sawResults = document.querySelectorAll('[data-testid=results] tbody tr').length; })
+      .observe(document, { childList: true, subtree: true });
+  });
   const a = await ctxA.newPage(), b = await ctxB.newPage();
   const errA = collectErrors(a), errB = collectErrors(b);
   await Promise.all([boot(a, 'autopilot=1'), boot(b, 'autopilot=1')]);
@@ -55,17 +60,20 @@ test('two contexts join a custom room by code, race 1 lap online and both see re
   await a.waitForFunction(() => window.__crNet!.lobby.room.value?.slots.find((s) => s.name === 'Bravo')?.state === 'human');
   await a.evaluate(() => window.__crNet!.actions['start']!());
 
-  const dump = async (): Promise<void> => { for (const p of [a, b]) { try { console.log('DUMP', JSON.stringify(await p.evaluate(() => { const s = (window.__cr!['session'] as { net?: { stats: Record<string, unknown>; auth: { tick: number } } } | undefined)?.net; const st = s?.stats ?? {}; return { race: window.__cr?.race, conn: window.__crNet!.lobby.conn.value, P: st['predTick'], N: st['authTick'], msgsIn: st['msgsIn'], snaps: st['snapshots'], dec: st['decodeErrors'], hard: st['hardResyncs'], resims: st['resims'], conn2: st['connected'], lead: st['leadTicks'], est: Math.round(st['serverTickEst'] as number) }; }))); } catch (e) { console.log('DUMP err', String(e).slice(0, 80)); } } };
+  const dump = async (): Promise<void> => { for (const p of [a, b]) { try { console.log('DUMP', JSON.stringify(await p.evaluate(() => { const s = (window.__cr!['session'] as { net?: { stats: Record<string, unknown>; auth: { tick: number } } } | undefined)?.net; const st = s?.stats ?? {}; return { race: window.__cr?.race, conn: window.__crNet!.lobby.conn.value, P: st['predTick'], N: st['authTick'], msgsIn: st['msgsIn'], out: st['msgsOut'], snaps: st['snapshots'], dec: st['decodeErrors'], hard: st['hardResyncs'], resims: st['resims'], conn2: st['connected'], lead: st['leadTicks'], est: Math.round(st['serverTickEst'] as number) }; }))); } catch (e) { console.log('DUMP err', String(e).slice(0, 80)); } } };
   const iv = process.env['NETDEBUG'] ? setInterval(() => { void dump(); }, 20_000) : null;
   // both load the track, the server starts the race when both reported `loaded`
   for (const p of [a, b]) await p.waitForFunction(() => window.__cr?.race === 'running', null, { timeout: 120_000 });
   expect(await a.evaluate(() => (window.__cr!['session'] as { authorityKind: string }).authorityKind)).toBe('server');
-  try { for (const p of [a, b]) await p.waitForFunction(() => window.__cr?.race === 'done', null, { timeout: 200_000 }); } finally { if (iv) clearInterval(iv); }
-
-  for (const p of [a, b]) {
-    await expect(p.getByTestId('results')).toBeVisible({ timeout: 90_000 }); // a software-rendered page under load is slow to switch screens
-    expect(await p.locator('[data-testid=results] tbody tr').count()).toBe(8);
-  }
+  // watch both pages at once: online results stay up for 12 s before the room screen returns, so a page that
+  // finished first must be checked while its results are still showing
+  try {
+    await Promise.all([a, b].map(async (p) => {
+      await p.waitForFunction(() => window.__cr?.race === 'done', null, { timeout: 300_000 });
+      await p.waitForFunction(() => ((window as unknown as { __sawResults?: number }).__sawResults ?? 0) > 0, null, { timeout: 60_000 });
+      expect(await p.evaluate(() => (window as unknown as { __sawResults: number }).__sawResults)).toBe(8);
+    }));
+  } finally { if (iv) clearInterval(iv); }
   const ra = await a.evaluate(() => window.__crNet!.lobby.lastResult.value);
   const rb = await b.evaluate(() => window.__crNet!.lobby.lastResult.value);
   expect(ra).toEqual(rb);
