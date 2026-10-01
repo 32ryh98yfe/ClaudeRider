@@ -209,4 +209,4 @@ export interface RaceConfig {
   countdownTicks: number;                  // 3 beats × 60
 }
 
-export const SIM_VERSION = 2; // 2: driving techniques (drag, tap, post-boost bleed, cut, brake turn, gears)
+export const SIM_VERSION = 3; // 3: M5 driving techniques after review fixes (2 was the first M5 build)
