@@ -55,7 +55,7 @@ PROPS kind=giant_trunk from=@pool_straight to=@pool_corner+30 side=R every=24 of
 PROPS kind=giant_trunk from=@pool_straight+40 to=@pool_corner+30 side=L every=24 offset=7 jitter=4 seed=60
 PROPS kind=giant_trunk from=@canopy_climb to=@pendulum_run+50 side=both every=22 offset=6 jitter=5
 PROPS kind=rope_rail from=@canopy_boardwalk to=@treehouse_spiral side=both every=6 offset=0.3
-PROPS kind=fern along=main side=both every=10 offset=1.0
+PROPS kind=grass_fern along=main from=@descent to=@canopy_climb side=both every=10 offset=1.0
 PROPS kind=bamboo from=@river_s to=@spray_hairpin side=both every=28 offset=5 jitter=4
 PROPS kind=bamboo from=@rapids_s to=@gorge_in side=both every=30 offset=6 jitter=4
 PROPS kind=rock_moss from=@rapids_s to=@rapids_exit_s side=both every=22 offset=3

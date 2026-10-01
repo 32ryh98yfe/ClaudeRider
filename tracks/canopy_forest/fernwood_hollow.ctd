@@ -46,12 +46,12 @@ PROPS kind=giant_trunk from=@firefly_corner to=@old_oak side=both every=24 offse
 PROPS kind=giant_trunk from=@home to=@home+95 side=R every=22 offset=7 jitter=5
 PROPS kind=giant_trunk from=@home to=@home+40 side=L every=22 offset=7 jitter=5 seed=61
 PROPS kind=forest_wall along=main side=both every=36 offset=26 jitter=12
-PROPS kind=fern along=main side=both every=9 offset=1.0
+PROPS kind=grass_fern along=main side=both every=9 offset=1.0
 PROPS kind=shrub along=main side=both every=29 offset=3.5 jitter=2
 PROPS kind=mushroom_red from=@fern_s to=@log_bridge side=both every=23 offset=2
 PROPS kind=rock_moss from=@fern_s+20 to=@log_bridge-20 side=both every=40 offset=5
 PROPS kind=log_rail from=@log_bridge to=@log_bridge+101 side=both every=8 offset=0.3
-PROPS kind=fern along=mossy_bypass side=both every=6 offset=0.6
+PROPS kind=grass_fern along=mossy_bypass side=both every=6 offset=0.6
 PROPS kind=mushroom_red along=mossy_bypass side=both every=17 offset=1.4
 PROPS kind=rock_moss along=mossy_bypass side=L every=30 offset=4
 PROPS kind=mushroom_giant from=@mushroom_meadow to=@mushroom_hop+45 side=both every=30 offset=7

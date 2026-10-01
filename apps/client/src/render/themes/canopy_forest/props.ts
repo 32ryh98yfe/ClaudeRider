@@ -495,6 +495,9 @@ export const CANOPY_PROPS: Record<string, PropFactory> = {
   old_oak: kind(oldOak, matte),
   forest_wall: kind(forestWall, matte),
   fern: kind(fern, matte, false),
+  // the same fern under a name TrackView's SCATTER pattern matches ("grass"), so Low / Medium thin it and cull it early,
+  // on the swaying foliage slot like the rest of the undergrowth
+  grass_fern: kind(fern, () => MaterialLibrary.foliageLit(), false),
   mushroom_red: kind(mushroomCluster, toy, false),
   mushroom_giant: kind(mushroomGiant, toy),
   mossy_log: kind(mossyLog, matte),
