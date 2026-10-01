@@ -12,7 +12,7 @@ import { CORAL_DRESSING } from './dressing.ts';
 // shadowless back fill for the chase camera, weak rims and day-time bloom. Cobbles stay sandstone (the theme's
 // identity) but a step darker and cooler, so the karts and the white lane paint read against them.
 export const CORAL_LOOK: Partial<ThemeLook> = {
-  road: { style: 'cobble', a: '#867b6e', b: '#9a8f81', line: '#fbf6ea' },
+  road: { style: 'cobble', a: '#7a7066', b: '#8d8377', line: '#fbf6ea' },
   shoulder: { a: '#e3cc96', b: '#efdcae' },
   terrain: { a: '#ead7a4', b: '#a9c96f', rock: '#b99e7c' },
   wall: { kind: 'panel', a: '#fafafa', b: '#d94f4f' },

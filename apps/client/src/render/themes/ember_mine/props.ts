@@ -6,12 +6,16 @@ import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
 import { box, cone, cyl, merge, paint, place, rbox, torus } from '../../util/geo.ts';
 import { beam, blob, crystalCluster, glow, rng, rock } from './shapes.ts';
+import { glowLit } from '../lantern_hollow/glow.ts';
 
-const lit = (): THREE.Material => MaterialLibrary.vertexLit(0.82, 0);
+// glowing parts (windows, ore, lava seams, portal sign) are HDR vertex colours: the glow material lets them emit
+const lit = (): THREE.Material => glowLit(0.85, 1.3);
 const metal = (): THREE.Material => MaterialLibrary.vertexLit(0.5, 0.35);
 
 const TIMBER = '#8b5a2b', TIMBER_DARK = '#6b4226', IRON = '#4a4d52', RUST = '#8a4b2a', BASALT = '#2b2320';
 const CYAN = '#7fdbff', VIOLET = '#c77dff', AMBER = '#ffc857', LAVA = '#ff6a2b';
+// deeper glow colours for the emissive crystals: the pastel paint colours tone-mapped to mint / pink once they bloomed
+const GEODE_CYAN = '#2fb6ff', GEODE_VIOLET = '#9a4dff';
 
 /**
  * Timber post-and-lintel mine support spanning the road. Rows may not start on the road, so the origin is the right
@@ -279,6 +283,8 @@ function geyserVent(): THREE.BufferGeometry {
   ]);
 }
 
+// Stylized pass (2026-10): geode, spire and lava emissives held below a white-out (crystals read cyan / violet, lava
+// orange) so the karts and the next corner stay the brightest-read things in the cave.
 export const EMBER_PROPS: Record<string, PropFactory> = {
   timber_arch: { build: () => ({ geometry: timberArch(), material: lit(), castShadow: false }) },
   mine_cart: { build: () => ({ geometry: mineCart(), material: metal(), castShadow: true }) },
@@ -290,16 +296,16 @@ export const EMBER_PROPS: Record<string, PropFactory> = {
   stalagmite: { build: () => ({ geometry: stalagmites(8), material: lit() }) },
   ore_pile: { build: () => ({ geometry: orePile(), material: lit() }) },
   lantern: { build: () => ({ geometry: lanternOnWall(), material: MaterialLibrary.emissive(AMBER, 1.15) }) },
-  geode_cyan: { build: () => ({ geometry: merge(crystalCluster(CYAN, 8, 4.4, 11)), material: MaterialLibrary.emissive(CYAN, 1.35) }) },
-  geode_violet: { build: () => ({ geometry: merge(crystalCluster(VIOLET, 8, 4.8, 17)), material: MaterialLibrary.emissive(VIOLET, 1.4) }) },
+  geode_cyan: { build: () => ({ geometry: merge(crystalCluster(CYAN, 8, 4.4, 11)), material: MaterialLibrary.emissive(GEODE_CYAN, 0.95) }) },
+  geode_violet: { build: () => ({ geometry: merge(crystalCluster(VIOLET, 8, 4.8, 17)), material: MaterialLibrary.emissive(GEODE_VIOLET, 1.0) }) },
   cave_roof: { build: () => ({ geometry: caveRoof(12), material: lit(), castShadow: false }) },
-  crystal_spire: { build: () => ({ geometry: crystalSpire(), material: MaterialLibrary.emissive(VIOLET, 1.25) }) },
-  lava_pool: { build: () => ({ geometry: lavaPool(4), material: MaterialLibrary.emissive(LAVA, 1.6) }) },
-  lava_crack: { build: () => ({ geometry: lavaCracks(9), material: MaterialLibrary.emissive(LAVA, 1.8) }) },
-  lava_lake: { build: () => ({ geometry: lavaLake(12, 31), material: MaterialLibrary.emissive(LAVA, 1.6) }) },
+  crystal_spire: { build: () => ({ geometry: crystalSpire(), material: MaterialLibrary.emissive(GEODE_VIOLET, 0.95) }) },
+  lava_pool: { build: () => ({ geometry: lavaPool(4), material: MaterialLibrary.emissive(LAVA, 1.3) }) },
+  lava_crack: { build: () => ({ geometry: lavaCracks(9), material: MaterialLibrary.emissive(LAVA, 1.4) }) },
+  lava_lake: { build: () => ({ geometry: lavaLake(12, 31), material: MaterialLibrary.emissive(LAVA, 1.3) }) },
   lava_rim: { build: () => ({ geometry: lavaRim(12, 31), material: lit() }) },
   // pit-floor lava: surface 4.6 m below the row origin, for rows on decks ~5 m above the flattened terrain
-  lava_pit: { build: () => ({ geometry: place(lavaLake(22, 47), 0, -4.6, 0), material: MaterialLibrary.emissive(LAVA, 1.5) }) },
+  lava_pit: { build: () => ({ geometry: place(lavaLake(22, 47), 0, -4.6, 0), material: MaterialLibrary.emissive(LAVA, 1.25) }) },
   helix_pillar: { build: () => ({ geometry: helixPillar(), material: lit() }) },
   obsidian: { build: () => ({ geometry: obsidianShards(13), material: MaterialLibrary.vertexLit(0.25, 0.3) }) },
   geyser_vent: { build: () => ({ geometry: geyserVent(), material: lit() }) },

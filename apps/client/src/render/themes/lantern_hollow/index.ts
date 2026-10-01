@@ -8,21 +8,23 @@ import { LANTERN_DRESSING } from './dressing.ts';
 
 export default (c: ContentTables): ThemeKit => {
   const kit = makeKit(c.themes.get('lantern_hollow'), {
-    // stylized pass (2026-10): the night stays night, but the road is a lighter, cooler violet so the karts and the
-    // pumpkin kerbs of the next corner read first; grass is a mid-value moss, never black
-    road: { style: 'cobble', a: '#5f5a84', b: '#716b98', line: '#ffcf8a' },
-    shoulder: { a: '#47684f', b: '#56795a' },
-    terrain: { a: '#365644', b: '#466850', rock: '#6a6488' },
-    wall: { kind: 'stone', a: '#837aa8', b: '#5c5282' },
+    // stylized pass (2026-10): the night stays night, but the road is a lighter, low-saturation grey-violet (the moon
+    // light is already blue; a violet road went saturated blue) so the karts and the pumpkin kerbs of the next corner
+    // read first; grass is a mid-value moss, never black
+    road: { style: 'cobble', a: '#6a6574', b: '#7c7686', line: '#ffcf8a' },
+    shoulder: { a: '#4f7658', b: '#5e8664' },
+    terrain: { a: '#476a55', b: '#577c5f', rock: '#78729a' },
+    wall: { kind: 'stone', a: '#8c8598', b: '#6a6178' },
     kerb: ['#ff9f1c', '#3a3160'],
     sky: { turbidity: 1, rayleigh: 1, elevationDeg: 42, azimuthDeg: 215, exposure: 1, night: true, top: '#0c0a2a', bottom: '#4e3889' },
     horizon: '#6a4aa0',
     sun: { color: '#c9d3ff', intensity: 1.7 },
     // a brighter lilac sky fill (×0.55 at night) and a shadowless warm back fill — the lanterns' bounce — so the chase
     // camera sees the karts' shaded sides in their own colours; shadows stay soft (moonlight), rims a touch lower
-    hemi: { sky: '#8f84e0', ground: '#5a4468', intensity: 1.65 },
+    hemi: { sky: '#958dd2', ground: '#64506a', intensity: 1.65 },
     fill: { color: '#ffc690', intensity: 0.34 },
     shadowStrength: 0.6,
+    exposure: 1.22,
     envIntensity: 0.32,
     rimBoost: 1.6,
     bloom: 0.36,
