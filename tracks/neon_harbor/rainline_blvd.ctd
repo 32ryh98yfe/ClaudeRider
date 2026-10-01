@@ -86,6 +86,9 @@ PROPS kind=building_row_d from=@canal+10 to=@plaza_kink side=L every=48 offset=9
 PROPS kind=building_row_c from=@canal+34 to=@plaza_kink side=L every=48 offset=9 jitter=2 seed=141
 # -- sidewalk life: lamps (on the deck edge over the overpass), planters, street trees, benches, vending machines
 PROPS kind=street_lamp along=main side=both every=30 offset=0.6 seed=160
+PROPS kind=traffic_signal from=@boulevard+70 to=@boulevard+71 side=R every=100 offset=0.8 seed=173
+PROPS kind=traffic_signal from=@tram_s+30 to=@tram_s+120 side=both every=90 offset=0.8 seed=174
+PROPS kind=traffic_signal from=@sodium_straight+6 to=@sodium_straight+7 side=R every=100 offset=0.8 seed=175
 PROPS kind=planter_bush from=@boulevard+118 to=@crane_corner side=both every=9 offset=2.4 jitter=0.6 seed=161
 PROPS kind=planter_bush from=@tram_s to=@crane_hairpin side=both every=9 offset=2.4 jitter=0.6 seed=162
 PROPS kind=planter_bush from=@sodium_s to=@to_line+50 side=both every=10 offset=2.4 jitter=0.6 seed=163

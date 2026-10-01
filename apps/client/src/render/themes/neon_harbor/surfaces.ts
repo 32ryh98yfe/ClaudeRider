@@ -75,9 +75,12 @@ export function paving(key: string, p: PavingParams): THREE.Material {
     m.colorNode = c.mul(vertexColor().rgb);
     m.roughnessNode = rough;
     if (p.lines) {
+      // a lit seam every fourth plate row on the flat floor, and a lit band every 6 m up the plinth walls, so the
+      // decks' supports read as structured bulkheads instead of dark mounds
       const row = abs(fract(g.y.mul(0.25)).sub(0.5)).mul(2);
       const lit: N = smoothstep(0.985, 0.995, row).mul(float(1).sub(slope));
-      setEmissive(m, color(p.lines).mul(lit.mul(0.8)));
+      const band: N = aaLines(P.y.div(6), 0.015).mul(slope);
+      setEmissive(m, color(p.lines).mul(lit.mul(0.8).add(band.mul(0.7))));
     }
     return m;
   });

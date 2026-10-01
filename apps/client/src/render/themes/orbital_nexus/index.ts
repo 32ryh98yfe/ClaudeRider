@@ -64,7 +64,7 @@ export default (c: ContentTables, env?: Readonly<Record<string, string>>): Theme
     // the station floor below the decks: hull plating with a lit seam every fourth plate row (no fog haze to hide it)
     terrain: paving(`orbital-${mood}`, foundry
       ? { a: '#5d626c', b: '#666b75', joint: '#3a3e46', size: 3, wall: '#545964', rough: 0.8 }
-      : { a: '#3d475c', b: '#455066', joint: '#252c3a', size: 4, wall: '#353e52', lines: '#3f8fd0', rough: 0.75 }),
+      : { a: '#3d475c', b: '#455066', joint: '#252c3a', size: 4, wall: '#48546c', lines: '#3f8fd0', rough: 0.75 }),
     // floating decks: white hull undersides
     underside: MaterialLibrary.world({ color: '#c9d3de', color2: '#8e9aab', roughness: 0.6, metalness: 0.2, noiseScale: 0.25, vertexAO: true }),
   });

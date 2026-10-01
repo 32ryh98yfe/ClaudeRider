@@ -25,7 +25,7 @@ export const NEON_NIGHT_LOOK: Partial<ThemeLook> = {
   sun: { color: '#b8c8ff', intensity: 1 },
   // cool sky fill from above, warm sodium bounce from the street, and a sodium back fill so the karts' shaded side
   // keeps its colour against the moon
-  hemi: { sky: '#8290ff', ground: '#ffae7c', intensity: 2.4 },
+  hemi: { sky: '#94a0ec', ground: '#ffb088', intensity: 2.4 },
   fill: { color: '#ffc890', intensity: 0.8 },
   fogColor: '#2b2244',
   stars: 0.25,
@@ -82,7 +82,10 @@ export default (c: ContentTables, env?: Readonly<Record<string, string>>): Theme
     terrain: paving(`neon-${mood}`, dusk
       ? { a: '#7a7c84', b: '#858790', joint: '#55575f', size: 1.6, wall: '#6a6c74' }
       : { a: '#4a4e5a', b: '#545866', joint: '#2c2e36', size: 1.6, wall: '#4c4f59', wet: 0.85 }),
-    'road:cobble': MaterialLibrary.road({ style: 'cobble', a: '#4a4450', b: '#5a5260', line: '#ffb347', wet: !dusk }),
+    // rain: an even damp sheen (the kit's `wet` uniform) instead of the mirror puddles, whose white blotches read
+    // as spilt paint at a grazing view; the vis bakes the wet-surface tint (0.8 / 0.85 / 0.95) into the colours
+    'road:wet': MaterialLibrary.road({ ...(dusk ? NEON_DUSK_LOOK : NEON_NIGHT_LOOK).road!, wet: false, tint: [0.8, 0.85, 0.95] }),
+    'road:cobble': MaterialLibrary.road({ style: 'cobble', a: '#4a4450', b: '#5a5260', line: '#ffb347' }),
     // skyway decks and ramps: dark concrete undersides with a cool tint instead of the default warm grey
     underside: MaterialLibrary.world({ color: '#5a5e6c', color2: '#4b4f5b', roughness: 0.88, noiseScale: 0.3, vertexAO: true }),
   });

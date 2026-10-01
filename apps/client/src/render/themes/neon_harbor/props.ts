@@ -224,6 +224,20 @@ function streetLamp(): THREE.BufferGeometry {
     .build();
 }
 
+/** Traffic signal on a mast arm over the road edge (+X): the heads face the oncoming karts (−Z), green lit. */
+function trafficSignal(): THREE.BufferGeometry {
+  const G = new GlowParts().add(part(cyl(0.22, 0.26, 0.4, 8), '#2f333c', 0, 0.2, 0), part(cyl(0.11, 0.14, 6.2, 8), POLE, 0, 3.1, 0));
+  G.add(part(box(4.2, 0.14, 0.14), POLE, 2.1, 6.0, 0));
+  for (const x of [1.6, 3.8]) {
+    G.add(part(rbox(0.42, 1.2, 0.36, 0.06, 1), '#23262f', x, 5.35, 0), part(box(0.5, 1.3, 0.04), '#f2c230', x, 5.35, 0.2));
+    G.add(part(cyl(0.13, 0.13, 0.05, 10), '#3a1c1c', x, 5.72, -0.19, Math.PI / 2), part(cyl(0.13, 0.13, 0.05, 10), '#3a321c', x, 5.35, -0.19, Math.PI / 2));
+    G.light(1.8, part(cyl(0.13, 0.13, 0.05, 10), '#3dff9a', x, 4.98, -0.19, Math.PI / 2));
+    for (const y of [5.72, 5.35, 4.98]) G.add(part(box(0.3, 0.04, 0.12), '#23262f', x, y + 0.16, -0.24));
+  }
+  G.add(part(box(0.5, 0.36, 0.06), '#2b6fd0', 0.0, 4.2, -0.12));
+  return G.build();
+}
+
 /** Concrete planter box with a clipped hedge and a few blossoms (city ground cover; thins with the bush tier). */
 function planter(): THREE.BufferGeometry {
   return merge([
@@ -529,6 +543,7 @@ export const NEON_PROPS: Record<string, PropFactory> = {
   warehouse_building: F(warehouse, city, true, 64),
   // street furniture and ground cover (bush/crate/lamp names thin on Low/Medium)
   street_lamp: F(streetLamp, city, true, 256),
+  traffic_signal: F(trafficSignal, city, true, 64),
   planter_bush: F(planter, lit, true, 1500),
   street_tree: F(streetTree, leafy, true, 800),
   street_bench: F(bench, lit, true, 600),
