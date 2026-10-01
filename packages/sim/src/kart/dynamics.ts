@@ -321,8 +321,10 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
     else if (brk) {
       if (u > 0.5) gear = Gear.D; // strong braking
       else if (gear !== Gear.R) {
-        if (gear !== Gear.STOP) { gear = Gear.STOP; d.brakeTicks = 0; } // the reverse-engage count starts at the stop
-        if (d.brakeTicks >= P.revEngageTicks) gear = Gear.R;
+        // the reverse-engage count starts at the stop: the transition tick is ↓ tick 1 at STOP, and R engages after
+        // revEngageTicks of them however STOP was reached (braking, coasting, the start grid, a respawn)
+        if (gear !== Gear.STOP) { gear = Gear.STOP; d.brakeTicks = 1; }
+        else if (d.brakeTicks > P.revEngageTicks) gear = Gear.R;
       }
       reverse = gear === Gear.R;
     } else if (gear === Gear.D || (gear === Gear.STOP && (!lockOk || u * u + wl * wl > 0.25))) {

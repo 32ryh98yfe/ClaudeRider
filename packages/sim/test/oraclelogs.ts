@@ -159,7 +159,8 @@ export const ORACLE_LOGS: OracleLog[] = [
   {
     name: 'gears', v0: 20, boosters: 0,
     // coast (N); brake to STOP, R after 6 ticks; coast in R; reverse again with steer; ↑ in R → D; coast; brake to
-    // STOP and R, then release ↓ in R so it rolls back to exactly 0 (STOP); drive off
+    // STOP and R, then release ↓ in R so it rolls back to exactly 0 (STOP, ≈ t 505); ↓ from that coasted STOP (6 ↓
+    // ticks at STOP, then R); coast in R; drive off
     frame: (t, _k, o) => {
       if (t < 90) set(o, 0, 0);
       else if (t < 230) set(o, 0, 0, false, 0, 1);
@@ -168,7 +169,7 @@ export const ORACLE_LOGS: OracleLog[] = [
       else if (t < 350) set(o, t >= 300 && t < 340 ? 0.5 : 0, 1);
       else if (t < 420) set(o, 0, 0);
       else if (t < 455) set(o, 0, 0, false, 0, 1);
-      else if (t < 540) set(o, 0, 0);
+      else if (t < 540) set(o, 0, 0, false, 0, t >= 512 && t < 526 ? 1 : 0);
       else set(o, t >= 555 && t < 590 ? -0.6 : 0, 1);
     },
   },

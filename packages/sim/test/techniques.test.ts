@@ -215,6 +215,43 @@ describe('physics: gears (doc 15 §4.8, §5 item 3)', () => {
     expect(gears.map(([, g]) => g)).toEqual([Gear.STOP, Gear.R]);
   });
 
+  /** Holds ↓ only for `n` ticks from now; returns the gear and forward speed after each tick. */
+  function holdBrake(rig: Rig, k: KartState, n: number): { gear: number[]; u: number[] } {
+    const gear: number[] = [], u: number[] = [];
+    for (let t = 0; t < n; t++) { tick(rig, { thr: 0, brk: 1 }); gear.push(k.drive.gear); u.push(fwd(k)); }
+    return { gear, u };
+  }
+  /** ↓ ticks spent in STOP before R engages: STOP for ticks 0..5 of ↓ (u = 0), R on tick 6 (−aReverse·DT). */
+  function expectSixStopTicks(r: { gear: number[]; u: number[] }, label: string): void {
+    for (let t = 0; t < 6; t++) { expect(r.gear[t], `${label}: ↓ tick ${t + 1}`).toBe(Gear.STOP); expect(r.u[t], `${label}: ↓ tick ${t + 1}`).toBe(0); }
+    expect(r.gear[6], `${label}: ↓ tick 7`).toBe(Gear.R);
+    expect(Math.abs(r.u[6]! + 8 * DT), label).toBeLessThanOrEqual(Q2);
+  }
+
+  it('R engages after 6 ↓ ticks at STOP on every path: a coasted stop, a kart at rest on the grid, a respawn', () => {
+    // coast from 3 m/s to rest (STOP via N), then ↓
+    const c = rigAt(3);
+    for (let t = 0; t < 200 && c.k.drive.gear !== Gear.STOP; t++) tick(c.rig, { thr: 0 });
+    expect(c.k.drive.gear).toBe(Gear.STOP);
+    c.rig.run(10, () => { /* settled in STOP */ });
+    expectSixStopTicks(holdBrake(c.rig, c.k, 10), 'coasted');
+    // placed at rest (the start grid's STOP)
+    const g = rigAt(0);
+    expect(g.k.drive.gear).toBe(Gear.STOP);
+    expectSixStopTicks(holdBrake(g.rig, g.k, 10), 'grid');
+    // a (manual) respawn returns the gear to STOP; ↓ held through the lock counts from the first controlled tick
+    const r = rigAt(2, (kk) => { kk.drive.lowSpeedTicks = 60; });
+    tick(r.rig, { thr: 0, edges: Edge.RESPAWN });
+    expect(r.k.race.respawnPhase).not.toBe(0);
+    const rr: { gear: number[]; u: number[] } = { gear: [], u: [] };
+    for (let t = 0; t < 200 && rr.gear.length < 10; t++) {
+      tick(r.rig, { thr: 0, brk: 1 });
+      // dynamics runs on the tick control returns (respawnPhase 0 after it): that is ↓ tick 1
+      if (r.k.race.respawnPhase === 0) { rr.gear.push(r.k.drive.gear); rr.u.push(fwd(r.k)); }
+    }
+    expectSixStopTicks(rr, 'respawn');
+  });
+
   it('↑ in R → D: the forward law brakes the backward motion and drives on', () => {
     const { rig, k } = brakeRun(300);
     expect(fwd(k)).toBeLessThan(-9);
