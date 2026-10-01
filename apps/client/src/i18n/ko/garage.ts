@@ -13,7 +13,7 @@ export default {
   flameName: { coral: '코랄', violet: '바이올렛', teal: '틸', gold: '골드', white: '화이트 핫' },
   emotePack2: '감정표현 팩 2', titleLegend: '칭호: 전설의 라이더', titleName: { legend: '전설의 라이더' },
   emote: { win: '우승', podium: '시상대', lose: '아쉬움', attackLanded: '공격 성공', gotHit: '피격', lobby: '대기' },
-  emoteNote: '레이스 중 1~4 키로 감정표현을 쓸 수 있어요.',
+  emoteNote: '레이스 중 1–4 키로 감정표현을 쓸 수 있어요.',
   charDesc: {
     clay: '차분하고 친절한 오리지널 클로드. 상아색 레이싱 스카프가 트레이드마크.', pixel: '진짜 복셀로 만든 레트로 장난꾸러기.', turbo: '승부욕 넘치는 레이서. 헬멧 번호는 01.',
     anchor: '호탕한 해적 선장. 어깨 위 반짝이 앵무새와 함께.', rune: '몽상가 마법사. 반짝이 지팡이를 늘 들고 다녀요.', nova: '호기심 많은 우주비행사. 버블 헬멧이 반짝.',
