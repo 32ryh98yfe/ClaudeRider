@@ -63,8 +63,14 @@ Every key can be rebound in Settings → Controls. / 모든 키는 설정 → �
 - Drift through corners to fill the gauge. Each full gauge stores a booster; you can hold 2.
 - Tap accelerate again right as a drift ends for an **instant boost**.
 - Press accelerate the moment the countdown hits GO for a **perfect start**.
+- Drift while a booster is running, then let go of the steering to **drag**: keep accelerate held and you climb to about 290 km/h. While dragging, tap the corner-direction key every 0.1–0.2 s for a **tap boost** (up to 3 in a row, about 305 km/h); mashing faster does not count.
+- Counter-steer all the way in a drift to **cut** it and stop the slide at once. While boosting, keep drift held as you counter-steer instead and the gauge fills 3× faster.
+- A short brake tap in a drift is a **brake turn** that whips the nose around. Hold the brake longer than about 0.18 s and you **spin out** and lose your speed.
+- Hold brake while stopped to **reverse** (the speedometer shows an amber R). Press accelerate to drive forward again.
 
 코너에서 드리프트하면 게이지가 차고, 가득 찰 때마다 부스터가 1개씩 저장됩니다(최대 2개). 드리프트가 끝나는 순간 가속을 다시 누르면 **순간 부스터**, GO와 동시에 가속하면 **퍼펙트 스타트**입니다.
+
+부스터가 켜진 채 드리프트하다가 방향키를 놓으면 **끌기**로 약 290 km/h까지 올라가고, 끌기 중에 코너 방향키를 0.1~0.2초 간격으로 톡톡 두드리면 **톡톡이**(최대 3연속, 약 305 km/h)입니다. 너무 빨리 연타하면 무효예요. 드리프트 중 반대 방향키를 끝까지 꺾으면 **커팅**으로 미끄러짐이 바로 멈추고, 부스터 중에는 드리프트 키를 누른 채 반대로 꺾으면 게이지가 3배로 찹니다. 드리프트 중 브레이크를 짧게 누르면 **고속턴**, 0.18초 넘게 누르고 있으면 **스핀**해서 속도를 잃습니다. 멈춘 상태에서 브레이크를 계속 누르면 **후진**(속도계에 주황색 R)하고, 가속을 누르면 다시 전진합니다.
 
 ## Known limitations · 알려진 제한
 - **Art:** all art is procedural (3D renders, gradients and icons drawn in code) until you drop Codex images into `apps/client/public/art/overrides/`.
