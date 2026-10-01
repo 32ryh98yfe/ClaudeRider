@@ -95,4 +95,57 @@ PROP kind=chandelier at=(187.9,-11.0,-197.4) yaw=0 scale=1.4
 PROP kind=fountain at=(98.1,-0.3,-29.9) yaw=0 scale=1.2
 PROP kind=gazebo at=(-49.6,-0.3,-37.1) yaw=0
 PROP kind=manor at=(45.0,-0.3,60.0) yaw=-90
-THEME lantern_hollow sky=night headlights=on scatter=crooked_tree,crooked_tree,rose_bush,gravestone,pumpkin_patch,wisp density=6 hills=3
+# ---- stylized dressing pass (2026-10, docs/design/34-stylized-pass.md; render-only, the .ctrk is unchanged) ----
+# Outdoors the road runs between clipped hedges, so the garden layers stand behind them (topiary, roses, autumn trees,
+# the far woods) and read over the hedge tops; the vaults below keep their candle-lit dressing.
+# the garden straight: a festival grandstand over the hedge, topiary and lanterns; the straw-bale wall at T1
+PROPS kind=grandstand from=@garden_straight+38 to=@garden_straight+39 side=L every=100 offset=5 seed=60
+PROPS kind=topiary from=@garden_straight+12 to=@fountain_corner side=both every=12 offset=3 seed=61
+PROPS kind=topiary from=@greenhouse_walk to=@home+40 side=both every=14 offset=3 seed=62
+PROPS kind=topiary from=@garden_terrace to=@orangery_sweeper side=both every=18 offset=3 seed=63
+PROPS kind=tyre_wall from=@fountain_corner+1 to=@fountain_corner+41 side=R every=1.3 offset=0.6 seed=64
+PROPS kind=ad_board_b from=@fountain_corner+4 to=@fountain_corner+40 side=R every=10 offset=2.6 seed=65
+PROPS kind=flag_pole from=@garden_straight+52 to=@garden_straight+62 side=L every=5 offset=4 seed=66
+# open garden by the fountain and the gate, and round the gazebo: ground cover and shrubs
+PROPS kind=grass_tuft from=@fountain_corner to=@ballroom_entry side=both every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=70
+PROPS kind=grass_tuft from=@gazebo_kink to=@home side=both every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=71
+PROPS kind=flower_patch from=@fountain_corner to=@ballroom_entry side=both every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=72
+PROPS kind=flower_patch from=@gazebo_kink to=@home side=both every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=73
+PROPS kind=bush_round from=@fountain_corner to=@ballroom_entry side=both every=11 offset=3 jitter=9 scale=0.7-1.3 seed=74
+PROPS kind=bush_round from=@garden_terrace to=@home side=both every=13 offset=5 jitter=8 scale=0.7-1.3 seed=75
+PROPS kind=rock_cluster from=@garden_terrace to=@home side=both every=29 offset=6 jitter=10 scale=0.6-1.3 seed=76
+PROPS kind=grass_tuft from=@garden_terrace to=@home side=both every=1.6 offset=3.2 jitter=8 scale=1.0-1.8 seed=77
+# autumn trees behind the hedges and the far woods (none behind the stand or the grid)
+PROPS kind=tree_round_big from=@garden_straight+60 to=@ballroom_entry side=both every=17 offset=13 jitter=12 scale=0.8-1.3 seed=80
+PROPS kind=tree_round_big from=@garden_terrace to=@home side=both every=17 offset=13 jitter=14 scale=0.8-1.3 seed=81
+PROPS kind=tree_round_big from=@garden_straight to=@garden_straight+60 side=R every=17 offset=13 jitter=12 scale=0.8-1.3 seed=82
+PROPS kind=tree_clump from=@garden_straight to=@ballroom_entry side=both every=26 offset=60 jitter=50 scale=0.9-1.4 seed=83
+PROPS kind=tree_clump from=@garden_terrace to=@home side=both every=26 offset=60 jitter=50 scale=0.9-1.4 seed=84
+PROPS kind=tree_clump from=@garden_terrace to=@home side=both every=34 offset=125 jitter=50 scale=1.0-1.6 seed=85
+PROPS kind=sky_lantern from=@garden_terrace to=@home side=both every=150 offset=45 jitter=50 seed=86
+PROPS kind=sky_lantern from=@garden_straight to=@ballroom_entry side=R every=90 offset=50 jitter=40 seed=87
+# the start zone (line ±10 m and the pads at 1763 exclude PROPS rows from 1757 to 10): hedges, lanterns and topiary
+# hand-placed from the baked frame (offset from the road edge)
+PROP kind=hedge at=(-40.0,-0.4,-6.9) yaw=270 scale=1
+PROP kind=hedge at=(-40.0,-0.0,6.9) yaw=90 scale=1
+PROP kind=hedge at=(-32.0,-0.2,-6.9) yaw=270 scale=1
+PROP kind=hedge at=(-32.0,-0.2,6.9) yaw=90 scale=1
+PROP kind=hedge at=(-16.0,-0.2,-6.9) yaw=270 scale=1
+PROP kind=hedge at=(-16.0,-0.2,6.9) yaw=90 scale=1
+PROP kind=hedge at=(-8.0,-0.2,-6.9) yaw=270 scale=1
+PROP kind=hedge at=(-8.0,-0.2,6.9) yaw=90 scale=1
+PROP kind=hedge at=(-0.0,-0.2,-6.9) yaw=270 scale=1
+PROP kind=hedge at=(0.0,-0.2,6.9) yaw=90 scale=1
+PROP kind=hedge at=(8.0,-0.2,-6.9) yaw=270 scale=1
+PROP kind=hedge at=(8.0,-0.2,6.9) yaw=90 scale=1
+PROP kind=lantern_post at=(-28.0,-0.2,-8.5) yaw=270 scale=1
+PROP kind=lantern_post at=(-28.0,-0.2,8.5) yaw=90 scale=1
+PROP kind=lantern_post at=(-4.0,-0.2,-8.5) yaw=270 scale=1
+PROP kind=lantern_post at=(-4.0,-0.2,8.5) yaw=90 scale=1
+PROP kind=topiary at=(-36.0,-0.2,-9.5) yaw=270 scale=1
+PROP kind=topiary at=(-36.0,-0.2,9.5) yaw=90 scale=1
+PROP kind=topiary at=(-20.0,-0.2,-9.5) yaw=270 scale=1
+PROP kind=topiary at=(-20.0,-0.2,9.5) yaw=90 scale=1
+PROP kind=topiary at=(-4.0,-0.2,-10.5) yaw=270 scale=1
+PROP kind=topiary at=(-4.0,-0.2,10.5) yaw=90 scale=1
+THEME lantern_hollow sky=night headlights=on scatter=tree_round_big,crooked_tree,crooked_tree,rose_bush,bush_round,topiary,gravestone,pumpkin_patch,rock_cluster,flower_patch density=30 hills=3 fogNear=90 fogFar=650

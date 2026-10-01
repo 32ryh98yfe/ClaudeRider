@@ -117,6 +117,18 @@ export const EMBER_DRESSING: Record<string, PropFactory> = {
       return { geometry: merge(p), material: lit() };
     },
   },
+  grass_patch: {
+    // 12 × 6 m clump of the floor-cover layer for hand-placed PROP lines where PROPS rows are excluded (start line,
+    // pads, item rows): scree, two crystal sprout clusters, a rubble heap and a basalt chunk
+    maxInstances: 80,
+    build: () => {
+      const R = rng(427), p: THREE.BufferGeometry[] = [];
+      for (let i = 0; i < 60; i++) { const r = 0.08 + R() * 0.16; p.push(paint(place(rock(r, i + 5, 0, 0.6), -R() * 6, r * 0.25, (R() - 0.5) * 12), [E.scree, E.screeLight, E.dust][i % 3]!)); }
+      for (const [x, z] of [[-1.5, -3.5], [-3.6, 2.8]] as const) p.push(...sprouts(431 + x * 10).map((g) => place(g, x, 0, z, 0, 0, 0, 1.6)));
+      p.push(paint(place(rock(0.9, 437, 1, 0.55), -4.4, 0.12, -1.0), E.basaltMid, 0.06, 3), paint(place(rock(0.6, 439, 1, 0.7), -2.2, 0.15, 4.8), E.basaltLight));
+      return { geometry: merge(p), material: lit() };
+    },
+  },
   flower_patch: { maxInstances: 3000, build: () => ({ geometry: merge([paint(place(rock(0.35, 31, 1, 0.35), 0, 0.02, 0), E.basaltMid), ...sprouts(433)]), material: lit() }) },
   bush_round: {
     // rubble mound: broken basalt, a snapped plank and two ore glints

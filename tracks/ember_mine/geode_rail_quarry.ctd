@@ -58,4 +58,60 @@ PROPS kind=crystal_spire from=@geode_chamber+40 to=@geode_chamber+40 side=L ever
 PROPS kind=crystal_spire from=@winch_corner+90 to=@winch_corner+90 side=R every=100 offset=30
 PROPS kind=lava_pool from=@crystal_s+30 to=@crystal_s+30 side=L every=100 offset=14
 PROPS kind=cave_roof along=main side=R every=46 offset=3 scale=0.9-1.1
-THEME scatter=stalagmite,basalt_column,stalagmite,geode_violet density=10 hills=12 sky=underground
+# ---- stylized dressing pass (2026-10, docs/design/34-stylized-pass.md; render-only, the .ctrk is unchanged) ----
+# the cavern straight: a miners' scaffold stand, a hard-hat crowd, mine signs, work lamps; tyre wall round T1
+PROPS kind=grandstand from=@cavern_straight+40 to=@cavern_straight+41 side=L every=100 offset=5.5 seed=60
+PROPS kind=ad_board_a from=@cavern_straight+14 to=@cavern_straight+94 side=R every=24 offset=0.4 seed=61
+PROPS kind=ad_board_b from=@cavern_straight+22 to=@cavern_straight+94 side=R every=24 offset=0.4 seed=62
+PROPS kind=ad_board_c from=@cavern_straight+60 to=@cavern_straight+94 side=L every=16 offset=0.4 seed=63
+PROPS kind=spectators from=@cavern_straight+58 to=@cavern_straight+94 side=L every=12 offset=2.4 jitter=1 seed=64
+PROPS kind=flag_pole from=@cavern_straight+14 to=@cavern_straight+26 side=L every=5 offset=2.6 seed=65
+PROPS kind=tyre_wall from=@cavern_corner+1 to=@cavern_corner+42 side=R every=1.3 offset=0.6 seed=66
+PROPS kind=lamp_post along=main side=both every=30 offset=1.6 seed=67
+# floor cover, rubble, basalt, stalagmite columns and the far stalagmite forest round the lap
+PROPS kind=grass_tuft side=both every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=70
+PROPS kind=flower_patch side=both every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=71
+PROPS kind=bush_round side=both every=11 offset=3 jitter=9 scale=0.7-1.3 seed=72
+PROPS kind=rock_cluster side=both every=23 offset=4 jitter=12 scale=0.6-1.4 seed=73
+PROPS kind=tree_round_big from=@cavern_straight to=@to_line+20 side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=74
+PROPS kind=tree_round_big from=@cavern_straight+60 to=@to_line+20 side=L every=17 offset=14 jitter=18 scale=0.8-1.3 seed=75
+PROPS kind=tree_clump side=both every=26 offset=60 jitter=50 scale=0.9-1.4 seed=76
+PROPS kind=tree_clump side=both every=34 offset=125 jitter=50 scale=1.0-1.6 seed=77
+# mine clutter: supply piles, timber cribs and pipe runs along the walls
+PROPS kind=crate_barrels side=both every=45 offset=3 jitter=4 seed=78
+PROPS kind=timber_crib side=both every=70 offset=6 jitter=6 seed=79
+PROPS kind=pipe_run from=@winch_corner to=@to_line side=R every=8.6 offset=0.9 scale=1-1 seed=80
+PROPS kind=pipe_run from=@geode_chamber to=@amethyst_hairpin side=L every=8.6 offset=0.9 scale=1-1 seed=81
+# the start zone (line ±10 m and the pads at 1292 / 1335 exclude PROPS rows from 1286 to 10): hand-placed from the
+# baked frame (offset from the road edge)
+PROP kind=grass_patch at=(-44.0,-0.2,-7.7) yaw=270 scale=1
+PROP kind=grass_patch at=(-32.0,-0.2,-7.7) yaw=270 scale=1
+PROP kind=grass_patch at=(-20.0,-0.2,-7.7) yaw=270 scale=1
+PROP kind=grass_patch at=(-8.0,-0.2,-7.7) yaw=270 scale=1
+PROP kind=grass_patch at=(4.0,-0.2,-7.7) yaw=270 scale=1
+PROP kind=grass_patch at=(-44.0,-0.2,7.7) yaw=90 scale=1
+PROP kind=grass_patch at=(-32.0,-0.2,7.7) yaw=90 scale=1
+PROP kind=grass_patch at=(-20.0,-0.2,7.7) yaw=90 scale=1
+PROP kind=grass_patch at=(-8.0,-0.2,7.7) yaw=90 scale=1
+PROP kind=grass_patch at=(4.0,-0.2,7.7) yaw=90 scale=1
+PROP kind=grass_patch at=(-80.0,-0.2,-7.7) yaw=270 scale=1
+PROP kind=grass_patch at=(-80.0,-0.2,7.7) yaw=90 scale=1
+PROP kind=lamp_post at=(-40.0,-0.2,-9.1) yaw=270 scale=1
+PROP kind=lamp_post at=(-40.0,-0.2,9.1) yaw=90 scale=1
+PROP kind=lamp_post at=(-16.0,-0.2,-9.1) yaw=270 scale=1
+PROP kind=lamp_post at=(-16.0,-0.2,9.1) yaw=90 scale=1
+PROP kind=lamp_post at=(6.0,-0.2,-9.1) yaw=270 scale=1
+PROP kind=lamp_post at=(6.0,-0.2,9.1) yaw=90 scale=1
+PROP kind=ad_board_a at=(-36.0,-0.2,7.9) yaw=90 scale=1
+PROP kind=ad_board_a at=(-4.0,-0.2,-7.9) yaw=270 scale=1
+PROP kind=ad_board_b at=(-28.0,-0.2,7.9) yaw=90 scale=1
+PROP kind=ad_board_b at=(-28.0,-0.2,-7.9) yaw=270 scale=1
+PROP kind=ad_board_c at=(-12.0,-0.2,7.9) yaw=90 scale=1
+PROP kind=ad_board_c at=(-44.0,-0.2,-7.9) yaw=270 scale=1
+PROP kind=spectators at=(-24.0,-0.2,9.5) yaw=90 scale=1
+PROP kind=spectators at=(-10.0,-0.2,-9.9) yaw=270 scale=1
+PROP kind=crate_barrels at=(-34.0,-0.2,-11.0) yaw=270 scale=1
+PROP kind=crate_barrels at=(2.0,-0.2,11.0) yaw=90 scale=1
+PROP kind=flag_pole at=(-20.0,-0.2,-10.1) yaw=270 scale=1
+PROP kind=flag_pole at=(-16.0,-0.2,-10.1) yaw=270 scale=1
+THEME scatter=stalagmite,basalt_column,stalagmite,geode_violet,tree_round_big,rock_cluster,bush_round,crate_barrels,timber_crib density=34 hills=12 sky=underground fogNear=70 fogFar=520

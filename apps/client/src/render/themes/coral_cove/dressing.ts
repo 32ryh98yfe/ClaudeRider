@@ -208,6 +208,21 @@ export const CORAL_DRESSING: Record<string, PropFactory> = {
       return { geometry: merge(p), material: matte(), castShadow: true };
     },
   },
+  quay: {
+    // 12.4 m of stone quay outside a harbour-side road edge: paved deck 0.2 m under the road (7 m wide), granite
+    // coping, a wall down into the sea with rubber fenders and iron rings, so lamps and dock clutter have ground
+    maxInstances: 120,
+    build: () => {
+      const p: THREE.BufferGeometry[] = [
+        part(box(7.2, 0.3, 12.4), '#cfc6b6', -3.5, -0.15, 0), part(box(0.6, 0.34, 12.4), '#e2dccf', -7.0, -0.1, 0),
+        part(box(7.0, 3.4, 12.4), '#a99e8c', -3.6, -2.0, 0, 0, 0, 0, 1, 1, 1, 0.05, 3),
+      ];
+      for (let k = 0; k < 6; k++) p.push(part(box(7.18, 0.02, 0.06), '#b5ac9c', -3.5, 0.005, -6 + k * 2.4)); // paving joints
+      for (const z of [-4.2, 0, 4.2]) p.push(part(box(0.35, 1.6, 0.9), '#2f3136', -7.25, -1.0, z), part(new THREE.TorusGeometry(0.18, 0.04, 4, 10), '#2f3136', -7.32, -0.35, z + 1.6, 0, Math.PI / 2, 0));
+      p.push(part(box(7.1, 0.25, 12.42), '#7fae9a', -3.6, SEA_Y + 0.05, 0)); // weed line at the waterline
+      return { geometry: merge(p), material: matte(), castShadow: true };
+    },
+  },
   // ---- beach and harbour life ---------------------------------------------------------------------------------------
   beach_umbrella: {
     // two striped umbrellas with towels, a deck chair and a cool box

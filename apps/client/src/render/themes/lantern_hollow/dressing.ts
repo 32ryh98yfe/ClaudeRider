@@ -171,6 +171,23 @@ export const LANTERN_DRESSING: Record<string, PropFactory> = {
       return { geometry: merge(p), material: lit() };
     },
   },
+  grass_patch: {
+    // 12 × 6 m clump of the ground-cover layer for hand-placed PROP lines where PROPS rows are excluded (start line,
+    // pads, item rows): autumn grass, fallen leaves, a toadstool ring, mini pumpkins, a mossy stone
+    maxInstances: 80,
+    build: () => {
+      const p: THREE.BufferGeometry[] = [], r = prng(367);
+      for (let t = 0; t < 26; t++) {
+        const cx = -r() * 6, cz = (r() - 0.5) * 12, k = 1 + r() * 0.8;
+        for (let i = 0; i < 7; i++) { const a = r() * Math.PI * 2, d = r() * 0.2 * k, h = (0.32 + r() * 0.36) * k; p.push(part(cone(0.05 * k, h, 3), [N.grass, N.grassLight, N.grassTip][i % 3]!, cx + Math.cos(a) * d, h / 2, cz + Math.sin(a) * d, (r() - 0.5) * 0.6, a, (r() - 0.5) * 0.6)); }
+      }
+      for (let i = 0; i < 30; i++) p.push(part(box(0.2, 0.025, 0.13), [N.leafOrange, N.leafRed, N.leafGold][i % 3]!, -r() * 6, 0.03, (r() - 0.5) * 12, 0, r() * 3, 0));
+      for (let i = 0; i < 4; i++) { const x = -3.8 + Math.cos(i * 1.57) * 0.5, z = 2.4 + Math.sin(i * 1.57) * 0.5; p.push(part(cyl(0.05, 0.07, 0.26, 6), N.cream, x, 0.13, z), part(sph(0.16, 8, 4), N.cap, x, 0.28, z, 0, 0, 0, 1, 0.6, 1)); }
+      pumpkin(p, -1.6, -0.02, -3.2, 0.32, 369); pumpkin(p, -2.2, -0.02, -2.6, 0.22, 370); pumpkin(p, -4.6, -0.02, 4.4, 0.28, 371);
+      p.push(part(blob(0.6, 0, 0.15, 372, 1.3, 0.75, 1.0), N.stone, -2.9, 0.25, 4.6), part(blob(0.45, 0, 0.1, 373, 1.2, 0.25, 1.0), N.moss, -2.9, 0.55, 4.6));
+      return { geometry: merge(p), material: lit() };
+    },
+  },
   bush_round: { maxInstances: 1500, build: () => ({ geometry: autumnShrub(), material: lit(), castShadow: true }) },
   rock_cluster: {
     // mossy lilac-grey stones
@@ -212,6 +229,21 @@ export const LANTERN_DRESSING: Record<string, PropFactory> = {
         part(box(0.03, 0.95, 1.5), N.violet, 0, 5.6, 0.78), part(box(0.035, 0.24, 1.5), N.pumpkin, 0, 5.6, 0.78),
       ]), material: lit(), castShadow: true,
     }),
+  },
+  topiary: {
+    // manor garden topiary behind the hedges: a clipped cone and a ball tree in stone planters, a lantern between
+    maxInstances: 300,
+    build: () => {
+      const p: THREE.BufferGeometry[] = [];
+      for (const [z, ball] of [[-2.2, false], [2.2, true]] as const) {
+        p.push(part(cyl(0.7, 0.55, 0.8, 8), N.stoneDark, -1.2, 0.4, z), part(cyl(0.75, 0.75, 0.12, 8), N.stone, -1.2, 0.82, z));
+        if (ball) p.push(part(cyl(0.1, 0.12, 1.6, 5), N.bark, -1.2, 1.6, z), part(blob(1.0, 1, 0.05, 391), '#3f7048', -1.2, 2.9, z));
+        else p.push(part(cone(1.0, 3.2, 10), '#2f5a3a', -1.2, 2.4, z), part(cone(0.55, 1.2, 10), '#3f7048', -1.2, 4.2, z));
+      }
+      p.push(part(cyl(0.06, 0.08, 2.4, 6), C.iron, -1.2, 1.2, 0));
+      paperLantern(p, -1.2, 2.9, 0, 0.24, 2.2);
+      return { geometry: merge(p), material: lit(), castShadow: true };
+    },
   },
   sky_lantern: {
     // five floating paper sky lanterns drifting 14–26 m up (pure decoration over the fields)

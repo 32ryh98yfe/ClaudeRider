@@ -77,4 +77,69 @@ PROP kind=mill at=(271.1,-0.3,-307.5) yaw=19.2
 PROP kind=crooked_tree at=(98.0,-0.3,-398.0) yaw=0 scale=1.4
 PROP kind=chapel at=(-74.6,-0.3,-31.3) yaw=-134.0
 PROP kind=manor at=(64.0,-0.3,-150.0) yaw=-90
-THEME lantern_hollow sky=night headlights=on scatter=crooked_tree,crooked_tree,pumpkin_patch,gravestone,hay_bale,wisp density=7 hills=5
+# ---- stylized dressing pass (2026-10, docs/design/34-stylized-pass.md; render-only, the .ctrk is unchanged) ----
+# the lantern lane: a festival grandstand, a costumed crowd, festival boards, pennant poles; the straw-bale wall at T1
+PROPS kind=grandstand from=@lantern_lane+52 to=@lantern_lane+53 side=L every=100 offset=6 seed=60
+PROPS kind=ad_board_a from=@lantern_lane+30 to=@lantern_lane+124 side=R every=24 offset=0.4 seed=61
+PROPS kind=ad_board_b from=@lantern_lane+38 to=@lantern_lane+124 side=R every=24 offset=0.4 seed=62
+PROPS kind=ad_board_c from=@lantern_lane+46 to=@lantern_lane+124 side=R every=24 offset=0.4 seed=63
+PROPS kind=spectators from=@lantern_lane+72 to=@lantern_lane+120 side=L every=14 offset=2.6 jitter=1 seed=64
+PROPS kind=spectators from=@home+22 to=@home+40 side=R every=16 offset=2.0 jitter=1 seed=65
+PROPS kind=flag_pole from=@lantern_lane+30 to=@lantern_lane+40 side=L every=5 offset=2.8 seed=66
+PROPS kind=tyre_wall from=@pumpkin_patch+1 to=@pumpkin_patch+30 side=R every=1.3 offset=0.6 seed=67
+# ground cover, shrubs, autumn trees and the far woods round the whole lap (no big trees behind the stand or grid)
+PROPS kind=grass_tuft side=both every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=70
+PROPS kind=flower_patch side=both every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=71
+PROPS kind=bush_round side=both every=11 offset=3 jitter=9 scale=0.7-1.3 seed=72
+PROPS kind=rock_cluster side=both every=23 offset=4 jitter=12 scale=0.6-1.4 seed=73
+PROPS kind=tree_round_big from=@lantern_lane to=@home+20 side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=74
+PROPS kind=tree_round_big from=@lantern_lane+75 to=@home+20 side=L every=17 offset=14 jitter=18 scale=0.8-1.3 seed=75
+PROPS kind=tree_clump side=both every=26 offset=60 jitter=50 scale=0.9-1.4 seed=76
+PROPS kind=tree_clump side=both every=34 offset=125 jitter=50 scale=1.0-1.6 seed=77
+PROPS kind=sky_lantern side=both every=130 offset=45 jitter=60 seed=78
+# the start zone (line ±10 m and the pads at 15 / 1237 exclude PROPS rows from 1231 to 27): hand-placed from the
+# baked frame (offset from the road edge)
+PROP kind=grass_patch at=(-48.0,-0.2,-10.2) yaw=270 scale=1
+PROP kind=grass_patch at=(-36.0,-0.2,-10.2) yaw=270 scale=1
+PROP kind=grass_patch at=(-24.0,-0.2,-10.2) yaw=270 scale=1
+PROP kind=grass_patch at=(-12.0,-0.2,-10.2) yaw=270 scale=1
+PROP kind=grass_patch at=(-0.0,-0.2,-10.2) yaw=270 scale=1
+PROP kind=grass_patch at=(12.0,-0.2,-10.2) yaw=270 scale=1
+PROP kind=grass_patch at=(24.0,-0.2,-10.2) yaw=270 scale=1
+PROP kind=grass_patch at=(-48.0,-0.2,10.2) yaw=90 scale=1
+PROP kind=grass_patch at=(-36.0,-0.2,10.2) yaw=90 scale=1
+PROP kind=grass_patch at=(-24.0,-0.2,10.2) yaw=90 scale=1
+PROP kind=grass_patch at=(-12.0,-0.2,10.2) yaw=90 scale=1
+PROP kind=grass_patch at=(0.0,-0.2,10.2) yaw=90 scale=1
+PROP kind=grass_patch at=(12.0,-0.2,10.2) yaw=90 scale=1
+PROP kind=grass_patch at=(24.0,-0.2,10.2) yaw=90 scale=1
+PROP kind=lantern_post at=(-55.0,-0.2,-11.2) yaw=270 scale=1
+PROP kind=lantern_post at=(-55.0,-0.2,11.2) yaw=90 scale=1
+PROP kind=lantern_post at=(-7.0,-0.2,-11.2) yaw=270 scale=1
+PROP kind=lantern_post at=(-7.0,-0.2,11.2) yaw=90 scale=1
+PROP kind=jack_o_lantern at=(6.0,-0.2,-10.6) yaw=270 scale=1
+PROP kind=jack_o_lantern at=(6.0,-0.2,10.6) yaw=90 scale=1
+PROP kind=jack_o_lantern at=(21.0,-0.2,-10.6) yaw=270 scale=1
+PROP kind=jack_o_lantern at=(21.0,-0.2,10.6) yaw=90 scale=1
+PROP kind=jack_o_lantern at=(-58.0,-0.2,-10.6) yaw=270 scale=1
+PROP kind=jack_o_lantern at=(-58.0,-0.2,10.6) yaw=90 scale=1
+PROP kind=jack_o_lantern at=(-6.0,-0.2,-10.6) yaw=270 scale=1
+PROP kind=jack_o_lantern at=(-6.0,-0.2,10.6) yaw=90 scale=1
+PROP kind=lantern_string at=(-0.0,-0.2,-11.5) yaw=270 scale=1
+PROP kind=lantern_string at=(0.0,-0.2,11.5) yaw=90 scale=1
+PROP kind=lantern_string at=(12.0,-0.2,-11.5) yaw=270 scale=1
+PROP kind=lantern_string at=(12.0,-0.2,11.5) yaw=90 scale=1
+PROP kind=lantern_string at=(24.0,-0.2,-11.5) yaw=270 scale=1
+PROP kind=lantern_string at=(24.0,-0.2,11.5) yaw=90 scale=1
+PROP kind=ad_board_a at=(-40.0,-0.2,10.4) yaw=90 scale=1
+PROP kind=ad_board_a at=(-32.0,-0.2,-10.4) yaw=270 scale=1
+PROP kind=ad_board_b at=(-24.0,-0.2,10.4) yaw=90 scale=1
+PROP kind=ad_board_b at=(-16.0,-0.2,-10.4) yaw=270 scale=1
+PROP kind=ad_board_c at=(-32.0,-0.2,10.4) yaw=90 scale=1
+PROP kind=ad_board_c at=(-44.0,-0.2,-10.4) yaw=270 scale=1
+PROP kind=spectators at=(-36.0,-0.2,12.0) yaw=90 scale=1
+PROP kind=spectators at=(-20.0,-0.2,12.0) yaw=90 scale=1
+PROP kind=spectators at=(10.0,-0.2,-12.4) yaw=270 scale=1
+PROP kind=flag_pole at=(-52.0,-0.2,-12.6) yaw=270 scale=1
+PROP kind=flag_pole at=(-48.0,-0.2,-12.6) yaw=270 scale=1
+THEME lantern_hollow sky=night headlights=on scatter=tree_round_big,crooked_tree,crooked_tree,bush_round,bush_round,pumpkin_patch,hay_bale,rock_cluster,scarecrow,gravestone,flower_patch density=36 hills=5 fogNear=90 fogFar=650
