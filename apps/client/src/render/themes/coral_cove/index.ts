@@ -36,14 +36,16 @@ export const CORAL_LOOK: Partial<ThemeLook> = {
 /** Late-afternoon variant for kraken_lighthouse (THEME sky=sunset): warm low key, cool back fill, lamps on. */
 export const CORAL_SUNSET_LOOK: Partial<ThemeLook> = {
   ...CORAL_LOOK,
-  sky: { turbidity: 5.5, rayleigh: 2.4, elevationDeg: 8, azimuthDeg: 255, exposure: 1.0, top: '#45539c', bottom: '#ffb487' },
-  horizon: '#ffcaa0',
+  // the gradient dome mixes the horizon colour up to ~33° (most of what the chase camera sees of the sky), so the band
+  // stays a pale peach and the sunset warmth lives in the key light; a saturated #ffcaa0 band tinted the whole frame
+  sky: { turbidity: 5.5, rayleigh: 2.4, elevationDeg: 8, azimuthDeg: 255, exposure: 1.0, top: '#4a5ba6', bottom: '#f4c9a8' },
+  horizon: '#f7dcc8',
   sun: { color: '#ffc28c', intensity: 2.9 },
   // the low sun lights mostly the sides of things: a lilac sky fill and a cool back fill keep the shaded sides of the
   // karts in their own colours instead of brown
   hemi: { sky: '#d6cdf2', ground: '#a8826a', intensity: 1.45 },
   fill: { color: '#c4d2ff', intensity: 0.42 },
-  fogColor: '#f2c6a8',
+  fogColor: '#ecd3c6',
   shadowStrength: 0.55,
   clouds: 0.28,
   rimBoost: 0.9,

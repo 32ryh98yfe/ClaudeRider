@@ -208,8 +208,24 @@ function minePortal(): THREE.BufferGeometry {
   }
   parts.push(paint(place(box(20.4, 1.3, 1.3), 0, 8.8, 0), TIMBER, 0.05, 2));
   parts.push(paint(place(rbox(10, 2.4, 0.5, 0.2, 2), 0, 10.6, 0), '#2b2320'));
-  parts.push(glow(paint(place(box(9.2, 1.7, 0.1), 0, 10.6, 0.3), '#ff8a3d'), 2.4));
-  parts.push(glow(paint(place(box(9.2, 1.7, 0.1), 0, 10.6, -0.3), '#ff8a3d'), 2.4));
+  // the sign is a marquee, not a lit slab: a fully glowing 9 m panel bloomed into a blank orange bar across the top of
+  // the grid camera. Dark face, lava border, amber chevrons pointing in at a cyan geode (the glyphs are symmetric, so
+  // the back face reads the same)
+  for (const z of [0.3, -0.3]) {
+    const zf = z * 1.25, y = 10.6;
+    parts.push(paint(place(box(9.2, 1.7, 0.1), 0, y, z), '#3b2219'));
+    parts.push(glow(paint(place(box(9.2, 0.16, 0.12), 0, y + 0.77, zf), LAVA), 1.8), glow(paint(place(box(9.2, 0.16, 0.12), 0, y - 0.77, zf), LAVA), 1.8));
+    parts.push(glow(paint(place(box(0.16, 1.7, 0.12), -4.52, y, zf), LAVA), 1.8), glow(paint(place(box(0.16, 1.7, 0.12), 4.52, y, zf), LAVA), 1.8));
+    parts.push(glow(paint(place(box(0.85, 0.85, 0.12), 0, y, zf, 0, 0, Math.PI / 4), GEODE_CYAN), 2.6));
+    for (let k = 0; k < 3; k++) {
+      for (const sx of [-1, 1]) {
+        // '>' left of the geode and '<' right of it: each chevron is two strokes meeting at the tip nearest the centre
+        const x = sx * (1.4 + k * 0.85), tilt = sx * 0.7;
+        parts.push(glow(paint(place(box(0.6, 0.15, 0.12), x, y + 0.19, zf, 0, 0, tilt), AMBER), 2.2));
+        parts.push(glow(paint(place(box(0.6, 0.15, 0.12), x, y - 0.19, zf, 0, 0, -tilt), AMBER), 2.2));
+      }
+    }
+  }
   for (let i = 0; i < 12; i++) parts.push(paint(place(box(0.8, 1.35, 1.35), -8.8 + i * 1.6, 8.8, 0), i % 2 ? '#ff6a2b' : '#1c1816'));
   return merge(parts);
 }
