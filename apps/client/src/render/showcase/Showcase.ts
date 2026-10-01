@@ -52,7 +52,10 @@ export class Showcase {
   readonly camera = new THREE.PerspectiveCamera(30, 1, 0.1, 200);
   /** Horizontal subject offset in "panel widths" (−1 = left of centre); eased toward. */
   offsetX = 0.9;
+  /** Vertical subject offset as a fraction of the view height (negative = lower on screen), e.g. to clear a wordmark. */
+  offsetY = 0;
   private offS = NaN;
+  private offY = NaN;
   private turntable = new THREE.Group();
   private disc: THREE.Mesh;
   private studio: Studio;
@@ -188,11 +191,12 @@ export class Showcase {
     // camera: gentle breathing dolly + eased panel offset
     // snap on the first frame (the owning screen sets offsetX right after construction), ease afterwards
     this.offS = Number.isNaN(this.offS) ? this.offsetX : this.offS + (this.offsetX - this.offS) * (1 - Math.exp(-5 * dt));
+    this.offY = Number.isNaN(this.offY) ? this.offsetY : this.offY + (this.offsetY - this.offY) * (1 - Math.exp(-5 * dt));
     const el = this.renderer.domElement, w = el.clientWidth || el.width, h = el.clientHeight || el.height;
     this.camera.position.set(Math.sin(this.t * 0.11) * 0.15, 2.0 + Math.sin(this.t * 0.17) * 0.05, 6.8);
     this.camera.lookAt(0, 0.78, 0);
     this.camera.aspect = w / Math.max(1, h);
-    this.camera.setViewOffset(w, h, -w * 0.18 * this.offS, 0, w, h);
+    this.camera.setViewOffset(w, h, -w * 0.18 * this.offS, h * this.offY, w, h);
     this.camera.updateProjectionMatrix();
     this.pipe.render();
   }

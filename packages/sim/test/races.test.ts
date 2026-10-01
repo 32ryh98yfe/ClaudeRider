@@ -1,6 +1,8 @@
 // Full 8-bot races on the shipped tracks: finishers, wall discipline, stuck detection, pace window.
 import { describe, expect, it } from 'vitest';
 import { AI_TIERS, Phase, raceTicksOf, type WorldState } from '@cr/sim';
+import { existsSync } from 'node:fs';
+import { loadContent } from '@cr/content';
 import { bakedTrack, makeRig } from './rig.ts';
 
 const CHARS = ['clay', 'pixel', 'turbo', 'anchor', 'rune', 'nova', 'kage', 'bisque'] as const;
@@ -50,4 +52,26 @@ describe('races', () => {
     expect(r.respawns).toBe(0);
     expect(r.hardPerBotLap).toBeLessThanOrEqual(0.3);
   });
+});
+
+// Content lock (M3): every shipped speed track, 8 Pro bots. Race-time window from the lap formula
+// (laps = clamp(round(115 / refLapSec), 1, 5)): ≈ 115 s at reference pace, so 85–150 s for Pro bots with traffic.
+const ROOT = new URL('../../../', import.meta.url);
+const SPEED_TRACKS = loadContent().tracks.all
+  .filter((t) => t.modes.includes('speed') && t.id !== 'proving_ring' && existsSync(new URL(`tracks/${t.themeId}/${t.id}.ctd`, ROOT)))
+  .map((t) => `${t.themeId}/${t.id}`);
+
+describe('speed races on every track', () => {
+  it('finds the roster', () => { expect(SPEED_TRACKS.length).toBeGreaterThanOrEqual(20); });
+  for (const rel of SPEED_TRACKS) {
+    it(`${rel.split('/')[1]}: ≥ 7/8 finish, ≤ 0.3 hard hits per bot-lap, nobody stuck > 5 s, winner in 85–150 s`, () => {
+      const r = race(rel, 'speed');
+      expect(r.w.phase).toBe(Phase.DONE);
+      expect(r.finishers).toBeGreaterThanOrEqual(7);
+      expect(r.hardPerBotLap).toBeLessThanOrEqual(0.3);
+      expect(r.maxStuck).toBeLessThanOrEqual(300);
+      expect(r.winner).toBeGreaterThan(85);
+      expect(r.winner).toBeLessThan(150);
+    });
+  }
 });

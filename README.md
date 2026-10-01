@@ -24,7 +24,7 @@ An original, non-commercial browser kart racer in the spirit of *KartRider: Drif
   - A deterministic 60 Hz simulation shared by the browser and the server.
   - Authoritative Node WebSocket server with client prediction and rollback.
   - Korean UI by default, English toggle.
-- **Codex art pack:** 110 image slots, each with an English and Korean prompt. Drop generated images in and they replace the procedural art. See [`art/codex/README.md`](art/codex/README.md).
+- **Codex art pack:** 110 image slots, each with an English and Korean prompt. Drop generated images into `apps/client/public/art/overrides/` and they replace the procedural art. `pnpm art:refs` (after `pnpm build`) saves the current procedural art of every slot as a reference image. See [`art/codex/README.md`](art/codex/README.md).
 
 ## Run · 실행
 Requires Node ≥ 22.18 and pnpm 10. / Node 22.18 이상, pnpm 10이 필요합니다.
