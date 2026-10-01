@@ -53,13 +53,38 @@ export interface AiExecution {
   /** A grip (no-drift) plan is only rolled where grip speed ≥ this share of the drift speed; tighter corners
    *  get a sloppy drift instead (nobody grips a hairpin on purpose). */
   gripViable: number;
+  // driving techniques (M5, 15-driving-techniques; 14-ai §3.11)
+  /** Share of drag-eligible corners planned as a drag (끌기): boosted drift, neutral steer, β 20–35°. */
+  dragRate: number;
+  /** Share of planned drags that also tap (톡톡이) the corner key every 6–12 ticks. */
+  tapRate: number;
+  /** Share of hairpins (turn ≥ 2 rad, minR ≤ 20 m) taken with a deliberate brake drift turn (고속턴). */
+  brakeTurnRate: number;
+  /** Tightest corner radius (m) a drag is planned on (the drag holds ~48–50 m/s on a fixed yaw). */
+  dragMinR: number;
+  /** A booster for a planned drag fires when the corner is 5 m … v·dragLeadS ahead (0: never fired for it). */
+  dragLeadS: number;
+  /** ± jitter on the 8-tick tap rhythm (clamped to the valid 6–12 ticks). */
+  tapJitterTicks: number;
 }
 
 export const AI_EXECUTION: Readonly<Record<AiTier, AiExecution>> = {
-  rookie: { cornerSpeedMul: 0.88, gripSpeedMul: 0.93, sloppyLateM: [4, 10], sloppyHoldTicks: [6, 15], boostSkill: 0, boostDelayTicks: [30, 150], lineTrack: 0.4, laneEvalTicks: 12, ttcHorizon: 0.9, mistakeLateTicks: 20, mistakeHoldTicks: 20, panicBrakeTicks: [12, 24], chainRate: 0, gripViable: 0.8 },
-  racer: { cornerSpeedMul: 0.95, gripSpeedMul: 0.96, sloppyLateM: [4, 9], sloppyHoldTicks: [6, 12], boostSkill: 1, boostDelayTicks: [10, 60], lineTrack: 0.75, laneEvalTicks: 9, ttcHorizon: 1.2, mistakeLateTicks: 18, mistakeHoldTicks: 20, panicBrakeTicks: [10, 20], chainRate: 0, gripViable: 0.85 },
-  pro: { cornerSpeedMul: 0.99, gripSpeedMul: 0.99, sloppyLateM: [3, 7], sloppyHoldTicks: [5, 10], boostSkill: 2, boostDelayTicks: [0, 12], lineTrack: 1, laneEvalTicks: 6, ttcHorizon: 1.5, mistakeLateTicks: 18, mistakeHoldTicks: 20, panicBrakeTicks: [8, 16], chainRate: 0, gripViable: 0.9 },
-  legend: { cornerSpeedMul: 1.0, gripSpeedMul: 1.0, sloppyLateM: [2, 5], sloppyHoldTicks: [4, 8], boostSkill: 3, boostDelayTicks: [0, 3], lineTrack: 1, laneEvalTicks: 6, ttcHorizon: 1.6, mistakeLateTicks: 18, mistakeHoldTicks: 20, panicBrakeTicks: [6, 12], chainRate: 0, gripViable: 0.9 },
+  rookie: {
+    cornerSpeedMul: 0.88, gripSpeedMul: 0.93, sloppyLateM: [4, 10], sloppyHoldTicks: [6, 15], boostSkill: 0, boostDelayTicks: [30, 150], lineTrack: 0.4, laneEvalTicks: 12, ttcHorizon: 0.9, mistakeLateTicks: 20, mistakeHoldTicks: 20, panicBrakeTicks: [12, 24], chainRate: 0, gripViable: 0.8,
+    dragRate: 0.03, tapRate: 0, brakeTurnRate: 0, dragMinR: 60, dragLeadS: 0, tapJitterTicks: 3,
+  },
+  racer: {
+    cornerSpeedMul: 0.95, gripSpeedMul: 0.96, sloppyLateM: [4, 9], sloppyHoldTicks: [6, 12], boostSkill: 1, boostDelayTicks: [10, 60], lineTrack: 0.75, laneEvalTicks: 9, ttcHorizon: 1.2, mistakeLateTicks: 18, mistakeHoldTicks: 20, panicBrakeTicks: [10, 20], chainRate: 0, gripViable: 0.85,
+    dragRate: 0.25, tapRate: 0.05, brakeTurnRate: 0.1, dragMinR: 50, dragLeadS: 0.5, tapJitterTicks: 2,
+  },
+  pro: {
+    cornerSpeedMul: 0.99, gripSpeedMul: 0.99, sloppyLateM: [3, 7], sloppyHoldTicks: [5, 10], boostSkill: 2, boostDelayTicks: [0, 12], lineTrack: 1, laneEvalTicks: 6, ttcHorizon: 1.5, mistakeLateTicks: 18, mistakeHoldTicks: 20, panicBrakeTicks: [8, 16], chainRate: 0, gripViable: 0.9,
+    dragRate: 0.75, tapRate: 0.3, brakeTurnRate: 0.35, dragMinR: 40, dragLeadS: 0.7, tapJitterTicks: 1,
+  },
+  legend: {
+    cornerSpeedMul: 1.0, gripSpeedMul: 1.0, sloppyLateM: [2, 5], sloppyHoldTicks: [4, 8], boostSkill: 3, boostDelayTicks: [0, 3], lineTrack: 1, laneEvalTicks: 6, ttcHorizon: 1.6, mistakeLateTicks: 18, mistakeHoldTicks: 20, panicBrakeTicks: [6, 12], chainRate: 0, gripViable: 0.9,
+    dragRate: 0.95, tapRate: 0.9, brakeTurnRate: 0.7, dragMinR: 35, dragLeadS: 0.8, tapJitterTicks: 0,
+  },
 };
 
 /** Noise-free Legend used for reference laps ("Legend ghost", 14-ai §2): σ 0, every drift optimal, every instant boost, no mistakes. */

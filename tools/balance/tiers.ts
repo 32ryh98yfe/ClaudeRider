@@ -46,7 +46,7 @@ export function loadBalanceTracks(filter?: readonly string[]): { id: string; tra
   return out;
 }
 
-interface TierRow { tier: AiTier; mean: number; sd: number; min: number; max: number; n: number; pass: boolean; byChar: Record<string, number>; secMean: number }
+interface TierRow { tier: AiTier; mean: number; sd: number; min: number; max: number; n: number; pass: boolean; byChar: Record<string, number>; secMean: number; perLap: Record<string, number> }
 
 function stats(xs: number[]): { mean: number; sd: number; min: number; max: number } {
   const n = xs.length || 1;
@@ -86,7 +86,7 @@ function main(): void {
     for (const tier of tiers) {
       const paces: number[] = [], secs: number[] = [];
       const byChar: Record<string, number[]> = {};
-      const extra = { drifts: 0, inst: 0, boosts: 0, walls: 0, hard: 0, resp: 0, start: 0, mistakes: 0, grip: 0, sloppy: 0, n: 0 };
+      const extra = { drifts: 0, inst: 0, boosts: 0, walls: 0, hard: 0, resp: 0, start: 0, mistakes: 0, grip: 0, sloppy: 0, n: 0, drags: 0, taps: 0, cuts: 0, spins: 0, bturns: 0, dragPlans: 0, maxBrk: 0 };
       for (const c of chars) for (let sd = 0; sd < seeds; sd++) {
         const r = soloPace(track, content, tier, c, 1000 + sd * 31 + chars.indexOf(c), ref, undefined, LA);
         paces.push(r.pace); secs.push(r.sec);
@@ -94,6 +94,8 @@ function main(): void {
         const k = r.kart;
         extra.drifts += k.drifts; extra.inst += k.instantBoosts; extra.boosts += k.boostsUsed; extra.walls += k.wallHits; extra.hard += k.hardHits;
         extra.resp += k.respawns; extra.start += k.startTier; extra.mistakes += k.ai.mistakes; extra.grip += k.ai.plans[2]; extra.sloppy += k.ai.plans[1]; extra.n++;
+        extra.drags += k.drags; extra.taps += k.taps; extra.cuts += k.cuts; extra.spins += k.spinOuts; extra.bturns += k.brakeTurns; extra.dragPlans += k.ai.dragPlans;
+        if (k.maxDriftBrakeTicks > extra.maxBrk) extra.maxBrk = k.maxDriftBrakeTicks;
       }
       const st = stats(paces);
       const tgt = PACE_TARGETS[tier];
@@ -101,12 +103,15 @@ function main(): void {
       if (!pass) fails++;
       const bc: Record<string, number> = {};
       for (const [c, v] of Object.entries(byChar)) bc[c] = v.reduce((a, b) => a + b, 0) / v.length;
-      rows.push({ tier, ...st, n: paces.length, pass, byChar: bc, secMean: stats(secs).mean });
+      const pl = extra.n * track.laps;
+      rows.push({ tier, ...st, n: paces.length, pass, byChar: bc, secMean: stats(secs).mean, perLap: { drags: extra.drags / pl, taps: extra.taps / pl, cuts: extra.cuts / pl, brakeTurns: extra.bturns / pl, spinOuts: extra.spins / pl } });
       const pc = Object.entries(bc).map(([c, v]) => `${c} ${(v * 100).toFixed(1)}`).join(', ');
       console.log(`  ${tier.padEnd(7)} ${(st.mean * 100).toFixed(1).padStart(5)}% ${(st.sd * 100).toFixed(1).padStart(4)}  ${(st.min * 100).toFixed(1).padStart(5)}  ${(st.max * 100).toFixed(1).padStart(5)}   ${tgt.target.padEnd(10)} ${stats(secs).mean.toFixed(1).padStart(7)}   ${pass ? 'PASS' : 'FAIL'}      ${flag('--verbose') ? pc : ''}`);
       if (flag('--verbose')) {
         const n = extra.n;
         console.log(`          per race: drifts ${(extra.drifts / n).toFixed(1)} inst ${(extra.inst / n).toFixed(1)} boosts ${(extra.boosts / n).toFixed(1)} walls ${(extra.walls / n).toFixed(1)} hard ${(extra.hard / n).toFixed(2)} respawns ${(extra.resp / n).toFixed(2)} startTier ${(extra.start / n).toFixed(2)} mistakes ${(extra.mistakes / n).toFixed(1)} sloppy ${(extra.sloppy / n).toFixed(1)} grip ${(extra.grip / n).toFixed(1)}`);
+        const pl = n * track.laps;
+        console.log(`          per lap: drag plans ${(extra.dragPlans / pl).toFixed(2)} drags ${(extra.drags / pl).toFixed(2)} taps ${(extra.taps / pl).toFixed(2)} cuts ${(extra.cuts / pl).toFixed(1)} brake turns ${(extra.bturns / pl).toFixed(1)} spin-outs ${(extra.spins / pl).toFixed(2)}, max drift brake run ${extra.maxBrk}`);
       }
     }
     const field: Record<string, unknown> = {};

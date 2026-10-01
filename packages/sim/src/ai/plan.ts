@@ -17,6 +17,9 @@ export interface Corner {
   needsDrift: boolean; // the §3.4 trigger would fire at grip top speed
   vDrift: number;      // lowest baked vLim inside the corner (m/s)
   gripRatio: number;   // grip-only corner speed / vDrift for a Balance kart (≥ 1: gripping costs nothing)
+  /** No open ledge, halfpipe, loop, jump, branch split/merge, warp or S-bend near: a drag (끌기) may be planned here
+   *  (15-driving-techniques; the tier's dragMinR and the turn limit are checked when the corner is rolled). */
+  dragSafe: boolean;
 }
 
 export interface PathPlan {
@@ -162,7 +165,50 @@ function buildPlan(track: BakedTrack): TrackPlan {
     if (track.path(pp.index).kind === 'rail') { (pp.LEDGE as Uint8Array).fill(0); continue; }
     probeEdges(track, pp);
   }
+  for (const pp of paths) markDragSafe(pp);
   return { paths, forks, zonesPerLap: zones, bakedLine: anyLine, gripCache: new Map() };
+}
+
+/** Drag-plan exclusion margins around a corner (m before s0 / after s1). Mutable for tools/balance experiments. */
+export const DRAG_SAFE = { ledgeBefore: 20, ledgeAfter: 30, jumpBefore: 60, jumpAfter: 40, forkBefore: 80, forkAfter: 40, sBend: 25 };
+
+/**
+ * Corner.dragSafe: a drag carries ~48–50 m/s through the corner on a fixed yaw (neutral steer), so it is planned only
+ * where running a little wide or a late exit is harmless: no open ledge, halfpipe wall or loop span over the corner
+ * (plus margins), no jump lip, branch split or merge, or warp gate near, and no S-bend (an opposite drift corner
+ * starting within DRAG_SAFE.sBend m of the exit, or ending that close before the entry; a mild opposite curve is
+ * fine, the drift controller cuts 15 m before it).
+ */
+function markDragSafe(pp: PathPlan): void {
+  const L = pp.length, M = DRAG_SAFE, cs = pp.corners;
+  // signed distance from a to b along the path (b ahead = +), wrapped on closed paths
+  const ahead = (a: number, b: number): number => { let d = b - a; if (pp.closed) { if (d < -L / 2) d += L; else if (d > L / 2) d -= L; } return d; };
+  const near = (at: number, c: Corner, before: number, after: number): boolean => {
+    const d0 = ahead(c.s0, at), d1 = ahead(c.s1, at);
+    // inside the corner, within `before` m ahead of the entry, or within `after` m past the exit
+    return d0 >= -before && d1 <= after;
+  };
+  for (let ci = 0; ci < cs.length; ci++) {
+    const c = cs[ci]!;
+    let ok = c.needsDrift;
+    if (ok) {
+      const i0 = Math.floor((c.s0 - M.ledgeBefore) / pp.ds), i1 = Math.ceil((c.s1 + M.ledgeAfter) / pp.ds);
+      for (let q = i0; q <= i1 && ok; q++) {
+        const i = pp.closed ? ((q % pp.n) + pp.n) % pp.n : q < 0 ? 0 : q >= pp.n ? pp.n - 1 : q;
+        if (pp.LEDGE[i] !== 0 || pp.PIPE[i] !== 0 || pp.RMF[i] !== 0) ok = false;
+      }
+    }
+    for (const j of pp.jumps) if (ok && near(j.lipS, c, M.jumpBefore, M.jumpAfter)) ok = false;
+    for (const f of pp.forks) if (ok && near(f.at, c, M.forkBefore, M.forkAfter)) ok = false;
+    for (const m of pp.merges) if (ok && near(m.at, c, M.forkBefore, M.forkAfter)) ok = false;
+    for (const wp of pp.warps) if (ok && near(wp.at, c, M.jumpBefore, M.jumpAfter)) ok = false;
+    if (ok && cs.length > 1) {
+      const nx = cs[(ci + 1) % cs.length]!, pv = cs[(ci + cs.length - 1) % cs.length]!;
+      if (nx !== c && nx.dir !== c.dir && nx.needsDrift && (pp.closed || ci + 1 < cs.length)) { const g = ahead(c.s1, nx.s0); if (g >= 0 && g < M.sBend) ok = false; }
+      if (pv !== c && pv.dir !== c.dir && pv.needsDrift && (pp.closed || ci > 0)) { const g = ahead(pv.s1, c.s0); if (g >= 0 && g < M.sBend) ok = false; }
+    }
+    c.dragSafe = ok;
+  }
 }
 
 function relaxInto(pp: PathPlan): void {
@@ -219,7 +265,7 @@ function derive(pp: PathPlan, _track: BakedTrack): void {
       corners.push({
         s0: cur.s0, s1: cur.s1, sApex: cur.apex, dir: cur.dir, turn: cur.turn, minR: 1 / Math.max(cur.kMax, 1e-6),
         needsDrift: kEffOf(cur.kMax, pp.HW[wrapI(pp, Math.round(cur.apex / ds))]!) > 0.9 * gripCapTop,
-        vDrift: vD, gripRatio: Math.min(vG, 34) / Math.max(1, Math.min(vD, 34)),
+        vDrift: vD, gripRatio: Math.min(vG, 34) / Math.max(1, Math.min(vD, 34)), dragSafe: false,
       });
     }
     cur = null;

@@ -65,6 +65,32 @@ export const AI_TUNING = {
   cut: 1, cutTurn: 0.5, cutPsi: 0.3, cutRoom: 1.5, forkTrimM: 120,
   // brake in a drift is a brake turn (heading ×2): only while the nose lags the track by more than brakeEh rad
   brakeEh: 0.2,
+  // drag control (끌기, 14-ai §3.11): neutral steer + DRIFT held while the nose is within [dragEhLo, dragEhHi] rad of
+  // the track, the kart is not heading for the outer wall (outside < dragOut) and more than dragEndTurn rad is left;
+  // taps (톡톡이) only while the nose is not ahead of the track (eh > tapEhMin)
+  drag: 1, dragEhLo: -0.12, dragEhHi: 0.35, dragOut: 0.45, dragEndTurn: 0.2, tapEhMin: 0, tapGap: 8,
+  // a boosted drift (v > fastHoldV·vGrip) holding through a long corner may counter-steer down to the trim (not -0.3)
+  fastHoldV: 1.1,
+  // share of the drag's neutral band (|sIn| < 0.3) the heading controller may use while dragging
+  dragTrim: 0.93,
+  fastTapExp: 0,
+  // no drift trigger while the velocity already points more than ~trigVPsi rad inside the track tangent
+  trigVPsi: 0.2,
+  // build-up to the entry window: in-steer until the predicted β is dragBuildMargin past dragEnterLo, unless the nose
+  // already lags more than dragBuildEhHi (the corner wants plain drift control); the boost must outlast dragBoostMin ticks
+  dragBuildTicks: 12, dragBuildMaxTicks: 40, dragBuildEhLo: 0.1, dragBuildSIn: 0.8, dragBoostMin: 20, dragBuildYaw: 0.3,
+  // drag yaw regulation: heading gain (1/s) on e, damping on the yaw excess (per rad/s), taps while the yaw is below the
+  // wanted yaw + tapYawMargin
+  dragKh: 2, dragKd: 0.5, tapYawMargin: 0.2, dragKapLead: 0.2, dragHeldSwap: 0.15,
+  // the drag also stops when the kart runs to the inside (outside < -dragIn, a share of the half-width)
+  dragIn: 0.45,
+  // boosters are kept for a planned drag corner up to dragHoldM ahead, unless one fired now still covers its entry
+  dragHoldM: 450, dragCoverS: 1.2,
+  // deliberate brake turn (고속턴) on a rolled hairpin: one ~5-frame tap while the nose lags by more than bturnEh rad
+  bturnFrames: 5, bturnEh: 0.45, hairpinTurn: 2.0, hairpinR: 20, dragMaxTurn: 2.6,
+  // Pro/Legend fire straight-line boosters so they run out inside a drift (a drift cancels the bleed): wait at most
+  // expiryWaitS for that, assuming the boost covers expirySpeed·boost time metres
+  expiryWaitS: 0.6, expirySpeed: 0.95,
 };
 
 /** Drift execution plan for one corner on one lap (14-ai §3.9). */
@@ -84,6 +110,11 @@ export interface AiDriverStats {
   forksSeen: number; forksTaken: number;
   /** Σ|u − line| and Σ signed personality bias, sampled every tick (line accuracy / style metrics). */
   sumAbsLineDev: number; sumBias: number; samples: number;
+  /** Technique plans (M5): drag, tap and brake-turn plans rolled on eligible corners, taps pressed, boosters fired
+   *  into a planned drag corner, straight-line boosters held back so they expire in a drift. */
+  dragPlans: number; tapPlans: number; brakeTurnPlans: number; tapsPressed: number; dragBoosts: number; expiryWaits: number;
+  /** Longest run of consecutive brake frames committed while drifting (spin-out guard: ≤ BRAKE_PULSE_MAX). */
+  maxDriftBrakeRun: number;
 }
 
 /** The driver interface plus introspection used by tests/tools (a superset of B8 `AiDriver`). */
@@ -112,6 +143,7 @@ class BotDriver implements AiDriverEx {
   readonly stats: AiDriverStats = {
     plans: [0, 0, 0], mistakes: 0, instRolls: 0, instPlanned: 0, boostsFired: 0, laneChanges: 0, overtakeLanes: 0, draftFollows: 0,
     recoveries: 0, resets: 0, forksSeen: 0, forksTaken: 0, sumAbsLineDev: 0, sumBias: 0, samples: 0,
+    dragPlans: 0, tapPlans: 0, brakeTurnPlans: 0, tapsPressed: 0, dragBoosts: 0, expiryWaits: 0, maxDriftBrakeRun: 0,
   };
   private readonly track: BakedTrack;
   private readonly content: ContentTables;
@@ -148,14 +180,20 @@ class BotDriver implements AiDriverEx {
   private tapLeft = 0; private tapDir = 1; private rek = 0;
   private predDrifting = false;
   private brakeRun = 0; private brakeCool = 0; // brake pulses while drifting (spin-out guard, see commit)
+  private lastHeld = false; // DRIFT held in the last committed frame
   private instOk = true; private instHandled = true; private instPressAt = -1; private instArmed = false;
   private holdExtra = 0; private cornerDrifts = 0;
   // ---- per-corner plan
   private cCorner = -2; private cPath = -1;
   private cPlan: number = DriftPlan.OPTIMAL; private cLate = 0.5; private cHold = 0; private cMistake: number = Mistake.NONE;
   private lateBrakeLeft = 0; private wideT = 0.5; private cChain = true; private panicLeft = 0;
+  // ---- per-corner technique plan (M5): drag (끌기), tap boost (톡톡이), brake drift turn (고속턴)
+  private cDrag = false; private cTap = false; private cBrakeTurn = false; private bturnDone = false; private bturnLeft = 0;
+  private tapNext = 8; private dragging = false;
+  // drag plans are rolled once per corner pass (key = the lap of the pass), early when the booster hold looks ahead
+  private readonly dragKey: Int32Array[]; private readonly dragPlan: Uint8Array[];
   // ---- boosters
-  private boostReadyAt = -1; private prevBoost = false;
+  private boostReadyAt = -1; private prevBoost = false; private expiryDeadline = -1; private raceDistNow = 0.5;
   // ---- lanes
   private laneOff = 0.5; private laneTarget = 0.5; private laneTtc = 1e9; private laneClosing = 0.5; private laneDrafting = false;
   private startLaneSet = false;
@@ -202,6 +240,8 @@ class BotDriver implements AiDriverEx {
     this.forkTake = new Uint8Array(this.plan.forks.length);
     this.warpTake = new Uint8Array(track.warps.length); this.warpLap = new Int32Array(track.warps.length).fill(-999);
     this.forkLap = new Int32Array(this.plan.forks.length).fill(-999);
+    this.dragKey = this.plan.paths.map((pp) => new Int32Array(pp.corners.length).fill(-999));
+    this.dragPlan = this.plan.paths.map((pp) => new Uint8Array(pp.corners.length));
     this.startOffset = args.startOffsetTicks ?? NaN;
     this.laneOff = 0; this.laneTarget = 0; this.noise = 0; this.laneTtc = Infinity; this.laneClosing = 0;
     this.view = {
@@ -315,13 +355,14 @@ class BotDriver implements AiDriverEx {
     const ctx = (out.held & Held.DRIFT) !== 0 || this.pred.drift === 1 || (k !== undefined && k.drive.drift === 1);
     const air = k !== undefined && k.body.grounded === 0 && k.body.coyote <= 0;
     if (out.brake > 0 && ctx && (air || this.brakeCool > 0 || this.brakeRun >= BRAKE_PULSE_MAX || this.pred.brakeT >= BRAKE_PULSE_MAX)) out.brake = 0;
-    if (out.brake > 0 && ctx) this.brakeRun++;
+    if (out.brake > 0 && ctx) { this.brakeRun++; if (this.brakeRun > this.stats.maxDriftBrakeRun) this.stats.maxDriftBrakeRun = this.brakeRun; }
     else {
       if (this.brakeRun > 0) this.brakeCool = BRAKE_COOL;
       this.brakeRun = 0;
       if (this.brakeCool > 0) this.brakeCool--;
     }
-    this.pred.push(-out.steer / 127, (out.held & Held.DRIFT) !== 0, out.throttle > 0, out.brake > 0, out.edges, (out.edges & Edge.USE_ITEM) !== 0);
+    this.lastHeld = (out.held & Held.DRIFT) !== 0;
+    this.pred.push(-out.steer / 127, this.lastHeld, out.throttle > 0, out.brake > 0, out.edges, (out.edges & Edge.USE_ITEM) !== 0);
   }
 
   private rollStart(w: Readonly<WorldState>): void {
@@ -400,6 +441,7 @@ class BotDriver implements AiDriverEx {
     }
     const jumpNear = dLip < 60 || ppS.RMF[this.ri] === 1; // loops / zero-g: no drift, straight line (14-ai §4.5)
     // ---- per-corner execution plan, rolled once per corner per pass
+    this.raceDistNow = k.race.raceDist;
     if (ci !== this.cCorner || ppS.index !== this.cPath) this.rollCorner(ci, ppS, corner, prof);
     // ---- line noise (OU at 20 Hz: dt = 3 ticks, τ = 90 ticks)
     if (highRate) {
@@ -509,6 +551,8 @@ class BotDriver implements AiDriverEx {
 
     let steer: number, thr = 1, brk = 0, drift = false, boost = false;
     let driftEh = 0; // heading error in the drift (+ = the nose lags the track): gates brake turns
+    let tapEdge = 0; // TAP_L / TAP_R edge of a tap boost (in the driver's own, un-mirrored frame)
+    this.dragging = false;
     const airborne = !b.grounded && b.coyote <= 0;
     let keepThrottle = d.startTicks > 0; // releasing the throttle would cancel a start boost
 
@@ -531,7 +575,8 @@ class BotDriver implements AiDriverEx {
         // drift trigger (14-ai §3.4) with the plan's timing
         let lead = v * A.tLead * Math.max(0.3, Math.min(1, A.rLead / cornerR));
         if (this.cPlan === DriftPlan.SLOPPY) lead = Math.max(0, lead - this.cLate);
-        if (Math.abs(t40) > A.trigDeg * DEG && v > 15 && dCorner <= lead && pr.lock <= 0 && cornerDir !== this.mergeSide) {
+        // (never into a corner the velocity already turns inside of: the kart is ahead of the road there)
+        if (Math.abs(t40) > A.trigDeg * DEG && v > 15 && dCorner <= lead && pr.lock <= 0 && cornerDir !== this.mergeSide && -vU * cornerDir < AI_TUNING.trigVPsi * Math.abs(vS)) {
           drift = true; steer = cornerDir; this.tapDir = cornerDir; this.tapLeft = A.tapFrames - 1; this.rek = 0;
           this.onDriftStart(prof);
         }
@@ -568,7 +613,7 @@ class BotDriver implements AiDriverEx {
       if (ledgeHere) this.holdExtra = 0;
       if (e < -eExit || e_forceExit) {
         if (this.holdExtra > 0) { this.holdExtra--; if (sIn < 0.25) sIn = 0.25; }
-        else if (holding && !e_forceExit) { if (sIn < AI_TUNING.holdMinSIn) sIn = AI_TUNING.holdMinSIn; }
+        else if (holding && !e_forceExit) { const m = v > AI_TUNING.fastHoldV * P.vGrip ? -TRIM_SIN : AI_TUNING.holdMinSIn; if (sIn < m) sIn = m; }
         else if (e_forceExit || this.cutOk(corner, inCorner, dd, hx, hy, tXs, tYs, u, hw, ppS.length)) sIn = -1;
         else sIn = -TRIM_SIN;
       }
@@ -576,7 +621,13 @@ class BotDriver implements AiDriverEx {
       sIn = sIn > 1 ? 1 : sIn < -1 ? -1 : sIn;
       const ehShift = style === 'long' ? AI_TUNING.longShift : style === 'chain' ? AI_TUNING.chainShift : A.ehShift;
       if (e_forceExit) { drift = false; this.tapLeft = 0; }
-      else if (this.tapLeft > 0) { drift = true; this.tapLeft--; if (sIn < 0.6) sIn = 0.6; }
+      else if (this.tapLeft > 0) {
+        // the entry tap's in-steer was validated at grip speed; a boosted drift entry turns the path at v/ω, so above
+        // vGrip the floor shrinks with (vGrip/v)^fastTapExp (a full tap at 44 m/s wraps a R45 corner into R22)
+        drift = true; this.tapLeft--;
+        const fl = v > P.vGrip ? 0.6 * Math.pow(P.vGrip / v, AI_TUNING.fastTapExp) : 0.6;
+        if (sIn < fl) sIn = fl;
+      }
       else if (holding && AI_TUNING.holdMode === 1) {
         // drag drift (끌기): keep the key while not over-rotated; the yaw is trimmed with the wheel
         drift = eh > AI_TUNING.holdKeyEh && sb < AI_TUNING.holdSbMax;
@@ -586,6 +637,54 @@ class BotDriver implements AiDriverEx {
         if (pr.dTicks > A.rekTicks && eh > reKick && this.rek === 0 && longOk) { this.rek = 1; drift = false; }
         else drift = true;
         if (sIn < 0.6) sIn = 0.6;
+      }
+      // ---- drag (끌기, 14-ai §3.11): on a planned drag corner, once the boosted drift has built β into the entry
+      // window, hold DRIFT with the wheel neutral while the nose follows the track; the drag law then carries the kart
+      // past vBoost (290 km/h). Taps on the corner key every 6–12 ticks (톡톡이) add yaw and lift the cap to 305.
+      const dragCorner = AI_TUNING.drag && this.cDrag && !e_forceExit && corner !== null && corner.dir === dd && (inCorner || cornerDist < 15)
+        && pr.boost > AI_TUNING.dragBoostMin && outside < AI_TUNING.dragOut && outside > -AI_TUNING.dragIn
+        && (!inCorner || this.remainingTurn(corner, ppS.length) > AI_TUNING.dragEndTurn);
+      // yaw the corner asks for at the apply tick: path curvature × speed, plus a heading correction (rad/s, + = into
+      // the drift); and the drift's own yaw target with the wheel centred (the y0 term fades with drift time)
+      this.qs = s + AI_TUNING.dragKapLead * v; this.at(path);
+      const kapS = (this.rp.KAP[this.ri]! + (this.rp.KAP[this.rj]! - this.rp.KAP[this.ri]!) * this.rf) * dd;
+      const wantYaw = (kapS > 0 ? kapS : 0) * v + AI_TUNING.dragKh * e;
+      const yaw0 = P.y0 / (1 + (pr.dTicks * DT) / P.y0T) + P.y2, yawNow = pr.yaw * dd;
+      if (dragCorner && pr.dragT === 0 && pr.sb < P.dragEnterLo) {
+        // build-up: a plain drift often slides at 8–15° and the drag needs β ≥ 20°: more in-steer (DRIFT held) once the
+        // entry has settled, while the nose lags the track and the yaw is not already past what the corner asks for
+        if (this.tapLeft === 0 && pr.dTicks >= AI_TUNING.dragBuildTicks && pr.dTicks <= AI_TUNING.dragBuildMaxTicks && eh > AI_TUNING.dragBuildEhLo && yawNow < wantYaw + AI_TUNING.dragBuildYaw) {
+          if (sIn < AI_TUNING.dragBuildSIn) sIn = AI_TUNING.dragBuildSIn;
+          drift = this.lastHeld; thr = 1; keepThrottle = true; // no DRIFT re-press: it would re-kick
+          this.dragging = true;
+        }
+      } else if (dragCorner && eh > AI_TUNING.dragEhLo && eh < AI_TUNING.dragEhHi && (pr.dragT > 0 || pr.sb >= P.dragEnterLo)) {
+        // a boosted entry often slides into the window during the entry tap: the drag takes over from it
+        this.tapLeft = 0;
+        // DRIFT stays held (a re-press would re-kick and cost 1%). The wheel sets the yaw target inside the neutral band
+        // (|sIn| < dragNeutral keeps the drag: ±0.34 rad/s): sIn = (wanted − centred yaw)/y1, minus a damping term on
+        // the yaw excess (the yaw lags its target at kYawDrift); the taps add yaw on top when more is wanted
+        this.dragging = true;
+        const tr = AI_TUNING.dragTrim * P.dragNeutral;
+        // DRIFT keeps its state (a re-press re-kicks: +0.8 rad/s and −1% speed) unless the yaw needs the other one
+        const held = this.lastHeld;
+        const yc = held ? yaw0 : yaw0 - P.y2;
+        if (held && wantYaw < yc - P.y1 * tr - AI_TUNING.dragHeldSwap) drift = false;
+        else if (!held && wantYaw > yc + P.y1 * tr + AI_TUNING.dragHeldSwap) drift = true;
+        else drift = held;
+        const yt = drift ? yaw0 : yaw0 - P.y2;
+        sIn = (wantYaw - yt) / P.y1 - AI_TUNING.dragKd * (yawNow - wantYaw);
+        if (sIn > tr) sIn = tr; else if (sIn < -tr) sIn = -tr;
+        thr = 1; keepThrottle = true;
+        if (this.cTap && pr.dragT > 1 && eh > AI_TUNING.tapEhMin && yawNow < wantYaw + AI_TUNING.tapYawMargin && (pr.gap >= 255 || pr.gap + 1 >= this.tapNext)) {
+          tapEdge = dd > 0 ? Edge.TAP_L : Edge.TAP_R;
+          this.stats.tapsPressed++;
+          const j = ex.tapJitterTicks, g = AI_TUNING.tapGap + (j > 0 ? this.rng.int(-j, j) : 0);
+          this.tapNext = g < P.tapMinGap ? P.tapMinGap : g > P.tapMaxGap ? P.tapMaxGap : g;
+        }
+      } else if (this.cBrakeTurn && !this.bturnDone && corner !== null && corner.dir === dd && inCorner && eh > AI_TUNING.bturnEh && pr.dTicks >= 2) {
+        // brake drift turn (고속턴) on a rolled hairpin: one short brake tap turns the nose at twice the yaw rate
+        this.bturnDone = true; this.bturnLeft = AI_TUNING.bturnFrames;
       }
       steer = sIn * dd;
       // throttle off during the counter-steer sets up the instant-boost edge (only when this drift plans one)
@@ -635,8 +734,11 @@ class BotDriver implements AiDriverEx {
     let wantBrake = v > vLim + 0.5, wantCoast = !wantBrake && v > vLim;
     if (wantBrake && this.cMistake === Mistake.LATE_BRAKE && this.lateBrakeLeft > 0) { this.lateBrakeLeft--; wantBrake = false; wantCoast = false; }
     if (this.cMistake === Mistake.PANIC_BRAKE && this.panicLeft > 0 && corner && cornerDist < 12 && v > 12) { this.panicLeft--; wantBrake = true; }
-    // in a drift every brake press is a brake turn (heading ×2): brake only while the nose lags the track, else lift
+    // in a drift every brake press is a brake turn (heading ×2): brake only while the nose lags the track, else lift;
+    // a drag needs ↑ and no brake (the corner speed is the drag's own), a planned brake turn brakes for its frames
     if (wantBrake && drifting && driftEh < AI_TUNING.brakeEh) { wantBrake = false; wantCoast = true; }
+    if (this.dragging) { wantBrake = false; wantCoast = false; }
+    if (this.bturnLeft > 0) { this.bturnLeft--; if (drifting) { wantBrake = true; wantCoast = false; } }
     // traffic: never ram a kart ahead (lift, then brake when contact is imminent and no lane is free)
     // traffic: never ram a kart ahead — lift when contact is near and no lane is free, brake when it is imminent
     // (also mid-drift: a drift brakes at 14 m/s² and keeps its slide)
@@ -648,7 +750,7 @@ class BotDriver implements AiDriverEx {
     else if (wantCoast && !keepThrottle) thr = 0;
 
     // ---- boosters (speed mode; 14-ai §3.7) by booster discipline
-    if (!cruising && d.boosters + d.teamBoosters > 0 && !airborne && !narrowLedge) boost = this.wantBoost(k, applyTick, t40, straightAhead, drifting, ex.boostSkill, prof);
+    if (!cruising && d.boosters + d.teamBoosters > 0 && !airborne && !narrowLedge) boost = this.wantBoost(k, applyTick, t40, straightAhead, drifting, ex.boostSkill, prof, corner, cornerDist, inCorner, v, ppS);
     else if (d.boosters + d.teamBoosters === 0) this.boostReadyAt = -1;
     if (boost) this.stats.boostsFired++;
     this.prevBoost = boost;
@@ -660,7 +762,10 @@ class BotDriver implements AiDriverEx {
 
     // ---- recovery (stuck / wrong way)
     const ri = this.recIn;
-    ri.sinceGo = w.tick - w.goTick; ri.v = v; ri.vFwd = vFwd; ri.aTarget = aH;
+    // slow / pinned detection on the real speed too: the self-prediction has no walls, so a kart pinned against an
+    // obstacle (hard hit, stun, throttle, hard hit …) still predicts itself moving off
+    const vNow = Math.sqrt(b.vx * b.vx + b.vy * b.vy + b.vz * b.vz), fNow = b.vx * b.fx + b.vy * b.fy + b.vz * b.fz;
+    ri.sinceGo = w.tick - w.goTick; ri.v = vNow < v ? vNow : v; ri.vFwd = fNow < vFwd ? fNow : vFwd; ri.aTarget = aH;
     ri.aTrack = Math.atan2(hx * tYs - hy * tXs, hx * tXs + hy * tYs);
     ri.lowSpeedTicks = d.lowSpeedTicks; ri.wrongWayTicks = k.race.wrongWayTicks;
     ri.canAct = !airborne && k.status.cc === 0 && w.phase >= Phase.RACING;
@@ -672,7 +777,7 @@ class BotDriver implements AiDriverEx {
     const wasRec = this.rec.mode !== 0;
     if (this.rec.update(ri, this.recOut)) {
       if (!wasRec) this.stats.recoveries++;
-      steer = this.recOut.steer; thr = this.recOut.thr; brk = this.recOut.brk; drift = false; boost = false;
+      steer = this.recOut.steer; thr = this.recOut.thr; brk = this.recOut.brk; drift = false; boost = false; tapEdge = 0;
       if (this.recOut.reset) { out.edges |= Edge.RESPAWN; this.stats.resets++; }
     }
 
@@ -688,6 +793,7 @@ class BotDriver implements AiDriverEx {
     out.brake = brk > 0 ? 15 : 0;
     out.held = drift ? Held.DRIFT : 0;
     if (boost) out.edges |= Edge.USE_ITEM;
+    out.edges |= tapEdge;
 
     // ---- item hook (L2): after the driving controls, never while recovering or cruising
     if (this.item && !cruising) {
@@ -808,9 +914,20 @@ class BotDriver implements AiDriverEx {
     this.cCorner = ci; this.cPath = pp.index; this.cornerDrifts = 0;
     this.cPlan = DriftPlan.OPTIMAL; this.cMistake = Mistake.NONE; this.cLate = 0; this.cHold = 0; this.lateBrakeLeft = 0; this.panicLeft = 0;
     this.cChain = true;
+    this.cDrag = false; this.cTap = false; this.cBrakeTurn = false; this.bturnDone = false; this.bturnLeft = 0;
     if (!corner) return;
     const r = this.rng.next();
     const ex = prof.exec;
+    // techniques (M5, 14-ai §3.11), rolled per corner and tier; the ghost takes every eligible plan
+    if (corner.needsDrift) {
+      const T = AI_TUNING;
+      const dp = this.rollDrag(pp, ci, prof, this.cornerKey(pp, corner));
+      this.cDrag = (dp & 1) !== 0; this.cTap = (dp & 2) !== 0;
+      if (corner.turn >= T.hairpinTurn && corner.minR <= T.hairpinR) {
+        this.cBrakeTurn = prof.ghost || this.rng.next() < ex.brakeTurnRate;
+        if (this.cBrakeTurn) this.stats.brakeTurnPlans++;
+      }
+    }
     if (prof.ghost || r < prof.driftSkill) this.cPlan = DriftPlan.OPTIMAL;
     else if (r < prof.driftSkill + 0.6 * (1 - prof.driftSkill) || corner.gripRatio < ex.gripViable) {
       this.cPlan = DriftPlan.SLOPPY;
@@ -847,6 +964,50 @@ class BotDriver implements AiDriverEx {
     return over < AI_TUNING.cutPsi && hw + u * dd > AI_TUNING.cutRoom;
   }
 
+  /** Pass key of a corner: the lap in which the kart reaches its entry (stable while the corner approaches). */
+  private cornerKey(pp: PathPlan, c: Corner): number {
+    let d0 = c.s0 - this.rsCur;
+    if (pp.closed) { const L = pp.length; if (d0 < -L / 2) d0 += L; else if (d0 > L / 2) d0 -= L; }
+    return Math.round((this.raceDistNow + d0 - c.s0) / Math.max(1, this.track.lapLength));
+  }
+
+  /**
+   * The drag plan of corner `ci` on `pp` for one pass (bit 1 drag, bit 2 tap), rolled once per pass: eligible corners
+   * (Corner.dragSafe, minR ≥ dragMinR, turn ≤ dragMaxTurn) take a drag at the tier's dragRate and taps at its tapRate;
+   * the ghost takes every eligible plan.
+   */
+  private rollDrag(pp: PathPlan, ci: number, prof: EffectiveProfile, key: number): number {
+    const keys = this.dragKey[pp.index], plans = this.dragPlan[pp.index], c = pp.corners[ci];
+    if (!keys || !plans || !c) return 0;
+    if (keys[ci] === key) return plans[ci]!;
+    keys[ci] = key;
+    const ex = prof.exec, T = AI_TUNING;
+    let v = 0;
+    if (T.drag && c.needsDrift && c.dragSafe && c.minR >= ex.dragMinR && c.turn <= T.dragMaxTurn && (prof.ghost || this.rng.next() < ex.dragRate)) {
+      v = 1; this.stats.dragPlans++;
+      if (prof.ghost || this.rng.next() < ex.tapRate) { v |= 2; this.stats.tapPlans++; }
+    }
+    plans[ci] = v;
+    return v;
+  }
+
+  /** Distance to the entry of the next planned drag corner within AI_TUNING.dragHoldM ahead on `pp` (1e9 = none). */
+  private nextDragDist(pp: PathPlan, ci: number, prof: EffectiveProfile): number {
+    const cs = pp.corners, L = pp.length;
+    if (ci < 0 || cs.length === 0) return 1e9;
+    for (let q = 0; q < cs.length; q++) {
+      const i = (ci + q) % cs.length;
+      if (!pp.closed && i < ci) break;
+      const c = cs[i]!;
+      let d = c.s0 - this.rsCur;
+      if (pp.closed && d < -L / 2) d += L;
+      if (d > AI_TUNING.dragHoldM) break;
+      if (d < 0) continue;
+      if ((this.rollDrag(pp, i, prof, this.cornerKey(pp, c)) & 1) !== 0) return d;
+    }
+    return 1e9;
+  }
+
   /** Heading change left in the corner from the predicted position (rad). */
   private remainingTurn(c: Corner, pathLength: number): number {
     const len = c.s1 - c.s0;
@@ -856,24 +1017,60 @@ class BotDriver implements AiDriverEx {
     return left <= 0 ? 0 : c.turn * Math.min(1, left / len);
   }
 
-  private wantBoost(k: KartState, applyTick: number, t40: number, straight: number, drifting: boolean, skill: number, prof: EffectiveProfile): boolean {
-    const d = k.drive;
+  private wantBoost(k: KartState, applyTick: number, t40: number, straight: number, drifting: boolean, skill: number, prof: EffectiveProfile,
+    corner: Corner | null, cornerDist: number, inCorner: boolean, v: number, pp: PathPlan): boolean {
+    const d = k.drive, ex = prof.exec;
     if (this.boostReadyAt < 0) {
-      const dl = prof.exec.boostDelayTicks;
+      const dl = ex.boostDelayTicks;
       this.boostReadyAt = applyTick + (prof.ghost ? 0 : this.rng.int(dl[0], dl[1]));
     }
     if (applyTick < this.boostReadyAt || drifting || this.prevBoost || d.boostTicks >= 12 || d.startTicks > 0) return false;
     const at = Math.abs(t40);
     // final stretch: burn everything
     if (skill >= 2 && this.remainingDist(k) < 260 && at < 20 * DEG) return true;
+    // a planned drag needs a boosted drift: fire into the corner, and keep the last booster for it on the approach
+    // (a booster fired now still covers a drag corner closer than dragCoverS of boost)
+    if (skill >= 1 && ex.dragLeadS > 0) {
+      const dd = this.cDrag && corner && !inCorner ? cornerDist : this.nextDragDist(pp, this.cCorner === -2 ? -1 : this.cCorner, prof);
+      if (dd < 1e9) {
+        if (dd > 5 && dd < v * ex.dragLeadS) { this.stats.dragBoosts++; return true; }
+        if (d.boosters + d.teamBoosters < 2 && dd > v * AI_TUNING.dragCoverS) return false;
+      }
+    }
+    let fire: boolean;
     switch (skill) {
-      case 0: return at < 25 * DEG;
-      case 1: return at < 12 * DEG;
+      case 0: fire = at < 25 * DEG; break;
+      case 1: fire = at < 12 * DEG; break;
       default:
         // a booster fired just before a drift corner is half wasted; Pro+ wait for a little road when they can
-        if (at >= 12 * DEG) return false;
-        return straight >= 40 || d.boosters + d.teamBoosters >= 2;
+        fire = at < 12 * DEG && (straight >= 40 || d.boosters + d.teamBoosters >= 2);
     }
+    if (!fire) { this.expiryDeadline = -1; return false; }
+    // Pro/Legend: a boost that runs out on a straight bleeds to vGrip in 0.5 s, one that runs out in a drift keeps its
+    // speed (the drift cancels the bleed): wait up to expiryWaitS for the expiry to land in a drift corner
+    if (skill >= 2 && AI_TUNING.expiryWaitS > 0 && d.boosters + d.teamBoosters < 2) {
+      if (this.expiryDeadline < 0) this.expiryDeadline = applyTick + Math.round(AI_TUNING.expiryWaitS * 60);
+      if (applyTick < this.expiryDeadline && !this.expiresInDrift(k, pp, v)) { this.stats.expiryWaits++; return false; }
+    }
+    this.expiryDeadline = -1;
+    return true;
+  }
+
+  /** True if a booster fired now would run out inside a drift corner on this path (rough distance estimate). */
+  private expiresInDrift(k: KartState, pp: PathPlan, v: number): boolean {
+    const P = this.P!, d = k.drive;
+    const ticks = d.boostTicks + (d.teamBoosters > 0 ? P.teamBoostTicks : P.tBoostTicks);
+    const vb = AI_TUNING.expirySpeed * P.vBoost;
+    const sExp = this.rsCur + ((v < vb ? 0.5 * (v + vb) : vb) * 0.4 + vb * 0.6) * ticks * DT;
+    const cs = pp.corners, L = pp.length;
+    for (let i = 0; i < cs.length; i++) {
+      const c = cs[i]!;
+      if (!c.needsDrift) continue;
+      let a = sExp - c.s0, len = c.s1 - c.s0;
+      if (pp.closed) { a -= L * Math.floor(a / L); if (len < 0) len += L; }
+      if (a >= -5 && a <= len) return true;
+    }
+    return false;
   }
 
   private remainingDist(k: KartState): number {
