@@ -258,3 +258,19 @@ describe('lobby state abuse', () => {
     expect(a.all('room').length).toBe(roomsAtA + 2);
   });
 });
+
+describe('input filters', () => {
+  it('a bot tier of constructor (or any inherited key) falls back to the room tier and the race runs (item 9)', () => {
+    const w = new World();
+    const h = host(w, 'Host');
+    for (const [slot, tier] of [[3, 'constructor'], [4, '__proto__'], [5, 'toString'], [6, 'legend']] as const) {
+      h.send({ t: 'slot', slot, action: 'bot', tier: tier as 'legend' });
+    }
+    const v = h.last('room')!.room;
+    expect(v.slots.slice(3, 7).map((x) => x.tier)).toEqual(['rookie', 'rookie', 'rookie', 'legend']);
+    h.send({ t: 'start' });
+    w.advance(2000);
+    expect(h.errors()).toEqual([]);
+    expect(w.server.stats().races).toBe(1);
+  });
+});

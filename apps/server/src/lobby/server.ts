@@ -481,7 +481,7 @@ export class GameServer {
     switch (action) {
       case 'open': if (slot.state !== 'human') { slot.state = 'open'; slot.session = null; } break;
       case 'close': if (slot.state !== 'human') { slot.state = 'closed'; slot.session = null; } break;
-      case 'bot': if (slot.state !== 'human') { slot.state = 'bot'; slot.session = null; slot.tier = tier && tier in AI_TIERS ? tier : r.settings.botTier; slot.ready = true; } break;
+      case 'bot': if (slot.state !== 'human') { slot.state = 'bot'; slot.session = null; slot.tier = typeof tier === 'string' && Object.hasOwn(AI_TIERS, tier) ? tier : r.settings.botTier; slot.ready = true; } break;
       case 'kick': {
         const victim = slot.session;
         if (!victim || victim === s) return;
