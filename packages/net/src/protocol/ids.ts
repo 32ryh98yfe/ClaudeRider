@@ -28,6 +28,9 @@ export const NET = {
   SPOOF_CLAMP: 12,                // anti-spoof re-stamp window (200 ms)
   MISSING_HOLD: 6,                // ticks a missing input holds steering before it decays
   MISSING_DECAY: 0.85,
+  // ticks a missing input holds the brake before releasing it: a held brake turns a ≤ 8-tick brake turn into an
+  // 11-tick spin-out during a stall (8 + 2 = 10 < spinTicks 11). Must stay ≤ MISSING_HOLD (RunningInput.seek).
+  MISSING_BRAKE_HOLD: 2,
   TAKEOVER_TICKS: 180,            // AI takes a silent human's kart after 3 s
   RECONNECT_MS: 60_000,
   EVENT_LOG_TICKS: 600,           // 10 s resume log

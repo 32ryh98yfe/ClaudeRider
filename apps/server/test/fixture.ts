@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { loadContent, type TrackId } from '@cr/content';
 import { loadCtrk, toArrayBuffer, type BakedTrack } from '@cr/sim';
 import { buildTrack } from '@cr/trackc/build.ts';
-import { FrameMux, NET, decodeLobby, encodeC2SLobby, loopbackPair, S2C, type C2SLobby, type Loadout, type S2CLobby, type Transport } from '@cr/net';
+import { FrameMux, LOBBY_PROTOCOL_VERSION, NET, decodeLobby, encodeC2SLobby, loopbackPair, S2C, type C2SLobby, type Loadout, type S2CLobby, type Transport } from '@cr/net';
 import { GameServer, type LobbyTimings, type ServerLimits, type TrackSource } from '../src/lobby/server.ts';
 
 const trackCache = new Map<string, BakedTrack>();
@@ -81,7 +81,7 @@ export class TestClient {
     w.server.accept(s, ip);
   }
   send(m: C2SLobby): this { this.transport.send(encodeC2SLobby(m)); this.w.flush(); return this; }
-  hello(resume?: string): this { return this.send({ t: 'hello', v: 1, name: this.name, loadout: LOADOUT, ...(resume ? { resume } : {}) }); }
+  hello(resume?: string, v: number = LOBBY_PROTOCOL_VERSION): this { return this.send({ t: 'hello', v, name: this.name, loadout: LOADOUT, ...(resume ? { resume } : {}) }); }
   last<T extends S2CLobby['t']>(t: T): Extract<S2CLobby, { t: T }> | undefined {
     for (let i = this.got.length - 1; i >= 0; i--) if (this.got[i]!.t === t) return this.got[i] as Extract<S2CLobby, { t: T }>;
     return undefined;

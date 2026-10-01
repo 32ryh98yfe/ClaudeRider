@@ -58,7 +58,11 @@ conn.onLobby = (m: S2CLobby) => {
 
 conn.onEvent = (e) => {
   if (e === 'reconnecting') lobby.conn.value = 'reconnecting';
-  else if (e === 'closed') { lobby.conn.value = 'offline'; installSender(null); }
+  else if (e === 'closed') {
+    lobby.conn.value = 'offline'; installSender(null);
+    // another server version: say "reload" (errors.version_mismatch) instead of "offline"
+    if (conn.versionMismatch) lobby.error.value = 'version';
+  }
   else if (e === 'reconnected' || e === 'open') {
     lobby.conn.value = 'online';
     if (e === 'reconnected') {
@@ -78,8 +82,8 @@ setConnectImpl(async (name: string, loadout: Loadout): Promise<void> => {
     await conn.connect(serverUrl(), name, loadout);
   } catch {
     lobby.conn.value = 'offline';
-    lobby.error.value = 'offline';
-    throw new Error('offline');
+    lobby.error.value = conn.versionMismatch ? 'version' : 'offline';
+    throw new Error(conn.versionMismatch ? 'version' : 'offline');
   }
 });
 

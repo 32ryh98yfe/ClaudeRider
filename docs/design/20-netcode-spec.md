@@ -43,7 +43,7 @@ Status keys: **[S]** sourced · **[P]** proposed. Ticks at 60 Hz (1 tick = 16.66
 | 3 | u8 | `edges` (latched since the last frame): bit0 USE_ITEM, bit1 SWAP, bit2 TAP_L, bit3 TAP_R, bit4 RESPAWN, bit5 EMOTE; bits 6–7 must be 0 |
 | 4 | u8 | `aim`: target slot 0–7, 255 = none |
 | 5 | u8 | `emote` 0–15 in bits 0–3; bits 4–7 reserved (0) |
-Edges are latched on the client between ticks, so a tap shorter than a tick is never lost; the sim derives drift and throttle edges itself from `prevHeld`/`prevThrottle` (B1).
+Edges are latched on the client between ticks, so a tap shorter than a tick is never lost; the sim derives drift and throttle edges itself from `prevHeld`/`prevThrottle` (B1). Brake and throttle presses are kept the same way (§7.3).
 
 ### 3.2 Client → server
 | Id | Name | Layout | Size (incl. type) |
@@ -165,6 +165,8 @@ The server loop uses a drift-compensated timer (`performance.now()`-based setTim
 **C2S**: `hello{v, name, loadout, resume?}`, `quick{mode, teams}`, `quickCancel`, `create{settings}`, `join{code}`, `leave`, `ready{ready}`, `loadout{loadout}`, `settings{settings}` (host), `slot{slot, action: open|close|bot|kick, tier?}` (host), `team{slot, team}` (host), `start` (host), `vote{trackId}` (roulette), `chat{text}`, `loaded{trackHash}`.
 **S2C**: `welcome{session, serverVersion, simVersion}`, `queue{phase: search|stage, endsAt, humans, trackId?}`, `room{room}`, `roulette{endsAt, votes}`, `raceStart{config, startTick, serverTick, yourSlot}`, `raceEnd{result}`, `chat{from, text}`, `error{code}`.
 
+**Versions.** `hello.v` is `LOBBY_PROTOCOL_VERSION` (2 since M5, when the snapshot layout gained the driving-technique fields of SIM_VERSION 2). The server answers any other `v` with `error{code: 'version'}` and closes (4002). The client refuses a `welcome` whose `simVersion` differs from its own `SIM_VERSION` the same way (close 4002). Either refusal is final: no reconnect, and the player sees `errors.version_mismatch` ("reload").
+
 ### 5.2 Shapes [P]
 ```ts
 interface Loadout { characterId: CharacterId; kartBodyId: KartBodyId; livery: Livery; palette?: string; emotes?: Partial<Record<EmoteSlot, number>> }
@@ -197,7 +199,9 @@ interface RoomView { code: string | null /* null when hidden and you are not hos
 - **Anti-spoof clamp** (ADR-007, 200 ms = 12 ticks): a stamped tick that differs from the latency estimate by more than 12 ticks is replaced by the estimate (matters for the shield window start and aim validation).
 
 ### 6.2 Missing inputs (same rule on server and clients)
-Hold the last analog values (steer, throttle, brake, held); after 6 ticks without a new frame, steering decays by ×0.85 per tick; no edges are synthesized.
+Hold the last analog values (steer, throttle, brake, held); no edges are synthesized.
+- **Brake:** released after `NET.MISSING_BRAKE_HOLD` = 2 ticks without a new frame. A held brake would turn a short brake drift turn (≤ 8 ticks, doc 15 §4.3) into an 11-tick spin-out during a stall of ≥ 200 ms that the player's own prediction never showed; 8 + 2 = 10 < 11. It must stay ≤ `MISSING_HOLD`, so `RunningInput.seek` can stop early once steering has decayed to 0.
+- **Steering:** after `NET.MISSING_HOLD` = 6 ticks without a new frame, decays by ×0.85 per tick (integer steps).
 
 ---
 
@@ -221,6 +225,13 @@ Hold the last analog values (steer, throttle, brake, held); after 6 ticks withou
 
 ### 7.3 Local frame loop
 Fixed-step accumulator at the adjusted rate (59/60/61 Hz, §2), at most 5 steps per frame, `alpha = acc/dt` for interpolation; inputs are sampled every tick from the input system and sent immediately.
+
+**Samples → ticks (`NetClient.submit`, M5).** The client samples input once per rendered frame, which is not once per tick (144 Hz gives 2–3 samples per tick; at 60 Hz a frame can advance 0 or 2 ticks). Every sample reaches exactly one tick:
+- the samples queued since the last tick are spread over the ticks the next `update()` advances, oldest first (a tick takes ⌊queued / remaining⌋ of them; the last planned tick takes the rest, so the newest sample is never delayed);
+- the samples one tick takes are merged: brake and throttle keep their strongest value, edges are ORed, everything else is the newest;
+- a tick that gets no sample of its own holds the previous sample (without edges), as the authority does for a frame it lacks.
+
+So a 1-frame brake tap at 144 Hz, or one whose frame advanced no tick, still reaches a tick, and a frame that advances two ticks does not stretch its sample over both. Measured over 240 phases with ±1 ms vsync jitter at 60 Hz, a 10-frame brake hold becomes 11 ticks (a spin-out) in 37 cases, against 46 with "newest sample per tick" and 64 with a plain max-latch. Late frames on the server (§6.1) are not merged this way: their presses already happened on the authority's timeline, and replaying a brake at N would add a brake tick the player never had.
 
 ### 7.4 Smoothing (`visualOffset`)
 - Critically damped spring per kart on the position offset, time constant 120 ms for remote karts and 80 ms for the local kart [P]; heading offset eased the same way.

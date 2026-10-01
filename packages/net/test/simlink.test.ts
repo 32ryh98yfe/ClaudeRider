@@ -1,7 +1,7 @@
 // SimLink (20-netcode-spec §13): the real RaceRoom and NetClients on virtual time over modelled links.
 // Smoke by default (CI); NET_MATRIX=full runs the RTT × jitter × loss matrix with several seeds.
 import { describe, expect, it } from 'vitest';
-import { AI_TIERS, createAiDriver, type RaceConfig } from '@cr/sim';
+import { AI_TIERS, createAiDriver, type RaceConfig, type SimEvent } from '@cr/sim';
 import { RaceRoom } from '@cr/room';
 import { runScenario, percentile, type LinkProfile, type ScenarioResult } from '../src/simlink/index.ts';
 import { raceConfig, testContent, testTrack } from './helpers.ts';
@@ -107,6 +107,59 @@ describe('SimLink items (L2 decisions over EVENTS + predictor)', () => {
     const s = summary('item 300/10/0', run({ rtt: 300, jitter: 10, loss: 0, mode: 'item', ticks: 1200 }));
     expect(s.mismatches).toBe(0);
     expect(s.m8KnownBeforeLanding).toBeGreaterThanOrEqual(0.999);
+  });
+});
+
+describe('SimLink missing-input brake (20-netcode-spec §6.2)', () => {
+  /**
+   * One player (Pro AI on its predicted world) who, 10 ticks into every drift, brakes for exactly 6 ticks: a brake
+   * drift turn (doc 15 §4.3), far from the 11-tick spin-out. `stall` stalls the uplink at a server race tick.
+   */
+  function brakeTurns(stall?: { atTick: number; ms: number }): { r: ScenarioResult; brakes: number[]; spins: number[]; serverBrake: number[] } {
+    const cfg = raceConfig({ humans: 1, empty: 7, laps: 1, seed: 5 });
+    const prof: LinkProfile = { rttMs: 100, jitterMs: 0, loss: 0 };
+    const brakes: number[] = [], evs: SimEvent[] = [], serverBrake: number[] = [];
+    const r = runScenario({
+      cfg, track, content, humans: [0], seed: 3, ticks: 1500, frameHz: 60, frameJitterMs: 0,
+      makeAuthority: (now) => {
+        const room = new RaceRoom({ config: cfg, track, content, secret: new Uint32Array([3, 0x51, 0x4c, 0x9]), clock: { nowMs: now }, collectEvents: true, limits: { perSec: 70, burst: 10 } });
+        return {
+          attach: (p) => room.attach(p), detach: (id, why) => room.detach(id, why),
+          tick: () => { room.tick(); room.drainEvents(evs); serverBrake.push(room.world.karts[0]!.drive.brakeTicks); },
+          get world() { return room.world; },
+        };
+      },
+      link: () => ({ up: prof, down: prof }),
+      driver: () => {
+        const ai = createAiDriver(track, content, 0, AI_TIERS.pro, {}, 100, cfg);
+        let last = -100;
+        return (w, out) => {
+          ai.decide(w, out);
+          const d = w.karts[0]!.drive, T = w.tick + 1;
+          if (d.drift === 1 && d.driftTicks === 10 && T > last + 6) { last = T; brakes.push(T); }
+          out.brake = T >= last && T < last + 6 ? 15 : 0;
+        };
+      },
+      ...(stall ? { stall: { slot: 0, ...stall } } : {}),
+    });
+    return { r, brakes, spins: evs.filter((e) => e.t === 'spinOut' && e.kart === 0).map((e) => e.tick), serverBrake };
+  }
+
+  it('a 300 ms uplink stall inside a 6-tick brake turn: the server releases the brake, no spin-out, lossless snapshots', () => {
+    const base = brakeTurns();
+    expect(base.spins).toEqual([]);
+    expect(base.brakes.length).toBeGreaterThan(0);
+    const B = base.brakes[0]!;
+    // stall the uplink a few ticks before and up to the start of the brake turn on the server's timeline
+    for (const off of [-4, -2, 0, 2]) {
+      const s = brakeTurns({ atTick: B + off, ms: 300 });
+      expect(s.brakes[0], `offset ${off}`).toBe(B); // identical up to the stall
+      expect(s.spins, `offset ${off}`).toEqual([]);
+      // the server never counts more than the 6 pressed brake ticks plus the 2-tick missing-input hold
+      expect(Math.max(...s.serverBrake.slice(B - 10, B + 40)), `offset ${off}`).toBeLessThanOrEqual(6 + 2);
+      expect(s.r.clients[0]!.snapshotMismatches, `offset ${off}`).toBe(0);
+      expect(s.r.finalHashMatch, `offset ${off}`).toBe(true);
+    }
   });
 });
 

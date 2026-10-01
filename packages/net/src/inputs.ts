@@ -58,11 +58,13 @@ export class InputRing {
 
 /**
  * One tick of the missing-input rule applied to the running frame: edges are never synthesized, analog values are
- * held, and after `NET.MISSING_HOLD` ticks without a frame steering decays by ×0.85 per tick (integer steps).
- * `missCount` is the number of consecutive ticks without a frame, including this one.
+ * held, the brake is released after `NET.MISSING_BRAKE_HOLD` ticks without a frame (a held brake would turn a short
+ * brake drift turn into a spin-out the player never pressed), and after `NET.MISSING_HOLD` ticks steering decays by
+ * ×0.85 per tick (integer steps). `missCount` is the number of consecutive ticks without a frame, including this one.
  */
 export function stepMissing(cur: InputFrame, missCount: number): void {
   cur.edges = 0;
+  if (missCount > NET.MISSING_BRAKE_HOLD) cur.brake = 0;
   if (missCount > NET.MISSING_HOLD && cur.steer !== 0) cur.steer = Math.trunc(cur.steer * NET.MISSING_DECAY);
 }
 
@@ -77,7 +79,8 @@ export class RunningInput {
     if (!at) { copyInput(this.cur, NEUTRAL); this.miss = 0; return; }
     copyInput(this.cur, at.frame);
     this.miss = 0;
-    // once steering has decayed to zero further steps change nothing, so long gaps stay cheap
+    // once steering has decayed to zero further steps change nothing (the brake is already released by then,
+    // MISSING_BRAKE_HOLD ≤ MISSING_HOLD), so long gaps stay cheap
     for (let t = at.tick + 1; t <= tick; t++) {
       this.miss++;
       stepMissing(this.cur, this.miss);

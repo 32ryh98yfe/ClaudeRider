@@ -7,7 +7,7 @@ import type { AddressInfo } from 'node:net';
 import { WebSocket, WebSocketServer } from 'ws';
 import { loadContent } from '@cr/content';
 import { startGameServer } from '../src/game/run.ts';
-import { ByteWriter, PingMsg, encodeC2SLobby, type RoomSettings, type Transport } from '@cr/net';
+import { ByteWriter, LOBBY_PROTOCOL_VERSION, PingMsg, encodeC2SLobby, type RoomSettings, type Transport } from '@cr/net';
 import { wsTransport } from '../src/net/wsTransport.ts';
 import { addressKey } from '../src/net/address.ts';
 import { cleanChat, cleanName } from '../src/lobby/validate.ts';
@@ -113,7 +113,7 @@ describe('floods and sockets that never read (item 2)', () => {
     const w = new World({}, { maxBufferedBytes: 4096 });
     const t = deafSocket();
     w.server.accept(t);
-    t.onMessage!(encodeC2SLobby({ t: 'hello', v: 1, name: 'Deaf', loadout: LOADOUT }));
+    t.onMessage!(encodeC2SLobby({ t: 'hello', v: LOBBY_PROTOCOL_VERSION, name: 'Deaf', loadout: LOADOUT }));
     expect(w.server.stats().sessions).toBe(1);
     let id = 0;
     for (let i = 0; i < 60 * 60 && !t.closedWith; i++) { for (let k = 0; k < 20; k++) t.onMessage!(ping(id++)); w.advance(1000 / 60); }

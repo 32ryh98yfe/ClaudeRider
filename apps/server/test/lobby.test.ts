@@ -1,6 +1,8 @@
 // Lobby FSM tests (20-netcode-spec §13.5): sessions, codes, host controls and migration, ready/auto-start, roulette,
 // Quick Match timers, resume, chat limits — on a fake clock with scripted clients.
 import { describe, expect, it } from 'vitest';
+import { LOBBY_PROTOCOL_VERSION } from '@cr/net';
+import { SIM_VERSION } from '@cr/sim';
 import { CODE_ALPHABET, cleanChat, cleanName, normalizeCode, randomCode } from '../src/lobby/validate.ts';
 import { World } from './fixture.ts';
 
@@ -45,6 +47,21 @@ describe('sessions', () => {
     expect(b.errors()).toContain('version');
     const c = w.client('').hello();
     expect(c.errors()).toContain('nameInvalid');
+  });
+
+  it('an M4 client (lobby protocol 1, the pre-technique snapshot layout) is refused with error version and closed', () => {
+    expect(LOBBY_PROTOCOL_VERSION).toBe(2);
+    expect(SIM_VERSION).toBe(2);
+    const w = new World();
+    const old = w.client('Old').hello(undefined, 1);
+    expect(old.errors()).toEqual(['version']);
+    expect(old.last('welcome')).toBeUndefined();
+    expect(old.closed).toBe('version');
+    expect(w.server.stats().sessions).toBe(0);
+    // the current client is welcomed with the simulation version it was built with
+    const cur = w.client('New').hello();
+    expect(cur.errors()).toEqual([]);
+    expect(cur.last('welcome')!.simVersion).toBe(SIM_VERSION);
   });
 
   it('a dropped player resumes the same session and seat with the token', () => {

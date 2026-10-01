@@ -57,6 +57,9 @@ class Direction {
     return d;
   }
 
+  /** A stall (TCP head-of-line block, a congested hop): nothing sent from now on arrives before `untilMs`. */
+  hold(untilMs: number): void { if (untilMs > this.lastDelivery) this.lastDelivery = untilMs; }
+
   send(bytes: Uint8Array, deliver: (b: Uint8Array) => void): void {
     const now = this.loop.now, p = this.prof;
     const wire = wireSize(bytes.length, this.masked);
@@ -82,6 +85,8 @@ export interface SimLinkPair {
   down: LinkCounters;
   /** Drops the connection: in-flight data is lost and both ends see onClose after `detectMs`. */
   cut(detectMs?: number): void;
+  /** Stalls the client → server direction for `ms`: messages sent from now on arrive no earlier than now + ms. */
+  stallUp(ms: number): void;
   readonly open: boolean;
 }
 
@@ -120,5 +125,6 @@ export function simLink(loop: VirtualLoop, prof: { up: LinkProfile; down: LinkPr
       open = false; epoch++;
       loop.after(detectMs, () => { client.onClose?.('cut'); server.onClose?.('cut'); });
     },
+    stallUp(ms: number): void { up.hold(loop.now + ms); },
   };
 }

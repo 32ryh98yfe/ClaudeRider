@@ -55,7 +55,7 @@ export const SHARED: Readonly<Shared> = {
   // post-boost bleed: postTicks (0.5 s) of decayF(kPostHold) toward the non-boost target, kPostRel toward 0 on release
   postTicks: 30, kPostHold: 6, kPostRel: 0.7,
   // drag (끌기) and tap boost (톡톡이); caps are vBoost multiples on planar |v|: 290 km/h, +5 km/h per streak step
-  aDrag: 5, etaDrag: 1.0, dragCapMul: 1.0662, tapCapStep: 0.01839, tapStreakMax: 3, tapYaw: 0.4,
+  aDrag: 5, etaDrag: 1.0, dragCapMul: 1.0662, tapCapStep: 0.01839, tapStreakMax: 3, tapYaw: 0.7,
   tapAccelMul: 2, tapTicks: 8, tapGrace: 8, tapMinGap: 6, tapMaxGap: 12,
   dragNeutral: 0.3, dragEnterLo: SIN.d20, dragEnterHi: SIN.d35, dragExitLo: SIN.d18, dragExitHi: SIN.d37,
   // cut and reverse gauge

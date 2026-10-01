@@ -68,6 +68,15 @@ export interface NetClientOptions {
 }
 
 const HASH_RING = 256;
+/** Samples kept between ticks (144 Hz gives 2–3 per tick; more only while no tick runs, and those merge). */
+const SAMPLE_RING = 8;
+
+/** Folds a later sample into `dst`: brake and throttle keep the strongest press, edges accumulate, the rest is newest. */
+function mergeSample(dst: InputFrame, src: Readonly<InputFrame>): void {
+  const brake = dst.brake > src.brake ? dst.brake : src.brake, thr = dst.throttle > src.throttle ? dst.throttle : src.throttle, edges = dst.edges | src.edges;
+  copyInput(dst, src);
+  dst.brake = brake; dst.throttle = thr; dst.edges = edges;
+}
 /** Longest prediction past the last authoritative tick (1.5 s); beyond it the client waits for a keyframe. */
 export const MAX_PREDICT = 90;
 
@@ -106,7 +115,11 @@ export class NetClient {
   private readonly usedKnown: Int32Array[] = [];
   private readonly running: RunningInput[] = [];
   private readonly inputs: InputFrame[] = [];
-  private readonly pending = makeInput();
+  /** Sampled frames no tick has consumed yet (submit → advance), oldest first; a full ring merges into its newest. */
+  private readonly samples: InputFrame[] = Array.from({ length: SAMPLE_RING }, () => makeInput());
+  private sampleN = 0;
+  /** The newest consumed sample without its edges: what a tick that gets no sample of its own holds. */
+  private readonly held = makeInput();
   private readonly frame = makeInput();
   private readonly queue: Uint8Array[] = [];
   private readonly hashTick = new Int32Array(HASH_RING).fill(-1);
@@ -190,11 +203,17 @@ export class NetClient {
   /** Every authority decision received so far, in seq order (the log the predictor reads). */
   get decisions(): readonly Decision[] { return this.log.items; }
 
-  /** Latest sampled input; analog values persist, edges are latched until the next predicted tick consumes them. */
+  /**
+   * One sampled input (call once per rendered frame, before update()). Every sample reaches exactly one predicted
+   * tick: the samples taken since the last tick are spread over the ticks the next update() advances, oldest first,
+   * and the samples one tick takes are merged (brake and throttle keep their strongest value, edges are ORed, the
+   * rest is the newest). So a press shorter than a tick (a 1-frame tap at 144 Hz, or a sample whose frame advanced no
+   * tick at 60 Hz) still reaches a tick, and a frame that advances two ticks does not stretch its sample over both:
+   * a tick with no sample of its own holds the previous one, as the authority does for a frame it lacks.
+   */
   submit(f: Readonly<InputFrame>): void {
-    const edges = this.pending.edges | f.edges;
-    copyInput(this.pending, f);
-    this.pending.edges = edges;
+    if (this.sampleN === SAMPLE_RING) mergeSample(this.samples[SAMPLE_RING - 1]!, f);
+    else copyInput(this.samples[this.sampleN++]!, f);
   }
 
   /** Processes network input, reconciles, and advances the prediction. Returns ticks advanced. */
@@ -265,9 +284,10 @@ export class NetClient {
     }
 
     let steps = 0;
+    const planned = Math.min(budget, Math.floor(this.acc));
     while (this.acc >= 1 && steps < budget) {
       if (this.mode === 'free' && this.pred.tick - this.dec.world.tick >= 40) { this.acc = Math.min(this.acc, 1); break; }
-      this.advance();
+      this.advance(planned - steps);
       this.acc -= 1;
       steps++;
     }
@@ -517,12 +537,12 @@ export class NetClient {
 
   // ------------------------------------------------------------ stepping
 
-  /** One new predicted tick: sample, send and simulate. */
-  private advance(): void {
+  /** One new predicted tick (`remaining` ticks are planned in this update, this one included): sample, send, simulate. */
+  private advance(remaining: number): void {
     const T = this.pred.tick + 1;
     const f = this.frame;
     if (this.inputProvider) this.inputProvider(this.pred, f);
-    else { copyInput(f, this.pending); this.pending.edges = 0; }
+    else this.takeSamples(f, remaining);
     this.own.set(T, f);
     this.onOwnInput?.(T, f);
     // frames produced in one update go out together, up to 4 per INPUT message (§3.2)
@@ -531,6 +551,22 @@ export class NetClient {
     copyInput(this.outFrames[this.outN++]!, f);
     copyWorld(this.prevW, this.pred);
     this.simulate(T, false);
+  }
+
+  /**
+   * This tick's share of the queued samples: ⌊n / remaining⌋ of them (all of them on the last planned tick), merged.
+   * None → the held previous sample, without edges. Rotates the consumed frames to the back (no allocation).
+   */
+  private takeSamples(f: InputFrame, remaining: number): void {
+    const q = this.samples, n = this.sampleN;
+    const c = remaining <= 1 ? n : Math.floor(n / remaining);
+    if (c === 0) { copyInput(f, this.held); return; }
+    copyInput(f, q[0]!);
+    for (let i = 1; i < c; i++) mergeSample(f, q[i]!);
+    copyInput(this.held, q[c - 1]!);
+    this.held.edges = 0;
+    for (let i = 0; i < n - c; i++) { const x = q[i]!; q[i] = q[i + c]!; q[i + c] = x; }
+    this.sampleN = n - c;
   }
 
   private flushInputs(): void {
