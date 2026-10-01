@@ -3,6 +3,7 @@
 // console error on every boot. Images are read live from the source folder, so a dropped file shows on reload
 // without a rebuild. The Vite dev server uses buildArtIndex() too (apps/client/vite.config.ts).
 import { createReadStream, readdirSync, statSync } from 'node:fs';
+import { pipeline } from 'node:stream';
 import { join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
@@ -60,7 +61,8 @@ export function createArtRoute(dirs: readonly string[]): (req: IncomingMessage, 
       const file = join(dir, name);
       try { if (!statSync(file).isFile()) continue; } catch { continue; }
       res.writeHead(200, { 'content-type': TYPES[m[2]!.toLowerCase()]!, 'cache-control': 'no-cache', 'x-content-type-options': 'nosniff' });
-      if (req.method === 'HEAD') res.end(); else createReadStream(file).pipe(res);
+      if (req.method === 'HEAD') res.end();
+      else pipeline(createReadStream(file), res, (e) => { if (e) res.destroy(); }); // a read error ends the response, not the process
       return true;
     }
     return false;

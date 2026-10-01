@@ -29,10 +29,37 @@ export interface ServerClock {
   readonly epochWallMs: number;
 }
 
-export interface LobbyTimings { searchMs: number; stageMs: number; rouletteMs: number; autoStartMs: number; resultsMs: number; loadMaxMs: number; reconnectMs: number; lobbyGraceMs: number; helloMs: number }
+export interface LobbyTimings {
+  searchMs: number; stageMs: number; rouletteMs: number; autoStartMs: number; resultsMs: number; loadMaxMs: number; reconnectMs: number; lobbyGraceMs: number; helloMs: number;
+  /** A disconnected session in no room holds nothing worth resuming: it expires this soon. */
+  idleSessionMs: number;
+}
 export const DEFAULT_TIMINGS: LobbyTimings = {
   searchMs: 20_000, stageMs: 15_000, rouletteMs: 20_000, autoStartMs: 10_000, resultsMs: 12_000, loadMaxMs: 15_000,
-  reconnectMs: NET.RECONNECT_MS, lobbyGraceMs: 20_000, helloMs: 10_000,
+  reconnectMs: NET.RECONNECT_MS, lobbyGraceMs: 20_000, helloMs: 10_000, idleSessionMs: 10_000,
+};
+
+/** Abuse limits (M4 security review). Per-address limits apply only to sockets accepted with an address. */
+export interface ServerLimits {
+  maxSessions: number;
+  /** Races running at once, server-wide. */
+  maxRaces: number;
+  /** Per remote address: open sockets, live sessions, races at once, failed room-code joins per minute. */
+  ipConnections: number;
+  ipSessions: number;
+  ipRaces: number;
+  ipJoinFailsPerMin: number;
+  /** Frames a socket may send outside its race channel: a token bucket refilled at this rate, and its size. */
+  framesPerSec: number;
+  frameBurst: number;
+  /** A socket with more unsent bytes than this is not reading: it is closed. */
+  maxBufferedBytes: number;
+  /** Shortest gap between two resumes of one session. */
+  resumeGapMs: number;
+}
+export const DEFAULT_LIMITS: ServerLimits = {
+  maxSessions: 5000, maxRaces: 50, ipConnections: 8, ipSessions: 16, ipRaces: 2, ipJoinFailsPerMin: 10,
+  framesPerSec: 30, frameBurst: 60, maxBufferedBytes: 1 << 20, resumeGapMs: 1000,
 };
 
 export interface GameServerOptions {
@@ -40,6 +67,8 @@ export interface GameServerOptions {
   content: ContentTables;
   clock: ServerClock;
   timings?: Partial<LobbyTimings>;
+  limits?: Partial<ServerLimits>;
+  /** @deprecated use limits.maxSessions */
   maxSessions?: number;
   log?: (m: string) => void;
   /** Race intro length (ticks) for online races. */
@@ -48,6 +77,15 @@ export interface GameServerOptions {
 }
 
 type Phase = 'search' | 'stage' | 'waiting' | 'countdown' | 'roulette' | 'loading' | 'racing' | 'results';
+
+/** One accepted socket: its session once welcomed (sessionOf is a lookup, not a scan of every session). */
+interface Conn {
+  /** Remote address key (null: in-process, no per-address limits). */
+  readonly ip: string | null;
+  readonly mux: FrameMux; session: Session | null; helloUntil: number;
+  /** Frame token bucket, and when `rateLimited` was last sent (at most once a second). */
+  tokens: number; refillAt: number; limitedAt: number;
+}
 
 interface Slot { state: 'open' | 'closed' | 'human' | 'bot'; session: Session | null; ready: boolean; team: number; tier: AiTier; joinedAt: number }
 
@@ -61,8 +99,11 @@ export class Session {
   connected = false;
   disconnectedAt = 0;
   room: LobbyRoom | null = null;
+  /** The address this session was created from (per-address session and race counts). */
+  ip: string | null = null;
   msgTimes: number[] = [];
   lastChatMs = -Infinity;
+  lastResumeMs = -Infinity;
   constructor(id: string, token: string, name: string, loadout: Loadout) { this.id = id; this.token = token; this.name = name; this.loadout = loadout; }
 }
 
@@ -80,6 +121,8 @@ export class LobbyRoom {
   race: RaceHost | null = null;
   resultsUntil = 0;
   queueKey = '';
+  /** Since when no human of its race has been connected (-1: someone is). */
+  orphanSince = -1;
   constructor(kind: 'custom' | 'quick', code: string, settings: RoomSettings) {
     this.kind = kind; this.code = code; this.settings = settings;
     this.phase = kind === 'quick' ? 'search' : 'waiting';
@@ -91,13 +134,23 @@ export class LobbyRoom {
 }
 
 
+function bump(m: Map<string, number>, k: string, d: number): void {
+  const n = (m.get(k) ?? 0) + d;
+  if (n > 0) m.set(k, n); else m.delete(k);
+}
+
 export class GameServer {
   private readonly o: GameServerOptions;
   private readonly t: LobbyTimings;
+  private readonly L: ServerLimits;
   private readonly clock: ServerClock;
   private readonly sessions = new Map<string, Session>();       // by public id
   private readonly byToken = new Map<string, Session>();
-  private readonly pendingHello = new Map<Transport, { mux: FrameMux; until: number }>();
+  private readonly conns = new Map<Transport, Conn>();
+  private readonly ipConns = new Map<string, number>();
+  private readonly ipSessions = new Map<string, number>();
+  /** Room codes looked up in vain, per address, in fixed one-minute windows (code guessing). */
+  private readonly joinFails = new Map<string, { since: number; n: number }>();
   private readonly rooms = new Map<string, LobbyRoom>();         // custom, by code
   private readonly quick = new Map<string, { pending: LobbyRoom | null; lastTracks: TrackId[] }>();
   private readonly active = new Set<LobbyRoom>();                // every room with timers or a race
@@ -112,6 +165,7 @@ export class GameServer {
   constructor(o: GameServerOptions) {
     this.o = o;
     this.t = { ...DEFAULT_TIMINGS, ...o.timings };
+    this.L = { ...DEFAULT_LIMITS, ...(o.maxSessions ? { maxSessions: o.maxSessions } : {}), ...o.limits };
     this.clock = o.clock;
     this.log = o.log ?? ((): void => { /* quiet */ });
     this.rand = o.rand ?? ((n) => { const a = new Uint8Array(n); globalThis.crypto.getRandomValues(a); return a; });
@@ -119,19 +173,37 @@ export class GameServer {
 
   // ------------------------------------------------------------ connections
 
-  accept(t: Transport): void {
+  /** A new socket. `ip` is the remote address key; without one (in-process transports) no per-address limit applies. */
+  accept(t: Transport, ip?: string): void {
+    const key = ip ?? null;
+    if (key !== null && (this.ipConns.get(key) ?? 0) >= this.L.ipConnections) {
+      t.send(encodeS2CLobby({ t: 'error', code: 'serverFull' }));
+      t.close(4004, 'too many connections');
+      this.log(`refused a connection from ${key}: ${this.L.ipConnections} open`);
+      return;
+    }
+    if (key !== null) bump(this.ipConns, key, 1);
     const mux = new FrameMux(t);
-    this.pendingHello.set(t, { mux, until: this.clock.nowMs() + this.t.helloMs });
+    const now = this.clock.nowMs();
+    this.conns.set(t, { ip: key, mux, session: null, helloUntil: now + this.t.helloMs, tokens: this.L.frameBurst, refillAt: now, limitedAt: -Infinity });
     mux.onOther = (b) => this.onFrame(t, mux, b);
     mux.onClose = () => this.onClose(t);
   }
 
   private sessionOf(t: Transport): Session | null {
-    for (const s of this.sessions.values()) if (s.transport === t) return s;
-    return null;
+    const s = this.conns.get(t)?.session ?? null;
+    return s && s.transport === t ? s : null;
   }
 
   private onFrame(t: Transport, mux: FrameMux, b: Uint8Array): void {
+    const c = this.conns.get(t);
+    if (!c) return;
+    // the budget is spent before any work on the frame: a flood costs a subtraction per frame, not a JSON parse
+    const now = this.clock.nowMs();
+    c.tokens = Math.min(this.L.frameBurst, c.tokens + ((now - c.refillAt) * this.L.framesPerSec) / 1000);
+    c.refillAt = now;
+    if (c.tokens < 1) { this.limited(t, c, now); return; }
+    c.tokens -= 1;
     const type = b[0];
     if (type === C2S.PING) { this.pong(t, b); return; }
     if (type !== C2S.LOBBY_JSON) return; // race frames outside a race are ignored
@@ -143,7 +215,7 @@ export class GameServer {
     if (!msg || typeof msg !== 'object' || typeof msg.t !== 'string') { this.sendTo(t, { t: 'error', code: 'badMessage' }); return; }
     const s = this.sessionOf(t);
     if (!s) { if (msg.t === 'hello') this.hello(t, mux, msg); else this.sendTo(t, { t: 'error', code: 'badMessage' }); return; }
-    if (!this.admit(s)) { this.send(s, { t: 'error', code: 'rateLimited' }); return; }
+    if (!this.admit(s)) { this.limited(t, c, now); return; }
     try { this.dispatch(s, msg); } catch (e) { this.log(`dispatch ${msg.t}: ${String((e as Error)?.stack ?? e)}`); this.send(s, { t: 'error', code: 'internal' }); }
   }
 
@@ -156,19 +228,38 @@ export class GameServer {
     return true;
   }
 
+  /** Tells a flooding socket once per second, not once per dropped frame. */
+  private limited(t: Transport, c: Conn, now: number): void {
+    if (now - c.limitedAt < 1000) return;
+    c.limitedAt = now;
+    this.sendTo(t, { t: 'error', code: 'rateLimited' });
+  }
+
   private pong(t: Transport, b: Uint8Array): void {
     try {
       const p = PingMsg.decode(this.pr.reset(b));
-      const g = this.clock.serverTick(this.clock.nowMs());
+      const now = this.clock.nowMs();
+      // racing players get their room's actual timeline (it lags the wall clock when the server is starved)
+      const race = this.sessionOf(t)?.room?.race;
+      const g = race?.timelineTick(now) ?? this.clock.serverTick(now);
       this.pw.reset();
       PongMsg.encode(this.pw, { pingId: p.pingId, clientMsEcho: p.clientMs, serverTick: Math.floor(g), tickPhase: (g - Math.floor(g)) * 65536 });
-      t.send(this.pw.finish());
+      this.out(t, this.pw.finish());
     } catch (e) { if (!(e instanceof ProtocolError)) throw e; }
   }
 
+  /** Closes a socket and forgets it now (a transport need not report its own close). */
+  private closeConn(t: Transport, code: number, reason: string): void {
+    t.close(code, reason);
+    this.onClose(t);
+  }
+
   private onClose(t: Transport): void {
-    this.pendingHello.delete(t);
+    const c = this.conns.get(t);
+    if (!c) return;
     const s = this.sessionOf(t);
+    this.conns.delete(t);
+    if (c.ip !== null) bump(this.ipConns, c.ip, -1);
     if (!s) return;
     s.connected = false;
     s.transport = null;
@@ -182,27 +273,37 @@ export class GameServer {
   }
 
   private hello(t: Transport, mux: FrameMux, m: Extract<C2SLobby, { t: 'hello' }>): void {
-    this.pendingHello.delete(t);
-    if (m.v !== LOBBY_PROTOCOL_VERSION) { this.sendTo(t, { t: 'error', code: 'version' }); t.close(4002, 'version'); return; }
+    const c = this.conns.get(t);
+    if (!c) return;
+    if (m.v !== LOBBY_PROTOCOL_VERSION) { this.sendTo(t, { t: 'error', code: 'version' }); this.closeConn(t, 4002, 'version'); return; }
     let s: Session | undefined;
     if (typeof m.resume === 'string') {
       s = this.byToken.get(m.resume);
       if (!s) this.sendTo(t, { t: 'error', code: 'resumeExpired' });
     }
+    const now = this.clock.nowMs();
+    // each resume re-sends the race start, a keyframe and the event log: at most one per second per session
+    if (s && now - s.lastResumeMs < this.L.resumeGapMs) { this.sendTo(t, { t: 'error', code: 'rateLimited' }); this.closeConn(t, 4009, 'resume too soon'); return; }
+    const wasConnected = s?.connected === true;
     if (s) {
-      if (s.transport && s.transport !== t) { const old = s.transport; this.detachTransport(s); old.close(4003, 'replaced'); }
+      s.lastResumeMs = now;
+      if (s.transport && s.transport !== t) { const old = s.transport; this.detachTransport(s); this.closeConn(old, 4003, 'replaced'); }
     } else {
       const name = cleanName(m.name);
       if (!name) { this.sendTo(t, { t: 'error', code: 'nameInvalid' }); return; }
-      if (this.sessions.size >= (this.o.maxSessions ?? 5000)) { this.sendTo(t, { t: 'error', code: 'serverFull' }); t.close(4004, 'full'); return; }
+      if (this.sessions.size >= this.L.maxSessions || (c.ip !== null && (this.ipSessions.get(c.ip) ?? 0) >= this.L.ipSessions)) {
+        this.sendTo(t, { t: 'error', code: 'serverFull' }); this.closeConn(t, 4004, 'full'); return;
+      }
       s = new Session(`s${(this.nextId++).toString(36)}${u32Hex(randomSecret()).slice(0, 6)}`, u32Hex(randomSecret()), name, cleanLoadout(m.loadout));
+      s.ip = c.ip;
+      if (s.ip !== null) bump(this.ipSessions, s.ip, 1);
       this.sessions.set(s.id, s);
       this.byToken.set(s.token, s);
     }
     s.transport = t;
     s.mux = mux;
     s.connected = true;
-    const now = this.clock.nowMs();
+    c.session = s;
     this.send(s, { t: 'welcome', session: s.id, serverVersion: SERVER_VERSION, simVersion: SIM_VERSION, resume: s.token, serverMs: this.clock.wallMs(now), tickEpochMs: this.clock.epochWallMs });
     const r = s.room;
     if (r) {
@@ -210,12 +311,17 @@ export class GameServer {
         this.sendRaceStart(r, s);
         r.race.attach(s.id, mux);
       }
-      if (r.kind === 'custom') this.broadcastRoom(r); else this.sendQueue(r);
+      // the others only need a new view when this player's connected state changed
+      if (r.kind === 'quick') this.sendQueue(r, s);
+      else if (wasConnected) this.send(s, { t: 'room', room: this.view(r, s) });
+      else this.broadcastRoom(r);
     }
   }
 
   private detachTransport(s: Session): void {
     s.room?.race?.detach(s.id, 'replaced');
+    const c = s.transport ? this.conns.get(s.transport) : undefined;
+    if (c) c.session = null;
     s.transport = null; s.mux = null; s.connected = false;
   }
 
@@ -313,9 +419,18 @@ export class GameServer {
   private joinRoom(s: Session, raw: unknown): void {
     const code = normalizeCode(raw);
     if (!code) return this.send(s, { t: 'error', code: 'badCode' });
+    const now = this.clock.nowMs();
+    let fails = s.ip !== null ? this.joinFails.get(s.ip) : undefined;
+    if (fails && now - fails.since >= 60_000) { this.joinFails.delete(s.ip!); fails = undefined; }
+    if (fails && fails.n >= this.L.ipJoinFailsPerMin) return this.send(s, { t: 'error', code: 'rateLimited' });
     const r = this.rooms.get(code);
-    if (!r) return this.send(s, { t: 'error', code: 'notFound' });
+    if (!r) {
+      if (s.ip !== null) { if (fails) fails.n++; else this.joinFails.set(s.ip, { since: now, n: 1 }); }
+      return this.send(s, { t: 'error', code: 'notFound' });
+    }
     if (s.room === r) return this.broadcastRoom(r);
+    // a player loading or racing stays in that race (leaving it would orphan their slot and keep the room alive)
+    if (s.room && (s.room.phase === 'racing' || s.room.phase === 'loading')) return this.send(s, { t: 'error', code: 'inRace' });
     if (r.phase !== 'waiting' && r.phase !== 'countdown') return this.send(s, { t: 'error', code: 'inRace' });
     const humans = r.humans().length;
     const free = r.slots.findIndex((x) => x.state === 'open');
@@ -375,7 +490,7 @@ export class GameServer {
     switch (action) {
       case 'open': if (slot.state !== 'human') { slot.state = 'open'; slot.session = null; } break;
       case 'close': if (slot.state !== 'human') { slot.state = 'closed'; slot.session = null; } break;
-      case 'bot': if (slot.state !== 'human') { slot.state = 'bot'; slot.session = null; slot.tier = tier && tier in AI_TIERS ? tier : r.settings.botTier; slot.ready = true; } break;
+      case 'bot': if (slot.state !== 'human') { slot.state = 'bot'; slot.session = null; slot.tier = typeof tier === 'string' && Object.hasOwn(AI_TIERS, tier) ? tier : r.settings.botTier; slot.ready = true; } break;
       case 'kick': {
         const victim = slot.session;
         if (!victim || victim === s) return;
@@ -416,6 +531,8 @@ export class GameServer {
     if (r.host !== s) return this.send(s, { t: 'error', code: 'notHost' });
     if (r.phase !== 'waiting' && r.phase !== 'countdown') return;
     if (!this.everyoneReady(r)) return this.send(s, { t: 'error', code: 'notReady' });
+    const refused = this.raceRefusal(r.humans()).code;
+    if (refused) return this.send(s, { t: 'error', code: refused });
     this.beginStart(r);
   }
 
@@ -485,9 +602,43 @@ export class GameServer {
 
   // ------------------------------------------------------------ races
 
+  /**
+   * Whether these humans may start a race now: at most `maxRaces` server-wide (serverFull), and no address in more
+   * than `ipRaces` at once (rateLimited; `over` lists the humans at their address's cap).
+   */
+  private raceRefusal(humans: readonly Session[]): { code: 'serverFull' | 'rateLimited' | null; over: Session[] } {
+    let races = 0;
+    const perIp = new Map<string, number>();
+    for (const room of this.active) {
+      if (!room.race) continue;
+      races++;
+      const ips = new Set<string>();
+      for (const id of room.race.humans.keys()) { const ip = this.sessions.get(id)?.ip; if (ip != null) ips.add(ip); }
+      for (const ip of ips) bump(perIp, ip, 1);
+    }
+    if (races >= this.L.maxRaces) return { code: 'serverFull', over: [...humans] };
+    const over = humans.filter((h) => h.ip !== null && (perIp.get(h.ip) ?? 0) >= this.L.ipRaces);
+    return { code: over.length ? 'rateLimited' : null, over };
+  }
+
   private enterLoading(r: LobbyRoom): void {
     const trackId = r.trackId!;
     const track = this.o.tracks.get(trackId);
+    const refused = this.raceRefusal(r.humans());
+    if (refused.code) {
+      this.log(`race refused in room ${r.code || r.queueKey}: ${refused.code}`);
+      if (r.kind === 'custom') {
+        // the room stays; the host may try again once a race slot frees up
+        r.phase = 'waiting'; r.deadline = 0; r.trackId = null;
+        for (const s of r.humans()) this.send(s, { t: 'error', code: refused.code });
+        this.broadcastRoom(r);
+        return;
+      }
+      // quick match: humans over their address's cap leave the match; a full server ends it for everyone
+      for (const s of refused.over) { this.leaveRoom(s); this.send(s, { t: 'error', code: refused.code }); }
+      if (refused.code === 'serverFull' && this.active.has(r)) this.closeRoom(r);
+      if (!this.active.has(r)) return;
+    }
     const humans = r.humans();
     if (!humans.length) { this.closeRoom(r); return; }
     const cfg = this.buildConfig(r, trackId, track.hash, track.laps);
@@ -565,7 +716,7 @@ export class GameServer {
     r.phase = 'results';
     r.resultsUntil = this.clock.nowMs() + this.t.resultsMs;
     if (r.kind === 'custom') this.broadcastRoom(r);
-    this.log(`race ${race.raceId} ended`);
+    this.log(`race ${race.raceId} ended; peers ${JSON.stringify(race.room.peerStats().map((x) => ({ id: x.id, snaps: x.snapshots, skipped: x.skippedSnapshots, msgs: x.msgsOut, in: x.msgsIn })))}`);
   }
 
   // ------------------------------------------------------------ tick
@@ -619,7 +770,7 @@ export class GameServer {
   private afterResults(r: LobbyRoom): void {
     r.race?.dispose();
     r.race = null;
-    if (r.kind === 'quick') { this.closeRoom(r); return; }
+    if (r.kind === 'quick' || !r.humans().length) { this.closeRoom(r); return; }
     r.phase = 'waiting';
     r.trackId = null;
     for (const x of r.slots) if (x.state === 'human') x.ready = false;
@@ -629,17 +780,29 @@ export class GameServer {
   }
 
   private housekeeping(now: number): void {
-    for (const [t, p] of this.pendingHello) if (now > p.until) { this.pendingHello.delete(t); t.close(4005, 'hello timeout'); }
+    for (const [ip, f] of this.joinFails) if (now - f.since >= 60_000) this.joinFails.delete(ip);
+    // a race nobody is connected to any more is stopped once they could no longer resume (race spam: start, leave)
+    for (const r of [...this.active]) {
+      const race = r.race;
+      if (!race || race.result) { r.orphanSince = -1; continue; }
+      let anyone = false;
+      for (const id of race.humans.keys()) if (this.sessions.get(id)?.connected) { anyone = true; break; }
+      if (anyone) r.orphanSince = -1;
+      else if (r.orphanSince < 0) r.orphanSince = now;
+      else if (now - r.orphanSince > this.t.reconnectMs) { this.log(`race ${race.raceId} stopped: no human connected for ${this.t.reconnectMs} ms`); this.afterResults(r); }
+    }
+    for (const [t, c] of [...this.conns]) if (!c.session && now > c.helloUntil) this.closeConn(t, 4005, 'hello timeout');
     for (const s of [...this.sessions.values()]) {
       if (s.connected) continue;
       const away = now - s.disconnectedAt;
       const r = s.room;
       const inRace = r?.race?.humans.has(s.id) === true;
       if (r && !inRace && r.kind === 'custom' && r.phase === 'waiting' && away > this.t.lobbyGraceMs) this.leaveRoom(s);
-      if (away > this.t.reconnectMs && !inRace) {
+      if (!inRace && (away > this.t.reconnectMs || (!s.room && away > this.t.idleSessionMs))) {
         if (s.room) this.leaveRoom(s);
         this.sessions.delete(s.id);
         this.byToken.delete(s.token);
+        if (s.ip !== null) bump(this.ipSessions, s.ip, -1);
       }
     }
   }
@@ -673,8 +836,16 @@ export class GameServer {
     for (const s of r.humans()) this.send(s, { t: 'roulette', endsAt: this.clock.wallMs(r.deadline), votes });
   }
 
-  private send(s: Session, m: S2CLobby): void { if (s.transport && s.connected) s.transport.send(encodeS2CLobby(m)); }
-  private sendTo(t: Transport, m: S2CLobby): void { t.send(encodeS2CLobby(m)); }
+  private send(s: Session, m: S2CLobby): void { if (s.transport && s.connected) this.out(s.transport, encodeS2CLobby(m)); }
+  private sendTo(t: Transport, m: S2CLobby): void { this.out(t, encodeS2CLobby(m)); }
+
+  /** Every lobby send: a socket that stopped reading is closed instead of buffering without bound. */
+  private out(t: Transport, b: Uint8Array): void {
+    if (!this.conns.has(t)) return;
+    const queued = t.bufferedAmount();
+    if (queued > this.L.maxBufferedBytes) { this.log(`closing ${t.id}: ${queued} bytes unsent`); this.closeConn(t, 4008, 'not reading'); return; }
+    t.send(b);
+  }
 
   // ------------------------------------------------------------ introspection
 

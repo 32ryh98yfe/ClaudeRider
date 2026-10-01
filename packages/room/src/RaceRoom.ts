@@ -29,6 +29,8 @@ export interface RaceRoomOptions {
   collectEvents?: boolean;
   /** Diagnostics (kicks, protocol errors). */
   log?: (msg: string) => void;
+  /** How long a kicked peer may not re-attach (ms, needs `clock`; default 10 s). */
+  kickMs?: number;
 }
 
 export interface PeerHandle { id: string; slot: number; transport: Transport; resumeToken: string }
@@ -120,6 +122,9 @@ export class RaceRoom {
   private evCache = new Map<number, { bytes: Uint8Array; last: number }>();
   private relayCache = new Map<number, Uint8Array[]>();
   private peerList: Peer[] = [];
+  /** Kicked peer ids → clock ms until which they may not re-attach (a kick would otherwise last one reconnect). */
+  private readonly kickedUntil = new Map<string, number>();
+  private readonly kickMs: number;
   private relayScratch: { slot: number; tick: Tick; frame: InputFrame }[] = [];
 
   constructor(o: RaceRoomOptions) {
@@ -128,6 +133,7 @@ export class RaceRoom {
     this.content = o.content;
     this.clock = o.clock ?? null;
     this.limits = o.limits ?? null;
+    this.kickMs = o.kickMs ?? 10_000;
     this.collect = o.collectEvents !== false;
     this.log = o.log ?? ((): void => { /* quiet */ });
     this.lookahead = o.timing?.botLookahead ?? NET.BOT_LOOKAHEAD;
@@ -192,6 +198,11 @@ export class RaceRoom {
   // ------------------------------------------------------------ peers
 
   attach(p: PeerHandle): void {
+    const until = this.kickedUntil.get(p.id);
+    if (until !== undefined && this.clock) {
+      if (this.clock.nowMs() < until) { this.log(`refused ${p.id}: kicked`); p.transport.close(4001, 'kicked'); return; }
+      this.kickedUntil.delete(p.id);
+    }
     const old = this.peers.get(p.id);
     if (old) this.detach(p.id, 'replaced');
     const peer = new Peer(p);
@@ -281,6 +292,7 @@ export class RaceRoom {
 
   private kick(p: Peer, reason: string): void {
     this.log(`kick ${p.id}: ${reason}`);
+    if (this.clock) this.kickedUntil.set(p.id, this.clock.nowMs() + this.kickMs);
     this.detach(p.id, reason);
     p.transport.close(4001, reason);
   }
@@ -328,7 +340,8 @@ export class RaceRoom {
     if (u32Hex(m.token) !== p.tokenHex) { this.strike(p, 'resume token'); return; }
     const from = unwrapSeq16(m.lastEventSeq, this.headSeq);
     const oldest = this.oldestSeq();
-    if (from + 1 >= oldest) { if (from > p.sentSeq && from <= this.headSeq) p.sentSeq = from; }
+    // resend everything after the client's last event (it may have lost some, e.g. on a channel nobody read); it dedupes by seq
+    if (from + 1 >= oldest) p.sentSeq = Math.min(Math.max(from, oldest - 1), this.headSeq);
     else { p.sentSeq = Math.max(p.sentSeq, oldest - 1); p.resyncFlag = true; }
     p.needKey = true;
     this.sendCatchUpRelay(p);
@@ -514,7 +527,10 @@ export class RaceRoom {
     for (const p of list) {
       // backpressure (§9): skip SNAPSHOT/RELAY above 32 KB until below 16 KB; EVENTS always go out
       const buffered = p.transport.bufferedAmount();
-      if (p.skipping ? buffered < NET.BP_LOW : buffered > NET.BP_HIGH) p.skipping = !p.skipping;
+      if (p.skipping ? buffered < NET.BP_LOW : buffered > NET.BP_HIGH) {
+        p.skipping = !p.skipping;
+        this.log(`${p.id}: backpressure ${p.skipping ? 'on' : 'off'} (${buffered} B buffered) at ${N}`);
+      }
       if (buffered > NET.BP_KILL) {
         if (p.overKillSince < 0) p.overKillSince = now;
         else if (this.clock && now - p.overKillSince > NET.BP_KILL_MS) { this.kick(p, 'slow_consumer'); continue; }

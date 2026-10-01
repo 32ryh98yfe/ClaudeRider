@@ -31,6 +31,8 @@ export interface NetStats {
   lastLocalCorrection: number; maxLocalCorrection: number; corrections: number;
   eventsIn: number; bytesIn: number; bytesOut: number; msgsIn: number; msgsOut: number;
   pingMs: number[];
+  /** The client is too far past its last snapshot to predict and has asked for a keyframe. */
+  waitingForKeyframe: boolean;
 }
 
 export interface NetClientOptions {
@@ -66,6 +68,8 @@ export interface NetClientOptions {
 }
 
 const HASH_RING = 256;
+/** Longest prediction past the last authoritative tick (1.5 s); beyond it the client waits for a keyframe. */
+export const MAX_PREDICT = 90;
 
 export class NetClient {
   readonly cfg: RaceConfig;
@@ -170,7 +174,7 @@ export class NetClient {
       connected: true, rttMs: 0, jitterMs: 0, leadTicks: 0, serverSlack: 0, rate: 60, predTick: 0, authTick: 0, serverTickEst: 0,
       snapshots: 0, keyframes: 0, decodeErrors: 0, lateFlags: 0, hardResyncs: 0, resims: 0, resimTicks: 0, resimSkipped: 0,
       lastResimMs: 0, maxResimMs: 0, lastLocalCorrection: 0, maxLocalCorrection: 0, corrections: 0,
-      eventsIn: 0, bytesIn: 0, bytesOut: 0, msgsIn: 0, msgsOut: 0, pingMs: new Array<number>(MAX_KARTS).fill(0),
+      eventsIn: 0, bytesIn: 0, bytesOut: 0, msgsIn: 0, msgsOut: 0, pingMs: new Array<number>(MAX_KARTS).fill(0), waitingForKeyframe: false,
     };
     this.bind(o.transport);
   }
@@ -200,14 +204,30 @@ export class NetClient {
     if (this.ownClock && this.mode === 'synced' && !this.closed && this.clock.due(nowMs, !this.started)) this.sendPing(nowMs);
     this.processIncoming(nowMs);
 
-    const budget = this.maxSteps;
+    let budget = this.maxSteps;
     let freeze = false;
     if (this.mode === 'synced') {
       if (!this.clock.ready) return 0;
       const est = this.clock.serverTick(nowMs) - this.startTick;
       const lead = this.clock.leadTicks();
-      const target = est + lead;
       this.stats.serverTickEst = est; this.stats.leadTicks = lead;
+      // Never predict more than MAX_PREDICT ticks past the authoritative world: a client that joins (or wakes up) far
+      // behind would otherwise replay from a stale base on every update, starve its own main thread and never read
+      // the snapshot that would fix it. It waits for a keyframe instead (RESUME doubles as the request).
+      let target = est + lead;
+      if (target - this.dec.world.tick > MAX_PREDICT) {
+        if (!this.haveSnap) {
+          this.stats.waitingForKeyframe = true;
+          if (nowMs - this.lastResumeMs > 1000) { this.lastResumeMs = nowMs; this.sendResume(); }
+          this.flushInputs();
+          this.smoother.update(dtMs / 1000);
+          this.syncStats();
+          return 0;
+        }
+        // with a base, stay within MAX_PREDICT of it: either the stream paused, or the clock runs ahead of the room
+        target = this.dec.world.tick + MAX_PREDICT;
+      }
+      this.stats.waitingForKeyframe = false;
       if (!this.started) {
         if (target < 1) { this.reconcile(); this.smoother.update(dtMs / 1000); return 0; }
         this.started = true;
@@ -218,11 +238,14 @@ export class NetClient {
       } else this.reconcile();
       const err = this.pred.tick + this.acc - target;
       if (err < -NET.RESYNC_TICKS || this.resyncWanted) {
-        // hard resync (§2): jump P to the target, dropping the prediction in between; a flood of catch-up inputs
-        // would only arrive late (and trip the server's rate limit)
+        // hard resync (§2). The target is at most MAX_PREDICT past the last snapshot, so catching up is bounded:
+        // step there now (inputs batched 4 per message, ≤ 23 messages), so a page that only gets an update every
+        // second or two still steers its kart; jump without inputs only when even that bound is exceeded.
         this.resyncWanted = false;
         this.stats.hardResyncs++;
-        this.jump(target);
+        const gap = target - this.pred.tick;
+        if (gap <= MAX_PREDICT) { budget = Math.max(budget, Math.ceil(gap)); this.acc = Math.max(this.acc, gap); }
+        else this.jump(target);
       } else if (err > NET.RESYNC_TICKS) {
         // too far ahead: hold until the server's clock catches up (rewinding would duplicate already-sent frames)
         this.stats.hardResyncs++;
@@ -252,12 +275,16 @@ export class NetClient {
     this.flushInputs();
     this.alphaV = Math.max(0, Math.min(1, this.acc));
     this.smoother.update(dtMs / 1000);
+    this.syncStats();
+    return steps;
+  }
+
+  private syncStats(): void {
     this.stats.predTick = this.pred.tick;
     this.stats.authTick = this.dec.world.tick;
     this.stats.rate = this.rateV;
     this.stats.rttMs = this.clock.rttMs;
     this.stats.jitterMs = this.clock.jitterMs;
-    return steps;
   }
 
   /** Spring-smoothed correction offset for a kart (add to its drawn position). */
@@ -271,6 +298,9 @@ export class NetClient {
 
   /** Updates the race start tick (a second raceStart moved it). */
   setStartTick(t: Tick): void { this.startTick = t; }
+
+  /** Asks the room for a keyframe (and the events after the last one received), e.g. after dropped frames. */
+  requestKeyframe(): void { this.lastResumeMs = this.nowMs(); this.sendResume(); }
 
   /** After a reconnect: bind the new transport and ask the room to resume (events after lastSeq + keyframe). */
   replaceTransport(t: Transport): void {
@@ -427,7 +457,7 @@ export class NetClient {
     const T = Math.floor(target);
     const N = this.dec.world.tick;
     this.flushInputs();
-    if (T > this.pred.tick || T > N) this.resimulate(Math.min(T, N + 240));
+    if (T > this.pred.tick || T > N) this.resimulate(Math.min(T, N + MAX_PREDICT));
     this.acc = Math.max(0, target - this.pred.tick);
     if (this.acc >= 1) this.acc = target - Math.floor(target);
   }

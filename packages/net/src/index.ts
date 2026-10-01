@@ -12,3 +12,4 @@ export * from './client/clock.ts';
 export * from './client/smoothing.ts';
 export * from './client/dedupe.ts';
 export * from './client/NetClient.ts';
+export * from './client/earlyBuffer.ts';

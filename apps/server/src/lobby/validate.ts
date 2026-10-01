@@ -17,23 +17,25 @@ export function filterChat(s: string): string {
   return out;
 }
 
-// control, zero-width and bidi-override characters (written as escapes so the source stays plain ASCII)
-// eslint-disable-next-line no-control-regex -- matching control characters is the point
-const CONTROL = new RegExp('[\\u0000-\\u001f\\u007f-\\u009f\\u200b-\\u200f\\u2028-\\u202e\\u2060-\\u2064\\ufeff]', 'g');
+// Characters that draw nothing or reorder text: controls (Cc), every format character (Cf: zero-width, bidi
+// embeddings, overrides and isolates U+2066–2069, the Arabic letter mark U+061C, the soft hyphen, BOM, tags), line and
+// paragraph separators, and the fillers that render blank (combining grapheme joiner, Hangul fillers).
+const INVISIBLE = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\u034f\u115f\u1160\u3164\uffa0]/gu;
+const VISIBLE = /[\p{L}\p{N}]/u;
 
-/** 1–16 visible characters, no control/bidi characters, not profane. Returns null when invalid. */
+/** 1–16 characters with at least one letter or digit, no invisible or bidi characters, not profane; else null. */
 export function cleanName(raw: unknown): string | null {
   if (typeof raw !== 'string') return null;
-  const s = raw.replace(CONTROL, '').trim().replace(/\s+/g, ' ');
+  const s = raw.replace(INVISIBLE, '').trim().replace(/\s+/g, ' ');
   const n = [...s].length;
-  if (n < 1 || n > 16 || hasProfanity(s)) return null;
+  if (n < 1 || n > 16 || !VISIBLE.test(s) || hasProfanity(s)) return null;
   return s;
 }
 
 /** Chat text: ≤ 200 characters, control characters removed, profanity masked. Empty → null. */
 export function cleanChat(raw: unknown): string | null {
   if (typeof raw !== 'string') return null;
-  const s = [...raw.replace(CONTROL, '').trim()].slice(0, 200).join('');
+  const s = [...raw.replace(INVISIBLE, '').trim()].slice(0, 200).join('');
   return s ? filterChat(s) : null;
 }
 

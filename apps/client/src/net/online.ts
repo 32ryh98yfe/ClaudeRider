@@ -3,7 +3,7 @@
 // its start tick; `raceEnd` finishes it. Importing this module installs everything (Session.ts imports it).
 import { signal } from '@preact/signals';
 import type { RaceConfig, Tick } from '@cr/sim';
-import type { Channel, Loadout, RaceResultWire, S2CLobby, Transport } from '@cr/net';
+import { EarlyFrameBuffer, type Channel, type Loadout, type RaceResultWire, type S2CLobby, type Transport } from '@cr/net';
 import { lobby, lobbyActions, handleServer, installSender, setConnectImpl, connect } from './lobby.ts';
 import { LobbyConnection } from './connection.ts';
 import { navigate } from '../ui/store/route.ts';
@@ -34,7 +34,7 @@ export const pendingRace = signal<OnlineRaceInfo | null>(null);
 let active: ActiveOnlineRace | null = null;
 let lastRaceId = '';
 // The race channel opens with the first raceStart, so relays and events sent while the track loads are kept.
-let early: { raceId: string; channel: Channel; buffered: Uint8Array[] } | null = null;
+let early: { raceId: string; channel: Channel; buffer: EarlyFrameBuffer } | null = null;
 
 /** The game server URL: `?server=ws://…` overrides; the Vite dev server talks to the Node server on its own port. */
 export function serverUrl(): string {
@@ -61,7 +61,13 @@ conn.onEvent = (e) => {
   else if (e === 'closed') { lobby.conn.value = 'offline'; installSender(null); }
   else if (e === 'reconnected' || e === 'open') {
     lobby.conn.value = 'online';
-    if (e === 'reconnected' && active) { const ch = conn.raceChannel(); if (ch) active.replaceTransport(ch); }
+    if (e === 'reconnected') {
+      // the server re-attaches us and resends a keyframe and the event log: still loading → keep buffering them
+      const ch = conn.raceChannel();
+      if (ch && early) { early.channel.detach(); early.channel = ch; const buf = early.buffer; ch.onMessage = (b) => buf.push(b); }
+      else if (ch && active) active.replaceTransport(ch);
+      else ch?.detach();
+    }
   }
 };
 
@@ -88,8 +94,8 @@ function onRaceStart(m: Extract<S2CLobby, { t: 'raceStart' }>): void {
   lastRaceId = raceId;
   early?.channel.detach();
   const ch = conn.raceChannel();
-  early = ch ? { raceId, channel: ch, buffered: [] } : null;
-  if (early) { const buf = early.buffered; ch!.onMessage = (b) => { if (buf.length < 4096) buf.push(b); }; }
+  early = ch ? { raceId, channel: ch, buffer: new EarlyFrameBuffer() } : null;
+  if (early) { const buf = early.buffer; ch!.onMessage = (b) => buf.push(b); }
   pendingRace.value = {
     raceId, config: m.config, startTick: m.startTick, serverTick: m.serverTick, yourSlot: m.yourSlot, receivedAt: performance.now(),
     ...(m.resumeToken ? { resumeToken: m.resumeToken } : {}),
@@ -98,11 +104,11 @@ function onRaceStart(m: Extract<S2CLobby, { t: 'raceStart' }>): void {
 }
 
 /** Session side: the race channel opened at raceStart and the frames it buffered (once). */
-export function takeRaceChannel(raceId: string): { channel: Channel | null; buffered: Uint8Array[] } | null {
+export function takeRaceChannel(raceId: string): { channel: Channel | null; buffered: Uint8Array[]; needKeyframe: boolean } | null {
   if (!early || early.raceId !== raceId || !early.channel.attached) return null;
   const e = early;
   early = null;
-  return { channel: e.channel, buffered: e.buffered };
+  return { channel: e.channel, buffered: e.buffer.frames, needKeyframe: e.buffer.needKeyframe };
 }
 
 /** Session side: take the pending race (once). */
