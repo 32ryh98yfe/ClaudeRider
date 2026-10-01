@@ -1,8 +1,11 @@
 // Helpers for physics scenarios: race-ready rigs on fixtures, kart placement, speed readouts.
-import { StartTier, type BakedTrack, type FrameSample, type InputFrame, type KartState, type WorldState } from '@cr/sim';
+import { Gear, KMH_PER_MPS, StartTier, type BakedTrack, type FrameSample, type InputFrame, type KartState, type WorldState } from '@cr/sim';
 import { makeRig, type Rig, type RigOptions } from './rig.ts';
 
-export const KMH = 5.4;
+/** Display km/h per m/s (M5, doc 15 §1: vGrip 34 m/s reads 205 km/h). */
+export const KMH = KMH_PER_MPS;
+/** The validated gap-2 display scale (3.6 × 1.5): rows pinned to gap-2 numbers keep them on this scale (doc 15 §1). */
+export const KMH_GAP2 = 5.4;
 const FS = (): FrameSample => ({ px: 0, py: 0, pz: 0, tx: 0, ty: 0, tz: 0, rx: 0, ry: 0, rz: 0, ux: 0, uy: 0, uz: 0, wL: 0, wR: 0, sMain: 0, flags: 0 });
 
 /** A rig already in the RACING phase (3-tick countdown), start-boost logic disabled for every kart. */
@@ -28,6 +31,8 @@ export function place(rig: Rig, slot: number, p: Place): KartState {
   b.nx = f.ux; b.ny = f.uy; b.nz = f.uz;
   const v = p.speed ?? 0;
   b.vx = b.fx * v; b.vy = b.fy * v; b.vz = b.fz * v;
+  // a kart moving along its nose is in drive (doc 15 §4.8): left in STOP, the zero-lock would hold it at 0
+  k.drive.gear = v > 0 ? Gear.D : v < 0 ? Gear.R : Gear.STOP;
   b.yawRate = 0; b.grounded = h > 0.05 ? 0 : 1; b.coyote = b.grounded ? 7 : 0; b.airTicks = b.grounded ? 0 : 1; b.wallContact = 0;
   // the surface under the kart, as the first ground contact would report it
   const hit = { t: 0, x: 0, y: 0, z: 0, nx: 0, ny: 1, nz: 0, surf: 0, tri: 0, flags: 0 };
@@ -42,8 +47,8 @@ export function place(rig: Rig, slot: number, p: Place): KartState {
   return k;
 }
 
-/** Forward speed (along the nose) in display km/h. */
-export const fwdKmh = (k: KartState): number => (k.body.vx * k.body.fx + k.body.vy * k.body.fy + k.body.vz * k.body.fz) * KMH;
+/** Forward speed (along the nose) in display km/h; pass `KMH_GAP2` for rows pinned to the gap-2 scale. */
+export const fwdKmh = (k: KartState, scale: number = KMH): number => (k.body.vx * k.body.fx + k.body.vy * k.body.fy + k.body.vz * k.body.fz) * scale;
 /** |v| in m/s. */
 export const speedOf = (k: KartState): number => Math.hypot(k.body.vx, k.body.vy, k.body.vz);
 

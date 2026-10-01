@@ -1,17 +1,22 @@
 // physics: acceptance numbers from docs/design/10-sim-spec.md §14 (gap-2 values [V]) and 02-contracts §E.
 // Fixtures are built in code (test/fixtures): a 1 km flat plane, a 16 m corridor and 12 m corner kits.
+// M5 (docs/design/15-driving-techniques.md): the display reads 205 km/h at vGrip (KMH); rows whose physics is
+// unchanged keep their validated gap-2 numbers on the old scale (KMH_GAP2). Numbers that the new vBoost or the new
+// laws (bleed, cut, drag, gears) move are marked REMEASURE(M5) with the expected value; the techniques themselves
+// are pinned in techniques.test.ts.
 import { describe, expect, it } from 'vitest';
-import { Edge, Held, V_REF, KMH_PER_MPS, makeInput, copyInput, paramsFor, type InputFrame, type KartState } from '@cr/sim';
+import { Edge, Held, V_REF, makeInput, copyInput, paramsFor, type InputFrame, type KartState } from '@cr/sim';
 import { bakedTrack, makeRig, getContent, type Rig } from './rig.ts';
 import { flatPlane, corridor, cornerKit } from './fixtures/kits.ts';
-import { racingRig, place, fwdKmh, speedOf, steerLeft, KMH } from './util.ts';
+import { racingRig, place, fwdKmh, speedOf, steerLeft, KMH, KMH_GAP2 } from './util.ts';
 import { bestClumsy, bestDrift, planDriver, runCorner, type Plan } from './corner.ts';
 import { ORACLE_LOGS } from './oraclelogs.ts';
-import { oracleKart, oracleStep } from './oracle/proto2d.ts';
+import { oracleKart, oracleStep, type OracleKart, type OracleParams } from './oracle/proto2d.ts';
 
 const oval = bakedTrack('_test/drag_oval');
 const flat = flatPlane().track;
-const V_GRIP_DISPLAY = V_REF * KMH_PER_MPS;
+/** vGrip on the gap-2 display scale (183.6 km/h): the acceleration rows are validated on it. */
+const V_GRIP_GAP2 = V_REF * KMH_GAP2;
 
 /** Holds throttle so that step `goTick + d` is the first with throttle (the drive callback sees the pre-step tick). */
 function launch(d: number | null, ticksAfterGo: number, track = oval): Rig {
@@ -21,15 +26,15 @@ function launch(d: number | null, ticksAfterGo: number, track = oval): Rig {
   return rig;
 }
 
-/** km/h every 15 ticks from `v0` on the flat plane, throttle held; `use` ticks fire a booster. */
-function series(v0: number, n: number, setup: (k: KartState) => void, use: number[] = []): number[] {
+/** km/h (on `scale`) every 15 ticks from `v0` on the flat plane, throttle held; `use` ticks fire a booster. */
+function series(v0: number, n: number, setup: (k: KartState) => void, use: number[] = [], scale = KMH): number[] {
   const rig = racingRig(flat);
   const k = place(rig, 0, { s: 300, speed: v0 });
   k.drive.prevThrottle = 1;
   setup(k);
   const out: number[] = [];
   for (let t = 0; t <= n; t++) {
-    if (t % 15 === 0) out.push(fwdKmh(k));
+    if (t % 15 === 0) out.push(fwdKmh(k, scale));
     rig.tick((_w, inp) => { inp[0]!.throttle = 15; if (use.includes(t)) inp[0]!.edges |= Edge.USE_ITEM; });
   }
   return out;
@@ -42,14 +47,14 @@ describe('physics: acceleration (§14.1)', () => {
     let t100 = -1, t97 = -1;
     while (rig.w.tick < press + 600) {
       rig.tick((w, inp) => { inp[0]!.throttle = w.tick >= press ? 15 : 0; });
-      const v = fwdKmh(rig.w.karts[0]!), t = (rig.w.tick - press) / 60;
+      const v = fwdKmh(rig.w.karts[0]!, KMH_GAP2), t = (rig.w.tick - press) / 60;
       if (t100 < 0 && v >= 100) t100 = t;
-      if (t97 < 0 && v >= 0.97 * V_GRIP_DISPLAY) t97 = t;
+      if (t97 < 0 && v >= 0.97 * V_GRIP_GAP2) t97 = t;
     }
     expect(t100).toBeGreaterThan(1.12); expect(t100).toBeLessThan(1.22);
     expect(t97).toBeGreaterThan(3.85); expect(t97).toBeLessThan(4.05);
-    expect(fwdKmh(rig.w.karts[0]!)).toBeGreaterThan(0.99 * V_GRIP_DISPLAY);
-    expect(fwdKmh(rig.w.karts[0]!)).toBeLessThan(1.005 * V_GRIP_DISPLAY);
+    expect(fwdKmh(rig.w.karts[0]!, KMH_GAP2)).toBeGreaterThan(0.99 * V_GRIP_GAP2);
+    expect(fwdKmh(rig.w.karts[0]!, KMH_GAP2)).toBeLessThan(1.005 * V_GRIP_GAP2);
   });
 
   it('0→25 m/s 1.78 ± 0.05 s, 0→30 m/s 2.62 ± 0.08 s, 0→99% 4.97 ± 0.15 s on the flat plane', () => {
@@ -67,8 +72,11 @@ describe('physics: acceleration (§14.1)', () => {
   });
 });
 
+// REMEASURE(M5): the booster rows below moved with vBoost 45.11 (272 km/h on the new display) and, after expiry, with
+// the post-boost bleed. The expected values are a pre-merge measurement of the unchanged boost law with the M5 vBoost
+// (during the boost) and the oracle's bleed prediction (after expiry); the reconcile step confirms them on the merged sim.
 describe('physics: booster (§14.2)', () => {
-  it('reaches ≥ 237 km/h after 1.0 s and plateaus at 239–240.5 km/h', () => {
+  it('reaches ≥ 270 km/h after 1.0 s and plateaus at 271.5–272.5 km/h', () => {
     const rig = makeRig(oval, { laps: 1 });
     const press = rig.w.goTick + 30;
     rig.run(press + 480 - rig.w.tick, (w, inp) => { inp[0]!.throttle = w.tick >= press ? 15 : 0; });
@@ -77,37 +85,39 @@ describe('physics: booster (§14.2)', () => {
     const at: Record<number, number> = {};
     rig.run(160, (w, inp) => { inp[0]!.throttle = 15; if (w.tick === use) inp[0]!.edges |= Edge.USE_ITEM; at[w.tick - use] = fwdKmh(w.karts[0]!); });
     expect(rig.w.karts[0]!.stats.boostsUsed).toBe(1);
-    expect(at[61]!).toBeGreaterThanOrEqual(237);
-    expect(at[150]!).toBeGreaterThanOrEqual(239);
-    expect(at[150]!).toBeLessThanOrEqual(240.5);
+    expect(at[61]!).toBeGreaterThanOrEqual(270); // REMEASURE(M5): pre-merge 270.73 (gap-2: ≥ 237)
+    expect(at[150]!).toBeGreaterThanOrEqual(271.5); // REMEASURE(M5): pre-merge 271.98 (gap-2: 239–240.5)
+    expect(at[150]!).toBeLessThanOrEqual(272.5);
   });
 
-  it('from 184 km/h: 216, 231, 237, 239 (1.0 s), plateau to 3.0 s, then decays with τ ≈ 1.1 s', () => {
+  it('from 205 km/h: 242, 261, 268, 271 (1.0 s), plateau to 3.0 s, then the 0.5 s post-boost bleed', () => {
     const s = series(34, 300, (k) => { k.drive.boosters = 1; }, [0]);
-    [216, 231, 237, 239].forEach((v, i) => expect(Math.abs(s[i + 1]! - v)).toBeLessThanOrEqual(3));
-    for (let i = 5; i <= 12; i++) { expect(s[i]!).toBeGreaterThanOrEqual(239); expect(s[i]!).toBeLessThanOrEqual(240.5); }
-    [229, 220, 212, 207, 202].forEach((v, i) => expect(Math.abs(s[13 + i]! - v)).toBeLessThanOrEqual(3));
-    // overspeed decay a = −0.9·(u − vGrip): the excess over vGrip falls by 1/e in 1/0.9 s
-    const e0 = s[12]! - V_GRIP_DISPLAY, e1 = s[16]! - V_GRIP_DISPLAY; // 1.0 s apart
-    const tau = 1 / Math.log(e0 / e1);
-    expect(Math.abs(tau - 1.1)).toBeLessThanOrEqual(0.15);
+    // REMEASURE(M5): pre-merge 242.0 261.3 268.2 270.6 (gap-2: 216, 231, 237, 239)
+    [242.0, 261.3, 268.2, 270.6].forEach((v, i) => expect(Math.abs(s[i + 1]! - v)).toBeLessThanOrEqual(3));
+    // REMEASURE(M5): pre-merge plateau 271.5 … 272.0 (1.25 … 3.0 s)
+    for (let i = 5; i <= 12; i++) { expect(s[i]!).toBeGreaterThanOrEqual(271); expect(s[i]!).toBeLessThanOrEqual(272.5); }
+    // REMEASURE(M5): the bleed (doc 15 §4.8) replaces the τ ≈ 1.1 s overspeed decay (gap-2: 229, 220, 212, 207, 202);
+    // oracle prediction 219.9, 208.3, 207.7, 207.1, 206.7. The bleed law itself is pinned in techniques.test.ts.
+    [219.9, 208.3, 207.7, 207.1, 206.7].forEach((v, i) => expect(Math.abs(s[13 + i]! - v)).toBeLessThanOrEqual(3));
   });
 
-  it('from 151 km/h: 185, 217, 232 at 0.75 s (± 3 km/h)', () => {
+  it('from 169 km/h: 207, 243, 262 at 0.75 s (± 3 km/h)', () => {
     const s = series(28, 60, (k) => { k.drive.boosters = 1; }, [0]);
-    [185, 217, 232].forEach((v, i) => expect(Math.abs(s[i + 1]! - v)).toBeLessThanOrEqual(3));
+    // REMEASURE(M5): pre-merge 206.5 243.3 261.8 (gap-2 from 151 km/h: 185, 217, 232)
+    [206.5, 243.3, 261.8].forEach((v, i) => expect(Math.abs(s[i + 1]! - v)).toBeLessThanOrEqual(3));
   });
 
-  it('two chained boosters (second at tick 172) hold the plateau to ≈ 6 s without a dip below 238', () => {
+  it('two chained boosters (second at tick 172) hold the plateau to ≈ 6 s without a dip below 270', () => {
     const s = series(34, 360, (k) => { k.drive.boosters = 2; }, [0, 172]);
-    for (let i = 4; i <= 23; i++) expect(s[i]!).toBeGreaterThanOrEqual(238); // 1.0 … 5.75 s
+    // REMEASURE(M5): pre-merge minimum 270.64 over 1.0 … 5.75 s (gap-2: ≥ 238)
+    for (let i = 4; i <= 23; i++) expect(s[i]!).toBeGreaterThanOrEqual(270); // 1.0 … 5.75 s
   });
 });
 
 describe('physics: instant boost (§7.4, §14.3)', () => {
   it('from 151 km/h: +11 ± 2 km/h at 0.5 s over no instant boost; 163, 175, 178, 180 vs 158, 164, 168', () => {
-    const withI = series(28, 150, (k) => { k.drive.instWindow = 30; k.drive.prevThrottle = 0; });
-    const without = series(28, 150, (k) => { k.drive.prevThrottle = 0; });
+    const withI = series(28, 150, (k) => { k.drive.instWindow = 30; k.drive.prevThrottle = 0; }, [], KMH_GAP2);
+    const without = series(28, 150, (k) => { k.drive.prevThrottle = 0; }, [], KMH_GAP2);
     const gain = withI[2]! - without[2]!;
     expect(gain).toBeGreaterThanOrEqual(9); expect(gain).toBeLessThanOrEqual(13);
     [163, 175, 178].forEach((v, i) => expect(Math.abs(withI[i + 1]! - v)).toBeLessThanOrEqual(3));
@@ -159,7 +169,7 @@ describe('physics: walls at 30 m/s in a 16 m corridor (§10.4, §14.4)', () => {
       if (tHit >= 0 && t > tHit && k.drive.stunTicks > 0) stun++;
       if (tHit >= 0 && t === tHit + 60) { v1 = speedOf(k); break; }
     }
-    return { lost: 30 * KMH - vAfter * KMH, after: vAfter * KMH, later: v1 * KMH, stun, severity, boostAfter, k };
+    return { lost: 30 * KMH_GAP2 - vAfter * KMH_GAP2, after: vAfter * KMH_GAP2, later: v1 * KMH_GAP2, stun, severity, boostAfter, k };
   }
 
   it('10° grinds: −3 ± 2 km/h, no stun, drift kept (severity 0)', () => {
@@ -229,14 +239,17 @@ describe('physics: start boost (§7.1, §14.5)', () => {
   it('holding the throttle through the countdown is no boost and no penalty', () => {
     expect(base.w.karts[0]!.stats.startTier).toBe(1);
   });
-  it('PERFECT [0, +6] gains 35 ± 3 m at 5 s (162 km/h at 1.0 s)', () => {
+  it('PERFECT [0, +6] gains 28 ± 3 m at 5 s (162 km/h at 1.0 s)', () => {
     for (const d of [0, 3, 6]) {
       const g = gain(d);
       expect(g.tier).toBe(5);
-      if (d === 0) { expect(g.gain).toBeGreaterThan(32); expect(g.gain).toBeLessThan(38); }
+      // REMEASURE(M5): gap-2 +35 m (pre-merge 35.46 m with the M5 vBoost). The PERFECT boost expires at 42.4 m/s, above
+      // vGrip, so the 0.5 s post-boost bleed now replaces the τ 1.1 s decay: a 1D replay of that bleed from the measured
+      // expiry speed predicts −7.1 m, i.e. ≈ 28.3 m. (GREAT and GOOD expire below vGrip: no bleed, unchanged.)
+      if (d === 0) { expect(g.gain).toBeGreaterThan(25.3); expect(g.gain).toBeLessThan(31.3); }
     }
     const r = launch(0, 60);
-    expect(Math.abs(fwdKmh(r.w.karts[0]!) - 162)).toBeLessThanOrEqual(4);
+    expect(Math.abs(fwdKmh(r.w.karts[0]!, KMH_GAP2) - 162)).toBeLessThanOrEqual(4);
   });
   it('GREAT −3 ticks: +21 ± 3 m; GOOD −9 ticks: +12 ± 3 m', () => {
     const g = gain(-3); expect(g.tier).toBe(4); expect(Math.abs(g.gain - 21)).toBeLessThanOrEqual(3);
@@ -252,6 +265,10 @@ describe('physics: start boost (§7.1, §14.5)', () => {
   });
 });
 
+// REMEASURE(M5): every corner plan ends its drift with a counter-steer and DRIFT released (corner.ts phase 3, cCs 0.6
+// or 1). A full counter-steer (cCs 1) now cuts on its 2nd tick (doc 15 §4.5: u += 0.8·(v − u), β → 0, instant window
+// kept), where gap-2 let kLatCounter end the drift over several ticks; cCs 0.6 does not cut. Speeds stay on the gap-2
+// scale (KMH_GAP2). Expect the cut rows to land within a few km/h and ±0.1 s of the current numbers; re-measure them.
 describe('physics: corners on a 12 m road at 34 m/s (§14.6)', () => {
   const kit = cornerKit(12, 90, 12);
   it('90° R12 optimal drift: drop ≤ 8%, 0.30–0.43 gauge (drift term), 3.38 ± 0.10 s', () => {
@@ -262,19 +279,21 @@ describe('physics: corners on a 12 m road at 34 m/s (§14.6)', () => {
     expect(1 - r.vMin / 34).toBeLessThanOrEqual(0.08);
     expect(r.gauge).toBeGreaterThanOrEqual(0.3); expect(r.gauge).toBeLessThanOrEqual(0.43);
     expect(Math.abs(r.time - 3.38)).toBeLessThanOrEqual(0.1);
-    expect(r.vX * KMH).toBeGreaterThanOrEqual(186);
+    expect(r.vX * KMH_GAP2).toBeGreaterThanOrEqual(186); // REMEASURE(M5): cut exit (cCs 1)
   });
   it('90° R12 clumsy long drift: drop 35–45 km/h', () => {
     const c = bestClumsy(kit, 34);
     expect(c).not.toBeNull();
-    const drop = 34 * KMH - c!.res.vMin * KMH;
-    expect(drop).toBeGreaterThanOrEqual(35); expect(drop).toBeLessThanOrEqual(45);
-    expect(Math.abs(c!.res.time - 3.65)).toBeLessThanOrEqual(0.1);
+    const drop = 34 * KMH_GAP2 - c!.res.vMin * KMH_GAP2;
+    expect(drop).toBeGreaterThanOrEqual(35); expect(drop).toBeLessThanOrEqual(45); // REMEASURE(M5): cut exit (cCs 1)
+    expect(Math.abs(c!.res.time - 3.65)).toBeLessThanOrEqual(0.1); // REMEASURE(M5)
   });
 
   // Regression rows: the fastest plans found by the full gap-2 grid search on these kits, with their measured
   // results. gap-2's values are in the comments; 180° R9/R12 optimal plans are faster here than in gap-2 because
   // the grid finds a better double-drift line on the 3D kit (10-sim-spec §14.6 lists them as regression values).
+  // REMEASURE(M5): every row with cCs 1 (all OPT rows but 90° R16, and every CLUMSY row) now exits by a cut; the
+  // numbers are the pre-M5 measurements on the KMH_GAP2 scale and are expected to move by a few km/h at most.
   const OPT: [number, number, Plan, number, number, number][] = [
     // deg, Rc, plan, min km/h, exit km/h, time s            gap-2: min, exit, t
     [90, 9, { dTrig: 20, tSh: 0.3, sD: 0.45, phiCs: 20, cCs: 1, rek: 0, vBr: 34, inst: true }, 173, 189, 3.28], // 167 189 3.28
@@ -294,8 +313,8 @@ describe('physics: corners on a 12 m road at 34 m/s (§14.6)', () => {
     const k2 = cornerKit(rc, deg, 12);
     const r = runCorner(k2, 34, (P) => planDriver(k2, 34, plan, P));
     expect(r.ok).toBe(true);
-    expect(Math.abs(r.vMin * KMH - vMin)).toBeLessThanOrEqual(3);
-    expect(Math.abs(r.vX * KMH - vX)).toBeLessThanOrEqual(3);
+    expect(Math.abs(r.vMin * KMH_GAP2 - vMin)).toBeLessThanOrEqual(3);
+    expect(Math.abs(r.vX * KMH_GAP2 - vX)).toBeLessThanOrEqual(3);
     expect(Math.abs(r.time - t)).toBeLessThanOrEqual(0.1);
   });
   it.each(CLUMSY)('regression: %i° R%i clumsy plan', (deg, rc, p, vMin, vX, t) => {
@@ -303,8 +322,8 @@ describe('physics: corners on a 12 m road at 34 m/s (§14.6)', () => {
     const plan: Plan = { dTrig: 0, tSh: 0.5, sD: 1, phiCs: 0, cCs: 1, rek: 0, vBr: 1e9, inst: false, ...p };
     const r = runCorner(k2, 34, (P) => planDriver(k2, 34, plan, P));
     expect(r.fin).toBe(true);
-    expect(Math.abs(r.vMin * KMH - vMin)).toBeLessThanOrEqual(3);
-    expect(Math.abs(r.vX * KMH - vX)).toBeLessThanOrEqual(3);
+    expect(Math.abs(r.vMin * KMH_GAP2 - vMin)).toBeLessThanOrEqual(3);
+    expect(Math.abs(r.vX * KMH_GAP2 - vX)).toBeLessThanOrEqual(3);
     expect(Math.abs(r.time - t)).toBeLessThanOrEqual(0.1);
   });
 });
@@ -418,8 +437,16 @@ describe('physics: draft (§7.5)', () => {
   });
 });
 
-describe('physics: flat-plane oracle (§14.7)', () => {
-  const P = paramsFor(getContent().karts.get('pebble'));
+describe('physics: flat-plane oracle (§14.7, doc 15 §5 item 9)', () => {
+  // the doc 15 §2 keys are SHARED params from M5 on; the cast keeps this file compiling on either side of that change
+  const P = paramsFor(getContent().karts.get('pebble')) as OracleParams;
+  /** The technique state of both models, for the first-divergence report. */
+  const techSim = (k: KartState): string => {
+    const d = k.drive;
+    return `drift ${d.drift} drag ${d.dragTicks} streak ${d.tapStreak} gap ${d.tapGap} counter ${d.counterTicks} brake ${d.brakeTicks} gear ${d.gear} post ${d.postTicks} boost ${d.boostTicks} stun ${d.stunTicks} inst ${d.instTicks}/${d.instWindow}`;
+  };
+  const techOracle = (o: OracleKart): string =>
+    `drift ${o.drift} drag ${o.dragT} streak ${o.streak} gap ${o.tapGap} counter ${o.counterT} brake ${o.brakeT} gear ${o.gear} post ${o.postT} boost ${o.boostT} stun ${o.stunT} inst ${o.instT}/${o.instWin}`;
   it.each(ORACLE_LOGS.map((l) => [l.name, l] as const))('%s: 3D step matches the patched gap-2 prototype to ≤ 1e-6 m every tick', (_n, log) => {
     const rig = racingRig(flat);
     const k = place(rig, 0, { s: 300, speed: log.v0 });
@@ -427,16 +454,21 @@ describe('physics: flat-plane oracle (§14.7)', () => {
     const o = oracleKart(k.body.px, k.body.pz, k.body.fx, k.body.fz, log.v0);
     o.boosters = log.boosters;
     const f: InputFrame = makeInput();
-    let maxErr = 0, gaugeErr = 0, boosterMismatch = 0;
+    let maxErr = 0, gaugeErr = 0, boosterMismatch = 0, first = '';
     for (let t = 0; t < 600; t++) {
       rig.tick((_w, inp) => { log.frame(t, k, inp[0]!); copyInput(f, inp[0]!); });
-      oracleStep(o, { steer: -f.steer / 127, thr: f.throttle > 0 ? 1 : 0, brk: f.brake > 0 ? 1 : 0, drift: (f.held & Held.DRIFT) !== 0, boost: (f.edges & Edge.USE_ITEM) !== 0 }, P);
-      maxErr = Math.max(maxErr, Math.hypot(o.px - k.body.px, o.pz - k.body.pz));
+      oracleStep(o, {
+        steer: -f.steer / 127, thr: f.throttle > 0 ? 1 : 0, brk: f.brake > 0 ? 1 : 0, drift: (f.held & Held.DRIFT) !== 0, boost: (f.edges & Edge.USE_ITEM) !== 0,
+        tapL: (f.edges & Edge.TAP_L) !== 0, tapR: (f.edges & Edge.TAP_R) !== 0,
+      }, P);
+      const err = Math.hypot(o.px - k.body.px, o.pz - k.body.pz);
+      maxErr = Math.max(maxErr, err);
       gaugeErr = Math.max(gaugeErr, Math.abs(o.gauge - k.drive.gauge));
       if (o.boosters !== k.drive.boosters) boosterMismatch++;
+      if (!first && (err > 1e-6 || o.boosters !== k.drive.boosters)) first = `tick ${t}: sim [${techSim(k)}] oracle [${techOracle(o)}]`;
     }
-    expect(maxErr).toBeLessThanOrEqual(1e-6);
-    expect(gaugeErr).toBeLessThanOrEqual(1e-9);
-    expect(boosterMismatch).toBe(0);
+    expect(maxErr, first).toBeLessThanOrEqual(1e-6);
+    expect(gaugeErr, first).toBeLessThanOrEqual(1e-9);
+    expect(boosterMismatch, first).toBe(0);
   });
 });
