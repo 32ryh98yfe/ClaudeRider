@@ -37,7 +37,8 @@ pnpm start         # http://127.0.0.1:8787  (static client + /ws game server) ê²
 ```
 
 - **Development:** `pnpm dev` runs Vite on :5173 (hot reload) and the game server on :8787.
-- **Hosting:** `node apps/server/src/main.ts --host 0.0.0.0 --port 8787` serves the built client, `/health` and the WebSocket on `/ws`. Put it behind a TLS proxy for `wss://`.
+- **Hosting:** `node apps/server/src/main.ts --host 0.0.0.0 --port 8787` serves the built client, `/health` and the WebSocket on `/ws`. Put it behind a TLS proxy for `wss://`, and add `--trust-proxy` (or `TRUST_PROXY=1`) so the per-address limits read the proxy's `X-Forwarded-For` header instead of the proxy's own address.
+  - Default limits per address: 8 sockets, 16 sessions, 2 concurrent races, 10 failed room-code joins per minute. Server-wide: 50 races. All are set in `GameServerOptions.limits`.
 - **Art overrides:** the server reads `apps/client/public/art/overrides/` live, so a dropped image shows on the next page load without a rebuild. `--art <dir>` adds another folder, which is checked first.
 - **Offline play:** solo races run the authority in a Web Worker, so no server is needed.
 
