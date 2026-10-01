@@ -19,7 +19,7 @@ export type KBoneRef = keyof typeof KB | (string & {}) | number;
 /** Livery slots (partId): primary / secondary are solid, paint gets the livery pattern, number/detail are contrast. */
 export const KSLOT = { primary: 0, secondary: 1, paint: 2, number: 3 } as const;
 const FIXED = {
-  trim: '#2B2B2E', dark: '#1D1C1F', metal: '#8E8E96', chrome: '#D8D8DE', rubber: '#1E1D20', seat: '#3A3A40', ivory: '#FAF9F5',
+  trim: '#2B2B2E', dark: '#1D1C1F', metal: '#9A9CA4', chrome: '#C8CDD5', rubber: '#2B2B31', seat: '#3A3A40', ivory: '#FAF9F5',
   brass: '#C9A14A', gold: '#E9B949', copper: '#B87333', glass: '#BFE6FF', red: '#E5484D', amber: '#FFB347', white: '#FFFFFF',
 } as const;
 export type KColor = 'primary' | 'secondary' | 'paint' | 'number' | keyof typeof FIXED | `#${string}`;
@@ -224,6 +224,8 @@ function buildKart(shape: KartShape, livery0: Livery): KartModel {
         }
         const side = Math.sign(at[0]) || 1;
         for (const g of wheelGeometry(o, lod)) { orientWheel(g.geo, side); g.geo.translate(at[0], at[1], at[2]); kit.add(g.geo, { color: g.color ?? (o.tyre ?? 'rubber'), bone: wb, surf: g.surf }); }
+        // a small dark pad where each tyre meets the road (the big contact shadow alone reads as a blob under the kart)
+        if (lod < 2) kit.decal([at[0], 0.034, at[2]], 'y+', o.w * 1.9, o.r * 2.1, { color: '#14151c', cell: 'shadow', opacity: 0.55, bone: 'shadow', shadow: true });
         if (o.hubCell !== null && lod === 0) kit.decal([at[0] + side * (o.w / 2 + 0.004), at[1], at[2]], side > 0 ? 'x+' : 'x-', o.r * 0.9, o.r * 0.9, { color: o.style === 'neon' ? 'secondary' : 'ivory', cell: o.hubCell ?? 'sparkle', bone: wb, glow: o.style === 'neon' ? 2.5 : 0 });
       },
       handlebar(o = {}) {
@@ -285,7 +287,7 @@ function buildKart(shape: KartShape, livery0: Livery): KartModel {
     // contact shadow: a soft dark ellipse on the road under the chassis. The sun shadow of a 1.5 m kart is a few
     // texels wide and drifts with the sun angle; this keeps every kart planted at any distance (LOD0/1) and shrinks
     // while airborne (the `shadow` bone, see update).
-    kit.decal([0, 0.03, -0.02], 'y+', D.width * 1.55, D.length * 1.38, { color: '#060608', cell: 'shadow', opacity: 0.9, bone: 'shadow', shadow: true });
+    kit.decal([0, 0.03, -0.02], 'y+', D.width * 1.3, D.length * 1.22, { color: '#1A1C28', cell: 'shadow', opacity: 0.62, bone: 'shadow', shadow: true });
     paintGeo[lod] = pb.build();
     overGeo[lod] = ob.build();
   }

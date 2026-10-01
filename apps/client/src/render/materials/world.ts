@@ -269,7 +269,8 @@ export function buildWall(kind: WallStyle, a: string, b: string, prof: MaterialP
       const solid = clamp(post.add(rails).add(kick).add(onTop.mul(post)), 0, 1);
       m.alphaTest = 0.5;
       m.opacityNode = solid;
-      const postC = A.mul(0.78), railC = A;
+      // dark timber posts against white rails: the edge keeps a clear outline against a pale horizon at distance
+      const postC = color('#5b4a3a'), railC = A;
       c = mix(mix(railC, postC, clamp(post, 0, 1)), B, kick);
       // a thin shadow line under each rail gives the bars depth without texture noise
       c = c.mul(float(1).sub(step(hFrac, 0.555 + 0.012).mul(step(0.555, hFrac)).mul(0.25)));

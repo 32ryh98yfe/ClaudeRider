@@ -96,7 +96,9 @@ export function createPost(renderer: THREE.WebGPURenderer, scene: THREE.Scene, c
       aoPass.radius.value = 0.6; aoPass.thickness.value = 1.2; aoPass.distanceExponent.value = 1.5;
       aoTex = aoPass.getTextureNode();
     }
-    bloomNode = ts.bloom && (ts.bloomMode ?? 'mips') === 'mips' ? bloom(emis, ux.bloomStrength, ts.bloomRadius ?? 0.45, 0.0) : null;
+    // High+ thresholds the emissive buffer (ts.bloomThreshold): idle lamps and paint never halo in daylight, while
+    // boost flames, sparks and item hits (emissive well above 1) still glow
+    bloomNode = ts.bloom && (ts.bloomMode ?? 'mips') === 'mips' ? bloom(emis, ux.bloomStrength, ts.bloomRadius ?? 0.45, ts.bloomThreshold ?? 0) : null;
 
     const hdr = Fn(() => {
       const st = uv();

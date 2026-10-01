@@ -145,7 +145,7 @@ export function kartAtlas(): THREE.Texture {
     { const [x, y] = at(KART_CELLS.vent); for (let k = 0; k < 5; k++) { g.beginPath(); g.roundRect(x - 56, y - 50 + k * 22, 112, 12, 6); g.fill(); } }
     { const [x, y] = at(KART_CELLS.headlight); const gr = g.createRadialGradient(x, y, 0, x, y, 60); gr.addColorStop(0, '#fff'); gr.addColorStop(0.55, 'rgba(255,255,255,0.9)'); gr.addColorStop(0.62, 'rgba(255,255,255,0.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x, y, 62, 0, Math.PI * 2); g.fill(); g.fillStyle = '#fff'; }
     // contact shadow: a flat dark core out to ~60 % of the radius (the kart footprint), then a soft rim
-    { const [x, y] = at(KART_CELLS.shadow); const gr = g.createRadialGradient(x, y, 0, x, y, 62); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.58, 'rgba(255,255,255,0.92)'); gr.addColorStop(0.8, 'rgba(255,255,255,0.4)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(x - 64, y - 64, 128, 128); g.fillStyle = '#fff'; }
+    { const [x, y] = at(KART_CELLS.shadow); const gr = g.createRadialGradient(x, y, 0, x, y, 62); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.4, 'rgba(255,255,255,0.88)'); gr.addColorStop(0.78, 'rgba(255,255,255,0.32)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(x - 64, y - 64, 128, 128); g.fillStyle = '#fff'; }
     tex.needsUpdate = true;
   };
   draw();

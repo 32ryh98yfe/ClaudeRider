@@ -115,7 +115,7 @@ function resolveMaterial(slot: { name: string; material: string; variant?: strin
 /** Original "Prompt Cube": ivory rounded cube, coral edge frame, and a coral "?" glyph on each side (bloom). */
 function promptCube(): { body: THREE.BufferGeometry; glyph: THREE.BufferGeometry } {
   const s = 1.3, e = 0.09;
-  const frame: THREE.BufferGeometry[] = [paint(rbox(s, s, s, 0.26, 3), '#FAF9F5')];
+  const frame: THREE.BufferGeometry[] = [paint(rbox(s, s, s, 0.26, 3), '#7fd3ff')];
   for (const [ax, ay] of [[1, 1], [1, -1], [-1, 1], [-1, -1]] as const) {
     frame.push(paint(place(box(s + 0.02, e, e), 0, ay * (s / 2 - 0.02), ax * (s / 2 - 0.02)), '#D97757'));
     frame.push(paint(place(box(e, s + 0.02, e), ax * (s / 2 - 0.02), 0, ay * (s / 2 - 0.02)), '#D97757'));
@@ -229,6 +229,22 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
     props.push(set);
     meshes++; tris += (built.geometry.index ? built.geometry.index.count : built.geometry.attributes.position!.count) / 3 * n;
   });
+  // painted grid slots: a white bracket ahead of and beside every start position (one static draw), so the grid
+  // reads as a racing grid instead of plain asphalt behind the line
+  if (track.grid.length) {
+    const bars: THREE.BufferGeometry[] = [];
+    for (const g of track.grid) {
+      const yaw = Math.atan2(g.fx, g.fz);
+      for (const b of [box(2.0, 0.02, 0.16).translate(0, 0, 1.35), box(0.16, 0.02, 1.3).translate(-0.92, 0, 0.78), box(0.16, 0.02, 1.3).translate(0.92, 0, 0.78)]) {
+        b.rotateY(yaw); b.translate(g.x, g.y + 0.025, g.z);
+        bars.push(paint(b, '#f4f1ea'));
+      }
+    }
+    const slots = new THREE.Mesh(merge(bars), MaterialLibrary.vertexLit(0.7, 0));
+    slots.name = 'gridSlots'; slots.receiveShadow = true; slots.matrixAutoUpdate = false;
+    root.add(slots);
+    meshes++;
+  }
   // item boxes ("Prompt Cubes") + glyphs (two instanced draws)
   let boxes: THREE.InstancedMesh | null = null, glyphs: THREE.InstancedMesh | null = null;
   if (track.boxes.length) {
@@ -236,7 +252,7 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
     boxes = new THREE.InstancedMesh(g.body, MaterialLibrary.vinyl({ rim: '#ffd9c7', clearcoat: 1, roughness: 0.22 }), track.boxes.length);
     boxes.name = 'itemBoxes';
     boxes.castShadow = true;
-    glyphs = new THREE.InstancedMesh(g.glyph, MaterialLibrary.emissiveVertex(3), track.boxes.length);
+    glyphs = new THREE.InstancedMesh(g.glyph, MaterialLibrary.emissiveVertex(1.6), track.boxes.length);
     glyphs.name = 'itemBoxGlyphs';
     boxes.frustumCulled = glyphs.frustumCulled = false;
     root.add(boxes, glyphs);

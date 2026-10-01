@@ -57,11 +57,17 @@ function domeMaterial(L: EnvLook, moonDir: THREE.Vector3): THREE.MeshBasicNodeMa
     const sd = normalize(vec3(L.sunDir.x, L.sunDir.y, L.sunDir.z));
     const cosS = max(dot(dir, sd), 0);
     const warm = kind === 'day' ? color('#fff2d8') : kind === 'overcast' ? color('#f4f6f8') : color('#ffc58a');
-    c = mix(color(L.sky.horizon), color(L.sky.top), smoothstep(-0.02, 0.55, h)).add(warm.mul(pow(cosS, 12).mul(kind === 'overcast' ? 0.1 : 0.45)));
+    // the sun glow stays small so the sky facing the sun keeps its blue instead of washing to grey
+    c = mix(color(L.sky.horizon), color(L.sky.top), smoothstep(-0.02, 0.55, h)).add(warm.mul(pow(cosS, 18).mul(kind === 'overcast' ? 0.1 : 0.22)));
     c = mix(c, color(L.sky.bottom), smoothstep(0.0, -0.3, h));
-    const cp = dir.xz.div(max(h, 0.05)).mul(0.9);
-    const cl = smoothstep(0.55, 0.8, n01(vec3(cp.x.add(time.mul(0.004)), cp.y, 0.5)).mul(0.7).add(n01(vec3(cp.mul(3.1), 2.5)).mul(0.3))).mul(smoothstep(0.02, 0.2, h));
-    c = mix(c, mix(color('#ffffff'), warm, 0.25), cl.mul(kind === 'overcast' ? 0.9 : 0.65));
+    // puffy cumulus: low-frequency cells, a firm edge, grey-blue bases (offset sample toward the horizon), and few
+    // clouds near the horizon where the planar projection would stretch them into streaks
+    const cp = dir.xz.div(max(h, 0.08)).mul(0.85);
+    const cn = (o: number): N => n01(vec3(cp.x.add(time.mul(0.003)), cp.y.add(o), 0.5)).mul(0.65).add(n01(vec3(cp.mul(2.6), 2.5)).mul(0.35));
+    const cl = smoothstep(0.58, 0.64, cn(0)).mul(smoothstep(0.06, 0.3, h));
+    const base = smoothstep(0.58, 0.68, cn(0.05));
+    const cloudC = mix(color('#c9d6e2'), color('#ffffff'), base);
+    c = mix(c, kind === 'overcast' ? mix(color('#ffffff'), warm, 0.25) : cloudC, cl.mul(kind === 'overcast' ? 0.9 : 0.85));
     const disc = smoothstep(0.9993, 0.9996, cosS).mul(kind === 'overcast' ? 0 : 1);
     c = c.add(warm.mul(disc.mul(4)));
     glow = warm.mul(disc.mul(1.5));

@@ -22,9 +22,9 @@ export const SURF = {
   voxel: { rough: 0.62, metal: 0, glow: 0, coat: 0.15 },
   metal: { rough: 0.3, metal: 0.9, glow: 0, coat: 0.3 },    // copper, brass
   gold: { rough: 0.24, metal: 1, glow: 0, coat: 0.5 },
-  chrome: { rough: 0.12, metal: 1, glow: 0, coat: 0 },
+  chrome: { rough: 0.24, metal: 0.85, glow: 0, coat: 0 },
   rubber: { rough: 0.92, metal: 0, glow: 0, coat: 0 },
-  paint: { rough: 0.32, metal: 0.12, glow: 0, coat: 1 },
+  paint: { rough: 0.4, metal: 0.08, glow: 0, coat: 0.7 },
   plastic: { rough: 0.5, metal: 0, glow: 0, coat: 0.2 },
   glow: { rough: 0.4, metal: 0, glow: 2.2, coat: 0 },
   neon: { rough: 0.35, metal: 0, glow: 4.5, coat: 0 },

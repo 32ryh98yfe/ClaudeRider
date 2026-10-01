@@ -30,7 +30,7 @@ PAD at=55,105 d=0 len=6 w=4
 KEYS 240,460,660,860,1070,1280
 
 # ---- look & dressing (Clayhill Village kit; art bible: late-morning meadow) ----
-THEME clayhill_village sky=day time=10:00 scatter=orchard_tree,cypress,hay_bale,sheep,cottage density=5 hills=7
+THEME clayhill_village sky=day time=10:00 scatter=orchard_tree,tree_round_big,tree_round_big,bush_round,bush_round,cypress,hay_bale,sheep,rock_cluster,flower_patch,cottage density=42 hills=7 fogNear=250 fogFar=1500
 PROPS kind=cottage from=8 to=190 side=R every=30 offset=7 jitter=3 seed=3
 PROPS kind=flower_box from=85 to=195 side=L every=20 offset=1 seed=4
 PROPS kind=cafe_table from=90 to=180 side=L every=26 offset=5 jitter=2 seed=5
@@ -43,6 +43,25 @@ PROPS kind=ad_board_b from=1352 to=1399 side=both every=16 offset=0.4 seed=23
 PROPS kind=ad_board_a from=1360 to=1399 side=both every=16 offset=0.4 seed=24
 PROPS kind=ad_board_c from=80 to=196 side=L every=36 offset=0.4 seed=25
 PROPS kind=tyre_wall from=203 to=272 side=R every=1.3 offset=0.6 seed=26
+PROPS kind=ad_board_b from=206 to=268 side=R every=10 offset=2.4 seed=27
+# ---- dressing pass (2026-10): ground cover at the fence, shrubs and shade trees behind it, tree lines on the horizon,
+# village life on the start straight (render-only: the .ctrk is unchanged)
+PROPS kind=grass_tuft side=both every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=41
+PROPS kind=flower_patch side=both every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=42
+PROPS kind=bush_round side=both every=11 offset=3 jitter=9 scale=0.7-1.3 seed=43
+PROPS kind=rock_cluster side=both every=23 offset=4 jitter=12 scale=0.6-1.4 seed=44
+# (no big shade trees behind the grandstand / grid on the left: the stand and the first corner stay readable)
+PROPS kind=tree_round_big side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=45
+PROPS kind=tree_round_big from=95 to=1340 side=L every=17 offset=14 jitter=18 scale=0.8-1.3 seed=52
+PROPS kind=tree_clump side=both every=26 offset=60 jitter=50 scale=0.9-1.4 seed=46
+PROPS kind=tree_clump side=both every=34 offset=125 jitter=50 scale=1.0-1.6 seed=47
+PROPS kind=lamp_post from=2 to=195 side=both every=20 offset=1.6 seed=48
+PROPS kind=flag_pole from=22 to=70 side=L every=6 offset=2.6 seed=49
+PROPS kind=spectators from=96 to=190 side=L every=24 offset=2.4 jitter=1 seed=50
+PROPS kind=spectators from=1352 to=1399 side=R every=16 offset=1.6 jitter=1 seed=51
+PROP kind=hot_air_balloon at=(70.0,42.0,95.0) yaw=0 scale=1
+PROP kind=hot_air_balloon at=(195.0,55.0,-150.0) yaw=40 scale=1.2
+PROP kind=hot_air_balloon at=(-95.0,48.0,-60.0) yaw=10 scale=0.9
 PROPS kind=orchard_tree from=200 to=277 side=L every=14 offset=6 jitter=4 seed=6
 PROPS kind=cypress from=277 to=348 side=L every=12 offset=4 seed=7
 PROPS kind=sheep from=350 to=510 side=both every=16 offset=8 jitter=14 scale=0.9-1.2 seed=8

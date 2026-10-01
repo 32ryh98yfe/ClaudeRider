@@ -84,7 +84,7 @@ export const DEFAULT_PROPS: Record<string, PropFactory> = {
       return { geometry: merge(parts), material: MaterialLibrary.vertexLit(0.4, 0) };
     },
   },
-  gantry: { build: (pal) => ({ geometry: startGantry(pal[0] ?? '#d97757'), material: lit(), castShadow: true }) },
+  gantry: { build: () => ({ geometry: startGantry('#d8423a'), material: lit(), castShadow: true }) },
   rock: { build: () => ({ geometry: merge([paint(place(ico(1.2, 0), 0, 0.5, 0, 0.3, 0.5, 0.2, 1.4, 0.8, 1.1), '#8b8680', 0.1, 17)]), material: lit() }) },
   // .vis v2 compiler props (L4-vis-v2 §5)
   gore_cushion: {
@@ -117,7 +117,7 @@ export const PLACEHOLDER_PROP: PropFactory = { build: () => ({ geometry: paint(p
  * and from the far end of the straight.
  */
 function startGantry(accent: string): THREE.BufferGeometry {
-  const DARK = '#262a33', STEEL = '#9aa3ad', WHITE = '#f6f4ef', INK = '#16181d', YEL = '#f2c230';
+  const DARK = '#22335c', STEEL = '#c9ccd4', WHITE = '#f6f4ef', INK = '#16181d', YEL = '#f2c230';
   const p: THREE.BufferGeometry[] = [];
   for (const x of [-9.4, 9.4]) {
     // tower: four chords and zig-zag braces on the two faces seen from the road

@@ -37,6 +37,8 @@ export interface ThemeLookFx {
   headlights?: boolean;         // overrides content headlights
   water?: { level: number; shallow: string; deep: string; foam?: string; size?: number };
   shadowStrength?: number;      // 0..1, hemisphere-vs-sun balance for shadows (lower = softer)
+  /** Shadowless back fill opposite the sun (lifts the shaded side of karts and mascots seen against the sun). */
+  fill?: { color: string; intensity: number };
 }
 
 export interface EnvLook {
@@ -50,6 +52,9 @@ export interface EnvLook {
   headlights: boolean; ambient: AmbientKind; wind: number; wet: number;
   grade: { slope: number; saturation: number; tint: string; offset: number; power: number; shadows: string; highlights: string };
   water: ThemeLookFx['water'] | null;
+  /** Sun shadow darkness 0..1 (three's shadow.intensity). */
+  shadowStrength: number;
+  fill: { color: string; intensity: number } | null;
 }
 
 /** Minimal view of the ThemeKit this module needs (kept structural so kit.ts stays the source of truth). */
@@ -143,5 +148,7 @@ export function resolveEnvLook(kit: KitLike, trackTheme: Record<string, string> 
       highlights: g.highlights ?? (kind === 'sunset' || kind === 'goldenHour' ? '#fff0de' : '#fff8f0'),
     },
     water: L.water ?? null,
+    shadowStrength: L.shadowStrength ?? (kind === 'overcast' ? 0.45 : 0.85),
+    fill: L.fill ?? null,
   };
 }

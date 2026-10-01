@@ -61,9 +61,17 @@ export async function buildEnvironment(renderer: THREE.WebGPURenderer, scene: TH
     const c = sun.shadow.camera;
     c.left = -half; c.right = half; c.top = half; c.bottom = -half; c.near = 1; c.far = 500;
     sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.05;
-    sun.shadow.intensity = L.kind === 'overcast' ? 0.45 : 0.85;
+    sun.shadow.intensity = L.shadowStrength;
   }
   scene.add(sun, sun.target);
+  // optional shadowless back fill from the side opposite the sun, low over the horizon (see ThemeLookFx.fill)
+  let fill: THREE.DirectionalLight | null = null;
+  if (L.fill) {
+    fill = new THREE.DirectionalLight(L.fill.color, L.fill.intensity);
+    fill.name = 'fill';
+    fill.position.set(-keyDir.x, 0.35, -keyDir.z).normalize().multiplyScalar(100);
+    scene.add(fill, fill.target);
+  }
   // without PMREM (Low) the sky's diffuse fill is missing: fold part of it into the hemisphere
   const hemi = new THREE.HemisphereLight(L.hemi.sky, L.hemi.ground, L.hemi.intensity + (lite ? 0.6 * L.envIntensity : 0));
   scene.add(hemi);
@@ -111,6 +119,7 @@ export async function buildEnvironment(renderer: THREE.WebGPURenderer, scene: TH
       renderer.toneMappingExposure = prevExposure;
       U.rimBoost.value = 1; U.wind.value = 1; U.wet.value = 0;
       scene.remove(sky.object, sun, sun.target, hemi);
+      if (fill) scene.remove(fill, fill.target);
       if (water) { scene.remove(water); water.geometry.dispose(); }
       scene.environment = null; scene.fog = null;
       if (sky.object instanceof THREE.Mesh) sky.object.geometry.dispose();

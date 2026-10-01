@@ -178,7 +178,8 @@ function baseSettings(t: QualityTier): TierSettings {
     case 'high': return {
       dprCap: 1.5, dynResMin: 1, shadowSize: 2048, shadowFar: 200, bloom: true, bloomStrength: 0.4, bloomRadius: 0.55, bloomMode: 'mips', fxaa: false, aa: 'msaa',
       blurTaps: 32, motionBlur: false, speedLines: true, chroma: 0.3, ssao: true, lut: true, particles: 1, foliage: 1, far: 1500,
-      lod: [25, 70], propFar: 400, triplanar: true, liteEnv: false, engineVoices: 3, drawBudget: 500, triBudget: 6_000_000, materialBudget: 40,
+      // desktop RTX 30-class target (2026-10 dressing pass): props are instanced, so a long view is cheap in draws
+      lod: [25, 70], propFar: 700, triplanar: true, liteEnv: false, engineVoices: 3, drawBudget: 600, triBudget: 6_000_000, materialBudget: 40,
       systems: true, shadowTech: 'csm', csm: CSM_HIGH, shadowFilter: 'pcf', pcfRadius: 2, contactShadows: false, aoMode: 'post', prepass: false, sharpen: 0,
       velocityBlur: null, dof: 'showcase', bloomThreshold: 0.8, sky: 'preetham', fog: 'aerial', volumetric: null, terrain: 'hybrid', clipmap: CLIP_HIGH,
       grass: GRASS_HIGH, forest: 10_000, weather: 30_000, matProfile: 'hq', ocean: false,
