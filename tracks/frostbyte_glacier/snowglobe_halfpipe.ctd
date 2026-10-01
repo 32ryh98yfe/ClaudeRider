@@ -38,25 +38,90 @@ ZONE surface from=@cave_s+4 to=@cave_s+26 d=[1,8] surf=ice
 ZONE surface from=@cave_s+34 to=@cave_s+88 d=[-8,-1] surf=ice
 ZONE surface from=@cave_s+96 to=@cave_s+114 d=[1,8] surf=ice
 
-# ---- look & dressing (Frostbyte Glacier kit; art bible: soft overcast over the penguin village) ----
-THEME frostbyte_glacier sky=overcast time=13:00 scatter=pine_snow,snowbank,birch,serac density=5 hills=8
-PROPS kind=igloo from=5 to=108 side=R every=18 offset=6 jitter=3 seed=81
+# ---- look & dressing (Frostbyte Glacier kit; art bible: bright overcast over the penguin village) ----
+# 2026-10 stylized pass (docs/design/34-stylized-pass.md, render-only: the .ctrk is unchanged): matte white-blue snow
+# (never clipped), a cool neutral road, red/white kerbs, white-and-navy resort barriers; the village straight gets a
+# snowy grandstand, penguin crowds, sponsor boards, lamps and flags; the whole lap gets snow tufts, frost sprigs, snowy
+# junipers, snow-capped boulders, big snow firs and two layers of far pine lines. Wide props are fitted so no
+# footprint reaches into any road band (scratch fitrows).
+THEME frostbyte_glacier sky=overcast time=13:00 scatter=tree_pine_snow,tree_pine_snow,tree_round_big,bush_round,bush_round,rock_cluster,snowbank,tree_birch,serac,flower_patch density=36 hills=8 fogNear=240 fogFar=1400
 PROPS kind=penguin from=5 to=108 side=both every=9 offset=2 jitter=2 scale=0.9-1.3 seed=82
-PROPS kind=snow_cabin from=112 to=166 side=L every=16 offset=6 seed=83
-PROPS kind=pine_snow from=112 to=210 side=R every=11 offset=5 jitter=4 seed=84
-PROPS kind=snowbank from=212 to=368 side=both every=14 offset=6 seed=85
-PROPS kind=serac from=250 to=368 side=both every=24 offset=12 jitter=6 seed=86
-PROPS kind=pine_snow from=370 to=422 side=both every=10 offset=4 jitter=3 seed=87
-PROPS kind=ice_spire from=424 to=606 side=both every=8 offset=1 jitter=1 scale=0.8-1.3 seed=88
-PROPS kind=serac from=608 to=680 side=both every=14 offset=6 jitter=4 seed=89
+PROPS kind=ice_spire from=424 to=606 side=both every=8 offset=1.7 jitter=1 scale=0.8-1.3 seed=88
 PROPS kind=rink_boards from=682 to=745 side=R every=5.5 offset=0.4 scale=1-1 seed=90
 PROPS kind=penguin from=684 to=744 side=L every=8 offset=3 jitter=3 seed=91
-PROPS kind=pine_snow from=747 to=825 side=both every=11 offset=5 jitter=4 seed=92
-PROPS kind=birch from=826 to=960 side=both every=12 offset=5 jitter=4 seed=93
 PROPS kind=snowman from=962 to=1036 side=R every=22 offset=5 seed=94
-PROPS kind=snowbank from=1097 to=1150 side=L every=10 offset=2 seed=95
-PROPS kind=snow_cabin from=1152 to=1298 side=R every=18 offset=6 jitter=2 seed=96
-PROPS kind=pine_snow from=1152 to=1298 side=L every=12 offset=5 jitter=4 seed=97
+# village straight: grandstand on the right, penguin crowds and sponsor boards on the left (in front of the globe),
+# lamps both sides, flags; the grid (run-in, behind the line) gets boards and crowds both sides
+PROPS kind=grandstand from=50 to=51 side=R every=100 offset=4.5 seed=201
+PROPS kind=ad_board_a from=4 to=135 side=L every=24 offset=0.4 seed=202
+PROPS kind=ad_board_b from=12 to=135 side=L every=24 offset=0.4 seed=203
+PROPS kind=ad_board_c from=20 to=135 side=L every=24 offset=0.4 seed=204
+PROPS kind=flag_pole from=22 to=70 side=L every=6 offset=2.6 seed=205
+PROPS kind=spectators from=88 to=135 side=L every=24 offset=2.4 jitter=1 seed=206
+PROPS kind=lamp_post from=2 to=138 side=both every=20 offset=1.4 seed=207
+PROPS kind=ad_board_b from=1252 to=1299 side=both every=16 offset=0.4 seed=208
+PROPS kind=ad_board_a from=1260 to=1299 side=both every=16 offset=0.4 seed=209
+PROPS kind=spectators from=1256 to=1299 side=both every=16 offset=1.8 jitter=1 seed=210
+# igloo corner (T1, a left-hander): tyre wall and chevron boards on the outside
+PROPS kind=tyre_wall from=171 to=208 side=R every=1.3 offset=0.6 seed=211
+PROPS kind=ad_board_b from=173 to=206 side=R every=10 offset=2.4 seed=212
+# ground cover over the whole lap: snow tufts at the barrier, frost sprigs, snowy junipers and boulders behind it
+PROPS kind=grass_tuft side=both every=1 offset=0.3 jitter=8 scale=1.0-1.8 seed=221
+PROPS kind=grass_tuft from=0.5 side=both every=2 offset=2 jitter=14 scale=0.8-1.4 seed=222
+PROPS kind=flower_patch side=both every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=223
+PROPS kind=bush_round side=both every=11 offset=3 jitter=9 scale=0.7-1.3 seed=224
+PROPS kind=rock_cluster side=both every=23 offset=4 jitter=12 scale=0.6-1.4 seed=225
+# ---- fitted rows (village, pines, birches, banks, seracs, big firs, far pine lines): every footprint, over the
+# whole jitter band at the largest scale, stays clear of every road band
+# penguin village: igloos (none behind the grandstand)
+PROPS kind=igloo from=5 to=23 side=R every=18 offset=6 jitter=3 seed=81
+PROPS kind=igloo from=77 to=95 side=R every=18 offset=6 jitter=3 seed=82
+PROPS kind=snow_cabin from=112 to=160 side=L every=16 offset=6 seed=83
+PROPS kind=snow_cabin from=1152 to=1224 side=R every=18 offset=6 jitter=2 seed=96
+# snow pines, birches, seracs and snowbanks along the lap
+PROPS kind=tree_pine_snow from=112 to=200 side=R every=11 offset=5 jitter=4 scale=0.85-1.15 seed=84
+PROPS kind=tree_pine_snow from=370 to=414 side=L every=11 offset=5 jitter=4 scale=0.85-1.15 seed=85
+PROPS kind=tree_pine_snow from=370 to=414 side=R every=11 offset=5 jitter=4 scale=0.85-1.15 seed=86
+PROPS kind=tree_pine_snow from=747 to=824 side=L every=11 offset=5 jitter=4 scale=0.85-1.15 seed=87
+PROPS kind=tree_pine_snow from=747 to=824 side=R every=11 offset=5 jitter=4 scale=0.85-1.15 seed=88
+PROPS kind=tree_pine_snow from=1152 to=1295 side=L every=11 offset=5 jitter=4 scale=0.85-1.15 seed=89
+PROPS kind=tree_birch from=826 to=958 side=L every=12 offset=5 jitter=4 scale=0.85-1.15 seed=93
+PROPS kind=tree_birch from=826 to=958 side=R every=12 offset=5 jitter=4 scale=0.85-1.15 seed=94
+PROPS kind=snowbank from=212 to=366 side=L every=14 offset=9 jitter=2 scale=0.85-1.15 seed=85
+PROPS kind=snowbank from=212 to=366 side=R every=14 offset=9 jitter=2 scale=0.85-1.15 seed=86
+PROPS kind=snowbank from=1097 to=1139 side=L every=14 offset=9 jitter=2 scale=0.85-1.15 seed=87
+PROPS kind=serac from=250 to=346 side=L every=24 offset=8 jitter=6 scale=0.85-1.15 seed=86
+PROPS kind=serac from=250 to=346 side=R every=24 offset=8 jitter=6 scale=0.85-1.15 seed=87
+PROPS kind=serac from=608 to=680 side=L every=24 offset=8 jitter=6 scale=0.85-1.15 seed=88
+PROPS kind=serac from=608 to=680 side=R every=24 offset=8 jitter=6 scale=0.85-1.15 seed=89
+# big snow firs behind the barrier (none behind the grandstand or the grid)
+PROPS kind=tree_round_big from=95 to=656 side=L every=17 offset=14 jitter=18 scale=0.8-1.3 seed=101
+PROPS kind=tree_round_big from=707 to=724 side=L every=17 offset=14 jitter=18 scale=0.8-1.3 seed=102
+PROPS kind=tree_round_big from=758 to=1234 side=L every=17 offset=14 jitter=18 scale=0.8-1.3 seed=103
+PROPS kind=tree_round_big from=95 to=1234 side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=104
+PROPS kind=tree_round_big from=2 to=19 side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=105
+PROPS kind=tree_round_big from=70 to=87 side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=106
+# far tree lines
+PROPS kind=tree_clump from=0 to=624 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=140
+PROPS kind=tree_clump from=702 to=702 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=141
+PROPS kind=tree_clump from=754 to=754 side=L every=26 offset=90 jitter=50 scale=0.9-1.4 seed=142
+PROPS kind=tree_clump from=806 to=988 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=143
+PROPS kind=tree_clump from=1118 to=1144 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=144
+PROPS kind=tree_clump from=1274 to=1274 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=145
+PROPS kind=tree_clump from=0 to=1274 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=146
+PROPS kind=tree_clump from=34 to=476 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=180
+PROPS kind=tree_clump from=578 to=612 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=181
+PROPS kind=tree_clump from=646 to=646 side=L every=34 offset=175 jitter=50 scale=1.0-1.6 seed=182
+PROPS kind=tree_clump from=748 to=748 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=183
+PROPS kind=tree_clump from=782 to=782 side=L every=34 offset=175 jitter=50 scale=1.0-1.6 seed=184
+PROPS kind=tree_clump from=816 to=986 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=185
+PROPS kind=tree_clump from=1020 to=1020 side=L every=34 offset=150 jitter=50 scale=1.0-1.6 seed=186
+PROPS kind=tree_clump from=1054 to=1054 side=L every=34 offset=175 jitter=50 scale=1.0-1.6 seed=187
+PROPS kind=tree_clump from=1088 to=1088 side=L every=34 offset=150 jitter=50 scale=1.0-1.6 seed=188
+PROPS kind=tree_clump from=1122 to=1122 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=189
+PROPS kind=tree_clump from=1156 to=1156 side=L every=34 offset=175 jitter=50 scale=1.0-1.6 seed=190
+PROPS kind=tree_clump from=1190 to=1190 side=L every=34 offset=150 jitter=50 scale=1.0-1.6 seed=191
+PROPS kind=tree_clump from=0 to=1292 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=192
 # landmarks: fairy lights over the village, the giant snow globe with its igloos, the igloo corner, the crystal-cave
 # arches, the rink snowman, penguin sleds on the snowman lane (F5 traffic fallback), the chapel
 PROP kind=fairy_lights at=(20.0,-0.3,0.0) yaw=-90 scale=1

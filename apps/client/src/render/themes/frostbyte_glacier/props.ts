@@ -7,12 +7,14 @@ import type { PropFactory } from '../../props/defaults.ts';
 import { merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../../util/geo.ts';
 import { arcTube, dome, part, prism, seeded, tubeThrough } from '../clayhill_village/toyshapes.ts';
 
-const SNOW = '#f7fbff', SNOW_SH = '#dfeaf3', ICE = '#bee9f7', DEEP = '#2f6fa6', AURORA_G = '#6cf2c2', AURORA_V = '#b57cff';
+// snow albedo stays ≈ #e8eef5 so it never clips to pure white under ACES (34-stylized-pass, glacier notes)
+const SNOW = '#e8eef5', SNOW_SH = '#d3dfeb', ICE = '#bee9f7', DEEP = '#2f6fa6', AURORA_G = '#6cf2c2', AURORA_V = '#b57cff';
 const PINE = '#2f5f45', PINE_LT = '#3f7a55', WOOD = '#7a5236', WOOD_DK = '#5a3a26', INK = '#1c2230', CARROT = '#f28b3c', RED = '#d94f4f';
 const BULBS = ['#fff2c4', '#ffb4c6', '#9fe8ff', '#c9ffb0', '#ffd27a'];
 
 const lit = (): THREE.Material => MaterialLibrary.vertexLit(0.8, 0);
-const toy = (): THREE.Material => MaterialLibrary.vinyl({ rim: '#dff6ff', clearcoat: 0.7, roughness: 0.38 });
+// penguins, sleds and snowmen are satin-matte (gloss stays on kart paint and ice, 34 §1.3)
+const toy = (): THREE.Material => MaterialLibrary.vertexLit(0.6, 0);
 const crystal = (): THREE.Material => MaterialLibrary.vinyl({ rim: '#9fe8ff', clearcoat: 1, roughness: 0.15 });
 const glow = (k = 3): THREE.Material => MaterialLibrary.emissiveVertex(k);
 // open-ended cylinder band (igloo courses, snow-globe plinth)
@@ -26,6 +28,17 @@ function crystalCluster(seed: number, n: number, h: number, spread: number): THR
     out.push(part(cyl(0.08, 0.55 * (hh / h) + 0.25, hh, 6), c, x, hh / 2 - 0.3, z, (r() - 0.5) * 0.5, r() * 3, (r() - 0.5) * 0.5));
   }
   return out;
+}
+
+/** Resort lamp post (local +X faces the road). `head` = only the lantern box, for the emissive twin kind. */
+function lampGeometry(head: boolean): THREE.BufferGeometry {
+  if (head) return merge([part(box(0.3, 0.38, 0.3), '#ffe6b0', 0.75, 3.75, 0)]);
+  return merge([
+    part(cyl(0.2, 0.24, 0.35, 8), DEEP, 0, 0.17, 0), part(cyl(0.07, 0.09, 3.8, 8), '#24507e', 0, 2.1, 0),
+    part(box(0.06, 0.06, 0.9), '#24507e', 0.35, 3.95, 0, 0, Math.PI / 2, 0),
+    part(rbox(0.38, 0.52, 0.38, 0.06, 1), '#24507e', 0.75, 3.75, 0), part(box(0.29, 0.37, 0.29), '#f4e6c8', 0.75, 3.75, 0),
+    part(cone(0.32, 0.24, 8), '#24507e', 0.75, 4.1, 0), part(cone(0.26, 0.12, 8), SNOW, 0.75, 4.24, 0),
+  ]);
 }
 
 export const FROSTBYTE_PROPS: Record<string, PropFactory> = {
@@ -208,6 +221,146 @@ export const FROSTBYTE_PROPS: Record<string, PropFactory> = {
     maxInstances: 200,
     build: () => ({ geometry: merge([part(rbox(0.3, 1.1, 5.6, 0.08, 2), SNOW, 0, 0.55, 0), part(box(0.34, 0.2, 5.62), DEEP, 0, 1.0, 0), part(box(0.34, 0.12, 5.62), RED, 0, 0.15, 0)]), material: lit() }),
   },
+  // ---- dressing pass (2026-10, docs/design/34-stylized-pass.md) --------------------------------------------------
+  // Snowy versions of the shared ground-cover / shrub / tree kinds (same names win over trackside.ts), snow pines for
+  // the far lines, glowing lamp heads for the night track and a penguin crowd. Snow, bark and needles are matte; only
+  // the ice kinds (crystal material) are glossy. Plant kinds match TrackView's SCATTER / tree|bush thinning patterns.
+  grass_tuft: {
+    // snow tuft: a small drift with dry winter grass poking through
+    maxInstances: 6000,
+    build: () => {
+      const p: THREE.BufferGeometry[] = [part(sph(0.3, 8, 5), SNOW, 0, -0.04, 0, 0, 0, 0, 1.3, 0.42, 1.1)];
+      const r = seeded(241), BL = ['#b3ad84', '#98a07e', '#c2b98e'];
+      for (let i = 0; i < 6; i++) {
+        const a = r() * Math.PI * 2, d = r() * 0.16, h = 0.22 + r() * 0.3, t = 0.25 + r() * 0.4;
+        p.push(part(cone(0.035, h, 3), BL[i % 3]!, Math.cos(a) * d, h / 2 + 0.05, Math.sin(a) * d, Math.sin(a) * t, a, -Math.cos(a) * t));
+      }
+      return { geometry: merge(p), material: MaterialLibrary.foliageLit() };
+    },
+  },
+  flower_patch: {
+    // frost sprigs: a few small ice crystals and blue winter blooms in a snow drift (matte; the big ice is glossy)
+    maxInstances: 3000,
+    build: () => {
+      const p: THREE.BufferGeometry[] = [part(sph(0.4, 8, 5), SNOW_SH, 0, -0.06, 0, 0, 0, 0, 1.4, 0.38, 1.2)];
+      const r = seeded(243);
+      for (let i = 0; i < 4; i++) p.push(part(cyl(0.02, 0.09, 0.3 + r() * 0.25, 5), i % 2 ? '#9fd8f0' : '#c4e6f6', (r() - 0.5) * 0.5, 0.15, (r() - 0.5) * 0.5, (r() - 0.5) * 0.6, 0, (r() - 0.5) * 0.6));
+      for (let i = 0; i < 3; i++) {
+        const x = (r() - 0.5) * 0.5, z = (r() - 0.5) * 0.5;
+        p.push(part(cyl(0.012, 0.016, 0.32, 4), '#5f7f6a', x, 0.2, z), part(ico(0.06, 0), i % 2 ? '#7fa8e8' : '#b9a8f0', x, 0.38, z));
+      }
+      return { geometry: merge(p), material: lit() };
+    },
+  },
+  bush_round: {
+    // snowy juniper: dark blue-green mounds under thick snow caps
+    maxInstances: 1500,
+    build: () => ({
+      geometry: merge([
+        part(ico(0.82, 1), '#3c6650', 0, 0.55, 0, 0, 0, 0, 1.15, 0.8, 1.1, 0.07, 3),
+        part(ico(0.6, 1), '#467459', 0.55, 0.62, 0.28, 0, 0, 0, 1, 0.85, 1, 0.07, 5),
+        part(ico(0.52, 1), '#335b47', -0.5, 0.45, -0.2, 0, 0, 0, 1, 0.8, 1, 0.07, 7),
+        part(ico(0.7, 1), SNOW, 0.05, 0.95, 0, 0, 0, 0, 1.15, 0.38, 1.05), part(ico(0.48, 1), SNOW, 0.55, 1.02, 0.28, 0, 0, 0, 1, 0.38, 1),
+        part(ico(0.4, 1), SNOW, -0.5, 0.78, -0.2, 0, 0, 0, 1, 0.38, 1),
+      ]), material: MaterialLibrary.foliageLit(), castShadow: true,
+    }),
+  },
+  rock_cluster: {
+    // blue-grey granite boulders with snow caps
+    maxInstances: 800,
+    build: () => ({
+      geometry: merge([
+        part(ico(0.72, 0), '#7f8b99', 0, 0.3, 0, 0.3, 0.5, 0.2, 1.3, 0.75, 1.0, 0.1, 11), part(ico(0.62, 0), SNOW, 0, 0.62, 0, 0.3, 0.5, 0.2, 1.15, 0.32, 0.9),
+        part(ico(0.46, 0), '#6e7a88', 0.8, 0.18, 0.3, 0.2, 1.2, 0.1, 1.1, 0.7, 1, 0.1, 13), part(ico(0.38, 0), SNOW, 0.8, 0.38, 0.3, 0.2, 1.2, 0.1, 1.0, 0.32, 0.9),
+        part(ico(0.3, 0), '#8e9aa8', -0.6, 0.12, 0.5, 0, 0.4, 0.3, 1, 0.8, 1.2, 0.1, 17),
+      ]), material: lit(), castShadow: true,
+    }),
+  },
+  tree_round_big: {
+    // big snow-laden fir (the mid-distance layer): five tiers with snow on every shelf
+    maxInstances: 800,
+    build: () => {
+      const p: THREE.BufferGeometry[] = [part(cyl(0.3, 0.42, 3, 7), WOOD_DK, 0, 0.9, 0)];
+      const tiers = [[3.0, 3.2, 2.6], [2.5, 2.9, 4.4], [2.0, 2.6, 6.0], [1.45, 2.3, 7.5], [0.9, 2.0, 8.9]] as const;
+      tiers.forEach(([rad, h, y], i) => {
+        p.push(part(cone(rad, h, 9), i % 2 ? PINE_LT : PINE, 0, y, 0, 0, i * 0.4, 0));
+        p.push(part(cone(rad * 1.01, h * 0.28, 9), SNOW, 0, y - h * 0.36, 0, 0, i * 0.4, 0));
+      });
+      p.push(part(cone(0.5, 0.9, 8), SNOW, 0, 10.0, 0));
+      return { geometry: merge(p), material: MaterialLibrary.foliageLit(), castShadow: true };
+    },
+  },
+  tree_clump: {
+    // far tree line: eight low-detail snow pines of mixed height in a 16 m patch
+    maxInstances: 400,
+    build: () => {
+      const p: THREE.BufferGeometry[] = [], r = seeded(253);
+      for (let i = 0; i < 8; i++) {
+        const x = (r() - 0.5) * 14, z = (r() - 0.5) * 14, k = 0.75 + r() * 0.7;
+        p.push(part(cone(2.1, 4.6, 7), i % 2 ? PINE_LT : PINE, x, 2.6 * k, z, 0, r() * 3, 0, k, k, k));
+        p.push(part(cone(2.12, 1.1, 7), SNOW, x, 1.0 * k, z, 0, r() * 3, 0, k, k, k));
+        p.push(part(cone(1.4, 3.4, 7), PINE, x, 5.4 * k, z, 0, 0, 0, k, k, k), part(cone(0.7, 1.4, 7), SNOW, x, 6.6 * k, z, 0, 0, 0, k, k, k));
+      }
+      return { geometry: merge(p), material: MaterialLibrary.foliageLit(), castShadow: true };
+    },
+  },
+  lamp_post: {
+    // navy resort lamp: the head is a frosted box; at night `lamp_glow` (same rows) lights it
+    maxInstances: 200,
+    build: () => ({ geometry: lampGeometry(false), material: lit(), castShadow: true }),
+  },
+  lamp_glow: {
+    // the glowing lantern of `lamp_post` alone, placed by an identical PROPS row (emissive, so it blooms at night)
+    maxInstances: 200,
+    build: () => ({ geometry: lampGeometry(true), material: glow(2.2) }),
+  },
+  spectators: {
+    // a cheering penguin crowd behind the barrier, with a blue sparkle banner (toy figures, our own mark only)
+    maxInstances: 120,
+    build: () => {
+      const p: THREE.BufferGeometry[] = [], r = seeded(261);
+      const hats = [RED, '#3d7bd9', '#f2c14e', AURORA_G, '#b57cff'];
+      for (let i = 0; i < 9; i++) {
+        const z = -2.4 + i * 0.6 + (r() - 0.5) * 0.2, x = -0.25 - r() * 0.9, s = 0.75 + r() * 0.3;
+        p.push(part(rbox(0.5, 0.75, 0.45, 0.2, 2), INK, x, 0.4 + 0.37 * s, z, 0, 0, 0, s, s, s), part(rbox(0.08, 0.55, 0.32, 0.03, 1), SNOW, x + 0.22 * s, 0.4 + 0.35 * s, z, 0, 0, 0, s, s, s));
+        p.push(part(sph(0.22, 8, 6), INK, x, 0.4 + 0.9 * s, z, 0, 0, 0, s, s, s), part(cone(0.06, 0.18, 5), CARROT, x + 0.26 * s, 0.4 + 0.88 * s, z, 0, 0, -Math.PI / 2, s, s, s));
+        p.push(part(cyl(0.14, 0.2, 0.14, 8), hats[i % hats.length]!, x, 0.4 + 1.1 * s, z, 0, 0, 0, s, s, s));
+        if (i % 3 === 1) p.push(part(rbox(0.08, 0.38, 0.14, 0.03, 1), INK, x + 0.05, 0.4 + 0.95 * s, z + 0.24, 0.7, 0, 0)); // waving flipper
+      }
+      p.push(part(box(0.06, 0.6, 2.6), DEEP, -0.05, 1.45, 0), part(box(0.07, 0.12, 2.6), SNOW, -0.04, 1.2, 0));
+      p.push(paint(place(sparkleGeometry(0.22, 0.03, 9), -0.01, 1.5, 0, 0, Math.PI / 2, 0), SNOW));
+      for (const z of [-1.35, 1.35]) p.push(part(cyl(0.03, 0.03, 1.8, 5), WOOD_DK, -0.08, 0.9, z));
+      return { geometry: merge(p), material: toy(), castShadow: true };
+    },
+  },
+  grandstand: {
+    // five-tier resort stand facing the road (+X): ice-blue and white seats, a snow-loaded navy canopy, penguin fans
+    maxInstances: 4,
+    build: () => {
+      const p: THREE.BufferGeometry[] = [];
+      const L = 24, r = seeded(271);
+      const SEATS = [DEEP, SNOW, '#6fb7e0', RED, '#f2c14e'];
+      for (let i = 0; i < 5; i++) {
+        const x = -1.6 - i * 1.25, top = 0.55 + i * 0.5;
+        p.push(part(box(1.25, top + 0.6, L), '#c9d3de', x, (top - 0.6) / 2, 0));
+        for (let k = 0; k < 12; k++) p.push(part(box(0.5, 0.18, 1.8), SEATS[(i + k) % SEATS.length]!, x + 0.2, top + 0.09, -L / 2 + 1 + k * 2));
+        for (let k = 0; k < 7; k++) {
+          if (r() < 0.25) continue;
+          const z = -L / 2 + 1.2 + k * 3.4 + r() * 1.2;
+          p.push(part(rbox(0.4, 0.55, 0.38, 0.15, 2), INK, x + 0.15, top + 0.46, z), part(rbox(0.06, 0.4, 0.26, 0.02, 1), SNOW, x + 0.34, top + 0.44, z));
+          p.push(part(sph(0.19, 8, 6), INK, x + 0.15, top + 0.86, z), part(cone(0.05, 0.14, 5), CARROT, x + 0.36, top + 0.85, z, 0, 0, -Math.PI / 2));
+        }
+      }
+      const back = -1.6 - 5 * 1.25;
+      p.push(part(box(0.3, 5.4, L + 0.6), '#f1efe8', back - 0.15, 2.1, 0));
+      p.push(part(box(0.25, 1.0, L), SNOW, -0.85, 0.5, 0), part(box(0.06, 0.4, L - 0.2), DEEP, -0.7, 0.75, 0));
+      for (const z of [-L / 2 + 0.4, -L / 6, L / 6, L / 2 - 0.4]) p.push(part(cyl(0.12, 0.12, 5.6, 8), INK, -0.9, 2.8, z));
+      p.push(part(box(8.6, 0.25, L + 1.2), DEEP, back / 2 - 0.4, 5.85, 0, 0, 0, -0.12));
+      p.push(part(box(8.4, 0.3, L + 1.0), SNOW, back / 2 - 0.4, 6.1, 0, 0, 0, -0.12));             // snow load on the canopy
+      p.push(part(box(8.7, 0.1, L + 1.3), '#24507e', back / 2 - 0.4, 5.7, 0, 0, 0, -0.12));
+      return { geometry: merge(p), material: lit(), castShadow: true };
+    },
+  },
   // ---- hazards (drawn by render/track/hazards.ts at real size: x across, y up, z along travel) ------------------
   hazard_sled_train: {
     // penguin sled train: a little snow-plough sled towing a trailer, inside the 4.4 × 2 × 1.8 m traffic contact box
@@ -232,5 +385,8 @@ export const FROSTBYTE_PROPS: Record<string, PropFactory> = {
 };
 // the traffic default key (`hazard_car`) resolves to the sled train too, so a HAZ without `prop=` still fits the theme
 FROSTBYTE_PROPS['hazard_car'] = FROSTBYTE_PROPS['hazard_sled_train']!;
+// dressing rows use `tree_pine_snow` / `tree_birch` (same models) so Low / Medium thin them like every other tree kind
+FROSTBYTE_PROPS['tree_pine_snow'] = FROSTBYTE_PROPS['pine_snow']!;
+FROSTBYTE_PROPS['tree_birch'] = FROSTBYTE_PROPS['birch']!;
 
 export const FROSTBYTE_PALETTE = { SNOW, ICE, DEEP, AURORA_G, AURORA_V } as const;

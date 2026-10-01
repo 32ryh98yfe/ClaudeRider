@@ -80,29 +80,171 @@ PAD at=60,1500,1522 d=0 len=6 w=4
 KEYS 200,500,800,1100,1400,1700,2000,2300,2600,2900,3200,3500
 
 # ---- look & dressing (Frostbyte Glacier kit; art bible: 22:00 under the aurora, headlights on) ----
-THEME frostbyte_glacier sky=aurora time=22:00 headlights=on scatter=pine_snow,snowbank,serac density=4 hills=14
-PROPS kind=snow_cabin from=2 to=130 side=L every=20 offset=6 jitter=2 seed=101
+# 2026-10 stylized pass (docs/design/34-stylized-pass.md, render-only: the .ctrk is unchanged): the night stays night,
+# made readable by a cool back fill, stronger rims, matte blue-white snow and glowing resort lamps (bloom only on real
+# lights); the summit gate gets a snowy stand, penguin crowds, boards and flags; the whole descent gets snow tufts,
+# frost sprigs, snowy junipers, boulders, big snow firs and two far pine lines. Plant kinds are tree_* / bush / grass /
+# flower / rock so Low and Medium thin them (V20 budget); wide props are fitted clear of every road band.
+THEME frostbyte_glacier sky=aurora time=22:00 headlights=on scatter=tree_pine_snow,tree_pine_snow,tree_round_big,bush_round,rock_cluster,snowbank,serac density=12 hills=14 fogNear=220 fogFar=1300
 PROPS kind=avalanche_net from=136 to=224 side=R every=8 offset=3 seed=102
-PROPS kind=pine_snow from=211 to=606 side=both every=13 offset=5 jitter=5 seed=103
-PROPS kind=snowbank from=409 to=606 side=both every=24 offset=10 jitter=6 seed=104
-PROPS kind=ice_spire from=610 to=668 side=L every=9 offset=1.5 seed=105
+PROPS kind=ice_spire from=610 to=668 side=L every=9 offset=2.2 seed=105
 PROPS kind=ice_spire from=694 to=724 side=R every=9 offset=1.5 seed=106
-PROPS kind=serac from=726 to=768 side=both every=14 offset=5 seed=107
 PROPS kind=avalanche_net from=770 to=1012 side=both every=10 offset=3 seed=108
-PROPS kind=pine_snow from=965 to=1145 side=both every=12 offset=5 jitter=5 seed=109
-PROPS kind=serac from=1145 to=1310 side=both every=18 offset=8 jitter=6 seed=110
 PROPS kind=ice_spire from=1407 to=1484 side=both every=10 offset=2 jitter=2 seed=111
-PROPS kind=pine_snow from=1485 to=1550 side=both every=10 offset=4 seed=112
-PROPS kind=pine_snow from=1661 to=1890 side=both every=13 offset=5 jitter=5 seed=113
-PROPS kind=pine_snow from=1911 to=2047 side=both every=8 offset=2 jitter=2 seed=114
-PROPS kind=snowbank from=2140 to=2204 side=both every=12 offset=3 seed=115
-PROPS kind=pine_snow from=2205 to=2496 side=both every=12 offset=5 jitter=4 seed=116
-PROPS kind=pine_snow from=2498 to=2596 side=both every=12 offset=5 jitter=4 seed=117
-PROPS kind=snow_cabin from=2634 to=2920 side=both every=26 offset=7 jitter=3 seed=118
-PROPS kind=pine_snow from=2921 to=3108 side=both every=12 offset=5 jitter=4 seed=119
-PROPS kind=snow_cabin from=3110 to=3292 side=both every=20 offset=6 jitter=3 seed=120
-PROPS kind=pine_snow from=3373 to=3630 side=both every=13 offset=5 jitter=4 seed=122
-PROPS kind=snow_cabin from=3690 to=3830 side=both every=18 offset=6 seed=123
+# summit gate (grid 0–46, line at 46): a snowy stand on the right, penguin crowds, boards, flags, glowing lamps
+PROPS kind=grandstand from=88 to=89 side=R every=100 offset=4.5 seed=241
+PROPS kind=ad_board_a from=50 to=134 side=L every=24 offset=0.4 seed=242
+PROPS kind=ad_board_b from=58 to=134 side=L every=24 offset=0.4 seed=243
+PROPS kind=ad_board_c from=66 to=134 side=L every=24 offset=0.4 seed=244
+PROPS kind=flag_pole from=60 to=118 side=R every=6 offset=2.2 seed=245
+PROPS kind=spectators from=4 to=44 side=both every=14 offset=1.8 jitter=1 seed=246
+PROPS kind=spectators from=110 to=134 side=R every=12 offset=2 jitter=1 seed=247
+# summit drop (T1, a left-hander): tyre wall and chevron boards on the outside
+PROPS kind=tyre_wall from=137 to=180 side=R every=1.3 offset=0.6 seed=248
+PROPS kind=ad_board_b from=139 to=178 side=R every=10 offset=2.4 seed=249
+# resort lamps (post + glowing head on identical rows: no jitter, fixed scale, same seed)
+PROPS kind=lamp_post from=2 to=136 side=both every=18 offset=1.4 scale=1-1 seed=251
+PROPS kind=lamp_glow from=2 to=136 side=both every=18 offset=1.4 scale=1-1 seed=251
+PROPS kind=lamp_post from=2560 to=2760 side=both every=24 offset=1.4 scale=1-1 seed=252
+PROPS kind=lamp_glow from=2560 to=2760 side=both every=24 offset=1.4 scale=1-1 seed=252
+PROPS kind=lamp_post from=3230 to=3420 side=both every=24 offset=1.4 scale=1-1 seed=253
+PROPS kind=lamp_glow from=3230 to=3420 side=both every=24 offset=1.4 scale=1-1 seed=253
+PROPS kind=lamp_post from=3630 to=3830 side=both every=20 offset=1.4 scale=1-1 seed=254
+PROPS kind=lamp_glow from=3630 to=3830 side=both every=20 offset=1.4 scale=1-1 seed=254
+# ground cover over the whole descent: snow tufts at the barrier, frost sprigs, snowy junipers and boulders behind it
+PROPS kind=grass_tuft side=both every=2 offset=0.3 jitter=8 scale=1.0-1.8 seed=261
+PROPS kind=flower_patch side=both every=9 offset=0.8 jitter=9 scale=0.8-1.3 seed=262
+PROPS kind=bush_round side=both every=14 offset=3 jitter=9 scale=0.7-1.3 seed=263
+PROPS kind=rock_cluster side=both every=27 offset=4 jitter=12 scale=0.6-1.4 seed=264
+# ---- fitted rows (huts, pines, banks, seracs, big firs, far pine lines): every footprint, over the whole jitter
+# band at the largest scale, stays clear of every road band
+# summit huts and the lodge / village cabins
+PROPS kind=snow_cabin from=2 to=122 side=L every=20 offset=6 jitter=2 seed=101
+PROPS kind=snow_cabin from=3110 to=3170 side=L every=20 offset=6 jitter=2 seed=102
+PROPS kind=snow_cabin from=3210 to=3210 side=L every=20 offset=11 jitter=2 seed=103
+PROPS kind=snow_cabin from=3270 to=3290 side=L every=20 offset=6 jitter=2 seed=104
+PROPS kind=snow_cabin from=3110 to=3190 side=R every=20 offset=6 jitter=2 seed=105
+PROPS kind=snow_cabin from=3250 to=3290 side=R every=20 offset=6 jitter=2 seed=106
+PROPS kind=snow_cabin from=2660 to=2920 side=L every=26 offset=7 jitter=3 seed=118
+PROPS kind=snow_cabin from=2634 to=2920 side=R every=26 offset=7 jitter=3 seed=119
+PROPS kind=snow_cabin from=3690 to=3816 side=L every=18 offset=6 seed=123
+PROPS kind=snow_cabin from=3690 to=3816 side=R every=18 offset=6 seed=124
+# snow pines (thinned on Low: tree_*)
+PROPS kind=tree_pine_snow from=211 to=601 side=L every=13 offset=5 jitter=5 scale=0.85-1.15 seed=103
+PROPS kind=tree_pine_snow from=211 to=601 side=R every=13 offset=5 jitter=5 scale=0.85-1.15 seed=104
+PROPS kind=tree_pine_snow from=1661 to=1882 side=L every=13 offset=5 jitter=5 scale=0.85-1.15 seed=105
+PROPS kind=tree_pine_snow from=1661 to=1882 side=R every=13 offset=5 jitter=5 scale=0.85-1.15 seed=106
+PROPS kind=tree_pine_snow from=3373 to=3620 side=L every=13 offset=5 jitter=5 scale=0.85-1.15 seed=107
+PROPS kind=tree_pine_snow from=3373 to=3425 side=R every=13 offset=5 jitter=5 scale=0.85-1.15 seed=108
+PROPS kind=tree_pine_snow from=3451 to=3620 side=R every=13 offset=5 jitter=5 scale=0.85-1.15 seed=109
+PROPS kind=tree_pine_snow from=965 to=1145 side=L every=12 offset=5 jitter=4 scale=0.85-1.15 seed=109
+PROPS kind=tree_pine_snow from=965 to=1145 side=R every=12 offset=5 jitter=4 scale=0.85-1.15 seed=110
+PROPS kind=tree_pine_snow from=2205 to=2493 side=L every=12 offset=5 jitter=4 scale=0.85-1.15 seed=111
+PROPS kind=tree_pine_snow from=2205 to=2493 side=R every=12 offset=5 jitter=4 scale=0.85-1.15 seed=112
+PROPS kind=tree_pine_snow from=2498 to=2582 side=L every=12 offset=5 jitter=4 scale=0.85-1.15 seed=113
+PROPS kind=tree_pine_snow from=2498 to=2594 side=R every=12 offset=5 jitter=4 scale=0.85-1.15 seed=114
+PROPS kind=tree_pine_snow from=2921 to=3101 side=L every=12 offset=5 jitter=4 scale=0.85-1.15 seed=115
+PROPS kind=tree_pine_snow from=2921 to=3101 side=R every=12 offset=5 jitter=4 scale=0.85-1.15 seed=116
+# the pine slalom: trees close to the barrier
+PROPS kind=tree_pine_snow from=1911 to=2047 side=L every=8 offset=3.5 jitter=2 scale=0.85-1.15 seed=114
+PROPS kind=tree_pine_snow from=1911 to=2047 side=R every=8 offset=3.5 jitter=2 scale=0.85-1.15 seed=115
+PROPS kind=tree_pine_snow from=1485 to=1545 side=L every=10 offset=4 scale=0.85-1.15 seed=112
+PROPS kind=tree_pine_snow from=1485 to=1545 side=R every=10 offset=4 scale=0.85-1.15 seed=113
+PROPS kind=snowbank from=409 to=601 side=L every=24 offset=10 jitter=6 scale=0.85-1.15 seed=104
+PROPS kind=snowbank from=409 to=601 side=R every=24 offset=10 jitter=6 scale=0.85-1.15 seed=105
+PROPS kind=snowbank from=2188 to=2200 side=L every=12 offset=8 scale=0.85-1.15 seed=115
+PROPS kind=snowbank from=2164 to=2200 side=R every=12 offset=8 scale=0.85-1.15 seed=116
+PROPS kind=serac from=726 to=768 side=L every=14 offset=5 scale=0.85-1.15 seed=107
+PROPS kind=serac from=726 to=768 side=R every=14 offset=5 scale=0.85-1.15 seed=108
+PROPS kind=serac from=1145 to=1253 side=L every=18 offset=8 jitter=6 scale=0.85-1.15 seed=110
+PROPS kind=serac from=1145 to=1307 side=R every=18 offset=8 jitter=6 scale=0.85-1.15 seed=111
+# big snow firs (none behind the grid or the start stand)
+PROPS kind=tree_round_big from=140 to=853 side=L every=23 offset=12 jitter=18 scale=0.8-1.3 seed=130
+PROPS kind=tree_round_big from=945 to=945 side=L every=23 offset=12 jitter=18 scale=0.8-1.3 seed=131
+PROPS kind=tree_round_big from=1037 to=1244 side=L every=23 offset=12 jitter=18 scale=0.8-1.3 seed=132
+PROPS kind=tree_round_big from=1428 to=2072 side=L every=23 offset=12 jitter=18 scale=0.8-1.3 seed=133
+PROPS kind=tree_round_big from=2233 to=2417 side=L every=23 offset=12 jitter=18 scale=0.8-1.3 seed=134
+PROPS kind=tree_round_big from=2785 to=3107 side=L every=23 offset=12 jitter=18 scale=0.8-1.3 seed=135
+PROPS kind=tree_round_big from=3222 to=3222 side=L every=23 offset=12 jitter=18 scale=0.8-1.3 seed=136
+PROPS kind=tree_round_big from=3268 to=3889 side=L every=23 offset=12 jitter=18 scale=0.8-1.3 seed=137
+PROPS kind=tree_round_big from=140 to=738 side=R every=23 offset=12 jitter=18 scale=0.8-1.3 seed=138
+PROPS kind=tree_round_big from=945 to=1681 side=R every=23 offset=12 jitter=18 scale=0.8-1.3 seed=139
+PROPS kind=tree_round_big from=1773 to=2072 side=R every=23 offset=12 jitter=18 scale=0.8-1.3 seed=140
+PROPS kind=tree_round_big from=2118 to=2118 side=R every=23 offset=18 jitter=18 scale=0.8-1.3 seed=141
+PROPS kind=tree_round_big from=2164 to=2532 side=R every=23 offset=12 jitter=18 scale=0.8-1.3 seed=142
+PROPS kind=tree_round_big from=2624 to=3153 side=R every=23 offset=12 jitter=18 scale=0.8-1.3 seed=143
+PROPS kind=tree_round_big from=3337 to=3337 side=R every=23 offset=12 jitter=18 scale=0.8-1.3 seed=144
+PROPS kind=tree_round_big from=3521 to=3889 side=R every=23 offset=12 jitter=18 scale=0.8-1.3 seed=145
+PROPS kind=tree_round_big from=60 to=129 side=L every=23 offset=12 jitter=18 scale=0.8-1.3 seed=146
+# far pine lines
+PROPS kind=tree_clump from=0 to=640 side=L every=40 offset=55 jitter=45 scale=0.9-1.4 seed=160
+PROPS kind=tree_clump from=760 to=840 side=L every=40 offset=55 jitter=45 scale=0.9-1.4 seed=161
+PROPS kind=tree_clump from=880 to=880 side=L every=40 offset=70 jitter=45 scale=0.9-1.4 seed=162
+PROPS kind=tree_clump from=920 to=920 side=L every=40 offset=55 jitter=45 scale=0.9-1.4 seed=163
+PROPS kind=tree_clump from=1000 to=1000 side=L every=40 offset=90 jitter=45 scale=0.9-1.4 seed=164
+PROPS kind=tree_clump from=1040 to=1200 side=L every=40 offset=55 jitter=45 scale=0.9-1.4 seed=165
+PROPS kind=tree_clump from=1240 to=1240 side=L every=40 offset=90 jitter=45 scale=0.9-1.4 seed=166
+PROPS kind=tree_clump from=1280 to=1400 side=L every=40 offset=55 jitter=45 scale=0.9-1.4 seed=167
+PROPS kind=tree_clump from=1440 to=1440 side=L every=40 offset=70 jitter=45 scale=0.9-1.4 seed=168
+PROPS kind=tree_clump from=1480 to=2120 side=L every=40 offset=55 jitter=45 scale=0.9-1.4 seed=169
+PROPS kind=tree_clump from=2200 to=2200 side=L every=40 offset=55 jitter=45 scale=0.9-1.4 seed=170
+PROPS kind=tree_clump from=2240 to=2240 side=L every=40 offset=90 jitter=45 scale=0.9-1.4 seed=171
+PROPS kind=tree_clump from=2320 to=2400 side=L every=40 offset=90 jitter=45 scale=0.9-1.4 seed=172
+PROPS kind=tree_clump from=2440 to=2440 side=L every=40 offset=70 jitter=45 scale=0.9-1.4 seed=173
+PROPS kind=tree_clump from=2480 to=2480 side=L every=40 offset=55 jitter=45 scale=0.9-1.4 seed=174
+PROPS kind=tree_clump from=2520 to=2560 side=L every=40 offset=70 jitter=45 scale=0.9-1.4 seed=175
+PROPS kind=tree_clump from=2600 to=2600 side=L every=40 offset=55 jitter=45 scale=0.9-1.4 seed=176
+PROPS kind=tree_clump from=2760 to=2760 side=L every=40 offset=55 jitter=45 scale=0.9-1.4 seed=177
+PROPS kind=tree_clump from=3120 to=3120 side=L every=40 offset=90 jitter=45 scale=0.9-1.4 seed=178
+PROPS kind=tree_clump from=3160 to=3200 side=L every=40 offset=55 jitter=45 scale=0.9-1.4 seed=179
+PROPS kind=tree_clump from=3280 to=3880 side=L every=40 offset=55 jitter=45 scale=0.9-1.4 seed=180
+PROPS kind=tree_clump from=0 to=680 side=R every=40 offset=55 jitter=45 scale=0.9-1.4 seed=181
+PROPS kind=tree_clump from=720 to=800 side=R every=40 offset=90 jitter=45 scale=0.9-1.4 seed=182
+PROPS kind=tree_clump from=880 to=880 side=R every=40 offset=55 jitter=45 scale=0.9-1.4 seed=183
+PROPS kind=tree_clump from=920 to=920 side=R every=40 offset=70 jitter=45 scale=0.9-1.4 seed=184
+PROPS kind=tree_clump from=960 to=1680 side=R every=40 offset=55 jitter=45 scale=0.9-1.4 seed=185
+PROPS kind=tree_clump from=1720 to=1720 side=R every=40 offset=90 jitter=45 scale=0.9-1.4 seed=186
+PROPS kind=tree_clump from=2120 to=2120 side=R every=40 offset=55 jitter=45 scale=0.9-1.4 seed=187
+PROPS kind=tree_clump from=2160 to=2160 side=R every=40 offset=90 jitter=45 scale=0.9-1.4 seed=188
+PROPS kind=tree_clump from=2560 to=3080 side=R every=40 offset=55 jitter=45 scale=0.9-1.4 seed=189
+PROPS kind=tree_clump from=3200 to=3240 side=R every=40 offset=55 jitter=45 scale=0.9-1.4 seed=190
+PROPS kind=tree_clump from=3280 to=3280 side=R every=40 offset=70 jitter=45 scale=0.9-1.4 seed=191
+PROPS kind=tree_clump from=3320 to=3400 side=R every=40 offset=55 jitter=45 scale=0.9-1.4 seed=192
+PROPS kind=tree_clump from=3480 to=3480 side=R every=40 offset=90 jitter=45 scale=0.9-1.4 seed=193
+PROPS kind=tree_clump from=3560 to=3880 side=R every=40 offset=55 jitter=45 scale=0.9-1.4 seed=194
+PROPS kind=tree_clump from=0 to=0 side=L every=55 offset=120 jitter=50 scale=1.0-1.6 seed=230
+PROPS kind=tree_clump from=110 to=110 side=L every=55 offset=180 jitter=50 scale=1.0-1.6 seed=231
+PROPS kind=tree_clump from=165 to=165 side=L every=55 offset=120 jitter=50 scale=1.0-1.6 seed=232
+PROPS kind=tree_clump from=220 to=220 side=L every=55 offset=180 jitter=50 scale=1.0-1.6 seed=233
+PROPS kind=tree_clump from=385 to=385 side=L every=55 offset=120 jitter=50 scale=1.0-1.6 seed=234
+PROPS kind=tree_clump from=550 to=660 side=L every=55 offset=120 jitter=50 scale=1.0-1.6 seed=235
+PROPS kind=tree_clump from=715 to=715 side=L every=55 offset=180 jitter=50 scale=1.0-1.6 seed=236
+PROPS kind=tree_clump from=880 to=880 side=L every=55 offset=120 jitter=50 scale=1.0-1.6 seed=237
+PROPS kind=tree_clump from=990 to=1155 side=L every=55 offset=120 jitter=50 scale=1.0-1.6 seed=238
+PROPS kind=tree_clump from=1210 to=1210 side=L every=55 offset=180 jitter=50 scale=1.0-1.6 seed=239
+PROPS kind=tree_clump from=1265 to=1375 side=L every=55 offset=120 jitter=50 scale=1.0-1.6 seed=240
+PROPS kind=tree_clump from=1485 to=1705 side=L every=55 offset=120 jitter=50 scale=1.0-1.6 seed=241
+PROPS kind=tree_clump from=1815 to=1925 side=L every=55 offset=120 jitter=50 scale=1.0-1.6 seed=242
+PROPS kind=tree_clump from=2035 to=2035 side=L every=55 offset=120 jitter=50 scale=1.0-1.6 seed=243
+PROPS kind=tree_clump from=2200 to=2640 side=L every=55 offset=120 jitter=50 scale=1.0-1.6 seed=244
+PROPS kind=tree_clump from=2695 to=2750 side=L every=55 offset=150 jitter=50 scale=1.0-1.6 seed=245
+PROPS kind=tree_clump from=2860 to=2860 side=L every=55 offset=180 jitter=50 scale=1.0-1.6 seed=246
+PROPS kind=tree_clump from=3080 to=3080 side=L every=55 offset=150 jitter=50 scale=1.0-1.6 seed=247
+PROPS kind=tree_clump from=3190 to=3190 side=L every=55 offset=120 jitter=50 scale=1.0-1.6 seed=248
+PROPS kind=tree_clump from=3245 to=3245 side=L every=55 offset=180 jitter=50 scale=1.0-1.6 seed=249
+PROPS kind=tree_clump from=3300 to=3300 side=L every=55 offset=120 jitter=50 scale=1.0-1.6 seed=250
+PROPS kind=tree_clump from=3630 to=3630 side=L every=55 offset=120 jitter=50 scale=1.0-1.6 seed=251
+PROPS kind=tree_clump from=3685 to=3685 side=L every=55 offset=180 jitter=50 scale=1.0-1.6 seed=252
+PROPS kind=tree_clump from=3795 to=3850 side=L every=55 offset=120 jitter=50 scale=1.0-1.6 seed=253
+PROPS kind=tree_clump from=0 to=880 side=R every=55 offset=120 jitter=50 scale=1.0-1.6 seed=254
+PROPS kind=tree_clump from=990 to=1705 side=R every=55 offset=120 jitter=50 scale=1.0-1.6 seed=255
+PROPS kind=tree_clump from=1815 to=1870 side=R every=55 offset=180 jitter=50 scale=1.0-1.6 seed=256
+PROPS kind=tree_clump from=2035 to=2035 side=R every=55 offset=150 jitter=50 scale=1.0-1.6 seed=257
+PROPS kind=tree_clump from=2090 to=2090 side=R every=55 offset=180 jitter=50 scale=1.0-1.6 seed=258
+PROPS kind=tree_clump from=2145 to=2145 side=R every=55 offset=120 jitter=50 scale=1.0-1.6 seed=259
+PROPS kind=tree_clump from=2200 to=2365 side=R every=55 offset=150 jitter=50 scale=1.0-1.6 seed=260
+PROPS kind=tree_clump from=2420 to=3245 side=R every=55 offset=120 jitter=50 scale=1.0-1.6 seed=261
+PROPS kind=tree_clump from=3355 to=3850 side=R every=55 offset=120 jitter=50 scale=1.0-1.6 seed=262
 # landmarks: start-gate fairy lights, the gondola line down the mountain, four aurora curtains in the sky, the glacier
 # hairpin crystals, the gully's crystal arches, ski-jump lights, the frozen-lake igloo, the ski lodge, the chapel and
 # the finish lights
