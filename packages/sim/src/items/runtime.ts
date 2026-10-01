@@ -82,7 +82,8 @@ function anyCC(w: Readonly<WorldState>): boolean {
  * Predictor side: insert a server decision into the world. Returns the tick to roll back from if the decision affects
  * the past (≤ w.tick), or null if it lies in the future and was merely scheduled (B3).
  * A grant for a roulette that is still spinning in the predicted world is patched in place (the slot content only
- * matters from P + 30 on), so it needs no rollback.
+ * matters from P + 30 on), so it needs no rollback. Once the predicted world is past the landing (a grant later than
+ * 30 ticks), the item could already have been used on the authority, so that grant rolls back like any other.
  */
 export function applyDecision(w: WorldState, d: Decision): Tick | null {
   w.decisions.items.push(d);
@@ -90,7 +91,7 @@ export function applyDecision(w: WorldState, d: Decision): Tick | null {
   if (d.k === 'grant') {
     const k = w.karts[d.slot];
     const it = k?.items;
-    if (k && it && it.rouletteSlot >= 0 && it.rouletteBox === d.boxId && it.rouletteEnd - ROULETTE_TICKS === d.tick) {
+    if (k && it && it.rouletteSlot >= 0 && it.rouletteBox === d.boxId && it.rouletteEnd - ROULETTE_TICKS === d.tick && w.tick < it.rouletteEnd) {
       const cur = it.rouletteSlot === 0 ? it.slot0 : it.slot1;
       if (cur === 0 || cur === d.item) {
         if (it.rouletteSlot === 0) it.slot0 = d.item; else it.slot1 = d.item;
