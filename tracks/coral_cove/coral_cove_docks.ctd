@@ -188,7 +188,8 @@ PROP kind=spectators at=(-30.0,-0.2,12.1) yaw=90 scale=1
 PROP kind=spectators at=(-12.0,-0.2,12.1) yaw=90 scale=1
 PROP kind=spectators at=(4.0,-0.2,-12.9) yaw=270 scale=1
 PROP kind=spectators at=(18.0,-0.2,-12.9) yaw=270 scale=1
-PROP kind=palm_planter at=(-28.0,-0.2,11.5) yaw=90 scale=1
+# (this planter sits behind the start-wide camera: at -28 its crown filled the foreground of the grid view)
+PROP kind=palm_planter at=(-40.0,-0.2,11.5) yaw=90 scale=1
 PROP kind=beach_umbrella at=(-22.0,-0.2,19.5) yaw=90 scale=1
 PROP kind=beach_umbrella at=(0.0,-0.2,19.5) yaw=90 scale=1.1
 PROP kind=beach_umbrella at=(24.0,-0.2,19.5) yaw=90 scale=1
