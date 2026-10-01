@@ -41,4 +41,4 @@ PROPS kind=tree_round_big along=110-570 side=L every=18 offset=14 jitter=12 scal
 PROPS kind=tree_round_big along=240-450 side=R every=18 offset=18 jitter=10 scale=0.8-1.3 seed=48
 PROPS kind=tree_clump along=100-590 side=R every=30 offset=60 jitter=40 scale=0.9-1.4 seed=49
 PROPS kind=tree_clump side=R every=40 offset=120 jitter=50 scale=1.0-1.6 seed=50
-THEME scatter=tree_round,tree_round_big,bush,bush_round,pine,tree_clump density=12 hills=4 sky=day fogNear=250 fogFar=1500
+THEME scatter=tree_round,tree_round_big,bush,bush_round,pine,bush_round density=12 hills=4 sky=day fogNear=250 fogFar=1500

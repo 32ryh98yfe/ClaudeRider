@@ -94,11 +94,32 @@ PROPS kind=bush_round from=@cave_hairpin to=@canopy_climb side=both every=10 off
 PROPS kind=rock_cluster from=@descent to=@falls_tunnel-4 side=both every=15 offset=3.5 jitter=12 scale=0.6-1.5 seed=88
 PROPS kind=rock_cluster from=@cave_hairpin to=@canopy_climb side=both every=15 offset=3.5 jitter=12 scale=0.6-1.5 seed=89
 # shade trees (their crowns reach the boardwalk, so the canopy road runs among the treetops); none behind the stand/grid
-# and none on the outside of the pool corner, which stays open so the corner reads
-PROPS kind=tree_round_big from=@pool_corner to=@home side=L every=16 offset=13 jitter=16 scale=0.8-1.4 seed=90
-PROPS kind=tree_round_big from=@pool_corner+50 to=@pool_corner-10 side=R every=16 offset=13 jitter=16 scale=0.8-1.4 seed=91
-PROPS kind=tree_clump side=both every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
-PROPS kind=tree_clump side=both every=34 offset=125 jitter=50 scale=1.0-1.6 seed=95
+# and none on the outside of the pool corner, which stays open so the corner reads, nor round the treehouse spiral
+# (its stacked turns would put them on the level below)
+PROPS kind=tree_round_big from=@pool_corner to=@boardwalk_s side=L every=16 offset=13 jitter=16 scale=0.8-1.4 seed=90
+PROPS kind=tree_round_big from=@falls_lip to=@home side=L every=16 offset=13 jitter=16 scale=0.8-1.4 seed=92
+PROPS kind=tree_round_big from=@pool_corner+50 to=@boardwalk_s side=R every=16 offset=13 jitter=16 scale=0.8-1.4 seed=91
+PROPS kind=tree_round_big from=@falls_lip to=@pool_corner-10 side=R every=16 offset=13 jitter=16 scale=0.8-1.4 seed=93
+# far tree lines only where they stay >= 20 m from every other part of the track (a clump 60-175 m out from one
+# segment otherwise lands beside, or on the edge of, another; ranges from a fold check of the baked centrelines)
+PROPS kind=tree_clump along=0-35 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
+PROPS kind=tree_clump along=65-135 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
+PROPS kind=tree_clump along=885-1000 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
+PROPS kind=tree_clump along=1725-1785 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
+PROPS kind=tree_clump along=1820-1950 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
+PROPS kind=tree_clump along=0-375 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
+PROPS kind=tree_clump along=500-570 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
+PROPS kind=tree_clump along=585-715 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
+PROPS kind=tree_clump along=780-1835 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
+PROPS kind=tree_clump along=1855-1950 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
+PROPS kind=tree_clump along=365-435 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=95
+PROPS kind=tree_clump along=705-795 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=95
+PROPS kind=tree_clump along=880-950 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=95
+PROPS kind=tree_clump along=0-370 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=95
+PROPS kind=tree_clump along=435-570 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=95
+PROPS kind=tree_clump along=585-715 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=95
+PROPS kind=tree_clump along=790-1835 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=95
+PROPS kind=tree_clump along=1860-1950 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=95
 PROP kind=hot_air_balloon at=(-60.0,62.0,-120.0) yaw=20 scale=1.1
 PROP kind=hot_air_balloon at=(-240.0,58.0,-40.0) yaw=0 scale=0.9
-THEME canopy_forest sky=day time=09:30 scatter=forest_wall,forest_wall,karst_pillar,bamboo,rock_moss,tree_round_big,tree_round_big,tree_clump,rock_cluster,bush_round density=26 hills=6 fogNear=120 fogFar=850
+THEME canopy_forest sky=day time=09:30 scatter=forest_wall,forest_wall,karst_pillar,bamboo,rock_moss,rock_cluster,bush_round,bush_round density=26 hills=6 fogNear=120 fogFar=850

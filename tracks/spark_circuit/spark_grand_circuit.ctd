@@ -107,10 +107,22 @@ PROPS kind=tree_round_big along=180-950 side=R every=20 offset=16 jitter=14 scal
 PROPS kind=tree_round_big along=995-1135 side=R every=20 offset=16 jitter=14 scale=0.8-1.3 seed=49
 PROPS kind=tree_round_big along=1195-1395 side=R every=20 offset=30 jitter=14 scale=0.8-1.3 seed=50
 PROPS kind=tree_round_big along=262-435 side=L every=20 offset=16 jitter=14 scale=0.8-1.3 seed=51
-PROPS kind=tree_round_big along=515-805 side=L every=20 offset=16 jitter=14 scale=0.8-1.3 seed=52
+PROPS kind=tree_round_big along=515-580 side=L every=20 offset=16 jitter=14 scale=0.8-1.3 seed=52
+PROPS kind=tree_round_big along=690-805 side=L every=20 offset=16 jitter=14 scale=0.8-1.3 seed=56
 PROPS kind=tree_round_big along=890-1395 side=L every=20 offset=24 jitter=14 scale=0.8-1.3 seed=53
-PROPS kind=tree_clump side=both every=26 offset=60 jitter=50 scale=0.9-1.4 seed=54
-PROPS kind=tree_clump side=both every=34 offset=125 jitter=50 scale=1.0-1.6 seed=55
+# far tree lines only where they stay >= 30 m from every other part of the track (a clump 60-175 m out from one
+# segment otherwise lands beside, or on the edge of, another; ranges from a fold check of the baked centrelines)
+PROPS kind=tree_clump along=1025-1070 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=54
+PROPS kind=tree_clump along=1230-1365 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=54
+PROPS kind=tree_clump along=0-780 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=54
+PROPS kind=tree_clump along=830-900 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=54
+PROPS kind=tree_clump along=955-1500 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=54
+PROPS kind=tree_clump along=535-610 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=55
+PROPS kind=tree_clump along=665-840 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=55
+PROPS kind=tree_clump along=1250-1320 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=55
+PROPS kind=tree_clump along=0-760 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=55
+PROPS kind=tree_clump along=825-890 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=55
+PROPS kind=tree_clump along=970-1500 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=55
 PROP kind=hot_air_balloon at=(120.0,50.0,-180.0) yaw=0 scale=1
 PROP kind=hot_air_balloon at=(340.0,58.0,-300.0) yaw=40 scale=1.2
 PROP kind=hot_air_balloon at=(-70.0,46.0,-110.0) yaw=10 scale=0.9
