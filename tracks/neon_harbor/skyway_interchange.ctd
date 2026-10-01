@@ -66,6 +66,10 @@ PROPS kind=street_bench from=@cloverleaf-14 to=@cloverleaf+60 side=R every=19 of
 PROPS kind=vending_machine from=@cloverleaf+6 to=@cloverleaf+60 side=R every=27 offset=13 seed=217
 PROPS kind=noodle_stall from=@cloverleaf+18 to=@cloverleaf+60 side=R every=30 offset=17 seed=218
 PROPS kind=bus_shelter from=@cloverleaf-24 to=@cloverleaf-23 side=R every=50 offset=3 seed=219
+PROPS kind=planter_bush from=@cloverleaf+20 to=@cloverleaf+90 side=R every=8 offset=10 jitter=1 seed=220
+PROPS kind=planter_bush from=@cloverleaf+24 to=@cloverleaf+90 side=R every=8 offset=16 jitter=1 seed=221
+PROPS kind=street_bench from=@cloverleaf+28 to=@cloverleaf+90 side=R every=16 offset=13 seed=222
+PROPS kind=street_lamp from=@cloverleaf+30 to=@cloverleaf+90 side=R every=20 offset=19 seed=223
 # -- street blocks on the ground-level roads (four facade kinds in 24 m slots, setback jitter)
 PROPS kind=building_row_d from=@frontage_s2+120 to=@frontage_s2+160 side=L every=96 offset=8 jitter=1.5 seed=220
 PROPS kind=building_row_a from=@toll_plaza+10 to=@toll_plaza+55 side=L every=96 offset=16 seed=221
