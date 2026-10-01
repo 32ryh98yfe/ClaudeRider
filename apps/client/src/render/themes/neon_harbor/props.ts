@@ -224,6 +224,15 @@ function streetLamp(): THREE.BufferGeometry {
     .build();
 }
 
+/** Underpass wall lamp: a short post behind the barrier with a long cool-white lamp bar facing the road. */
+function tunnelLamp(): THREE.BufferGeometry {
+  return new GlowParts()
+    .add(part(box(0.18, 3.6, 0.18), POLE, -0.1, 1.8, 0), part(box(0.5, 0.3, 2.4), '#2a2d36', 0.1, 3.5, 0))
+    .light(2.2, part(box(0.06, 0.14, 2.2), COOL, 0.37, 3.42, 0))
+    .light(1.2, part(box(0.06, 0.06, 2.2), CYAN, 0.37, 3.62, 0))
+    .build();
+}
+
 /** Traffic signal on a mast arm over the road edge (+X): the heads face the oncoming karts (−Z), green lit. */
 function trafficSignal(): THREE.BufferGeometry {
   const G = new GlowParts().add(part(cyl(0.22, 0.26, 0.4, 8), '#2f333c', 0, 0.2, 0), part(cyl(0.11, 0.14, 6.2, 8), POLE, 0, 3.1, 0));
@@ -544,6 +553,7 @@ export const NEON_PROPS: Record<string, PropFactory> = {
   // street furniture and ground cover (bush/crate/lamp names thin on Low/Medium)
   street_lamp: F(streetLamp, city, true, 256),
   traffic_signal: F(trafficSignal, city, true, 64),
+  tunnel_lamp: F(tunnelLamp, city, false, 256),
   planter_bush: F(planter, lit, true, 1500),
   street_tree: F(streetTree, leafy, true, 800),
   street_bench: F(bench, lit, true, 600),

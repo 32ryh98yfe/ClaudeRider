@@ -47,15 +47,25 @@ PROPS kind=grandstand from=@toll_plaza+8 to=@toll_plaza+9 side=L every=100 offse
 PROPS kind=flag_pole from=@frontage_s2+150 to=@toll_plaza+60 side=L every=9 offset=2.2 seed=202
 PROPS kind=spectators from=@toll_plaza+24 to=@toll_plaza+40 side=L every=12 offset=2.6 jitter=1 seed=203
 PROPS kind=spectators from=@frontage_s2+130 to=@frontage_s2+165 side=R every=16 offset=2.4 jitter=1 seed=204
-PROPS kind=ad_board_a from=@toll_plaza+22 to=@toll_plaza+60 side=R every=24 offset=0.4 seed=205
-PROPS kind=ad_board_b from=@toll_plaza+30 to=@toll_plaza+60 side=R every=24 offset=0.4 seed=206
-PROPS kind=ad_board_c from=@toll_plaza+38 to=@toll_plaza+60 side=R every=24 offset=0.4 seed=207
+# (boards start after the line and pad keep-outs, which drop anything at +20…+62)
+PROPS kind=ad_board_a from=@toll_plaza+64 to=@toll_plaza+128 side=R every=27 offset=0.4 seed=205
+PROPS kind=ad_board_b from=@toll_plaza+73 to=@toll_plaza+128 side=R every=27 offset=0.4 seed=206
+PROPS kind=ad_board_c from=@toll_plaza+82 to=@toll_plaza+128 side=R every=27 offset=0.4 seed=207
+PROPS kind=ad_board_a from=@toll_plaza+4 to=@toll_plaza+18 side=R every=14 offset=0.4 seed=213
 PROPS kind=ad_board_c from=@frontage_s2+120 to=@frontage_s2+165 side=both every=16 offset=0.4 seed=208
 PROPS kind=street_lamp from=@toll_plaza to=@toll_plaza+140 side=both every=35 offset=0.6
-PROPS kind=bus_shelter from=@toll_plaza+90 to=@toll_plaza+91 side=L every=50 offset=2.4 seed=209
+# the toll plaza runs under the cloverleaf and the skyway: wall lamps light the underpass toward T1
+PROPS kind=tunnel_lamp from=@toll_plaza+58 to=@cloverleaf+10 side=both every=7 offset=0.3 seed=212
 # -- T1 (cloverleaf entry, a long climbing left): tyre wall and chevron boards on the outside
 PROPS kind=tyre_wall from=@cloverleaf-4 to=@cloverleaf+44 side=R every=1.3 offset=0.6 seed=210
 PROPS kind=ad_board_b from=@cloverleaf+2 to=@cloverleaf+42 side=R every=9 offset=2.6 seed=211
+# the plaza outside T1 (the b2 camera stands in it): low furniture only, so the corner stays in view
+PROPS kind=street_tree from=@cloverleaf-20 to=@cloverleaf+60 side=R every=13 offset=8 jitter=2 scale=0.9-1.2 seed=214
+PROPS kind=planter_bush from=@cloverleaf-20 to=@cloverleaf+60 side=R every=9 offset=4.5 jitter=1 seed=215
+PROPS kind=street_bench from=@cloverleaf-14 to=@cloverleaf+60 side=R every=19 offset=6 seed=216
+PROPS kind=vending_machine from=@cloverleaf+6 to=@cloverleaf+60 side=R every=27 offset=13 seed=217
+PROPS kind=noodle_stall from=@cloverleaf+18 to=@cloverleaf+60 side=R every=30 offset=17 seed=218
+PROPS kind=bus_shelter from=@cloverleaf-24 to=@cloverleaf-23 side=R every=50 offset=3 seed=219
 # -- street blocks on the ground-level roads (four facade kinds in 24 m slots, setback jitter)
 PROPS kind=building_row_d from=@frontage_s2+120 to=@frontage_s2+160 side=L every=96 offset=8 jitter=1.5 seed=220
 PROPS kind=building_row_a from=@toll_plaza+10 to=@toll_plaza+55 side=L every=96 offset=16 seed=221
