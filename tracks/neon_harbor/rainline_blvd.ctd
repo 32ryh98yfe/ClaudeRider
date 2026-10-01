@@ -134,7 +134,7 @@ PROP kind=lantern_string at=(-76.5,-0.4,89.6) yaw=119 scale=1
 PROP kind=lantern_string at=(-86.1,-0.4,94.9) yaw=119 scale=1
 PROP kind=lantern_string at=(-95.7,-0.4,100.2) yaw=119 scale=1
 # -- landmark: a neon tower in the eye of the spiral exit
-PROP kind=tower_b at=(50.3,-0.4,53.5) yaw=20 scale=1.35
+PROP kind=tower_b at=(50.3,-1.2,53.5) yaw=20 scale=1.35
 # -- skyline (generated: slim towers 26–64 m and 74–175 m from every road at any height and clear of the street blocks, yaw along the nearest street, y = baked terrain − 0.3 m; keep-outs around the a3 and b2 cameras)
 PROP kind=tower_b at=(-190.3,-1.8,-153.8) yaw=-14 scale=1.21
 PROP kind=tower_a at=(91.5,-1.8,-53.1) yaw=90 scale=0.89
