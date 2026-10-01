@@ -65,6 +65,11 @@ PROPS kind=hazard_lamp from=@to_line to=@hall_corner side=both every=16 offset=0
 PROPS kind=tyre_wall from=@hall_corner-2 to=@hall_corner+32 side=R every=1.3 offset=0.6 seed=313
 PROPS kind=ad_board_b from=@hall_corner+1 to=@hall_corner+30 side=R every=8 offset=2.6 seed=314
 PROPS kind=hazard_lamp from=@hall_corner+4 to=@hall_corner+30 side=R every=12 offset=6 seed=315
+# the floor outside T1 (the b2 camera stands on it): low factory furniture only, so the corner stays in view
+PROPS kind=cargo_crate from=@hall_corner-6 to=@hall_corner+34 side=R every=8 offset=5 jitter=2 seed=316
+PROPS kind=conveyor_rig from=@hall_corner to=@hall_corner+32 side=R every=14 offset=11 seed=317
+PROPS kind=robot_arm from=@hall_corner+6 to=@hall_corner+32 side=R every=14 offset=15 seed=318
+PROPS kind=token_stack from=@hall_corner+2 to=@hall_corner+32 side=R every=11 offset=19 seed=319
 # -- press gauntlet, rack canyon, coolant gutter: hazard lamps, pipe racks, server racks, coolant pipes
 PROPS kind=hazard_lamp from=@press_gauntlet to=@press_exit side=both every=10 offset=0.8 seed=320
 PROPS kind=pipe_rack from=@press_gauntlet to=@press_exit side=both every=13 offset=3.5 seed=321
