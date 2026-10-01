@@ -3,6 +3,10 @@
 // (vMul ≤ 1). meadow_loop is the reference track for all four tiers; on proving_ring (a 700 m oval whose pace is
 // mostly instant boosts, see docs/design/contract-requests/L3-ai-pace.md) Pro and Legend hold their band.
 // `node tools/balance/tiers.ts` prints the full table for every baked track and all 12 characters.
+// M5 (15-driving-techniques, 14-ai §3.11): the tiers adopt the techniques at their own rate — on meadow_loop Legend
+// drags (끌기) on at least DRAG_LEGEND_MIN per lap, Rookie on at most DRAG_ROOKIE_MAX, in tier order — and nobody spins out.
+// The Legend floor is calibrated to the booster supply (≈ 2.3 boosters per lap for 2 drag-eligible corners per lap): a
+// Legend that held its boosters for every drag corner would drag more but lose ≈ 2.5 s per race (docs/design/reviews/M5-ai-pace.md).
 import { describe, expect, it } from 'vitest';
 import { CHARACTER_IDS, type AiTier } from '@cr/content';
 import { ghostRaceSec, soloPace, PACE_BANDS } from '../src/ai/balance.ts';
@@ -11,27 +15,33 @@ import { bakedTrack, getContent } from './rig.ts';
 const LA = 8;
 const CHARS = CHARACTER_IDS;
 const SEED = 1000;
+/** Drag entries per lap on meadow_loop (calibrated; see the header). */
+const DRAG_LEGEND_MIN = 0.5, DRAG_ROOKIE_MAX = 0.1;
 
-function tierPace(rel: string, tiers: readonly AiTier[]): Map<AiTier, number> {
+interface TierStats { pace: number; dragsPerLap: number; tapsPerLap: number; spinOuts: number }
+
+function tierStats(rel: string, tiers: readonly AiTier[]): Map<AiTier, TierStats> {
   const track = bakedTrack(rel), content = getContent();
   const ref = ghostRaceSec(track, content, undefined, LA);
-  const out = new Map<AiTier, number>();
+  const out = new Map<AiTier, TierStats>();
   for (const tier of tiers) {
-    let sum = 0, n = 0;
+    let sum = 0, n = 0, drags = 0, taps = 0, spins = 0;
     for (const c of CHARS) {
       const r = soloPace(track, content, tier, c, SEED + CHARS.indexOf(c), ref, undefined, LA);
       expect(r.kart.finished, `${tier} ${c} finished`).toBe(true);
-      sum += r.pace; n++;
+      sum += r.pace; n++; drags += r.kart.drags; taps += r.kart.taps; spins += r.kart.spinOuts;
     }
-    out.set(tier, sum / n);
+    out.set(tier, { pace: sum / n, dragsPerLap: drags / (n * track.laps), tapsPerLap: taps / (n * track.laps), spinOuts: spins });
   }
   return out;
 }
+const tierPace = (rel: string, tiers: readonly AiTier[]): Map<AiTier, number> => new Map([...tierStats(rel, tiers)].map(([t, s]) => [t, s.pace]));
 
 describe('AI tier pace vs the Legend ghost', () => {
-  it('meadow_loop: every tier inside its band, in tier order', () => {
-    const p = tierPace('clayhill_village/meadow_loop', ['rookie', 'racer', 'pro', 'legend']);
-    console.log('meadow_loop pace', [...p].map(([t, v]) => `${t} ${(v * 100).toFixed(1)}%`).join(', '));
+  it('meadow_loop: every tier inside its band, in tier order; techniques by tier, no spin-out', () => {
+    const st = tierStats('clayhill_village/meadow_loop', ['rookie', 'racer', 'pro', 'legend']);
+    const p = new Map([...st].map(([t, s]) => [t, s.pace]));
+    console.log('meadow_loop pace', [...st].map(([t, s]) => `${t} ${(s.pace * 100).toFixed(1)}% (drags ${s.dragsPerLap.toFixed(2)}/lap, taps ${s.tapsPerLap.toFixed(2)}/lap)`).join(', '));
     for (const [tier, v] of p) {
       const b = PACE_BANDS[tier];
       expect(v, `${tier} ${(v * 100).toFixed(1)}% vs ${b.target}`).toBeGreaterThanOrEqual(b.lo);
@@ -40,6 +50,12 @@ describe('AI tier pace vs the Legend ghost', () => {
     expect(p.get('rookie')!).toBeLessThan(p.get('racer')!);
     expect(p.get('racer')!).toBeLessThan(p.get('pro')!);
     expect(p.get('pro')!).toBeLessThan(p.get('legend')!);
+    const dr = (t: AiTier): number => st.get(t)!.dragsPerLap;
+    expect(dr('legend'), 'Legend drags per lap').toBeGreaterThanOrEqual(DRAG_LEGEND_MIN);
+    expect(dr('rookie'), 'Rookie drags per lap').toBeLessThanOrEqual(DRAG_ROOKIE_MAX);
+    expect(dr('legend'), 'drag rate in tier order').toBeGreaterThanOrEqual(dr('racer'));
+    expect(dr('pro'), 'drag rate in tier order').toBeGreaterThanOrEqual(dr('rookie'));
+    for (const [tier, s] of st) expect(s.spinOuts, `${tier} spin-outs`).toBe(0);
   });
 
   it('proving_ring: Pro and Legend inside their bands', () => {

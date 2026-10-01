@@ -68,7 +68,7 @@ export const AI_TUNING = {
   // drag control (끌기, 14-ai §3.11): neutral steer + DRIFT held while the nose is within [dragEhLo, dragEhHi] rad of
   // the track, the kart is not heading for the outer wall (outside < dragOut) and more than dragEndTurn rad is left;
   // taps (톡톡이) only while the nose is not ahead of the track (eh > tapEhMin)
-  drag: 1, dragEhLo: -0.12, dragEhHi: 0.35, dragOut: 0.45, dragEndTurn: 0.2, tapEhMin: 0, tapGap: 8,
+  drag: 1, dragEhLo: -0.12, dragEhHi: 0.35, dragOut: 0.45, dragEndTurn: 0.2, tapEhMin: -0.1, tapGap: 8,
   // a boosted drift (v > fastHoldV·vGrip) holding through a long corner may counter-steer down to the trim (not -0.3)
   fastHoldV: 1.1,
   // share of the drag's neutral band (|sIn| < 0.3) the heading controller may use while dragging
@@ -78,12 +78,14 @@ export const AI_TUNING = {
   trigVPsi: 0.2,
   // hazards that stay active longer than this (ticks) are not waited for (lane choice only)
   hazardMaxWait: 300,
+  // side-contact reflex: karts within sideDs m along and sideGap m across that close at ≥ sideClose m/s
+  sideRepel: 0.6, sideDs: 3.5, sideGap: 2.8, sideClose: 0.5, sideMax: 0.6,
   // build-up to the entry window: in-steer until the predicted β is dragBuildMargin past dragEnterLo, unless the nose
   // already lags more than dragBuildEhHi (the corner wants plain drift control); the boost must outlast dragBoostMin ticks
   dragBuildMaxTicks: 40, dragBuildEhLo: 0.1, dragBuildSIn: 1, dragBoostMin: 20, dragBuildYaw: 1.2, dragRekickEh: 0.35,
   // drag yaw regulation: heading gain (1/s) on e, damping on the yaw excess (per rad/s), taps while the yaw is below the
   // wanted yaw + tapYawMargin
-  dragKh: 2, dragKd: 0.5, tapYawMargin: 0.2, dragKapLead: 0.2, dragHeldSwap: 0.15,
+  dragKh: 2, dragKd: 0.5, tapYawMargin: 0.6, dragKapLead: 0.2, dragHeldSwap: 0.15, dragYawRelease: 0.3,
   // the drag also stops when the kart runs to the inside (outside < -dragIn, a share of the half-width)
   dragIn: 0.45,
   // boosters are kept for a planned drag corner up to dragHoldM ahead, unless one fired now still covers its entry
@@ -664,22 +666,27 @@ class BotDriver implements AiDriverEx {
       } else if (dragCorner && eh > AI_TUNING.dragEhLo && eh < AI_TUNING.dragEhHi && (pr.dragT > 0 || pr.sb >= P.dragEnterLo)) {
         // a boosted entry often slides into the window during the entry tap: the drag takes over from it
         this.tapLeft = 0;
-        // DRIFT stays held (a re-press would re-kick and cost 1%). The wheel sets the yaw target inside the neutral band
-        // (|sIn| < dragNeutral keeps the drag: ±0.34 rad/s): sIn = (wanted − centred yaw)/y1, minus a damping term on
-        // the yaw excess (the yaw lags its target at kYawDrift); the taps add yaw on top when more is wanted
+        // The wheel sets the yaw target inside the neutral band (|sIn| < dragNeutral keeps the drag: ±0.34 rad/s):
+        // sIn = (wanted − centred yaw − tap yaw)/y1, minus a damping term on the yaw excess (the yaw lags its target at
+        // kYawDrift). A tapping drag (톡톡이) budgets the taps' mean yaw (tapYaw/kYawDrift per tap gap) into that target.
         this.dragging = true;
         const tr = AI_TUNING.dragTrim * P.dragNeutral;
-        // DRIFT keeps its state (a re-press re-kicks: +0.8 rad/s and −1% speed) unless the yaw needs the other one
+        const tapping = this.cTap && pr.dragT > 1;
+        const tapAvg = tapping ? (P.tapYaw / P.kYawDrift) / (this.tapNext * DT) : 0;
+        const want = wantYaw - tapAvg;
+        // DRIFT keeps its state (a re-press re-kicks: +0.8 rad/s and −1% speed) unless the yaw needs the other one; a
+        // tapping drag never re-presses (the taps are its yaw source)
         const held = this.lastHeld;
         const yc = held ? yaw0 : yaw0 - P.y2;
-        if (held && wantYaw < yc - P.y1 * tr - AI_TUNING.dragHeldSwap) drift = false;
-        else if (!held && wantYaw > yc + P.y1 * tr + AI_TUNING.dragHeldSwap) drift = true;
+        const raw = (want - yc) / P.y1 - AI_TUNING.dragKd * (yawNow - wantYaw);
+        if (held && (want < yc - P.y1 * tr - AI_TUNING.dragHeldSwap || (raw < -tr && yawNow > wantYaw + AI_TUNING.dragYawRelease))) drift = false;
+        else if (!held && !tapping && want > yc + P.y1 * tr + AI_TUNING.dragHeldSwap) drift = true;
         else drift = held;
         const yt = drift ? yaw0 : yaw0 - P.y2;
-        sIn = (wantYaw - yt) / P.y1 - AI_TUNING.dragKd * (yawNow - wantYaw);
+        sIn = (want - yt) / P.y1 - AI_TUNING.dragKd * (yawNow - wantYaw);
         if (sIn > tr) sIn = tr; else if (sIn < -tr) sIn = -tr;
         thr = 1; keepThrottle = true;
-        if (this.cTap && pr.dragT > 1 && eh > AI_TUNING.tapEhMin && yawNow < wantYaw + AI_TUNING.tapYawMargin && (pr.gap >= 255 || pr.gap + 1 >= this.tapNext)) {
+        if (tapping && eh > AI_TUNING.tapEhMin && yawNow < wantYaw + AI_TUNING.tapYawMargin && (pr.gap >= 255 || pr.gap + 1 >= this.tapNext)) {
           tapEdge = dd > 0 ? Edge.TAP_L : Edge.TAP_R;
           this.stats.tapsPressed++;
           const j = ex.tapJitterTicks, g = AI_TUNING.tapGap + (j > 0 ? this.rng.int(-j, j) : 0);
@@ -741,6 +748,9 @@ class BotDriver implements AiDriverEx {
     // a drag needs ↑ and no brake (the corner speed is the drag's own), a planned brake turn brakes for its frames
     if (wantBrake && drifting && driftEh < AI_TUNING.brakeEh) { wantBrake = false; wantCoast = true; }
     if (this.dragging) { wantBrake = false; wantCoast = false; }
+    // loops and zero-g tubes (14-ai §4.5): throttle held — a loop needs its speed, and the flat-ground limits (ledge
+    // grip caps, 2D curvature) do not describe a vertical span
+    if (ppS.RMF[this.ri] === 1 && !cruising) { wantBrake = false; wantCoast = false; }
     if (this.bturnLeft > 0) { this.bturnLeft--; if (drifting) { wantBrake = true; wantCoast = false; } }
     // traffic: never ram a kart ahead (lift, then brake when contact is imminent and no lane is free)
     // traffic: never ram a kart ahead — lift when contact is near and no lane is free, brake when it is imminent
@@ -762,6 +772,15 @@ class BotDriver implements AiDriverEx {
     if ((w.tick + this.slot) % ex.laneEvalTicks === 0) this.replanLane(w, k, path, s, u, vS, vU, tXs, tYs, hwT, lineAbs, straightAhead, t40, corner, cornerDist, inCorner, prof);
     const dl = this.laneTarget - this.laneOff, stepL = (this.laneUrgent ? 5 : 3) * DT;
     this.laneOff += dl > stepL ? stepL : dl < -stepL ? -stepL : dl;
+
+    // ---- side contact (grip only): a kart alongside closing in laterally pushes the wheel away. The lane planner
+    // only moves the target at 3 m/s; at corner speeds two karts side by side close faster than that and rub for
+    // several ticks (each one a hard bump). Bump-happy personalities (aggression ≥ 0.8) keep leaning on rivals.
+    // (not in loops / zero-g / jump approaches, on halfpipe walls or beside open ledges: the line is held there)
+    if (!airborne && !drifting && !jumpNear && !ledgeHere && ppS.PIPE[this.ri] === 0 && AI_TUNING.sideRepel > 0 && prof.aggression < 0.8) {
+      steer += this.sideRepel(w, k, s, u, vU, path);
+      steer = steer > 1 ? 1 : steer < -1 ? -1 : steer;
+    }
 
     // ---- recovery (stuck / wrong way)
     const ri = this.recIn;
@@ -1123,6 +1142,31 @@ class BotDriver implements AiDriverEx {
     this.laneDrafting = r.drafting;
     this.laneTarget = r.laneOff;
     this.laneTtc = r.ttc; this.laneClosing = r.closing; this.laneUrgent = r.urgent;
+  }
+
+  /** Steer correction (+ = left) away from karts alongside that close in laterally (see the side-contact note). */
+  private sideRepel(w: Readonly<WorldState>, k: KartState, s: number, u: number, vU: number, path: number): number {
+    const T = AI_TUNING, L = this.track.lapLength, circuit = this.track.topology === 'circuit', la = this.LA * DT;
+    const tx = this.rp.TX[this.ri]!, ty = this.rp.TY[this.ri]!;
+    let push = 0;
+    for (let j = 0; j < w.karts.length; j++) {
+      if (j === this.slot) continue;
+      const o = w.karts[j]!;
+      if (!o.active || o.race.finishTick >= 0 || o.race.respawnPhase !== 0 || o.body.ghostTicks > 0 || o.race.loc.path !== path) continue;
+      const ob = o.body;
+      const ovS = ob.vx * tx - ob.vz * ty, ovU = ob.vx * ty + ob.vz * tx; // world → (along, right) in the 2D frame (Y = −z)
+      let ds = o.race.loc.sMain - k.race.loc.sMain;
+      if (circuit) { if (ds > L / 2) ds -= L; else if (ds < -L / 2) ds += L; }
+      ds += ovS * la - (s - k.race.loc.s); // both predicted to the apply tick
+      if (ds > T.sideDs || ds < -T.sideDs) continue;
+      const du = o.race.loc.u + ovU * la - u;            // + = the rival is to our right
+      const adu = du < 0 ? -du : du;
+      if (adu > T.sideGap) continue;
+      const closing = (vU - ovU) * (du > 0 ? 1 : -1);     // lateral closing speed toward it (m/s)
+      if (closing < T.sideClose && adu > T.sideGap - 0.6) continue;
+      push += (du > 0 ? 1 : -1) * T.sideRepel * (1 - adu / T.sideGap) * (closing > 0 ? 1 + closing / 4 : 1);
+    }
+    return push > T.sideMax ? T.sideMax : push < -T.sideMax ? -T.sideMax : push;
   }
 
   /** Lateral offset of a boost pad 5–45 m ahead on this path (NaN = none). */
