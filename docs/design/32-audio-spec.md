@@ -35,7 +35,8 @@ bandpass noise @ 4·f0 (Q 2) × (0.1 + 0.2·throttle) ─┘   (rasp)
 boost: + "jet roar" layer (band-passed noise 800–3000 Hz, gain 0.3·boost) and pitch ×1.15
 ```
 - Fundamental: `f0 = 55 + 180·rpm01` Hz (toy range 55–235 Hz) [S 07].
-- Fake gears (4) [S 05]: speed thresholds 0–10, 10–20, 20–30, 30–38, 38+ m/s; within a gear `rpm01 = 0.3 + 0.7·(u − lo)/(hi − lo)`; a gear change drops rpm by 30% with a 60 ms "shift" dip in gain; idle `rpm01 = 0.1` below 1 m/s; reversing uses gear 1.
+- Fake gears [S 05, M5]: `GEARS = [0, 10, 20, 30, 38, 46, 54]` m/s (six ranges; the top one, 46–54, spans drag 48.1 and tap boost 50.6 m/s); within a gear `rpm01 = 0.3 + 0.7·(u − lo)/(hi − lo)`; a gear change drops rpm by 30% with a 60 ms "shift" dip in gain; idle `rpm01 = 0.1` below 1 m/s; reversing uses |u| (gear 1 up to the 10.78 m/s reverse cap).
+- `EngineParams.rpm01 = speed / RPM_REF_MPS` with `RPM_REF_MPS = 52` (M5; was 44), so 1.0 sits just above the 305 km/h tap-boost cap. The jet-roar band also tracks speed / 52.
 - Smoothing: every parameter via `setTargetAtTime`, τ 0.03–0.05 s [S].
 - Throttle-off: lowpass falls to 600 Hz, rasp to 0.1, adds a 2 Hz "burble" AM (depth 0.15).
 - Drift: pitch +3% and a slight AM (6 Hz) while `drift = 1`.
@@ -86,6 +87,13 @@ Recipes use: `osc(type, f)`, `noise(color)`, `env(a, d, s, r)` (seconds), `bp/lp
 | `kart.warp_exit` | sfx | 4 | yes | warp exit | sweep 2000 → 400 Hz + sparkle chimes |
 | `kart.respawn_out` | sfx | 2 | yes | `respawn{out}` | descending glass arpeggio (sine 1320/990/660) 0.4 s |
 | `kart.respawn_in` | sfx | 2 | yes | `respawn{in}` | ascending arpeggio 660/990/1320 + soft pop |
+| `kart.drag_start` | sfx | 4 | yes | `drag{on}` (M5) | airy hiss: white noise hp sweep 1.5 → 6 kHz 0.25 s + glint sine 1320 → 1760 Hz |
+| `kart.drag_hiss` | sfx | loop | no | local `dragTicks > 0` (M5) | `RaceLoops.drag`: white noise bp 2.8 kHz Q 1.2, AM 13 Hz; gain 0.06 + 0.02·streak, band +600 Hz per streak step |
+| `kart.tap_boost` | sfx | 4 | yes | `tapBoost{streak}` (M5) | exhaust "pff" (noise bp sweep 900 → 2400 Hz, 0.09 s) + chirp square 660 → 990 Hz; pitch ×(1 + 0.12·(streak − 1)); streak 3 adds a 2.6 kHz sparkle |
+| `kart.cut` | sfx | 4 | yes | `cut` (M5) | tyre chirp (noise bp 2.4 kHz Q 5, 0.07 s) + settle thump sine 110 → 70 Hz |
+| `kart.brake_turn` | sfx | 4 | yes | `brakeTurn` (M5) | squeal square 2.6 kHz bp Q 8, 7 Hz vibrato, 0.18 s + pink-noise scrub lp 1.4 kHz |
+| `kart.spin_out` | sfx | 4 | yes | `spinOut` (M5) | 0.55 s screech bp 2.2 → 0.9 kHz with 9 Hz AM + toy wobble saw 520 → 180 Hz + 80 Hz thud at 0.42 s |
+| `kart.reverse_beep` | sfx | 1 | no | local `gear{R}`, then every 54 ticks while backing up (M5) | soft truck beep: square 1 kHz lp 2.5 kHz, 0.12 s |
 
 ### 4.2 Boosts
 | id | Bus | Voices | 3D | Trigger | Recipe |

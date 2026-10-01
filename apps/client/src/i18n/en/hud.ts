@@ -11,6 +11,8 @@ export default {
   disconnected: 'Disconnected', reconnecting: 'Reconnecting…', mirror: 'STEERING FLIPPED!', redacted: 'REDACTED!', locked: 'ITEMS LOCKED',
   finished: 'Finished!', waiting: 'Waiting for the other racers', ghost: 'Ghost', ghostAhead: '{d} ahead of ghost', ghostBehind: '{d} behind ghost',
   standings: 'Standings', emptySlot: 'Empty', useKey: 'Use', swapKey: 'Swap', lapTime: 'Lap time',
+  // driving techniques (15-driving-techniques)
+  gear: { d: 'D', n: 'N', r: 'R' }, drag: 'Drag', tap: 'Tap boost', cut: 'Cut', brakeTurn: 'Brake turn', spinOut: 'Spin-out!', reverse: 'Reverse',
   pause: {
     title: 'Paused', resume: 'Resume', restart: 'Restart', settings: 'Settings', leave: 'Leave race',
     leaveTitle: 'Leave the race?', leaveBody: 'Your progress and rewards for this race will be lost.', onlineNote: 'Online races keep running while this menu is open.',

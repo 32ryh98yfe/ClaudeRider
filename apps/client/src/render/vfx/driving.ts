@@ -1,13 +1,19 @@
 // Driving VFX (30-art-bible §10.1): drift sparks by gauge tier, tyre smoke tinted by surface, skid marks, boost
 // flames with afterburn, instant/start/pad boost bursts, double-drift flare, wall sparks, bump stars, landing dust,
 // surface kicks (grass, dirt, sand, snow, wet spray), draft wind, respawn sparkles, GO ring, finish confetti,
-// item-box shatter. Continuous effects read kart state every frame; one-shots come from de-duplicated SimEvents.
+// item-box shatter. Driving techniques (15-driving-techniques): cyan drag sparks + rear light streak, tap-boost
+// afterburn pulse and ring, cut puff (the skid ends), brake-turn brake lights + smoke, spin-out smoke ring and
+// the reverse light in gear R. Continuous effects read kart state every frame; one-shots come from de-duplicated
+// SimEvents. Everything draws through the two shared particle pools and the flame mesh (no new materials).
 import * as THREE from 'three/webgpu';
 import { SURFACE_BY_CODE } from '@cr/content';
-import { Boost, type KartState, type SimEvent } from '@cr/sim';
+import { Boost, Gear, type KartState, type SimEvent } from '@cr/sim';
 import { GpuParticles, Shape, type SpawnOpts } from './gpuParticles.ts';
 import { SkidMarks } from './skids.ts';
-import { FlameSystem, type FlameSlot } from './flames.ts';
+import { FlameSystem, pulseFlame, type FlameSlot } from './flames.ts';
+
+/** A velocity (m/s); a kart body fits. */
+interface Vel { vx: number; vy: number; vz: number }
 
 /** Interpolated kart pose shared with the renderer (all unit vectors). */
 export interface KartPose { pos: THREE.Vector3; fwd: THREE.Vector3; up: THREE.Vector3; left: THREE.Vector3; speed: number; lat: number; visible: boolean }
@@ -28,6 +34,17 @@ const SNOW = o(Shape.SMOKE, false, 0.3, 1.6, 0.2, 2.6, { alpha: 0.6 });
 const WET = o(Shape.SMOKE, false, 0.15, 0.9, -6, 2.2, { alpha: 0.35 });
 const EMBER = o(Shape.SOFT, true, 0.12, 0.02, 1, 3, { emissive: 1.8 });
 const LAND_DUST = o(Shape.SMOKE, false, 0.4, 2.0, 0.2, 2.6, { alpha: 0.45 });
+// driving techniques. Lights use drag ≈ 0 and inherit the kart velocity, so the sprite rides with the kart.
+const DRAG_SPARK = o(Shape.SPARK, true, 0.06, 0.02, -7, 1.2, { stretch: 0.045, emissive: 3.2 });
+const DRAG_TRAIL = o(Shape.SOFT, true, 0.46, 0.05, 0, 0.6, { emissive: 2.4 });
+const DRAG_FLASH = o(Shape.RING, true, 0.5, 3.2, 0, 0.5, { emissive: 2.6 });
+const TAP_RINGS = [2.2, 3.1, 4.2].map((s1) => o(Shape.RING, true, 0.35, s1, 0, 0.5, { emissive: 3 }));
+const TAP_GLOW = o(Shape.SOFT, true, 0.9, 0.2, 0, 0.0005, { emissive: 3 });
+const CUT_PUFF = o(Shape.SMOKE, false, 0.3, 1.5, 0.6, 2.8, { alpha: 0.5 });
+const BRAKE_LIGHT = o(Shape.SOFT, true, 0.42, 0.3, 0, 0.0005, { emissive: 3 });
+const BRAKE_SMOKE = o(Shape.SMOKE, false, 0.35, 1.8, 0.5, 2.4, { alpha: 0.5 });
+const SPIN_RING = o(Shape.SMOKE, false, 0.55, 2.6, 0.3, 2.2, { alpha: 0.55 });
+const REV_LIGHT = o(Shape.SOFT, true, 0.4, 0.36, 0, 0.0005, { emissive: 2 });
 
 const C = (h: string): THREE.Color => new THREE.Color(h);
 const CONFETTI_GOLD = ['#FFD23F', '#FFC857', '#FAF9F5', '#D97757'].map(C);
@@ -43,6 +60,12 @@ const EMOTE_DEFAULT = EMOTE_FX['sparkle']!;
 /** Drift-spark tiers: white (0–29 ticks), coral #D97757 (30–59), violet #B57CFF (≥ 60 or gauge completed). */
 export const SPARK_TIERS = [C('#fff6e0'), C('#ff8f5e'), C('#b57cff')];
 const SPARK_GLOW = [C('#ffe9b8'), C('#d97757'), C('#9a5cff')];
+/** Drag (끌기) cyan; tap-boost rings brighten toward white with the streak. */
+const DRAG_CYAN = C('#7de2fc'), DRAG_GLOW = C('#2acaff');
+const TAP_COLS = [C('#9fecff'), C('#c8f6ff'), C('#ffffff')];
+const BRAKE_RED = C('#ff2a1a'), REV_WHITE = C('#fff4e0');
+/** Rear light corners in kart space: back, height, ± side (m). */
+const LIGHT_BACK = 0.95, LIGHT_UP = 0.45, LIGHT_SIDE = 0.42;
 
 interface SurfaceLook { smoke: THREE.Color; skid: THREE.Color; skidA: number; kick: 'none' | 'grass' | 'dirt' | 'sand' | 'snow' | 'wet' | 'gravel' | 'lava'; smokeA: number; smokeOpt: SpawnOpts; dustOpt: SpawnOpts }
 const S = (smoke: string, skid: string, skidA: number, kick: SurfaceLook['kick'], smokeA = 0.42): SurfaceLook =>
@@ -61,6 +84,9 @@ function surfaceLook(code: number): SurfaceLook { const d = SURFACE_BY_CODE[code
 
 interface KartFx { flame: FlameSlot; tier: number; gaugeTierBoost: boolean; wasGrounded: boolean; air: number; surf: number }
 
+/** Dev presentation forcing for one kart slot (dev/force.ts). */
+export interface FxForce { slot: number; drag: boolean; reverse: boolean }
+
 export class DrivingFx {
   readonly sparks: GpuParticles;   // short-lived additive: sparks, glows, stars, rings
   readonly smoke: GpuParticles;    // longer-lived alpha: smoke, dust, chips, confetti
@@ -69,7 +95,10 @@ export class DrivingFx {
   private fx: KartFx[] = [];
   private t = 0;
   private v = new THREE.Vector3(); private w = new THREE.Vector3();
+  private flashVel: Vel = { vx: 0, vy: 0, vz: 0 };
   budget: number;
+  /** Dev only: show drag / reverse presentation on one kart (slot −1 = off). */
+  force: FxForce = { slot: -1, drag: false, reverse: false };
 
   constructor(nKarts: number, budget: number) {
     this.budget = budget;
@@ -78,7 +107,7 @@ export class DrivingFx {
     this.sparks.budget = this.smoke.budget = Math.max(0.35, budget);
     this.skids = new SkidMarks(4000 * Math.max(0.25, budget));
     this.flames = new FlameSystem(nKarts * 3);
-    for (let i = 0; i < nKarts; i++) this.fx.push({ flame: { exhausts: [], k: 0, kind: 0, after: 0, custom: null }, tier: 0, gaugeTierBoost: false, wasGrounded: true, air: 0, surf: 0 });
+    for (let i = 0; i < nKarts; i++) this.fx.push({ flame: { exhausts: [], k: 0, kind: 0, after: 0, custom: null, pulse: 0, pulseStreak: 1 }, tier: 0, gaugeTierBoost: false, wasGrounded: true, air: 0, surf: 0 });
   }
 
   objects(): THREE.Object3D[] { return [this.skids.mesh, this.smoke.mesh, this.sparks.mesh, this.flames.mesh]; }
@@ -104,10 +133,12 @@ export class DrivingFx {
     // rear contact points
     const rx = p.pos.x - p.fwd.x * 0.55, ry = p.pos.y + 0.05, rz = p.pos.z - p.fwd.z * 0.55;
     const drifting = d.drift === 1 && grounded && p.speed > 8;
+    const forced = this.force.slot === i;
+    const dragging = (d.dragTicks > 0 || (forced && this.force.drag)) && p.speed > 8;
     if (drifting) {
       const tier = d.driftTicks < 30 ? 0 : d.driftTicks < 60 && !f.gaugeTierBoost ? 1 : 2;
       f.tier = tier;
-      const col = SPARK_TIERS[tier]!, glow = SPARK_GLOW[tier]!;
+      const col = dragging ? DRAG_CYAN : SPARK_TIERS[tier]!, glow = dragging ? DRAG_GLOW : SPARK_GLOW[tier]!;
       const hard = surf.kick === 'none';
       const nSpark = hard ? this.sparks.rate(near ? 140 : 50, dt) : 0;
       for (let n = 0; n < nSpark; n++) {
@@ -137,6 +168,8 @@ export class DrivingFx {
       this.skids.lift(i * 4); this.skids.lift(i * 4 + 1);
       f.gaugeTierBoost = false;
     }
+    if (dragging) this.dragFx(p, b, rx, ry, rz, dt, near);
+    if ((d.gear === Gear.R || (forced && this.force.reverse)) && near) this.rearLights(p, b, dt, REV_WHITE, REV_LIGHT);
     // surface kicks when off the hard road at speed
     if (grounded && near && p.speed > 6 && surf.kick !== 'none') {
       const n = this.smoke.rate(surf.kick === 'wet' ? 30 : 16 * Math.min(1.6, p.speed / 20), dt);
@@ -170,6 +203,39 @@ export class DrivingFx {
     // airborne trail marker for landing size
     f.air = grounded ? 0 : f.air + dt;
     f.wasGrounded = grounded;
+  }
+
+  /**
+   * Drag (끌기): cyan sparks thrown back off both rear wheels and a light streak left behind the kart. Trail glows
+   * are spread along the last frame's travel (`b` velocity) so the streak stays continuous at 290+ km/h.
+   */
+  private dragFx(p: KartPose, b: Readonly<Vel>, rx: number, ry: number, rz: number, dt: number, near: boolean): void {
+    const nSpark = this.sparks.rate(near ? 120 : 40, dt);
+    for (let n = 0; n < nSpark; n++) {
+      const side = n & 1 ? 0.55 : -0.55;
+      const up = 1 + Math.random() * 2, back = 5 + Math.random() * 4, lat = (Math.random() - 0.5) * 2 + side * 1.6;
+      this.sparks.spawn(rx + p.left.x * side, ry + 0.05, rz + p.left.z * side, -p.fwd.x * back + p.left.x * lat + p.up.x * up, p.up.y * up, -p.fwd.z * back + p.left.z * lat + p.up.z * up,
+        0.2 + Math.random() * 0.15, DRAG_CYAN.r, DRAG_CYAN.g, DRAG_CYAN.b, DRAG_SPARK);
+    }
+    const nTrail = this.sparks.rate(near ? 150 : 50, dt);
+    const tx = rx + p.up.x * 0.3, ty = ry + p.up.y * 0.3, tz = rz + p.up.z * 0.3;
+    for (let n = 0; n < nTrail; n++) {
+      const back = Math.random() * dt;
+      const c = n % 3 === 0 ? DRAG_GLOW : DRAG_CYAN;
+      this.sparks.spawn(tx - b.vx * back, ty - b.vy * back, tz - b.vz * back, -p.fwd.x * 2, 0, -p.fwd.z * 2, 0.24, c.r, c.g, c.b, DRAG_TRAIL);
+    }
+  }
+
+  /**
+   * Two rear light sprites riding with the kart at velocity `b` (reverse light, brake-light flash). With `life` 0
+   * the lamp is continuous: one sprite per side per frame living about two frames, so the overlap reads steady.
+   */
+  private rearLights(p: KartPose, b: Readonly<Vel>, dt: number, c: THREE.Color, opt: SpawnOpts, life = 0): void {
+    const l = life > 0 ? life : Math.min(0.5, Math.max(0.035, dt * 2.2));
+    const x = p.pos.x - p.fwd.x * LIGHT_BACK + p.up.x * LIGHT_UP, y = p.pos.y - p.fwd.y * LIGHT_BACK + p.up.y * LIGHT_UP, z = p.pos.z - p.fwd.z * LIGHT_BACK + p.up.z * LIGHT_UP;
+    for (let s = -1; s <= 1; s += 2) {
+      this.sparks.spawn(x + p.left.x * LIGHT_SIDE * s, y + p.left.y * LIGHT_SIDE * s, z + p.left.z * LIGHT_SIDE * s, b.vx, b.vy, b.vz, l, c.r, c.g, c.b, opt);
+    }
   }
 
   /** One-shot bursts from sim events. `pose(i)` returns a kart pose (or null). */
@@ -252,6 +318,72 @@ export class DrivingFx {
           this.v.copy(p.left).multiplyScalar(Math.cos(a) * sp).addScaledVector(p.fwd, Math.sin(a) * sp);
           this.smoke.spawn(p.pos.x, p.pos.y + 0.1, p.pos.z, this.v.x, 0.4, this.v.z, 0.7 + k * 0.5, surf.smoke.r, surf.smoke.g, surf.smoke.b, LAND_DUST);
         }
+        break;
+      }
+      case 'drag': {
+        if (!e.on) break;
+        const p = pose(e.kart); if (!p) break;
+        this.sparks.spawn(p.pos.x - p.fwd.x * 1.1, p.pos.y + 0.35, p.pos.z - p.fwd.z * 1.1, 0, 0, 0, 0.3, DRAG_CYAN.r, DRAG_CYAN.g, DRAG_CYAN.b, DRAG_FLASH);
+        break;
+      }
+      case 'tapBoost': {
+        // afterburn: the flames kick longer and hotter, and a ring (bigger per streak step) pops off the exhaust
+        const f = this.fx[e.kart]; if (f) pulseFlame(f.flame, e.streak);
+        const p = pose(e.kart); if (!p) break;
+        const st = Math.max(1, Math.min(3, e.streak)), c = TAP_COLS[st - 1]!;
+        const x = p.pos.x - p.fwd.x * 1.2, y = p.pos.y + 0.4, z = p.pos.z - p.fwd.z * 1.2;
+        const vx = p.fwd.x * p.speed * 0.9, vz = p.fwd.z * p.speed * 0.9;
+        this.sparks.spawn(x, y, z, vx, 0, vz, 0.22 + st * 0.04, c.r, c.g, c.b, TAP_RINGS[st - 1]!);
+        this.sparks.spawn(x, y, z, vx, 0, vz, 0.14, c.r, c.g, c.b, TAP_GLOW);
+        const n = this.sparks.burst(5 + st * 4, 3);
+        for (let q = 0; q < n; q++) {
+          const a = (q / n) * Math.PI * 2, r = 2.5 + st;
+          this.v.copy(p.left).multiplyScalar(Math.cos(a) * r).addScaledVector(p.up, Math.sin(a) * r).addScaledVector(p.fwd, -4);
+          this.sparks.spawn(x, y, z, this.v.x + vx, this.v.y, this.v.z + vz, 0.25, c.r, c.g, c.b, SPARK_BIG);
+        }
+        break;
+      }
+      case 'cut': {
+        // the slide stops: the skid marks end here and a short puff comes off both rear wheels
+        this.skids.lift(e.kart * 4); this.skids.lift(e.kart * 4 + 1);
+        const p = pose(e.kart); if (!p) break;
+        const surf = surfaceLook(this.fx[e.kart]?.surf ?? 0);
+        const n = this.smoke.burst(10, 4);
+        for (let q = 0; q < n; q++) {
+          const side = q & 1 ? 0.55 : -0.55;
+          this.smoke.spawn(p.pos.x - p.fwd.x * 0.55 + p.left.x * side, p.pos.y + 0.15, p.pos.z - p.fwd.z * 0.55 + p.left.z * side,
+            p.left.x * side * 3 + (Math.random() - 0.5) * 1.5, 0.6 + Math.random() * 0.6, p.left.z * side * 3 + (Math.random() - 0.5) * 1.5, 0.55, surf.smoke.r, surf.smoke.g, surf.smoke.b, CUT_PUFF);
+        }
+        break;
+      }
+      case 'brakeTurn': {
+        const p = pose(e.kart); if (!p) break;
+        // velocity from the pose (forward + lateral) so the brake-light flash rides with the sliding kart
+        const u = Math.sqrt(Math.max(0, p.speed * p.speed - p.lat * p.lat));
+        const vel = this.w.copy(p.fwd).multiplyScalar(u).addScaledVector(p.left, p.lat);
+        const fv = this.flashVel; fv.vx = vel.x; fv.vy = vel.y; fv.vz = vel.z;
+        this.rearLights(p, fv, 0, BRAKE_RED, BRAKE_LIGHT, 0.26);
+        const surf = surfaceLook(this.fx[e.kart]?.surf ?? 0);
+        const n = this.smoke.burst(8, 3);
+        for (let q = 0; q < n; q++) {
+          const side = q & 1 ? 0.55 : -0.55;
+          this.smoke.spawn(p.pos.x - p.fwd.x * 0.55 + p.left.x * side, p.pos.y + 0.12, p.pos.z - p.fwd.z * 0.55 + p.left.z * side,
+            fv.vx * 0.3 + (Math.random() - 0.5) * 2, 0.5 + Math.random() * 0.5, fv.vz * 0.3 + (Math.random() - 0.5) * 2, 0.8, surf.smoke.r, surf.smoke.g, surf.smoke.b, BRAKE_SMOKE);
+        }
+        break;
+      }
+      case 'spinOut': {
+        // a ring of tyre smoke around the kart (the renderer spins the kart mesh 360° over 0.5 s)
+        this.skids.lift(e.kart * 4); this.skids.lift(e.kart * 4 + 1);
+        const p = pose(e.kart); if (!p) break;
+        const surf = surfaceLook(this.fx[e.kart]?.surf ?? 0);
+        const n = this.smoke.burst(22, 8);
+        for (let q = 0; q < n; q++) {
+          const a = (q / n) * Math.PI * 2 + Math.random() * 0.2, sp = 4 + Math.random() * 1.5;
+          this.v.copy(p.left).multiplyScalar(Math.cos(a) * sp).addScaledVector(p.fwd, Math.sin(a) * sp);
+          this.smoke.spawn(p.pos.x + this.v.x * 0.12, p.pos.y + 0.2, p.pos.z + this.v.z * 0.12, this.v.x, 0.5 + Math.random() * 0.4, this.v.z, 1.0 + Math.random() * 0.3, surf.smoke.r, surf.smoke.g, surf.smoke.b, SPIN_RING);
+        }
+        this.burstStars(p.pos, 6, SPARK_TIERS[0]!, 0.8);
         break;
       }
       case 'respawn': {

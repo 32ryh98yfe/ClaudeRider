@@ -94,7 +94,8 @@ Positions are percentages of the viewport (x of width W, y of height H) for 16:9
 | Lap block | top-right | x 79.5–92% | big current-lap digit (7% H) with "FINAL" tag on the last lap, "/{laps} LAP"; below: LAP / TIME / BEST rows, `mm:ss.cc`, rows every 3.2% H, text 2% H | [S] |
 | Split delta (Time Attack) | top-right | under BEST, 2% H | ±`s.cc` vs PB at each key gate, green/red | [P] |
 | Progress rail | right edge | x 86%, y 36–58% | thin vertical rail with rival dots and the player's coral arrow (1-D minimap) | [S] |
-| Speedometer | bottom-right | centre (86% W, 80% H), outer radius 11.6% H | segmented 270° arc open at the bottom, white with a `#CD2F00` high end; number 6% H + "KM/H" (or "MPH"); "DRAFT" label below lights during draft | [S] |
+| Speedometer | bottom-right | centre (86% W, 80% H), outer radius 11.6% H | segmented 270° arc open at the bottom, scale 0–320 km/h (`KMH_PER_MPS = 205/34`), white with a `#CD2F00` high end from 272 km/h (the booster plateau, so only drag and tap boost light it); number 6% H + "KM/H" (or "MPH"); "DRAFT" label below lights during draft. M5 (`15-driving-techniques.md`): gear badge inside the top of the dial (D / N / R; STOP reads N; R is amber with "후진 / Reverse", reverse speed reads unsigned, lit segments turn amber); while dragging the lit arc turns cyan and a "끌기 / DRAG" chip with 3 tap-streak pips sits just above the dial | [S] + M5 |
+| Technique pops | bottom-right | above the speedometer (over the drag chip) | "톡톡이 ×N / Tap boost ×N", "커팅 / Cut", "고속턴 / Brake turn" for 0.9 s (rise and fade); a spin-out spins the dial 360° once, reddens the number and toasts "스핀! / Spin-out!" | M5 |
 | Item / booster slots | bottom-centre | centred at x 50%, y 77–85% H; slot 1 ≈ 8% H square, slot 2 ≈ 5.6% H | icons; empty slots show the key hint (Ctrl/Space); roulette spin in the rolling slot; lock overlay during `slot_lock`; "AUTO" badge when an assist is on | [S] |
 | Drift gauge | bottom-centre | under the slots, 15.8% W wide, 1.6% H tall | gradient `--cr-gauge-a → b`, scrolling noise, glow; pops a booster icon into a slot when full | [S] |
 | Team gauge | bottom-centre | under the drift gauge, 15.8% W, 1.2% H | gradient `--cr-team-gauge-a → b` (team speed) | [S] |
@@ -149,6 +150,9 @@ Positions are percentages of the viewport (x of width W, y of height H) for 16:9
 | Buttons | hover 120 ms scale 1.03; press 80 ms scale 0.97 |
 | Results | rows stagger 60 ms; XP bar fill 900 ms ease-out; level-up flash 400 ms + jingle |
 | Boost | HUD edges get speed streaks; speedometer high segment glows |
+| Drag (M5) | drag chip pops in (`popIn` 160 ms); each new streak pip pops 1.6 → 1.0 in 200 ms `easeOutBack`; at streak 3 the chip glows white |
+| Technique pop (M5) | rises 0.8 % H and fades in over the first 15 %, holds, fades out by 900 ms |
+| Spin-out (M5) | the speedometer dial turns 360° in 520 ms (ease-out) and the number flashes `--rank-down`; reduced motion: no turn |
 | Reduced motion | no scale punches or streaks; fades only (≤ 150 ms) |
 
 ---
@@ -277,7 +281,7 @@ The UI switches its key hints to gamepad glyphs when the last input came from a 
 ---
 
 ## 10. Loading screen tips (namespace `common`, rotating)
-10 tips: drift basics, instant boost timing, start boost timing, wall grinding, draft, respawn (R), shield timing, mash-out, shortcuts, 부스터 자동 사용 option (keys `common.tip.1` … `common.tip.10`).
+15 tips: drift basics, instant boost timing, start boost timing, wall grinding, draft, respawn (R), shield timing, mash-out, shortcuts, 부스터 자동 사용 option, and (M5) dragging (끌기), tap boost (톡톡이), cutting + the reverse gauge, brake turn (고속턴) + the spin-out warning, reverse gear (keys `common.tip.1` … `common.tip.15`; `TIP_COUNT` in the lobby and race screens).
 
 ---
 
@@ -371,6 +375,13 @@ The UI switches its key hints to gamepad glyphs when the last input came from a 
 | `hud.respawn` | 코스 복귀 중… | Returning to course… |
 | `hud.disconnected` | 연결 끊김 | Disconnected |
 | `hud.reconnecting` | 재연결 중… | Reconnecting… |
+| `hud.gear.d` / `.n` / `.r` | D / N / R | D / N / R |
+| `hud.drag` | 끌기 | Drag |
+| `hud.tap` | 톡톡이 | Tap boost |
+| `hud.cut` | 커팅 | Cut |
+| `hud.brakeTurn` | 고속턴 | Brake turn |
+| `hud.spinOut` | 스핀! | Spin-out! |
+| `hud.reverse` | 후진 | Reverse |
 
 ### 12.3 `lobby`
 | Key | ko | en |

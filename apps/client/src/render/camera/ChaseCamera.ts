@@ -1,7 +1,8 @@
 // Chase camera (30-art-bible §12): yaw spring on the heading (ω 6), closed-form critically damped spring on the
 // camera's OFFSET from the kart (ω 9–10; stable for any dt and never lags 2v/ω behind at speed), ground-normal
-// pitch follow (ω 4), speed pull-back, boost FOV kick 70→80 (τ 0.25 s), drift look-into, look-back, air lift,
-// and a shake budget (trauma model, 12 Hz, 0.3 s decay). Reduced motion: no FOV kick, no shake.
+// pitch follow (ω 4), speed pull-back, boost FOV kick 70→80 (τ 0.25 s) plus +3° from 45 → 51 m/s (drag, tap boost),
+// drift look-into, look-back, air lift, and a shake budget (trauma model, 12 Hz, 0.3 s decay). Reduced motion: no
+// FOV kick, no shake.
 import * as THREE from 'three/webgpu';
 
 export interface CamTarget {
@@ -112,9 +113,11 @@ export class ChaseCamera {
     }
     cam.up.copy(this.heightDir);
     cam.lookAt(this.look);
-    // ---- FOV: 70° base, 74° from 20 → 34 m/s, boost kick to 80° (τ 0.25 s); clamp horizontal FOV ≤ 120°
+    // ---- FOV: 70° base, 74° from 20 → 34 m/s, boost kick to 80° (τ 0.25 s), +3° more from 45 → 51 m/s (drag
+    // 48 m/s, tap boost 50.6 m/s: the techniques above the booster plateau read faster); clamp horizontal FOV ≤ 120°
     const sp = THREE.MathUtils.clamp((t.speed - 20) / 14, 0, 1);
-    const target = this.reducedMotion ? this.baseFov + 2 : this.baseFov + sp * 4 + (t.boosting ? 10 - sp * 4 : 0);
+    const hi = THREE.MathUtils.clamp((t.speed - 45) / 6, 0, 1);
+    const target = this.reducedMotion ? this.baseFov + 2 : this.baseFov + sp * 4 + (t.boosting ? 10 - sp * 4 : 0) + hi * 3;
     this.fov += (target - this.fov) * (1 - Math.exp(-dt / 0.25));
     this.applyFov(this.fov);
   }

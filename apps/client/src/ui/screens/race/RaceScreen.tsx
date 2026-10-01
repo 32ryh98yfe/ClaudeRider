@@ -33,7 +33,7 @@ import './race.css';
 interface SessionHooks { setPaused?: (p: boolean) => void }
 type ExtOptions = SessionOptions & { solo?: boolean; teams?: TeamFormat };
 
-const TIP_COUNT = 10;
+const TIP_COUNT = 15;
 
 function Loading({ params, progress, slots, me }: { params: Record<string, string>; progress: { p: number; label: string }; slots: SlotConfig[] | null; me: number }) {
   const track = (params['track'] ?? 'meadow_loop') as TrackId;
