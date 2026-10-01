@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { loadContent } from '@cr/content';
 import { AI_TIERS, loadCtrk, toArrayBuffer, makeInput, Phase, type RaceConfig, type SlotConfig } from '@cr/sim';
 import { buildTrack } from '@cr/trackc/build.ts';
+import { C2S, loopbackPair, type Transport } from '@cr/net';
 import { RaceRoom, type RaceResult } from '../src/RaceRoom.ts';
 
 const file = new URL('../../../tracks/spark_circuit/proving_ring.ctd', import.meta.url).pathname;
@@ -51,5 +52,29 @@ describe('RaceRoom', () => {
     const sum = (team: number): number => r.rows.filter((x) => x.team === team).reduce((a, x) => a + x.points, 0);
     if (sum(0) !== sum(1)) expect(r.winnerTeam).toBe(sum(0) > sum(1) ? 0 : 1);
     else expect([0, 1]).toContain(r.winnerTeam); // tie → team with the best single placement
+  });
+
+  it('a kicked peer cannot re-attach for 10 s (M4 item 12)', () => {
+    let now = 0;
+    const room = new RaceRoom({ config: config('solo'), track, content, clock: { nowMs: () => now }, limits: { perSec: 1, burst: 1 } });
+    const join = (): { client: Transport; closed: () => string | null } => {
+      const [client, server] = loopbackPair(0);
+      let closed: string | null = null;
+      client.onClose = (r) => { closed = r; };
+      room.attach({ id: 'p0', slot: 0, transport: server, resumeToken: 't' });
+      return { client, closed: () => closed };
+    };
+    const a = join();
+    for (let i = 0; i < 50 && !a.closed(); i++) a.client.send(new Uint8Array([C2S.INPUT, 0, 0, 0, 0]));
+    expect(a.closed()).toBe('rate_limited');
+    expect(room.hasPeer('p0')).toBe(false);
+    now += 5000;
+    const b = join();
+    expect(b.closed()).toBe('kicked');
+    expect(room.hasPeer('p0')).toBe(false);
+    now += 5001;
+    const c = join();
+    expect(c.closed()).toBeNull();
+    expect(room.hasPeer('p0')).toBe(true);
   });
 });
