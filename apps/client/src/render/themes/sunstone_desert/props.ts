@@ -452,13 +452,14 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
     },
   },
   street_bunting: {
-    // a sagging line of cloth pennants across the market street between the house fronts (landmark, local X crosses
-    // the road; lowest point ≈ 5 m above the road)
+    // a sagging line of cloth pennants across the market street on two tall posts that stand in the building walls'
+    // thickness (local X crosses the road, ±10.25 m; lowest point ≈ 5 m above the road), so neither end floats where
+    // the frontage opens into a plaza
     maxInstances: 40,
     build: () => {
-      const p = buntingLine(-10.8, 10.8, 6.3, 1.3, 0, [TERRA, CREAM, OASIS, GOLD, '#c8402e'], 18);
-      for (const x of [-10.8, 10.8]) p.push(part(box(0.3, 0.3, 0.3), WOOD_DK, x, 6.3, 0));
-      return { geometry: merge(p), material: lit() };
+      const p = buntingLine(-10.25, 10.25, 6.3, 1.3, 0, [TERRA, CREAM, OASIS, GOLD, '#c8402e'], 18);
+      for (const x of [-10.25, 10.25]) p.push(part(cyl(0.09, 0.12, 7.0, 6), WOOD_DK, x, 2.9, 0), part(sph(0.16, 6, 4), GOLD, x, 6.5, 0));
+      return { geometry: merge(p), material: lit(), castShadow: true };
     },
   },
   crate_stack: {
