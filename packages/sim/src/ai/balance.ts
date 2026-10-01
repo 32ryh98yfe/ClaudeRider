@@ -4,7 +4,7 @@
 import type { AiTier, CharacterId, ContentTables, KartBodyId, ModeId } from '@cr/content';
 import type { InputFrame } from '../core/input.ts';
 import { makeInput } from '../core/input.ts';
-import { Phase, type RaceConfig, type SlotConfig, type WorldState } from '../core/state.ts';
+import { Phase, SIM_VERSION, type RaceConfig, type SlotConfig, type WorldState } from '../core/state.ts';
 import { createWorld } from '../core/world.ts';
 import { makeContext } from '../api.ts';
 import { step } from '../step.ts';
@@ -60,7 +60,7 @@ export function runRace(o: RaceSetup): RaceOutcome {
     vMul: b.role === 'ghost' ? 1 : b.overrides?.vMul ?? AI_TIERS[b.tier].vMul,
   }));
   const cfg: RaceConfig = {
-    simVersion: 1, mode: o.mode ?? 'speed', teams: 'solo', trackId: track.id, trackHash: track.hash, laps: o.laps ?? track.laps, slots, seed: o.seed,
+    simVersion: SIM_VERSION, mode: o.mode ?? 'speed', teams: 'solo', trackId: track.id, trackHash: track.hash, laps: o.laps ?? track.laps, slots, seed: o.seed,
     rules: { retireTicks: 600, friendlyFire: 'area', itemSet: 'standard', rubberBand: false, instantBoostInItem: true }, introTicks: 0, countdownTicks: 180,
   };
   const w = createWorld(cfg, track, content);

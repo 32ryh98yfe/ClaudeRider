@@ -4,7 +4,7 @@ export default defineKart({
   id: 'crown_cruiser',
   archetype: 'speed',
   vGrip: 34.4,
-  vBoost: 45.0,
+  vBoost: 45.72,
   a0: 16.5,
   tBoostTicks: 186,
   g0: 0.64,

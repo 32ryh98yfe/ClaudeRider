@@ -7,6 +7,9 @@ export const Phase = { PRE: 0, COUNTDOWN: 1, RACING: 2, RETIRE_TIMER: 3, DONE: 4
 export type BoostKind = 0 | 1 | 2 | 3 | 4 | 5 | 6; // none, normal(gauge), team, start, item(turbo), instant, pad
 export const Boost = { NONE: 0, NORMAL: 1, TEAM: 2, START: 3, ITEM: 4, INSTANT: 5, PAD: 6 } as const;
 export const Attach = { NONE: 0, RAIL: 1, WARP: 2 } as const; // KartBody.attachKind
+/** KartDrive.gear (10-sim-spec §7.7): stopped (held at 0), drive, neutral (coasting), reverse. */
+export type GearState = 0 | 1 | 2 | 3;
+export const Gear = { STOP: 0, D: 1, N: 2, R: 3 } as const;
 
 export interface TrackLoc {
   path: number;    // path index (0 = main)
@@ -59,6 +62,14 @@ export interface KartDrive {
   prevThrottle: number;
   lowSpeedTicks: number;                   // consecutive ticks below 3 m/s (manual reset eligibility)
   startPressTick: Tick;                    // first throttle press during countdown (-1 = none)
+  // driving techniques (M5, 10-sim-spec §6.7–§7.7); all integer ticks or counters
+  gear: GearState;                         // Gear.STOP / D / N / R
+  postTicks: number;                       // post-boost bleed remaining (set on natural boost expiry)
+  dragTicks: number;                       // ticks in the drag state (0 = not dragging, saturates at 255)
+  tapStreak: number;                       // valid tap-boost streak 0..3
+  tapGap: number;                          // ticks since the last in-direction tap while dragging (255 = none)
+  counterTicks: number;                    // consecutive counter-steer ticks past the cut threshold
+  brakeTicks: number;                      // consecutive brake ticks (brake turn, spin-out, reverse engage)
 }
 
 export interface KartItems {
@@ -198,4 +209,4 @@ export interface RaceConfig {
   countdownTicks: number;                  // 3 beats × 60
 }
 
-export const SIM_VERSION = 1;
+export const SIM_VERSION = 2; // 2: driving techniques (drag, tap, post-boost bleed, cut, brake turn, gears)

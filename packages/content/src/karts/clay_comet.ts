@@ -4,7 +4,7 @@ export default defineKart({
   id: 'clay_comet',
   archetype: 'balance',
   vGrip: 34.0,
-  vBoost: 44.4,
+  vBoost: 45.11,
   a0: 18.15,
   tBoostTicks: 180,
   g0: 0.7,

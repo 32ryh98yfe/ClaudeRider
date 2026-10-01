@@ -26,6 +26,7 @@ function hashKart(k: KartState): void {
   mixInt(d.fatigueTicks); mixInt(d.boosters); mixInt(d.teamBoosters); mixInt(d.boostTicks); mixInt(d.boostKind); mixInt(d.startTicks);
   mixInt(d.wheelspinTicks); mixInt(d.instWindow); mixInt(d.instTicks); mixInt(d.stunTicks); mixInt(d.draftCharge); mixInt(d.draftTicks);
   mixInt(d.prevHeld); mixInt(d.prevThrottle); mixInt(d.lowSpeedTicks); mixInt(d.startPressTick);
+  mixInt(d.gear); mixInt(d.postTicks); mixInt(d.dragTicks); mixInt(d.tapStreak); mixInt(d.tapGap); mixInt(d.counterTicks); mixInt(d.brakeTicks);
   mixInt(it.slot0); mixInt(it.slot1); mixInt(it.rouletteSlot); mixInt(it.rouletteEnd); mixInt(it.rouletteBox); mixInt(it.lastUseTick); mixInt(it.aimLockTicks); mixInt(it.aimTarget);
   mixInt(st.cc); mixInt(st.ccStart); mixInt(st.ccEnd); mixInt(st.immuneUntil); mixInt(st.shieldUntil); mixInt(st.shieldGraceUntil); mixInt(st.haloUntil);
   mixInt(st.mashCredits); mixInt(st.lastTapDir); mixInt(st.lastTapTick); mixInt(st.modMask);

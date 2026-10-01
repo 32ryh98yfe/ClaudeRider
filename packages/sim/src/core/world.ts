@@ -16,6 +16,7 @@ export function newKart(slot: number): KartState {
       drift: 0, driftDir: 1, driftTicks: 0, driftPeak: 0, reDriftLock: 0, gauge: 0, fatigueTicks: 0, boosters: 0, teamBoosters: 0,
       boostTicks: 0, boostKind: 0, startTicks: 0, wheelspinTicks: 0, instWindow: 0, instTicks: 0, stunTicks: 0, draftCharge: 0,
       draftTicks: 0, prevHeld: 0, prevThrottle: 0, lowSpeedTicks: 0, startPressTick: -1,
+      gear: 0, postTicks: 0, dragTicks: 0, tapStreak: 0, tapGap: 255, counterTicks: 0, brakeTicks: 0,
     },
     items: { slot0: 0, slot1: 0, rouletteSlot: -1, rouletteEnd: 0, rouletteBox: -1, lastUseTick: -1000, aimLockTicks: 0, aimTarget: 255 },
     status: { cc: 0, ccStart: 0, ccEnd: 0, immuneUntil: 0, shieldUntil: 0, shieldGraceUntil: 0, haloUntil: 0, mashCredits: 0, lastTapDir: 0, lastTapTick: -1000, modMask: 0 },

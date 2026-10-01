@@ -6,7 +6,7 @@
 import type * as THREE from 'three/webgpu';
 import { loadContent, type CharacterId, type KartBodyId, type ModeId, type TrackId, type AiTier, type TeamFormat, CHARACTER_IDS, KART_BODY_IDS } from '@cr/content';
 import {
-  loadCtrk, toArrayBuffer, AI_TIERS, createAiDriver, fillBotSlots, localizeBotName, makeInput, cloneWorld, copyWorld, createWorld, makeContext, step, raceTicksOf, NULL_SINK, Held, Phase,
+  loadCtrk, toArrayBuffer, AI_TIERS, SIM_VERSION, createAiDriver, fillBotSlots, localizeBotName, makeInput, cloneWorld, copyWorld, createWorld, makeContext, step, raceTicksOf, NULL_SINK, Held, Phase,
   type StepContext, type SlotConfig,
   type RaceConfig, type SimEvent, type InputFrame, type AiDriver, type WorldState, type BakedTrack,
 } from '@cr/sim';
@@ -187,7 +187,7 @@ export class Session {
     const filled = fillBotSlots(this.content, slots, { roomSeed: seed, tier: this.opts.tier });
     this.slotNames = filled.map((s) => localizeBotName(s.name, viewerLocale()));
     return {
-      simVersion: 1, mode: this.opts.mode, teams, trackId: this.opts.trackId, trackHash: track.hash, laps: this.opts.laps ?? track.laps,
+      simVersion: SIM_VERSION, mode: this.opts.mode, teams, trackId: this.opts.trackId, trackHash: track.hash, laps: this.opts.laps ?? track.laps,
       slots: filled, seed: this.opts.solo ? 0 : seed,
       rules: { retireTicks: this.opts.solo ? 60 * 60 * 60 : 600, friendlyFire: 'area', itemSet: 'standard', rubberBand: !this.opts.solo, instantBoostInItem: true },
       introTicks: 150, countdownTicks: 180,

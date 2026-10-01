@@ -4,7 +4,7 @@ export default defineKart({
   id: 'glacier_sled',
   archetype: 'drift',
   vGrip: 33.6,
-  vBoost: 43.8,
+  vBoost: 44.50,
   a0: 19.5,
   tBoostTicks: 174,
   g0: 0.77,

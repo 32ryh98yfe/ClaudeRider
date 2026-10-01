@@ -4,7 +4,7 @@ export default defineKart({
   id: 'neon_blade',
   archetype: 'speed',
   vGrip: 34.4,
-  vBoost: 45.2,
+  vBoost: 45.92,
   a0: 16.35,
   tBoostTicks: 186,
   g0: 0.64,

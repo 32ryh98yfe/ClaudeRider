@@ -1,14 +1,14 @@
 // Reference lap: a lone Legend bot drives the baked track; its best clean lap becomes meta.refLapTicks
 // (used by the lap-count formula, Time Attack medals and AI pace checks).
 import { loadContent } from '@cr/content';
-import { createWorld, makeContext, step, createAiDriver, AI_TIERS, makeInput, NULL_SINK, Phase, type BakedTrack, type RaceConfig } from '@cr/sim';
+import { createWorld, makeContext, step, createAiDriver, AI_TIERS, makeInput, NULL_SINK, Phase, SIM_VERSION, type BakedTrack, type RaceConfig } from '@cr/sim';
 
 export interface GhostResult { lapTicks: number; laps: number[]; note: string }
 
 export function ghostLap(track: BakedTrack, laps = 3): GhostResult {
   const content = loadContent();
   const cfg: RaceConfig = {
-    simVersion: 1, mode: 'speed', teams: 'solo', trackId: track.id, trackHash: track.hash, laps,
+    simVersion: SIM_VERSION, mode: 'speed', teams: 'solo', trackId: track.id, trackHash: track.hash, laps,
     slots: [{ kind: 'bot', team: 0, name: 'ghost', characterId: 'clay', kartBodyId: 'pebble', ai: 'legend', vMul: AI_TIERS.legend.vMul }],
     seed: 7, rules: { retireTicks: 600, friendlyFire: 'area', itemSet: 'standard', rubberBand: false, instantBoostInItem: true }, introTicks: 0, countdownTicks: 180,
   };

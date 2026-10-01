@@ -4,7 +4,7 @@ export default defineKart({
   id: 'jet_kettle',
   archetype: 'drift',
   vGrip: 33.5,
-  vBoost: 43.8,
+  vBoost: 44.50,
   a0: 19.5,
   tBoostTicks: 174,
   g0: 0.775,

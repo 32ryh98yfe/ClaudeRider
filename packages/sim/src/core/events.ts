@@ -9,6 +9,10 @@ export type SimEventBody =
   | { t: 'boostStart' | 'boostEnd'; kart: number; kind: BoostKind }
   | { t: 'teamGaugeFull'; team: number }
   | { t: 'draft'; kart: number; on: boolean }
+  | { t: 'drag'; kart: number; on: boolean }                 // drag state (끌기) entered / left
+  | { t: 'tapBoost'; kart: number; streak: number }          // valid tap (톡톡이), streak 1..3
+  | { t: 'cut' | 'brakeTurn' | 'spinOut'; kart: number }    // cutting, brake drift turn (고속턴), spin-out
+  | { t: 'gear'; kart: number; gear: 0 | 1 | 2 | 3 }         // Gear.STOP / D / N / R
   | { t: 'wall'; kart: number; severity: 0 | 1 | 2; x: number; y: number; z: number; speed: number }
   | { t: 'bump'; a: number; b: number; impulse: number }
   | { t: 'air' | 'land'; kart: number; impact: number }
