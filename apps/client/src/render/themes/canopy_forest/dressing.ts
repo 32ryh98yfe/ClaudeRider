@@ -11,7 +11,7 @@ import { blob, lathe, part, prng } from './shapes.ts';
 
 // one organised forest palette: mid-value leaf greens (no lime, no near-black), bark browns, mushroom red, cream
 const G = { deep: '#3e7432', mid: '#4f8a3a', leaf: '#5f9c43', light: '#76b04f', teal: '#356f4a', tealLight: '#468458' } as const;
-const BARK = '#6b4a33', BARK_DK = '#4f3624', WOOD = '#b98a57', WOOD_PALE = '#dcb985', MOSS = '#8db84a';
+const BARK = '#6b4a33', BARK_DK = '#4f3624', WOOD = '#b98a57', WOOD_PALE = '#dcb985', MOSS = '#8aae4a';
 const CAP = '#e0533a', CREAM = '#f6efdc', GOLD = '#f2c14e', STONE = '#9a978c', STONE_DK = '#827f75', INK = '#2a2826';
 const FLOOR = [G.deep, G.mid, G.leaf, G.light] as const;
 
@@ -45,7 +45,7 @@ function toad(p: THREE.BufferGeometry[], x: number, z: number, h: number, r: num
 /** Round broadleaf tree (forest shade layer): straight trunk, moss collar, five-blob canopy. */
 function forestTree(seed: number): THREE.BufferGeometry {
   const p: THREE.BufferGeometry[] = [], r = prng(seed);
-  p.push(part(lathe([[0.62, -1.5], [0.6, 0], [0.42, 1.2], [0.34, 4.5], [0.26, 6.6]], 8), BARK, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0.08, seed));
+  p.push(part(lathe([[0.78, -1.5], [0.75, 0], [0.54, 1.2], [0.45, 4.5], [0.36, 6.6]], 8), BARK, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0.08, seed));
   p.push(part(blob(0.62, 1, 0.12, seed + 1, 1, 0.45, 1), MOSS, 0, 0.35, 0));
   p.push(part(cyl(0.12, 0.18, 2.2, 6), BARK, 0.7, 5.2, 0.2, 0, 0, -0.6), part(cyl(0.11, 0.16, 2.0, 6), BARK, -0.6, 5.4, -0.3, 0.3, 0, 0.6));
   const blobs: [number, number, number, number, string][] = [
@@ -165,10 +165,10 @@ export const CANOPY_DRESSING: Record<string, PropFactory> = {
       const back = -1.7 - 4 * 1.4;
       for (let k = 0; k < 13; k++) p.push(part(cyl(0.3, 0.32, 5.6, 7), k % 2 ? BARK : BARK_DK, back - 0.2, 1.9, -L / 2 + k * 2));
       p.push(part(box(0.25, 0.9, L), WOOD_PALE, -0.9, 0.45, 0), part(box(0.06, 0.3, L - 0.2), CAP, -0.76, 0.7, 0));
-      for (const z of [-L / 2 + 0.4, -L / 6, L / 6, L / 2 - 0.4]) p.push(part(cyl(0.2, 0.24, 5.6, 7), BARK, -0.95, 2.8, z));
+      for (const z of [-L / 2 + 0.4, -L / 6, L / 6, L / 2 - 0.4]) p.push(part(cyl(0.2, 0.24, 5.3, 7), BARK, -0.95, 2.65, z));
       // leaf roof: a green canopy slab with a mushroom-red fascia, plus leafy lumps along its ridge
       p.push(part(box(8.2, 0.35, L + 1.2), G.mid, back / 2 - 0.3, 5.75, 0, 0, 0, -0.12));
-      p.push(part(box(0.3, 0.55, L + 1.2), CAP, 0.55, 6.05, 0));
+      p.push(part(box(0.3, 0.55, L + 1.2), CAP, 0.12, 5.27, 0, 0, 0, -0.12));
       for (let k = 0; k < 6; k++) p.push(part(blob(1.5, 0, 0.2, 391 + k, 1.4, 0.5, 1.6), k % 2 ? G.leaf : G.deep, back / 2 - 1.2, 6.4, -L / 2 + 2 + k * 4));
       return { geometry: merge(p), material: matte(), castShadow: true };
     },
@@ -201,10 +201,11 @@ export const CANOPY_DRESSING: Record<string, PropFactory> = {
   ad_board_b: { build: () => ({ geometry: signBoard('b'), material: matte(), castShadow: true }) },
   ad_board_c: { build: () => ({ geometry: signBoard('c'), material: matte(), castShadow: true }) },
   tyre_wall: {
-    // 1.3 m log barrier on the outside of a corner: three logs with cream end rings, banded mushroom red / cream
+    // 1.3 m log barrier on the outside of a corner: five logs with cream end rings, banded mushroom red / cream; the
+    // front column stands 1.8 m tall so its bands read above the 1.2 m stone wall from the road
     build: () => {
       const p: THREE.BufferGeometry[] = [];
-      for (const [x, y] of [[0, 0.3], [-0.62, 0.3], [-0.31, 0.82]] as const) {
+      for (const [x, y] of [[0, 0.3], [0, 0.9], [0, 1.5], [-0.6, 0.3], [-0.6, 0.9]] as const) {
         p.push(part(cyl(0.3, 0.3, 1.3, 9), BARK, x, y, 0, Math.PI / 2, 0, 0, 1, 1, 1, 0.06, 7));
         for (const z of [-0.66, 0.66]) p.push(part(cyl(0.26, 0.26, 0.03, 9), WOOD_PALE, x, y, z, Math.PI / 2, 0, 0));
         p.push(part(cyl(0.31, 0.31, 0.32, 9), CAP, x, y, -0.3, Math.PI / 2, 0, 0), part(cyl(0.31, 0.31, 0.32, 9), CREAM, x, y, 0.3, Math.PI / 2, 0, 0));
@@ -214,9 +215,10 @@ export const CANOPY_DRESSING: Record<string, PropFactory> = {
   },
 };
 
-/** Forest signboard (local +X faces the road): a plank board on two log posts, set above the 1.2 m rock wall. */
+/** Forest signboard (local +X faces the road): a plank board on two log posts, high enough to read over the 1.2 m
+ *  stone wall and over the 1.8 m log barrier in front of the corner boards. */
 function signBoard(v: 'a' | 'b' | 'c'): THREE.BufferGeometry {
-  const W = 3.0, H = 0.95, y = 1.42 + H / 2;
+  const W = 3.0, H = 0.95, y = 1.85 + H / 2;
   const p: THREE.BufferGeometry[] = [
     part(cyl(0.08, 0.1, y + 0.4, 6), BARK, -0.06, (y + 0.4) / 2 - 0.2, -W / 2 + 0.25), part(cyl(0.08, 0.1, y + 0.4, 6), BARK, -0.06, (y + 0.4) / 2 - 0.2, W / 2 - 0.25),
     part(rbox(0.12, H + 0.16, W + 0.16, 0.05, 1), BARK_DK, -0.07, y, 0),

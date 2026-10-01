@@ -97,4 +97,4 @@ PROPS kind=tree_clump side=both every=26 offset=60 jitter=50 scale=0.9-1.4 seed=
 PROPS kind=tree_clump side=both every=34 offset=125 jitter=50 scale=1.0-1.6 seed=95
 PROP kind=hot_air_balloon at=(-60.0,62.0,-120.0) yaw=20 scale=1.1
 PROP kind=hot_air_balloon at=(-240.0,58.0,-40.0) yaw=0 scale=0.9
-THEME canopy_forest sky=day time=09:30 scatter=forest_wall,forest_wall,karst_pillar,giant_trunk,bamboo,rock_moss,tree_round_big,tree_round_big,tree_clump,rock_cluster,bush_round density=26 hills=6 fogNear=120 fogFar=850
+THEME canopy_forest sky=day time=09:30 scatter=forest_wall,forest_wall,karst_pillar,bamboo,rock_moss,tree_round_big,tree_round_big,tree_clump,rock_cluster,bush_round density=26 hills=6 fogNear=120 fogFar=850

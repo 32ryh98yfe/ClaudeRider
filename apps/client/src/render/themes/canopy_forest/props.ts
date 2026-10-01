@@ -10,7 +10,7 @@ import { around, blob, dome, facet, hdr, inward, lathe, part, prng, tube } from 
 
 const C = {
   bark: '#6b4226', barkDark: '#4f3019', barkLight: '#8a5a36', wood: '#b98a57', woodPale: '#d9b27c', rings: '#e2c08a',
-  leaf: '#4e9f3d', leafDeep: '#3b7f31', leafLight: '#6fbf4a', moss: '#9bc53d', mossDeep: '#6f9a2e',
+  leaf: '#4e9f3d', leafDeep: '#3b7f31', leafLight: '#6fbf4a', moss: '#8fb04a', mossDeep: '#688f35',
   cap: '#e4572e', capDeep: '#c2401f', ivory: '#f9f8f4', cream: '#f4ead2', stone: '#8d8c7c', stoneDark: '#6e6d60',
   water: '#3f9a92', waterDeep: '#2d7a78', foam: '#e8f7f2', lily: '#5aa845', pink: '#ff9ec7', gold: '#ffd23f',
   eye: '#141413', panda: '#f7f5ee', rope: '#c9a46a', coral: '#d97757',

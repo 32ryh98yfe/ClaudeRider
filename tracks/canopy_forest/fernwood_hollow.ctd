@@ -100,4 +100,4 @@ PROPS kind=grass_tuft along=mossy_bypass side=both every=1.2 offset=0.2 jitter=5
 PROPS kind=mushroom_patch along=mossy_bypass side=both every=12 offset=0.5 jitter=4 seed=97
 PROP kind=hot_air_balloon at=(60.0,58.0,-160.0) yaw=20 scale=1.1
 PROP kind=hot_air_balloon at=(-170.0,52.0,-260.0) yaw=0 scale=0.9
-THEME canopy_forest sky=day time=08:00 scatter=forest_wall,forest_wall,giant_trunk,tree_round_big,tree_round_big,tree_clump,bush_round,rock_cluster,rock_moss,stump,mossy_log,mushroom_red density=30 hills=4 fogNear=140 fogFar=950
+THEME canopy_forest sky=day time=08:00 scatter=forest_wall,forest_wall,tree_round_big,tree_round_big,tree_clump,bush_round,rock_cluster,rock_moss,stump,mossy_log,mushroom_red density=30 hills=4 fogNear=140 fogFar=950
