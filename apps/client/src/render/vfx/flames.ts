@@ -1,6 +1,7 @@
 // Boost flames (30-art-bible §10.1): one InstancedMesh for every exhaust of every kart (1 draw call).
-// Kinds: normal (gauge), team, start, item (Turbo Token), pad, instant; plus a pilot flicker at speed and an
-// afterburn tail when a boost ends. Two nested cones (core + outer) in one geometry; colours per instance.
+// Kinds: normal (gauge), team, start, item (Turbo Token), pad, instant; plus a pilot flicker at speed, an
+// afterburn tail when a boost ends and a tap-boost (톡톡이) afterburn pulse scaled by the streak. Two nested cones
+// (core + outer) in one geometry; colours per instance.
 import * as THREE from 'three/webgpu';
 import { attribute, uv, time, float, vec3, mix, smoothstep, sin, clamp } from 'three/tsl';
 import { Boost } from '@cr/sim';
@@ -61,7 +62,17 @@ function flameMaterial(): THREE.MeshBasicNodeMaterial {
   });
 }
 
-export interface FlameSlot { exhausts: THREE.Object3D[]; k: number; kind: number; after: number; custom: [THREE.Color, THREE.Color] | null }
+/** Tap-boost afterburn pulse length (s). */
+export const PULSE_S = 0.28;
+
+export interface FlameSlot {
+  exhausts: THREE.Object3D[]; k: number; kind: number; after: number; custom: [THREE.Color, THREE.Color] | null;
+  /** Tap-boost pulse 1 → 0 over PULSE_S, and its streak 1..3 (longer, hotter flames per step). */
+  pulse: number; pulseStreak: number;
+}
+
+/** Starts a tap-boost afterburn pulse on this kart's flames. */
+export function pulseFlame(slot: FlameSlot, streak: number): void { slot.pulse = 1; slot.pulseStreak = Math.max(1, Math.min(3, streak)); }
 
 export class FlameSystem {
   readonly mesh: THREE.InstancedMesh;
@@ -96,6 +107,9 @@ export class FlameSystem {
     const target = active ? len : slot.after > 0 ? FLAME_COLORS[slot.kind]![2] * 0.35 * (slot.after / 0.35) : speed > 6 ? 0.16 : 0;
     const rate = active ? 16 : 7;
     slot.k += (target - slot.k) * Math.min(1, dt * rate);
+    // tap-boost pulse: an instant length/heat kick (not eased) that decays with an ease-out
+    if (slot.pulse > 0) slot.pulse = Math.max(0, slot.pulse - dt / PULSE_S);
+    const pk = slot.pulse * slot.pulse * (0.3 + 0.25 * slot.pulseStreak);
     if (slot.k < 0.02) return;
     const cols = active || slot.after > 0 ? (slot.kind === Boost.NORMAL && slot.custom ? slot.custom : this.colors.get(slot.kind)!) : this.pilot;
     const width = (def ? def[3] : 0.8) * (0.9 + Math.min(0.3, slot.k * 0.15));
@@ -105,9 +119,9 @@ export class FlameSystem {
       const ex = slot.exhausts[e]!;
       ex.updateWorldMatrix(true, false);
       const wob = 1 + Math.sin(t * 57 + e * 2.1 + i) * 0.06 + Math.sin(t * 31 + i * 1.7) * 0.05;
-      this.s4.makeScale(width * wob, width * wob, slot.k * wob);
+      this.s4.makeScale(width * wob * (1 + pk * 0.5), width * wob * (1 + pk * 0.5), slot.k * wob * (1 + pk));
       this.mesh.setMatrixAt(i, this.m4.multiplyMatrices(ex.matrixWorld, this.s4));
-      const heat = active ? 1 : slot.after > 0 ? 0.6 : 0.45;
+      const heat = (active ? 1 : slot.after > 0 ? 0.6 : 0.45) + pk * 0.6;
       cols[0].toArray(this.core.array, i * 3); cols[1].toArray(this.edge.array, i * 3);
       (this.heat.array as Float32Array)[i] = heat;
       this.used++;

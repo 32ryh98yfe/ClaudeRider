@@ -32,13 +32,19 @@ import { setListener, listenerDist } from '../audio/listener.ts';
 import { Audio } from '../audio/engine.ts';
 import { raceAudioPrepare } from '../audio/race.ts';
 import { save, type SettingsV1 } from '../meta/save.ts';
+import { devForce } from '../dev/force.ts';
 
 export interface KartSlotVisual { slot: number; characterId: string; kartBodyId: string; livery: { primary: string; secondary: string; pattern: number; number: number } }
 
 interface KartVis {
   slot: number; root: THREE.Group; kart: KartModel; mascot: MascotInstance;
   pose: KartPose; lod: number; hitT: number;
+  /** Spin-out mesh spin: seconds left of SPIN_VIS_S, and its direction (±1). */
+  spinT: number; spinDir: number;
 }
+
+/** A spin-out turns the kart mesh one full turn in this long (render only; the sim keeps its heading). */
+const SPIN_VIS_S = 0.5;
 
 /** Low tier: contiguous chunks merged per slot (≈ 300 m groups). trackc's V20 counts draws with the same value
  *  (packages/trackc/src/pvs.ts DEFAULT_PVS.merge); change both together. */
@@ -139,7 +145,7 @@ export class RaceRenderer {
       kart.seat.add(mascot.root);
       this.scene.add(root);
       const pose: KartPose = { pos: new THREE.Vector3(), fwd: new THREE.Vector3(0, 0, 1), up: new THREE.Vector3(0, 1, 0), left: new THREE.Vector3(1, 0, 0), speed: 0, lat: 0, visible: false };
-      const kv: KartVis = { slot: s.slot, root, kart, mascot, pose, lod: 0, hitT: 0 };
+      const kv: KartVis = { slot: s.slot, root, kart, mascot, pose, lod: 0, hitT: 0, spinT: 0, spinDir: 1 };
       this.karts.push(kv);
       this.bySlot[s.slot] = kv;
       this.poses[s.slot] = pose;
@@ -147,6 +153,8 @@ export class RaceRenderer {
     }
     for (let i = 0; i < 8; i++) if (!this.poses[i]) this.poses[i] = { pos: new THREE.Vector3(), fwd: new THREE.Vector3(0, 0, 1), up: new THREE.Vector3(0, 1, 0), left: new THREE.Vector3(1, 0, 0), speed: 0, lat: 0, visible: false };
     for (const o of this.driving.objects()) this.scene.add(o);
+    // dev only (?force=drag,reverse): technique presentation on the local kart for screenshot review
+    if (devForce.drag || devForce.reverse) this.driving.force = { slot: this.localSlot, drag: devForce.drag, reverse: devForce.reverse };
     const roots: THREE.Object3D[] = [];
     for (let i = 0; i < 8; i++) roots.push(this.bySlot[i]?.root ?? new THREE.Object3D());
     this.items = new ItemFx(this.driving.sparks, this.driving.smoke, roots, this.content, this.localSlot, {
@@ -252,6 +260,13 @@ export class RaceRenderer {
       p.left.copy(left);
       this.tmpM.makeBasis(left, p.up, fwd).setPosition(p.pos);
       this.ccPose(b, curr.tick + alpha, this.tmpM, p.up);
+      if (kv.spinT > 0) {
+        // spin-out: one full turn about the kart's up axis, fast then settling (ease-out cubic)
+        kv.spinT = Math.max(0, kv.spinT - fxDt);
+        const x = 1 - kv.spinT / SPIN_VIS_S, e = 1 - (1 - x) * (1 - x) * (1 - x);
+        this.ccM.makeRotationY(kv.spinDir * Math.PI * 2 * e);
+        this.tmpM.multiply(this.ccM);
+      }
       kv.root.matrix.copy(this.tmpM);
       kv.root.matrixWorldNeedsUpdate = true;
       const vx = B.vx, vy = B.vy, vz = B.vz;
@@ -354,6 +369,17 @@ export class RaceRenderer {
         break;
       }
       case 'retire': this.bySlot[e.kart]?.mascot.playEmote('retire'); break;
+      case 'spinOut': {
+        const kv = this.bySlot[e.kart];
+        if (kv) {
+          // spin toward the slide (the lateral velocity at the spin), and the mascot's dizzy hit pose
+          kv.spinT = SPIN_VIS_S; kv.spinDir = kv.pose.lat >= 0 ? 1 : -1;
+          kv.mascot.playEmote('gotHit');
+        }
+        if (e.kart === me) ch.shake(0.1);
+        break;
+      }
+      case 'tapBoost': if (e.kart === me) this.flashK = Math.max(this.flashK, 0.12 + 0.08 * Math.min(3, e.streak)); break;
       default: break;
     }
   }
