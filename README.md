@@ -66,6 +66,19 @@ Every key can be rebound in Settings → Controls. / 모든 키는 설정 → �
 
 코너에서 드리프트하면 게이지가 차고, 가득 찰 때마다 부스터가 1개씩 저장됩니다(최대 2개). 드리프트가 끝나는 순간 가속을 다시 누르면 **순간 부스터**, GO와 동시에 가속하면 **퍼펙트 스타트**입니다.
 
+## Known limitations · 알려진 제한
+- **Art:** all art is procedural (3D renders, gradients and icons drawn in code) until you drop Codex images into `apps/client/public/art/overrides/`.
+- **Cross-engine check:** the Node-vs-browser determinism selftest runs only in Chromium. The race simulation itself uses exact arithmetic, but the test drives it with AI bots whose trigonometry may differ slightly between JavaScript engines. Online play isn't affected, because bots run only on the server, or in your own browser for offline races.
+- **Names:** player names need at least one letter or digit. Emoji-only names are refused with the usual "invalid name" message.
+- **Proxies:** `--trust-proxy` supports exactly one reverse proxy in front of the server.
+- **Performance:** in headless or software-rendered browsers (no GPU), a race takes about 15–20 s to load. With a real GPU it is much faster.
+
+- **아트:** Codex 이미지를 `apps/client/public/art/overrides/`에 넣기 전까지는 모든 아트가 코드로 만든 절차적 아트(3D 렌더, 그라디언트, 아이콘)입니다.
+- **엔진 간 검증:** Node와 브라우저의 결정론(같은 입력이면 같은 결과)을 비교하는 자체 테스트는 Chromium에서만 돌립니다. 레이스 시뮬레이션은 정확한 사칙연산만 쓰지만, 테스트를 구동하는 AI 봇의 삼각함수는 자바스크립트 엔진마다 아주 조금 다를 수 있기 때문입니다. 봇은 서버(오프라인 레이스에서는 내 브라우저)에서만 돌기 때문에 온라인 플레이에는 영향이 없습니다.
+- **이름:** 플레이어 이름에는 글자나 숫자가 하나 이상 있어야 합니다. 이모지만으로 된 이름은 기존 '잘못된 이름' 안내와 함께 거부됩니다.
+- **프록시:** `--trust-proxy`는 서버 앞에 리버스 프록시가 하나만 있는 구성을 지원합니다.
+- **성능:** GPU가 없는 헤드리스·소프트웨어 렌더링 브라우저에서는 레이스 로딩에 15–20초쯤 걸립니다. 실제 GPU에서는 훨씬 빠릅니다.
+
 ## Repository · 구조
 | Path | What |
 |---|---|
