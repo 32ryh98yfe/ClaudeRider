@@ -58,7 +58,7 @@ const A = {
  */
 export const AI_TUNING = {
   lineClampFrac: 9, holdTurn: 0.5, holdMinSIn: -0.3, holdMode: 0, holdKeyEh: -0.05, holdSbMax: 0.45, minZones: 6, eExit: 0.05, hazards: 1,
-  chainMinTurn: 0, chainMaxTurn: 0, chainEExit: -0.02, chainShift: 0.3, longEExit: 0.03, longShift: 0.3, longRekickTurn: 2.0,
+  chainMinTurn: 0, chainMaxTurn: 0, chainEExit: -0.02, chainShift: 0.35, longEExit: 0.03, longShift: 0.3, longRekickTurn: 2.0,
   // M5 drift exit (15-driving-techniques §4.5): a full counter-steer cuts (β → 0 at once, the drift ends). The exit
   // cuts only when the corner is done (≤ cutTurn rad left), the nose is at most cutPsi rad past the local tangent and
   // cutRoom m are free on the inside; otherwise the counter-steer is a trim below the threshold (the old gradual exit).
@@ -83,7 +83,7 @@ export const AI_TUNING = {
   // hazards that stay active longer than this (ticks) are not waited for (lane choice only)
   hazardMaxWait: 300,
   // side-contact reflex: karts within sideDs m along and sideGap m across that close at ≥ sideClose m/s
-  sideRepel: 0.6, sideDs: 3.5, sideGap: 3.2, sideClose: 0.5, sideMax: 0.6,
+  sideRepel: 0.6, sideDs: 4.5, sideGap: 3.2, sideClose: 0.5, sideMax: 0.6,
   // … and in a drift (× sideDrift on sIn; an inside rival eases sIn no lower than sideDriftMin)
   sideDrift: 1, sideDriftMin: -0.3,
   // build-up to the entry window (first dragBuildMaxTicks of the drift): dragBuildSIn in-steer while the nose lags by
