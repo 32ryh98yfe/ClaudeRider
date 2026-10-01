@@ -10,6 +10,7 @@ import { startGameServer } from '../src/game/run.ts';
 import { ByteWriter, PingMsg, encodeC2SLobby, type RoomSettings, type Transport } from '@cr/net';
 import { wsTransport } from '../src/net/wsTransport.ts';
 import { addressKey } from '../src/net/address.ts';
+import { cleanChat, cleanName } from '../src/lobby/validate.ts';
 import { LOADOUT, World, type TestClient } from './fixture.ts';
 
 const SETTINGS: RoomSettings = { mode: 'speed', teams: 'solo', track: 'proving_ring', laps: 1, fillBots: true, botTier: 'rookie', isPrivate: true, maxHumans: 8 };
@@ -272,5 +273,16 @@ describe('input filters', () => {
     w.advance(2000);
     expect(h.errors()).toEqual([]);
     expect(w.server.stats().races).toBe(1);
+  });
+
+  it('names and chat lose every bidi isolate and invisible character; blank-looking names are refused (item 10)', () => {
+    expect(cleanName('a⁦b⁧c⁨d⁩e')).toBe('abcde');
+    expect(cleanName('x؜y­z͏w')).toBe('xyzw');
+    for (const blank of ['ㅤ', 'ﾠﾠ', '­', '͏', 'ᅟᅠ', '​ㅤ', '⠀', '...', '  ']) expect(cleanName(blank)).toBeNull();
+    expect(cleanName('클로드 7')).toBe('클로드 7');
+    expect(cleanName('Ana-1')).toBe('Ana-1');
+    expect(cleanChat('hi⁦‮ there ')).toBe('hi there');
+    expect(cleanChat('ㅤ­')).toBeNull();
+    expect(cleanChat('👍')).toBe('👍');
   });
 });
