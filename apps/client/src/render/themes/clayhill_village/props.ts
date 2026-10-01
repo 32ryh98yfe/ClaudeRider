@@ -5,10 +5,10 @@ import * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
 import { merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../../util/geo.ts';
-import { arcTube, buntingLine, dome, lathe, part, pennant, prism, seeded } from './toyshapes.ts';
+import { buntingLine, dome, lathe, part, pennant, prism, seeded } from './toyshapes.ts';
 
 const TERRACOTTA = '#d97757', CREAM = '#f4efe6', SAGE = '#8fb573', SKY = '#9fd3f5', SLATE = '#5a6b7b';
-const STONE = '#e3d3b6', STONE_DK = '#c9b08c', WOOD = '#8a5a3c', WOOD_DK = '#6b4a33', GOLD = '#e0b04b', IVORY = '#faf9f5', INK = '#2a2826';
+const STONE = '#e3d3b6', STONE_DK = '#c9b08c', NICHE = '#8b7b68', PAVING = '#cdbfa7', WOOD = '#8a5a3c', WOOD_DK = '#6b4a33', GOLD = '#e0b04b', IVORY = '#faf9f5', INK = '#2a2826';
 const FLAGS = [TERRACOTTA, CREAM, SKY, '#f2c14e', SAGE];
 
 const lit = (): THREE.Material => MaterialLibrary.vertexLit(0.8, 0);
@@ -68,7 +68,10 @@ export const CLAYHILL_PROPS: Record<string, PropFactory> = {
         const y = 11 + tier * 6;
         for (let k = 0; k < 14; k++) {
           const a = ((k + (tier % 2) * 0.5) / 14) * Math.PI * 2;
-          p.push(part(rbox(0.3, 3.6, 2.2, 0.12, 1), tier === 2 ? '#7cb8d8' : INK, Math.cos(a) * (R0 + 0.05), y, -Math.sin(a) * (R0 + 0.05), 0, a, 0));
+          // round-headed niches in shadowed stone (black insets read as office windows on the 38 m drum)
+          const c = tier === 2 ? '#7cb8d8' : NICHE, x = Math.cos(a) * (R0 + 0.05), z = -Math.sin(a) * (R0 + 0.05);
+          p.push(part(rbox(0.3, 3.0, 2.2, 0.12, 1), c, x, y - 0.3, z, 0, a, 0));
+          p.push(part(cyl(1.1, 1.1, 0.3, 12), c, x, y + 1.2, z, 0, a, Math.PI / 2));
         }
       }
       for (let k = 0; k < 8; k++) {
@@ -136,12 +139,17 @@ export const CLAYHILL_PROPS: Record<string, PropFactory> = {
     // spans the road: place centred (PROPS side=L offset=-(w/2+shoulder)); local X crosses the road
     maxInstances: 6,
     build: () => {
+      // a low segmental masonry arch (radius 17 springing from the piers at y 8, crown ≈ 17 m) built from
+      // alternating voussoirs, so it reads as stonework instead of a bent pipe
       const p: THREE.BufferGeometry[] = [
-        part(rbox(2.4, 9, 2.4, 0.2, 2), STONE, -14, 3.5, 0), part(rbox(2.4, 9, 2.4, 0.2, 2), STONE, 14, 3.5, 0),
-        part(arcTube(14, 1.3, Math.PI, 6, 24), STONE, 0, 8, 0, 0, 0, 0, 1, 0.45, 1),
-        part(box(1.4, 1.8, 2.6), STONE_DK, 0, 14.4, 0),                              // keystone
+        part(rbox(3.0, 9, 3.0, 0.2, 2), STONE, -14, 3.5, 0), part(rbox(3.0, 9, 3.0, 0.2, 2), STONE, 14, 3.5, 0),
       ];
-      for (const x of [-14, 14]) p.push(part(box(3, 0.6, 3), STONE_DK, x, 8.2, 0), part(cone(0.9, 1.6, 4), TERRACOTTA, x, 9.3, 0, 0, Math.PI / 4, 0));
+      const RA = 17, CY = 8 - Math.sqrt(RA * RA - 14 * 14), A0 = Math.atan2(8 - CY, 14), N = 13;
+      for (let i = 0; i < N; i++) {
+        const a = A0 + ((i + 0.5) / N) * (Math.PI - 2 * A0), key = i === (N - 1) / 2, r = RA + (key ? 1.15 : 1);
+        p.push(part(key ? box(2.5, 2.3, 3.0) : box(2.0, 2.45, 2.6), key ? STONE_DK : i % 2 ? STONE : '#d6c3a1', Math.cos(a) * r, CY + Math.sin(a) * r, 0, 0, 0, a));
+      }
+      for (const x of [-14, 14]) p.push(part(box(3.5, 0.6, 3.5), STONE_DK, x, 8.0, 0));
       p.push(...buntingLine(-12.5, 12.5, 9.6, 1.6, 0, FLAGS, 16));
       return { geometry: merge(p), material: lit(), castShadow: true };
     },
@@ -157,6 +165,7 @@ export const CLAYHILL_PROPS: Record<string, PropFactory> = {
         part(rbox(0.9, 2.2, 0.9, 0.1, 2), '#a8663f', -1.2, 5.4, 1.8),                 // chimney
         part(box(0.14, 2, 1.1), WOOD_DK, 2.52, 1, 0),                                 // door on the road side
       ];
+      p.push(part(box(7.4, 0.9, 8.4), '#c8b89c', -0.2, -0.33, 0));                 // gravel yard
       windowRow(p, 2.5, 2.2, [-1.9, 1.9], 0.9, 0.9);
       return { geometry: merge(p), material: lit(), castShadow: true };
     },
@@ -170,10 +179,13 @@ export const CLAYHILL_PROPS: Record<string, PropFactory> = {
         part(box(6.3, 0.35, 7.3), CREAM, 0, 3.6, 0),                                  // string course
         part(prism(7.6, 2.4, 6.8), TERRACOTTA, 0, 7.6, 0, 0, Math.PI / 2, 0),
         part(box(1.2, 0.2, 3.2), WOOD, 3.55, 3.9, 0),                                 // balcony
-        part(box(0.1, 0.9, 3.2), '#3d3a36', 4.1, 4.4, 0),
+        part(box(0.12, 0.12, 3.2), WOOD, 4.1, 4.85, 0),                               // balcony rail + balusters
         part(rbox(1.3, 0.2, 7.4, 0.08, 2), SAGE, 3.3, 2.6, 0),                        // shop awning
         part(box(0.14, 2.2, 1.3), WOOD_DK, 3.02, 1.1, -2),
       ];
+      for (let k = 0; k < 7; k++) p.push(part(box(0.08, 0.8, 0.08), WOOD_DK, 4.1, 4.4, -1.5 + k * 0.5));
+      // a paved plinth round the house that runs on into the next one, so terraces stand on a street, not on lawn
+      p.push(part(box(9.2, 1.0, 12.6), PAVING, -0.9, -0.35, 0));
       windowRow(p, 3.0, 5.2, [-2.2, 2.2], 0.9, 1.3);
       windowRow(p, 3.0, 1.4, [0.4, 2.3], 1.1, 1.1);
       return { geometry: merge(p), material: lit(), castShadow: true };
