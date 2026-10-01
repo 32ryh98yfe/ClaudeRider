@@ -33,8 +33,15 @@ const RAIL_INTENT: Readonly<Record<string, number>> = { rookie: 0.3, racer: 0.6,
 const FORK_GRACE = 40;
 /** Branch ends converge into the host over this many metres; queries there resolve onto the host. */
 const MERGE_BLEND = 20;
-/** Longest brake run while drifting: the sim brake-turns for 8 ticks and spins out at 11 (SHARED.spinTicks). */
-const BRAKE_RUN_MAX = 8;
+/**
+ * Brake pulses while drifting (15-driving-techniques §4.3): every brake press in a drift is a brake turn (heading ×2
+ * for ticks 1–8) and a press held 11 ticks spins out, so in a drift the brake comes in pulses of at most
+ * BRAKE_PULSE_MAX frames with at least BRAKE_COOL released frames between them (never more than 6 consecutive
+ * brake ticks, far from spinTicks).
+ */
+const BRAKE_PULSE_MAX = 6, BRAKE_COOL = 4;
+/** Counter-steer of a trim: just under the cut threshold (cutSteer 0.7 on the wire grid: 86/127 = 0.677). */
+const TRIM_SIN = 0.677;
 /** Validated gap-2 controller constants (docs/research/sim-prototype.md aiDriver). */
 const A = {
   Lk0: 6, Lk1: 0.35, trigDeg: 25, trigLook: 40, gripFrac: 0.9, tLead: 0.5, outBias: 0.6, tHead: 0.45, kHead: 2.5, kLatPos: 0.6,
@@ -52,6 +59,12 @@ const A = {
 export const AI_TUNING = {
   lineClampFrac: 9, holdTurn: 0.5, holdMinSIn: -0.3, holdMode: 0, holdKeyEh: -0.05, holdSbMax: 0.45, minZones: 6, eExit: 0.05, hazards: 1,
   chainMinTurn: 0, chainMaxTurn: 0, chainEExit: -0.02, chainShift: 0.4, longEExit: 0.03, longShift: 0.35, longRekickTurn: 2.0,
+  // M5 drift exit (15-driving-techniques §4.5): a full counter-steer cuts (β → 0 at once, the drift ends). The exit
+  // cuts only when the corner is done (≤ cutTurn rad left), the nose is at most cutPsi rad past the local tangent and
+  // cutRoom m are free on the inside; otherwise the counter-steer is a trim below the threshold (the old gradual exit).
+  cut: 1, cutTurn: 0.5, cutPsi: 0.3, cutRoom: 1.5, forkTrimM: 120,
+  // brake in a drift is a brake turn (heading ×2): only while the nose lags the track by more than brakeEh rad
+  brakeEh: 0.2,
 };
 
 /** Drift execution plan for one corner on one lap (14-ai §3.9). */
@@ -116,6 +129,8 @@ class BotDriver implements AiDriverEx {
   private readonly forkLap: Int32Array;
   private routePath = -1; private routeS0 = 0.5; private onRiskBranch = false;
   private forkNear = 0; private forkTakeNear = false; private forkNoDrift = false; private mergeSide = 0; private forkNearRailVMin = 0;
+  /** A branch split within AI_TUNING.forkTrimM ahead: drift exits trim instead of cutting (keeps the split approach). */
+  private forkSoon = false;
   private readonly warpTake: Uint8Array; private readonly warpLap: Int32Array;
   private warpNear = false; private warpU0 = 0.5; private warpU1 = 0.5; private warpDist = 0.5;
   private P: KartParams | null = null;
@@ -132,7 +147,7 @@ class BotDriver implements AiDriverEx {
   // ---- drift state
   private tapLeft = 0; private tapDir = 1; private rek = 0;
   private predDrifting = false;
-  private brakeRun = 0; // consecutive committed frames braking while drifting (spin-out guard, see commit)
+  private brakeRun = 0; private brakeCool = 0; // brake pulses while drifting (spin-out guard, see commit)
   private instOk = true; private instHandled = true; private instPressAt = -1; private instArmed = false;
   private holdExtra = 0; private cornerDrifts = 0;
   // ---- per-corner plan
@@ -284,19 +299,28 @@ class BotDriver implements AiDriverEx {
       return;
     }
     this.drive(w, k, out, applyTick, k.race.finishTick >= 0 || this.role === 'cruise');
-    this.commit(out);
+    this.commit(out, k);
   }
 
   /**
    * Every frame goes into the self-prediction pipe (it applies LA ticks from now). Safety guard (M5): a brake held
-   * through 11 drift ticks spins the kart out (15-driving-techniques §4.3), so once a brake run while drifting (DRIFT
-   * held or the predicted drift) reaches 8 frames the brake stays off until the run ends — at most one brake turn,
-   * never a spin-out (re-pressing would start a fresh brake turn every 9 ticks).
+   * through 11 drift ticks spins the kart out (15-driving-techniques §4.3), so while the kart drifts or may drift at
+   * the apply tick (DRIFT held, the predicted drift, or drifting now) the brake comes in pulses of at most
+   * BRAKE_PULSE_MAX frames with BRAKE_COOL released frames between them. A drift entry restarts the sim's brake
+   * count, so brake frames outside that context never add up to a spin-out. The sim counts brake ticks on the ground
+   * only (a release in the air does not reset the count), so the predicted count at the apply tick is checked too and
+   * a drift never brakes in the air.
    */
-  private commit(out: InputFrame): void {
-    if (out.brake > 0 && ((out.held & Held.DRIFT) !== 0 || this.pred.drift === 1)) {
-      if (this.brakeRun >= BRAKE_RUN_MAX) out.brake = 0; else this.brakeRun++;
-    } else this.brakeRun = 0;
+  private commit(out: InputFrame, k?: KartState): void {
+    const ctx = (out.held & Held.DRIFT) !== 0 || this.pred.drift === 1 || (k !== undefined && k.drive.drift === 1);
+    const air = k !== undefined && k.body.grounded === 0 && k.body.coyote <= 0;
+    if (out.brake > 0 && ctx && (air || this.brakeCool > 0 || this.brakeRun >= BRAKE_PULSE_MAX || this.pred.brakeT >= BRAKE_PULSE_MAX)) out.brake = 0;
+    if (out.brake > 0 && ctx) this.brakeRun++;
+    else {
+      if (this.brakeRun > 0) this.brakeCool = BRAKE_COOL;
+      this.brakeRun = 0;
+      if (this.brakeCool > 0) this.brakeCool--;
+    }
     this.pred.push(-out.steer / 127, (out.held & Held.DRIFT) !== 0, out.throttle > 0, out.brake > 0, out.edges, (out.edges & Edge.USE_ITEM) !== 0);
   }
 
@@ -484,6 +508,7 @@ class BotDriver implements AiDriverEx {
     this.stats.sumBias += bias; this.stats.samples++;
 
     let steer: number, thr = 1, brk = 0, drift = false, boost = false;
+    let driftEh = 0; // heading error in the drift (+ = the nose lags the track): gates brake turns
     const airborne = !b.grounded && b.coyote <= 0;
     let keepThrottle = d.startTicks > 0; // releasing the throttle would cancel a start boost
 
@@ -544,8 +569,10 @@ class BotDriver implements AiDriverEx {
       if (e < -eExit || e_forceExit) {
         if (this.holdExtra > 0) { this.holdExtra--; if (sIn < 0.25) sIn = 0.25; }
         else if (holding && !e_forceExit) { if (sIn < AI_TUNING.holdMinSIn) sIn = AI_TUNING.holdMinSIn; }
-        else sIn = -1;
+        else if (e_forceExit || this.cutOk(corner, inCorner, dd, hx, hy, tXs, tYs, u, hw, ppS.length)) sIn = -1;
+        else sIn = -TRIM_SIN;
       }
+      driftEh = eh;
       sIn = sIn > 1 ? 1 : sIn < -1 ? -1 : sIn;
       const ehShift = style === 'long' ? AI_TUNING.longShift : style === 'chain' ? AI_TUNING.chainShift : A.ehShift;
       if (e_forceExit) { drift = false; this.tapLeft = 0; }
@@ -608,6 +635,8 @@ class BotDriver implements AiDriverEx {
     let wantBrake = v > vLim + 0.5, wantCoast = !wantBrake && v > vLim;
     if (wantBrake && this.cMistake === Mistake.LATE_BRAKE && this.lateBrakeLeft > 0) { this.lateBrakeLeft--; wantBrake = false; wantCoast = false; }
     if (this.cMistake === Mistake.PANIC_BRAKE && this.panicLeft > 0 && corner && cornerDist < 12 && v > 12) { this.panicLeft--; wantBrake = true; }
+    // in a drift every brake press is a brake turn (heading ×2): brake only while the nose lags the track, else lift
+    if (wantBrake && drifting && driftEh < AI_TUNING.brakeEh) { wantBrake = false; wantCoast = true; }
     // traffic: never ram a kart ahead (lift, then brake when contact is imminent and no lane is free)
     // traffic: never ram a kart ahead — lift when contact is near and no lane is free, brake when it is imminent
     // (also mid-drift: a drift brakes at 14 m/s² and keeps its slide)
@@ -704,7 +733,12 @@ class BotDriver implements AiDriverEx {
       if (take) this.stats.forksTaken++;
     }
     // the nearest split within 70 m ahead (or just passed): approach lane and no drifting through the split
-    this.forkNear = 0; this.forkNoDrift = false; this.forkNearRailVMin = 0;
+    this.forkNear = 0; this.forkNoDrift = false; this.forkNearRailVMin = 0; this.forkSoon = false;
+    for (let q = 0; q < pp.forks.length; q++) {
+      let d = pp.forks[q]!.at - s;
+      if (pp.closed) { if (d < -pp.length / 2) d += pp.length; else if (d > pp.length / 2) d -= pp.length; }
+      if (d >= -8 && d <= AI_TUNING.forkTrimM) { this.forkSoon = true; break; }
+    }
     for (let q = 0; q < pp.forks.length; q++) {
       const f = pp.forks[q]!;
       let d = f.at - s;
@@ -798,6 +832,19 @@ class BotDriver implements AiDriverEx {
       this.wideT = this.rng.range(1.5, 3.0);
       this.stats.mistakes++;
     }
+  }
+
+  /**
+   * The deliberate drift exit (M5): a cut snaps the velocity onto the nose, so it is the exit only when the corner
+   * is done, the nose points down the road (at most cutPsi past the local tangent) with room on the inside, and no
+   * branch split is close (the cut changes the line the split approach was set up for).
+   */
+  private cutOk(corner: Corner | null, inCorner: boolean, dd: number, hx: number, hy: number, tx: number, ty: number, u: number, hw: number, pathLength: number): boolean {
+    if (!AI_TUNING.cut || this.forkSoon) return false;
+    if (corner && inCorner && corner.dir === dd && this.remainingTurn(corner, pathLength) > AI_TUNING.cutTurn) return false;
+    // nose past the local tangent toward the inside (rad), and the room left on the inside (u is + right)
+    const over = -Math.atan2(hx * ty - hy * tx, hx * tx + hy * ty) * dd;
+    return over < AI_TUNING.cutPsi && hw + u * dd > AI_TUNING.cutRoom;
   }
 
   /** Heading change left in the corner from the predicted position (rad). */
