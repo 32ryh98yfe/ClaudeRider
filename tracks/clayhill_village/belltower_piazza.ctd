@@ -85,7 +85,8 @@ PROPS kind=flag_pole from=18 to=70 side=R every=8 offset=2.4 seed=61
 PROPS kind=spectators from=8 to=76 side=L every=13 offset=2.2 jitter=0.6 seed=62
 PROPS kind=ad_board_a from=6 to=78 side=L every=26 offset=0.4 seed=63
 PROPS kind=ad_board_c from=19 to=78 side=L every=26 offset=0.4 seed=64
-PROPS kind=ad_board_b from=1300 to=1349 side=both every=18 offset=0.4 seed=65
+PROPS kind=ad_board_b from=1300 to=1349 side=R every=18 offset=0.4 seed=65
+PROPS kind=ad_board_b_l from=1300 to=1349 side=L every=18 offset=0.4 seed=65
 PROPS kind=tyre_wall from=84 to=148 side=R every=1.3 offset=0.6 seed=66
 PROPS kind=ad_board_b from=88 to=144 side=R every=10 offset=2.4 seed=67
 PROPS kind=spectators from=@piazza+8 to=@veer_out side=R every=12 offset=2 jitter=1 seed=68

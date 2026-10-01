@@ -43,6 +43,9 @@
   - `grass_tuft`, `flower_patch`, `bush_round`, `rock_cluster`, `tree_round_big`, `tree_clump`, `hot_air_balloon`.
   - A kit overrides any kind with a themed version by using the same name in its own props, which win on a clash. For example: snowy `grass_tuft`, desert `bush_round`, neon-coloured `ad_board_*`.
 - **Board chevrons point along +Z** (the travel direction once placed). On a bend's outside they point into the turn. Never place a board that reads as a wrong-way arrow.
+  - `PROPS` rows turn `side=L` props by 180°, so any directional prop on the left points backwards. Use `ad_board_b` only on `side=R` and `ad_board_b_l` on `side=L` (never `side=both`); give your own arrow props a left-side twin the same way.
+- **One kit, several times of day:** kit factories receive the track's `THEME` attributes (`export default (c, env) => …`, see `clayhill_village/index.ts`). Branch the look on `env.sky` rather than tuning one look for both. A day-tuned `sky.top/bottom`, `horizon` and `sun.color` otherwise override the golden-hour and sunset defaults.
+  - The gradient dome mixes `horizon` up to about 33° of elevation, and that is most of the sky a chase camera sees. A saturated warm horizon tints the whole frame, so keep it pale and put the warmth in the key light.
 
 ## 4. Look levers (kit `look`, `ThemeLookFx` in `render/env/look.ts`)
 

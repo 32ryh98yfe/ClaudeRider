@@ -39,7 +39,8 @@ PROPS kind=grandstand from=45 to=46 side=L every=100 offset=5.5 seed=19
 PROPS kind=ad_board_a from=4 to=190 side=R every=24 offset=0.4 seed=20
 PROPS kind=ad_board_b from=12 to=190 side=R every=24 offset=0.4 seed=21
 PROPS kind=ad_board_c from=20 to=190 side=R every=24 offset=0.4 seed=22
-PROPS kind=ad_board_b from=1352 to=1399 side=both every=16 offset=0.4 seed=23
+PROPS kind=ad_board_b from=1352 to=1399 side=R every=16 offset=0.4 seed=23
+PROPS kind=ad_board_b_l from=1352 to=1399 side=L every=16 offset=0.4 seed=23
 PROPS kind=ad_board_a from=1360 to=1399 side=both every=16 offset=0.4 seed=24
 PROPS kind=ad_board_c from=80 to=196 side=L every=36 offset=0.4 seed=25
 PROPS kind=tyre_wall from=203 to=272 side=R every=1.3 offset=0.6 seed=26

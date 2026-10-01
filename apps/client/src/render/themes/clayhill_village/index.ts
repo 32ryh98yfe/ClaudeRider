@@ -39,15 +39,18 @@ export const CLAYHILL_LOOK: Partial<ThemeLook> = {
 // behind-right of the start straight, so long shadows fall across the road ahead instead of backlighting the grid.
 // Also a warmer fill and a little more rim, so the mascots' shaded sides keep their colour.
 export const CLAYHILL_GOLDEN: Partial<ThemeLook> = {
-  sky: { ...CLAYHILL_LOOK.sky!, azimuthDeg: -35, top: '#5a86cc', bottom: '#f0cfa8' },
-  sun: { color: '#ffd9ab', intensity: 3.0 },
-  hemi: { sky: '#c4d2ee', ground: '#9a6a52', intensity: 1.32 },
-  fill: { color: '#ffd4b6', intensity: 0.5 },
-  fogColor: '#ead2ba',
-  horizon: '#f4dabd',
+  // first cut (peach horizon #f4dabd, sun #ffd9ab, warm fog) turned the whole frame orange: the dome mixes the
+  // horizon colour up to ~33° and the chase camera sees little else, so the warmth now lives in a pale band, the
+  // key light and the long shadows, against cool blue shadow fill
+  sky: { ...CLAYHILL_LOOK.sky!, azimuthDeg: -35, top: '#4f86d6', bottom: '#eadbc8' },
+  sun: { color: '#ffe2b8', intensity: 3.0 },
+  hemi: { sky: '#c6d5f4', ground: '#8f6e5a', intensity: 1.35 },
+  fill: { color: '#ffe2cc', intensity: 0.45 },
+  fogColor: '#e4ddd4',
+  horizon: '#f1e4d3',
   clouds: 0.3,
-  rimBoost: 0.7,
-  grade: { tint: '#fffaf3', saturation: 1.05, shadows: '#e8eeff', highlights: '#fff0de' },
+  rimBoost: 0.6,
+  grade: { tint: '#ffffff', saturation: 1.04, shadows: '#e8eeff', highlights: '#fff6ea' },
 };
 
 export default (c: ContentTables, env?: Readonly<Record<string, string>>): ThemeKit => {
