@@ -78,6 +78,7 @@ PROPS kind=ad_board_a along=main from=@harbour_straight+16 to=@harbour_straight+
 PROPS kind=ad_board_b along=main from=@harbour_straight+24 to=@harbour_straight+86 side=R every=24 offset=0.4 seed=66
 PROPS kind=ad_board_c along=main from=@harbour_straight+32 to=@harbour_straight+86 side=R every=24 offset=0.4 seed=67
 PROPS kind=crate_stack along=main from=@harbour_straight+18 to=@harbour_straight+86 side=R every=17 offset=4 jitter=1 seed=68
+PROPS kind=bunting_line along=main from=@harbour_straight+20 to=@harbour_straight+86 side=R every=13 offset=2.4 seed=168
 PROPS kind=beach_umbrella along=main from=@harbour_straight+50 to=@harbour_corner+30 side=L every=15 offset=10 jitter=4 seed=69
 # the harbour corner (T1, outside R): tyre wall on the quay
 PROPS kind=tyre_wall along=main from=@harbour_corner+2 to=@harbour_corner+37 side=R every=1.3 offset=0.6 seed=70
@@ -140,7 +141,7 @@ PROP kind=ad_board_a at=(-30.0,-0.2,8.4) yaw=90 scale=1
 PROP kind=ad_board_a at=(4.0,-0.2,8.4) yaw=90 scale=1
 PROP kind=ad_board_b at=(-22.0,-0.2,8.4) yaw=90 scale=1
 PROP kind=ad_board_b at=(12.0,-0.2,8.4) yaw=90 scale=1
-PROP kind=ad_board_b at=(-20.0,-0.2,-8.4) yaw=270 scale=1
+PROP kind=ad_board_c at=(-20.0,-0.2,-8.4) yaw=270 scale=1
 PROP kind=ad_board_c at=(-14.0,-0.2,8.4) yaw=90 scale=1
 PROP kind=ad_board_c at=(-4.0,-0.2,-8.4) yaw=270 scale=1
 PROP kind=crate_stack at=(-34.0,-0.2,12.0) yaw=90 scale=1
@@ -151,7 +152,6 @@ PROP kind=spectators at=(6.0,-0.2,-10.4) yaw=270 scale=1
 PROP kind=flag_pole at=(-16.0,-0.2,-10.6) yaw=270 scale=1
 PROP kind=flag_pole at=(-12.0,-0.2,-10.6) yaw=270 scale=1
 PROP kind=palm_planter at=(-32.0,-0.2,-9.0) yaw=270 scale=1
-PROP kind=palm_planter at=(-2.0,-0.2,-9.0) yaw=270 scale=1
 # the far water at sea level: sea stacks, palm islets and sailboats round the cliffs
 PROP kind=sea_stack at=(181.0,-0.2,-47.3) yaw=180 scale=1
 PROP kind=sea_stack at=(204.3,-0.2,-154.4) yaw=-167 scale=1

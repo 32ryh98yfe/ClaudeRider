@@ -105,7 +105,7 @@ PROP kind=lamp_post at=(6.0,-0.2,9.1) yaw=90 scale=1
 PROP kind=ad_board_a at=(-36.0,-0.2,7.9) yaw=90 scale=1
 PROP kind=ad_board_a at=(-4.0,-0.2,-7.9) yaw=270 scale=1
 PROP kind=ad_board_b at=(-28.0,-0.2,7.9) yaw=90 scale=1
-PROP kind=ad_board_b at=(-28.0,-0.2,-7.9) yaw=270 scale=1
+PROP kind=ad_board_c at=(-28.0,-0.2,-7.9) yaw=270 scale=1
 PROP kind=ad_board_c at=(-12.0,-0.2,7.9) yaw=90 scale=1
 PROP kind=ad_board_c at=(-44.0,-0.2,-7.9) yaw=270 scale=1
 PROP kind=spectators at=(-24.0,-0.2,9.5) yaw=90 scale=1

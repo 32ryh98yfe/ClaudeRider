@@ -153,13 +153,14 @@ export const EMBER_DRESSING: Record<string, PropFactory> = {
     }),
   },
   tree_round_big: {
-    // stalagmite column group (the mid layer): three tall columns and a small glowing crystal cluster at the foot
+    // stalagmite column group (the mid layer): three columns and a small glowing crystal cluster at the foot (kept
+    // under ~6.5 m and mid-value: taller dark cones stood between the camera and the corners like black spikes)
     maxInstances: 800,
     build: () => {
       const R = rng(461), p: THREE.BufferGeometry[] = [paint(place(rock(1.8, 61, 1, 0.6), 0, -0.4, 0), E.basalt, 0.08, 3), paint(place(cyl(1.8, 2.4, 6, 7), 0, -3.4, 0), E.basalt)];
       for (let i = 0; i < 3; i++) {
-        const a = (i / 3) * Math.PI * 2 + R(), d = i === 0 ? 0 : 0.9 + R() * 0.6, h = i === 0 ? 9 : 4 + R() * 3;
-        p.push(paint(place(cone(0.55 + h * 0.1, h, 7), Math.cos(a) * d, h / 2 + 0.1, Math.sin(a) * d), [E.basaltLight, E.scree, E.basaltMid][i]!, 0.1, i * 7 + 5));
+        const a = (i / 3) * Math.PI * 2 + R(), d = i === 0 ? 0 : 0.9 + R() * 0.6, h = i === 0 ? 6.5 : 2.8 + R() * 2;
+        p.push(paint(place(cone(0.6 + h * 0.13, h, 7), Math.cos(a) * d, h / 2 + 0.1, Math.sin(a) * d), [E.screeLight, E.scree, E.basaltLight][i]!, 0.1, i * 7 + 5));
         p.push(paint(place(cyl(0.6 + h * 0.1, 0.75 + h * 0.11, 0.5, 7), Math.cos(a) * d, 0.2, Math.sin(a) * d), E.dust));
       }
       p.push(...sprouts(467).map((g) => place(g, 1.3, 0, 0.9, 0, 0, 0, 2.2)));

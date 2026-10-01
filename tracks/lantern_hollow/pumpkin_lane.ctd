@@ -134,7 +134,7 @@ PROP kind=lantern_string at=(24.0,-0.2,11.5) yaw=90 scale=1
 PROP kind=ad_board_a at=(-40.0,-0.2,10.4) yaw=90 scale=1
 PROP kind=ad_board_a at=(-32.0,-0.2,-10.4) yaw=270 scale=1
 PROP kind=ad_board_b at=(-24.0,-0.2,10.4) yaw=90 scale=1
-PROP kind=ad_board_b at=(-16.0,-0.2,-10.4) yaw=270 scale=1
+PROP kind=ad_board_c at=(-16.0,-0.2,-10.4) yaw=270 scale=1
 PROP kind=ad_board_c at=(-32.0,-0.2,10.4) yaw=90 scale=1
 PROP kind=ad_board_c at=(-44.0,-0.2,-10.4) yaw=270 scale=1
 PROP kind=spectators at=(-36.0,-0.2,12.0) yaw=90 scale=1
