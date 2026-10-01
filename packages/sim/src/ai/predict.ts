@@ -74,7 +74,9 @@ export class SelfPredictor {
     let dragT = d.dragTicks, streak = d.tapStreak, gap = d.tapGap, counter = d.counterTicks, brakeT = d.brakeTicks, gear: number = d.gear;
     let boosters = d.boosters, teamBoosters = d.teamBoosters;
     let prevHeld = (d.prevHeld & 1) !== 0, prevThr = d.prevThrottle !== 0;
+    // sin β of the current state: the answer when nothing is pending (lookahead 0) or no frame changes it
     let sbOut = 0;
+    if (drift === 1) { const v0 = Math.sqrt(vx * vx + vy * vy); if (v0 > 0.1) sbOut = (-dir * (-vx * hy + vy * hx)) / v0; }
     this.exited = false; this.spun = false;
     const grounded = b.grounded === 1 || b.coyote > 0;
     const decGrip = decayF(P.kYawGrip, DT), decDrift = decayF(P.kYawDrift, DT), decAir = decayF(P.airYawDamp, DT);

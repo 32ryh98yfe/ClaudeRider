@@ -68,9 +68,9 @@ export const AI_TUNING = {
   ehShift: 0.3, ehRekick: 0.8,
   // brake in a drift is a brake turn (heading ×2): only while the nose lags the track by more than brakeEh rad
   brakeEh: 0.2,
-  // drag control (끌기, 14-ai §3.11): neutral steer + DRIFT held while the nose is within [dragEhLo, dragEhHi] rad of
+  // drag control (끌기, 14-ai §3.11): wheel inside the neutral band while the nose is within [dragEhLo, dragEhHi] rad of
   // the track, the kart is not heading for the outer wall (outside < dragOut) and more than dragEndTurn rad is left;
-  // taps (톡톡이) only while the nose is not ahead of the track (eh > tapEhMin)
+  // taps (톡톡이) every tapGap ticks while the nose is not well ahead of the track (eh > tapEhMin)
   drag: 1, dragEhLo: -0.12, dragEhHi: 0.35, dragOut: 0.45, dragEndTurn: 0.2, tapEhMin: -0.1, tapGap: 8,
   // a boosted drift (v > fastHoldV·vGrip) holding through a long corner may counter-steer down to the trim (not -0.3)
   fastHoldV: 1.1,
@@ -78,15 +78,17 @@ export const AI_TUNING = {
   dragTrim: 0.93,
   // keep boosted drifts on corners without a drag plan out of the drag state (wheel just outside the neutral band)
   dragAvoid: 1,
-  fastTapExp: 0,
   // no drift trigger while the velocity already points more than ~trigVPsi rad inside the track tangent
   trigVPsi: 0.2,
   // hazards that stay active longer than this (ticks) are not waited for (lane choice only)
   hazardMaxWait: 300,
   // side-contact reflex: karts within sideDs m along and sideGap m across that close at ≥ sideClose m/s
-  sideRepel: 0.6, sideDs: 3.5, sideGap: 2.8, sideClose: 0.5, sideMax: 0.6,
-  // build-up to the entry window: in-steer until the predicted β is dragBuildMargin past dragEnterLo, unless the nose
-  // already lags more than dragBuildEhHi (the corner wants plain drift control); the boost must outlast dragBoostMin ticks
+  sideRepel: 0.6, sideDs: 3.5, sideGap: 3.2, sideClose: 0.5, sideMax: 0.6,
+  // … and in a drift (× sideDrift on sIn; an inside rival eases sIn no lower than sideDriftMin)
+  sideDrift: 1, sideDriftMin: -0.3,
+  // build-up to the entry window (first dragBuildMaxTicks of the drift): dragBuildSIn in-steer while the nose lags by
+  // more than dragBuildEhLo and the yaw is below the wanted yaw + dragBuildYaw; DRIFT re-pressed only past dragRekickEh;
+  // the boost must outlast dragBoostMin ticks
   dragBuildMaxTicks: 40, dragBuildEhLo: 0.1, dragBuildSIn: 1, dragBoostMin: 20, dragBuildYaw: 1.2, dragRekickEh: 0.35,
   // drag yaw regulation: heading gain (1/s) on e, damping on the yaw excess (per rad/s), taps while the yaw is below the
   // wanted yaw + tapYawMargin
@@ -630,13 +632,7 @@ class BotDriver implements AiDriverEx {
       sIn = sIn > 1 ? 1 : sIn < -1 ? -1 : sIn;
       const ehShift = style === 'long' ? AI_TUNING.longShift : style === 'chain' ? AI_TUNING.chainShift : AI_TUNING.ehShift;
       if (e_forceExit) { drift = false; this.tapLeft = 0; }
-      else if (this.tapLeft > 0) {
-        // the entry tap's in-steer was validated at grip speed; a boosted drift entry turns the path at v/ω, so above
-        // vGrip the floor shrinks with (vGrip/v)^fastTapExp (a full tap at 44 m/s wraps a R45 corner into R22)
-        drift = true; this.tapLeft--;
-        const fl = v > P.vGrip ? 0.6 * Math.pow(P.vGrip / v, AI_TUNING.fastTapExp) : 0.6;
-        if (sIn < fl) sIn = fl;
-      }
+      else if (this.tapLeft > 0) { drift = true; this.tapLeft--; if (sIn < 0.6) sIn = 0.6; }
       else if (holding && AI_TUNING.holdMode === 1) {
         // drag drift (끌기): keep the key while not over-rotated; the yaw is trimmed with the wheel
         drift = eh > AI_TUNING.holdKeyEh && sb < AI_TUNING.holdSbMax;
@@ -655,9 +651,12 @@ class BotDriver implements AiDriverEx {
         && (!inCorner || this.remainingTurn(corner, ppS.length) > AI_TUNING.dragEndTurn);
       // yaw the corner asks for at the apply tick: path curvature × speed, plus a heading correction (rad/s, + = into
       // the drift); and the drift's own yaw target with the wheel centred (the y0 term fades with drift time)
-      this.qs = s + AI_TUNING.dragKapLead * v; this.at(path);
-      const kapS = (this.rp.KAP[this.ri]! + (this.rp.KAP[this.rj]! - this.rp.KAP[this.ri]!) * this.rf) * dd;
-      const wantYaw = (kapS > 0 ? kapS : 0) * v + AI_TUNING.dragKh * e;
+      let wantYaw = 0;
+      if (dragCorner) {
+        this.qs = s + AI_TUNING.dragKapLead * v; this.at(path);
+        const kapS = (this.rp.KAP[this.ri]! + (this.rp.KAP[this.rj]! - this.rp.KAP[this.ri]!) * this.rf) * dd;
+        wantYaw = (kapS > 0 ? kapS : 0) * v + AI_TUNING.dragKh * e;
+      }
       const yaw0 = P.y0 / (1 + (pr.dTicks * DT) / P.y0T) + P.y2, yawNow = pr.yaw * dd;
       if (dragCorner && pr.dragT === 0 && pr.sb < P.dragEnterLo) {
         // build-up: the AI's plain drift slides at 8–17° and the drag needs β ≥ 20°: a hard entry (full in-steer,
@@ -700,6 +699,15 @@ class BotDriver implements AiDriverEx {
       } else if (this.cBrakeTurn && !this.bturnDone && corner !== null && corner.dir === dd && inCorner && eh > AI_TUNING.bturnEh && pr.dTicks >= 2) {
         // brake drift turn (고속턴) on a rolled hairpin: one short brake tap turns the nose at twice the yaw rate
         this.bturnDone = true; this.bturnLeft = AI_TUNING.bturnFrames;
+      }
+      // side contact in a drift: the slide carries the kart to the outside of its line, into a kart running alongside
+      // there. A rival on the outside tightens the drift (more in-steer); one on the inside only eases it, never into
+      // the cut zone (sIn ≤ −0.7). Not while dragging (the drag needs the wheel centred) or on an entry tap.
+      if (!this.dragging && this.tapLeft === 0 && AI_TUNING.sideDrift > 0 && !jumpNear && !ledgeHere && prof.aggression < 0.8) {
+        this.qs = s; this.at(path);
+        const rep = ppS.PIPE[this.ri] === 0 ? this.sideRepel(w, k, s, u, vU, path) * dd * AI_TUNING.sideDrift : 0;
+        if (rep > 0) sIn = sIn + rep > 1 ? 1 : sIn + rep;
+        else if (rep < 0 && sIn > AI_TUNING.sideDriftMin) sIn = sIn + rep < AI_TUNING.sideDriftMin ? AI_TUNING.sideDriftMin : sIn + rep;
       }
       // (the band test has a wire-step margin: 0.3 is sent as 38/127 = 0.299, inside the band)
       if (!this.dragging && AI_TUNING.dragAvoid && pr.boost > 0 && pr.sb >= P.dragExitLo && sIn > -P.dragNeutral - 0.012 && sIn < P.dragNeutral + 0.012) {

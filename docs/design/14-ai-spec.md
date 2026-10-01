@@ -163,7 +163,7 @@ The tiers adopt drag (끌기), tap boost (톡톡이) and the brake drift turn (�
 - Cost = `1.0·|offset − lineU| + 3.0·Σ(1/TTC)` for karts in a 30 m forward cone `+ 50·hazard` (traps, active hazards, firewall blocks) `− 2.0·wanted` (item boxes when a slot is free, boost pads) `+ 0.5·|change from current|`.
 - Aggressive bots (aggression ≥ 0.8) scale the kart TTC term by `(1 − aggression)` and may steer into a rival alongside (bump), never into a rival ahead at > 5 m/s closing speed.
 - Lateral change rate ≤ 3 m/s.
-- Side contact (M5): in grip (not in loops, on halfpipes or beside ledges), a kart within 3.5 m along and 2.8 m across that closes in laterally pushes the wheel away (≤ 0.6 of lock, more with the closing speed); bump personalities (aggression ≥ 0.8) are exempt. Lane re-plans alone are too slow for side-by-side contact at corner speeds.
+- Side contact (M5): in grip (not in loops, on halfpipes or beside ledges), a kart within 3.5 m along and 3.2 m across that closes in laterally pushes the wheel away (≤ 0.6 of lock, more with the closing speed); bump personalities (aggression ≥ 0.8) are exempt. Lane re-plans alone are too slow for side-by-side contact at corner speeds. In a drift the same push acts on sIn: a rival on the outside (where the slide carries the kart) tightens the drift, one on the inside only eases it, never below sIn −0.3 (no cut); not while dragging or on the entry tap. With the wider 3.2 m gap (was 2.8) the 8-Pro meadow field drops from 2.23 to 1.35 hard bumps per kart over seeds 1–6 (worst seed 4.9 → 2.0).
 - Ghosted or finished karts are ignored.
 
 ---
