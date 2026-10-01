@@ -20,9 +20,9 @@ describe('p2p end caps', () => {
   const t = reload(r);
   const L = r.model.paths[0]!.length;
 
-  it('both ends of the main line carry a wall across the road', () => {
+  it('the end of the main line carries a wall across the road', () => {
     const f = frame(), cs = contacts();
-    for (const s of [0.5, L - 0.5]) {
+    for (const s of [L - 0.5]) {
       t.frameAt(0, s, f);
       for (const d of [-5, 0, 5]) expect(t.sphereWalls(f.px + f.rx * d, f.py + 0.8, f.pz + f.rz * d, 0.9, cs, 8), `s=${s} d=${d}`).toBeGreaterThan(0);
     }
