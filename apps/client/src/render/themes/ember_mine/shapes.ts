@@ -73,8 +73,8 @@ export function beam(ax: number, ay: number, az: number, bx: number, by: number,
   return g;
 }
 
-/** Flat irregular disc lying on y = 0 (lava pools, puddles, decals). */
-export function blob(r: number, seed: number, seg = 14): THREE.BufferGeometry {
+/** Outline of blob() in the shape's XY plane (blob() lays it on y = 0, mapping shape (x, y) to (x, 0, −y)). */
+export function blobShape(r: number, seed: number, seg = 14): THREE.Shape {
   const R = rng(seed);
   const sh = new THREE.Shape();
   for (let i = 0; i <= seg; i++) {
@@ -83,7 +83,12 @@ export function blob(r: number, seed: number, seg = 14): THREE.BufferGeometry {
     const x = Math.cos(a) * rr, y = Math.sin(a) * rr;
     if (i === 0) sh.moveTo(x, y); else if (i === seg) sh.closePath(); else sh.lineTo(x, y);
   }
-  const g = new THREE.ShapeGeometry(sh, 1);
+  return sh;
+}
+
+/** Flat irregular disc lying on y = 0 (lava pools, puddles, decals). */
+export function blob(r: number, seed: number, seg = 14): THREE.BufferGeometry {
+  const g = new THREE.ShapeGeometry(blobShape(r, seed, seg), 1);
   g.rotateX(-Math.PI / 2);
   return g;
 }

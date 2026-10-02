@@ -5,14 +5,12 @@ import * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
 import { box, cone, cyl, merge, paint, place, rbox, torus } from '../../util/geo.ts';
-import { beam, blob, crystalCluster, glow, rng, rock } from './shapes.ts';
+import { beam, blob, blobShape, crystalCluster, glow, rng, rock } from './shapes.ts';
 import { glowLit } from '../lantern_hollow/glow.ts';
 
 // glowing parts (windows, ore, lava seams, portal sign) are HDR vertex colours: the glow material lets them emit
 const lit = (): THREE.Material => glowLit(0.85, 1.3);
 const metal = (): THREE.Material => MaterialLibrary.vertexLit(0.5, 0.35);
-// the crusted lava road look (cooled plates drifting over a glowing flow) for pool surfaces
-const LAVA_CRUST = (): THREE.Material => MaterialLibrary.road({ style: 'lava', a: '#2b1a14', b: '#3a2218', line: '#000000' });
 
 const TIMBER = '#8b5a2b', TIMBER_DARK = '#6b4226', IRON = '#4a4d52', RUST = '#8a4b2a', BASALT = '#2b2320';
 const CYAN = '#7fdbff', VIOLET = '#c77dff', AMBER = '#ffc857', LAVA = '#ff6a2b';
@@ -177,33 +175,38 @@ function lanternOnWall(): THREE.BufferGeometry {
   ]);
 }
 
-/** Pool outline: blob(POOL_R, POOL_SEED), shared by the lava surface and its basalt lip. */
-const POOL_R = 6, POOL_SEED = 4;
-
-function lavaPool(): THREE.BufferGeometry {
-  // a lava pool slab: top plus sides down to −1.8 m so it never hovers over the terrain. Final pass: white vertex
-  // colours under the crusted lava road look (LAVA_CRUST), which brings its own drifting crust plates and glow; the
-  // flat emissive orange with four hot spots read as an unshaded octagon
-  return merge([paint(place(blob(POOL_R, POOL_SEED), 0, 0.1, 0), '#ffffff'), paint(place(cyl(5.2, 5.6, 1.9, 12), 0, -0.85, 0), '#ffffff')]);
-}
-
 /**
- * Basalt lip for lava_pool (place it with an identical PROPS row, scale=a-a): slabs straddle the blob's own outline
- * (same radii as blob(): rng(seed), 0.7–1.15 R per vertex), so the lava edge is crusted, not a polygon.
+ * Lava pool in a basalt basin, all on the lit glow material (final pass; the old pool was a flat emissive-orange
+ * octagon, since the emissive material ignores vertex colours): an HDR-orange molten surface (it emits, and its
+ * albedo still takes the cave light), raised crust plates and a few hot spots, and a lip of basalt slabs along the
+ * blob's own outline. The basin is that outline extruded 2.6 m down, so on a slope the pool never floats.
  */
-function lavaPoolRim(r: number, seed: number, seg = 14): THREE.BufferGeometry {
+function lavaPool(r = 6, seed = 4, seg = 14): THREE.BufferGeometry {
+  const R = rng(seed + 101);
+  const outline = blobShape(r, seed, seg);
+  const parts: THREE.BufferGeometry[] = [glow(paint(place(blob(r, seed, seg), 0, 0.1, 0), '#ff9a3c'), 2.4)];
+  const basin = new THREE.ExtrudeGeometry(outline, { depth: 2.6, bevelEnabled: false, curveSegments: 1 });
+  basin.rotateX(-Math.PI / 2); // extrude +Z becomes +Y, shape (x, y) lands at (x, ., -y) like blob()
+  parts.push(paint(place(basin, 0, -2.65, 0, 0, 0, 0, 1.04, 1, 1.04), '#2b2320', 0.08, seed));
+  // crust plates: low lit basalt rafts on the melt
+  for (let i = 0; i < 6; i++) {
+    const a = R() * Math.PI * 2, d = r * (0.12 + R() * 0.45), sz = 0.55 + R() * 0.55;
+    parts.push(paint(place(rock(sz, seed + 40 + i, 1), Math.cos(a) * d, 0.1, Math.sin(a) * d, 0, R() * 3, 0, 1.5, 0.14, 1.1), i % 2 ? '#3b2219' : '#4a2c1e', 0.12, i));
+  }
+  for (let i = 0; i < 3; i++) {
+    const a = R() * Math.PI * 2, d = r * R() * 0.45;
+    parts.push(glow(paint(place(blob(0.5 + R() * 0.5, seed + 60 + i, 9), Math.cos(a) * d, 0.13, Math.sin(a) * d), '#ffe08a'), 2.6));
+  }
+  // the lip: slabs at every outline vertex and edge midpoint (same radii as blobShape: rng(seed), 0.7-1.15 r)
   const Rb = rng(seed);
   const rad: number[] = [];
   for (let i = 0; i < seg; i++) rad.push(r * (0.7 + Rb() * 0.45));
-  const R = rng(seed + 101);
-  const parts: THREE.BufferGeometry[] = [];
   for (let k = 0; k < seg * 2; k++) {
-    // vertices and edge midpoints; blob() maps shape (x, y) to (x, 0, −y)
     const i = k >> 1, a = ((i + (k & 1) * 0.5) / seg) * Math.PI * 2;
-    const d = (k & 1 ? (rad[i]! + rad[(i + 1) % seg]!) / 2 : rad[i]!) * (0.98 + R() * 0.08);
-    const sz = 0.75 + R() * 0.45;
+    const d = (k & 1 ? (rad[i]! + rad[(i + 1) % seg]!) / 2 : rad[i]!) * (1.0 + R() * 0.06);
+    const sz = 0.45 + R() * 0.3;
     const tone = k % 3 === 0 ? '#4a3a33' : k % 3 === 1 ? '#3b2f29' : '#2b2320';
-    parts.push(paint(place(rock(sz, seed + k, 1), Math.cos(a) * d, 0.05, -Math.sin(a) * d, 0, a + Math.PI / 2 + (R() - 0.5) * 0.4, 0, 1.6, 0.42, 1.0), tone, 0.1, k));
+    parts.push(paint(place(rock(sz, seed + k, 1), Math.cos(a) * d, 0.08, -Math.sin(a) * d, 0, a + Math.PI / 2 + (R() - 0.5) * 0.4, 0, 1.8, 0.5, 1.0), tone, 0.1, k));
   }
   return merge(parts);
 }
@@ -358,8 +361,7 @@ export const EMBER_PROPS: Record<string, PropFactory> = {
   geode_violet: { build: () => ({ geometry: geodeCluster(VIOLET, GEODE_VIOLET, 8, 4.8, 17), material: lit() }) },
   cave_roof: { build: () => ({ geometry: caveRoof(12), material: lit(), castShadow: false }) },
   crystal_spire: { build: () => ({ geometry: crystalSpire(), material: lit() }) },
-  lava_pool: { build: () => ({ geometry: lavaPool(), material: LAVA_CRUST() }) },
-  lava_pool_rim: { build: () => ({ geometry: lavaPoolRim(POOL_R, POOL_SEED), material: lit() }) },
+  lava_pool: { build: () => ({ geometry: lavaPool(), material: lit() }) },
   lava_crack: { build: () => ({ geometry: lavaCracks(9), material: MaterialLibrary.emissive(LAVA, 1.4) }) },
   lava_lake: { build: () => ({ geometry: lavaLake(12, 31), material: MaterialLibrary.emissive(LAVA, 1.3) }) },
   lava_rim: { build: () => ({ geometry: lavaRim(12, 31), material: lit() }) },
