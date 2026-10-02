@@ -15,7 +15,8 @@ import type { PropFactory } from '../../props/defaults.ts';
 // tarmac (the old blue-black read as a hole and hid the kart shadows), natural greens, signal-red/white kerbs and
 // barriers in the shared trackside palette.
 export const SPARK_LOOK: Partial<ThemeLook> = {
-  road: { style: 'asphalt', a: '#5a595b', b: '#676668', line: '#fbf8f0' },
+  // a touch warm: the neutral grey read cool blue-grey next to the green infield
+  road: { style: 'asphalt', a: '#5e5a58', b: '#6b6764', line: '#fbf8f0' },
   shoulder: { a: '#4f8a3b', b: '#5d9441' },
   terrain: { a: '#5a8f40', b: '#78a654', rock: '#a39d90' },
   wall: { kind: 'panel', a: '#f4f1ea', b: '#d8423a' },
