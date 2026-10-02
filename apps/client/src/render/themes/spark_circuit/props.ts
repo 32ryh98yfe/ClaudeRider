@@ -50,6 +50,11 @@ function stand(len: number, tiers: number, seed: number, roofColor: string): THR
   }
   const top = 1.3 + tiers * 1.05;
   parts.push(paint(place(box(0.5, top + 3.2, len), -depth + 0.4, (top + 3.2) / 2, 0), C.concrete));
+  // the back wall faces other parts of the lap: a navy kick band (1.2 m above ground, run on below it for terrain
+  // dips) and a red top stripe, so it reads as part of the venue instead of a blank grey slab
+  const back = -depth + 0.15 - 0.03;
+  parts.push(paint(place(box(0.06, 2.2, len + 0.02), back, 0.1, 0), TS.navy));
+  parts.push(paint(place(box(0.06, 0.6, len + 0.02), back, top + 2.9, 0), TS.red));
   // cantilever roof with a painted fascia
   parts.push(paint(place(box(depth + 1.6, 0.35, len + 1), -depth / 2 + 0.2, top + 3.4, 0, 0, 0, -0.08), C.white));
   parts.push(paint(place(box(0.5, 0.9, len + 1), 1.0, top + 3.3, 0), roofColor));
