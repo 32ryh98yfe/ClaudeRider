@@ -89,18 +89,22 @@ PROPS kind=spectators along=12-84 side=R every=18 offset=2.4 jitter=1 seed=61
 PROPS kind=spectators along=184-248 side=R every=22 offset=3.4 jitter=1 seed=62
 PROPS kind=lamp_post along=1400-250 side=R every=24 offset=1.8 seed=63
 # chevron boards above the tyre walls on the outside of the left-handers (Turn 1, tower, final; never on a right-hander's
-# left-side outside, where a +Z chevron would point the wrong way)
-PROPS kind=ad_board_b along=260-318 side=R every=10 offset=2.6 seed=64
-PROPS kind=ad_board_b along=1198-1262 side=R every=10 offset=2.6 seed=65
-PROPS kind=ad_board_b along=1328-1394 side=R every=10 offset=2.6 seed=66
+# left-side outside, where a +Z chevron would point the wrong way); 3.6 m out so the posts stand behind the tyre stacks
+PROPS kind=ad_board_b along=260-318 side=R every=10 offset=3.6 seed=64
+PROPS kind=ad_board_b along=1198-1262 side=R every=10 offset=3.6 seed=65
+PROPS kind=ad_board_b along=1328-1394 side=R every=10 offset=3.6 seed=66
 PROPS kind=spectators along=596-672 side=R every=19 offset=12 jitter=2 seed=67
 # ground cover at the barrier foot round the lap (the pit row on the left of the pit straight stays concrete)
 PROPS kind=grass_tuft side=R every=1.1 offset=0.2 jitter=7 scale=1.0-1.7 seed=41
 PROPS kind=grass_tuft along=252-6 side=L every=1.1 offset=0.2 jitter=7 scale=1.0-1.7 seed=42
 PROPS kind=flower_patch side=R every=7 offset=0.8 jitter=9 scale=0.8-1.3 seed=43
 PROPS kind=flower_patch along=252-6 side=L every=7 offset=0.8 jitter=9 scale=0.8-1.3 seed=44
-PROPS kind=bush_round side=R every=12 offset=3 jitter=2 scale=0.7-1.3 seed=45
-PROPS kind=bush_round along=252-6 side=L every=12 offset=3 jitter=2 scale=0.7-1.3 seed=46
+# shrubs skip the tyre-wall spans (R 256-326, 1194-1270, 1324-1400; L 806-892): they grew through the stacks
+PROPS kind=bush_round along=1404-252 side=R every=12 offset=3 jitter=2 scale=0.7-1.3 seed=45
+PROPS kind=bush_round along=330-1190 side=R every=12 offset=3 jitter=2 scale=0.7-1.3 seed=70
+PROPS kind=bush_round along=1274-1320 side=R every=12 offset=3 jitter=2 scale=0.7-1.3 seed=71
+PROPS kind=bush_round along=252-802 side=L every=12 offset=3 jitter=2 scale=0.7-1.3 seed=46
+PROPS kind=bush_round along=896-6 side=L every=12 offset=3 jitter=2 scale=0.7-1.3 seed=72
 PROPS kind=rock_cluster along=252-1400 side=both every=30 offset=4 jitter=6 scale=0.6-1.3 seed=47
 # shade trees (none behind the grandstands, the stadium or the pit row), far tree lines
 PROPS kind=tree_round_big along=180-950 side=R every=20 offset=16 jitter=14 scale=0.8-1.3 seed=48

@@ -92,9 +92,9 @@ PROPS kind=banner along=main from=@grandstand_sweep+6 to=@bowl_entry side=L ever
 PROPS kind=tyre_wall along=main from=@bowl_entry to=@bowl_entry+110 side=R every=4 offset=1.2
 PROPS kind=stadium along=main from=@stadium_tunnel+2 to=@stadium_tunnel+20 side=R every=30 offset=5
 # ---- stylized dressing pass (2026-10, docs/design/34-stylized-pass.md; render-only, the .ctrk is unchanged) ----------
-# the bowl: flags along the infield, chevron boards above the tyre wall round the hairpin (a left-hander: outside right)
+# the bowl: flags along the infield, chevron boards above the tyre wall round the hairpin (a left-hander: outside right); 3.6 m out, behind the stacks
 PROPS kind=flag_pole along=main from=@bowl_straight+8 to=@bowl_straight+70 side=L every=7 offset=2.4 seed=60
-PROPS kind=ad_board_b along=main from=@bowl_hairpin+2 to=@bowl_hairpin+92 side=R every=10 offset=2.6 seed=61
+PROPS kind=ad_board_b along=main from=@bowl_hairpin+2 to=@bowl_hairpin+92 side=R every=10 offset=3.6 seed=61
 # rally fans along the gravel stage and the wooded S, a crowd at the paddock
 PROPS kind=spectators along=main from=@gravel_straight+4 to=@rally_jump1 side=both every=16 offset=3.2 jitter=2 seed=62
 PROPS kind=spectators along=main from=@wooded_s+10 to=@off_camber side=both every=30 offset=4.5 jitter=3 seed=63
