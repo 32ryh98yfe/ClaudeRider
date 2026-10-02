@@ -41,12 +41,272 @@ HAZ press p1 at=@press_gauntlet+8 d=-4.5 box=(5,7,3) period=4 on=0-1.6 tele=0.8 
 HAZ press p2 at=@press_gauntlet+21 d=4.5 box=(5,7,3) period=4 on=0-1.6 tele=0.8 offset=1.33 rise=4
 HAZ press p3 at=@press_gauntlet+34 d=-4.5 box=(5,7,3) period=4 on=0-1.6 tele=0.8 offset=2.67 rise=4
 ITEMS at=@elevator_ramp+34,@gantry_deck+120,@token_straight+40,@cooling_s+76 n=5
-# ---- dressing (Orbital Nexus kit): hall holograms, rack canyon, coolant pipes, token stacks, light bollards ----
-PROPS kind=light_strip along=main side=both every=18 offset=0.4
-PROPS kind=holo_panel from=@assembly_hall+20 to=@assembly_hall+90 side=L every=35 offset=3
-PROPS kind=server_rack from=@rack_canyon to=@coolant_pipe side=both every=8 offset=1.5
-PROPS kind=coolant_pipe from=@coolant_pipe to=@pipe_hairpin side=both every=12 offset=1.2
+# ---- dressing (Orbital Nexus kit, foundry mood; stylized pass 2026-10, render-only: the .ctrk is unchanged) ----
+# A token factory floor in orbit: conveyors and robot arms along the assembly hall, hazard lamps through the press
+# gauntlet, the server-rack canyon and coolant pipes, conveyors, crates, silos and fuel tanks under the gantry deck,
+# radiator fins along the cooling line; foundry halls, silos, pylons and antennas behind (clearance pass at the end
+# of the file: every footprint ≥ 24 m from the road). The a3 camera stands 8 m right of the run-in and the b2 camera
+# 30 m outside the hall corner, so those patches keep low furniture only.
+# hazardAt (x:z:r): barrier caps carry full hazard stripes only at T1 and the tight apexes (R ≤ 25 m)
+THEME scatter=none hills=0 sky=space mood=foundry fogNear=600 fogFar=4000 hazardAt=83:-4:36,132:-95:20,157:-99:20,212:-92:20,225:-113:20,-275:-156:20,-294:-140:20
+# -- assembly hall (start straight): observation stand, banner masts, holo boards, conveyors and robot arms
+PROPS kind=grandstand from=@assembly_hall+30 to=@assembly_hall+31 side=L every=100 offset=5.5 seed=301
+PROPS kind=flag_pole from=@assembly_hall+2 to=@assembly_hall+18 side=L every=8 offset=2.2 seed=302
+PROPS kind=spectators from=@assembly_hall+46 to=@assembly_hall+60 side=L every=14 offset=2.6 jitter=1 seed=303
+PROPS kind=ad_board_a from=@assembly_hall+14 to=@hall_corner side=R every=24 offset=0.4 seed=304
+PROPS kind=ad_board_b from=@assembly_hall+22 to=@hall_corner side=R every=24 offset=0.4 seed=305
+PROPS kind=ad_board_c from=@assembly_hall+30 to=@hall_corner side=R every=24 offset=0.4 seed=306
+PROPS kind=ad_board_c from=@to_line+4 to=@to_line+28 side=L every=12 offset=0.4 seed=307
+PROPS kind=conveyor_rig from=@to_line to=@assembly_hall+14 side=L every=13 offset=3 seed=308
+PROPS kind=robot_arm from=@to_line+6 to=@assembly_hall+14 side=L every=13 offset=6 seed=309
+# the last 30 m before T1 keep a 6 m clear band behind the chevron boards: the conveyors step back to 8 m there
+PROPS kind=conveyor_rig from=@assembly_hall+14 to=@hall_corner-31 side=R every=13 offset=4 seed=310
+PROPS kind=conveyor_rig from=@hall_corner-30 to=@hall_corner side=R every=13 offset=8 seed=318
+PROPS kind=robot_arm from=@assembly_hall+20 to=@hall_corner side=R every=13 offset=7.5 seed=311
+PROPS kind=hazard_lamp from=@to_line to=@hall_corner side=both every=16 offset=0.8 seed=312
+# -- T1 (hall corner, left): impact pads and chevron boards on the outside
+PROPS kind=tyre_wall from=@hall_corner-2 to=@hall_corner+32 side=R every=1.3 offset=0.6 seed=313
+PROPS kind=ad_board_b from=@hall_corner+1 to=@hall_corner+30 side=R every=8 offset=2.6 seed=314
+PROPS kind=hazard_lamp from=@hall_corner+4 to=@hall_corner+30 side=R every=12 offset=11.5 seed=315
+# the floor outside T1 (the b2 camera stands on it): low factory furniture only, so the corner stays in view
+PROPS kind=cargo_crate from=@hall_corner-6 to=@hall_corner+34 side=R every=8 offset=9.5 jitter=0.8 seed=316
+PROPS kind=conveyor_rig from=@hall_corner to=@hall_corner+32 side=R every=14 offset=14 seed=317
+PROPS kind=robot_arm from=@hall_corner+6 to=@hall_corner+32 side=R every=14 offset=19 seed=318
+PROPS kind=token_stack from=@hall_corner+2 to=@hall_corner+32 side=R every=11 offset=23 seed=319
+# -- press gauntlet, rack canyon, coolant gutter: hazard lamps, pipe racks, server racks, coolant pipes
+PROPS kind=hazard_lamp from=@press_gauntlet to=@press_exit side=both every=10 offset=0.8 seed=320
+PROPS kind=pipe_rack from=@press_gauntlet to=@press_exit side=both every=13 offset=3.5 seed=321
+PROPS kind=cargo_crate from=@press_exit to=@rack_canyon side=both every=9 offset=2.4 jitter=1 seed=322
+PROPS kind=server_rack from=@rack_canyon to=@coolant_pipe side=both every=8 offset=2.6
+PROPS kind=coolant_pipe from=@coolant_pipe+4 to=@coolant_pipe+30 side=both every=12 offset=1.2
+PROPS kind=pipe_rack from=@rack_canyon to=@pipe_hairpin side=both every=13 offset=6 seed=323
+# -- elevator ramp and gantry deck (8 m up): deck-edge bollards and hazard lamps; conveyors, crates, silos and
+# fuel tanks on the floor below (offset > 2 stands on the ground under the deck's side)
+PROPS kind=light_strip from=@elevator_ramp to=@gantry_drop side=both every=12 offset=0.4 seed=330
+# warning lamps sit half a beat (6 m) off the 12 m light-strip posts instead of on top of them
+PROPS kind=hazard_lamp from=@elevator_ramp+6 to=@gantry_drop side=both every=36 offset=0.8 seed=331
+PROPS kind=conveyor_rig from=@gantry_deck to=@gantry_drop side=both every=26 offset=4 seed=332
+PROPS kind=cargo_crate from=@gantry_deck+12 to=@gantry_drop side=both every=26 offset=3.6 jitter=1 seed=333
+PROPS kind=robot_arm from=@gantry_deck+6 to=@gantry_drop side=both every=26 offset=8 seed=334
+PROPS kind=fuel_tank from=@gantry_deck+40 to=@gantry_drop side=R every=70 offset=12 seed=335
+PROPS kind=silo_tank from=@gantry_deck+70 to=@gantry_drop side=L every=90 offset=14 seed=336
+PROPS kind=server_rack from=@server_s to=@loading_chicane side=both every=16 offset=12 seed=337
+PROPS kind=foundry_building from=@gantry_deck+20 to=@server_s side=both every=72 offset=14 jitter=2 seed=338
+PROPS kind=foundry_building from=@loading_chicane to=@gantry_drop side=R every=72 offset=14 jitter=2 seed=339
+PROPS kind=foundry_building from=@assembly_hall+36 to=@assembly_hall+37 side=R every=100 offset=13 seed=347
+PROPS kind=foundry_building from=@assembly_hall+38 to=@assembly_hall+39 side=L every=100 offset=17 seed=348
+PROPS kind=silo_tank from=@press_gauntlet+10 to=@press_exit side=R every=30 offset=8 seed=349
+PROPS kind=silo_tank from=@cooling_s+30 to=@belt_in side=R every=50 offset=12 seed=350
+# -- token S and straight: token stacks, holo panels, conveyors; the kiln corner; the cooling line
 PROPS kind=token_stack from=@token_s to=@token_straight+70 side=both every=28 offset=3
 PROPS kind=holo_panel from=@token_straight+20 to=@token_straight+100 side=R every=40 offset=4
-PROPS kind=server_rack from=@cooling_s to=@belt_out+40 side=L every=24 offset=3
-THEME scatter=station_pylon density=4 hills=0 sky=space
+PROPS kind=conveyor_rig from=@token_straight to=@kiln_corner side=L every=14 offset=4 seed=340
+PROPS kind=hazard_lamp from=@token_s+6 to=@kiln_corner+40 side=both every=24 offset=0.8 seed=341
+PROPS kind=fuel_tank from=@kiln_corner to=@kiln_corner+40 side=R every=40 offset=6 seed=342
+PROPS kind=radiator_fin from=@cooling_s to=@belt_in side=both every=12 offset=4 seed=343
+PROPS kind=server_rack from=@cooling_s to=@belt_out+40 side=L every=24 offset=9
+PROPS kind=pipe_rack from=@belt_in to=@to_line side=both every=13 offset=4 seed=344
+PROPS kind=cargo_crate from=@belt_in to=@to_line side=both every=11 offset=2.2 jitter=1 seed=345
+PROPS kind=light_strip from=@token_s to=@elevator_ramp side=both every=12 offset=0.4 seed=346
+# -- skyline (generated: foundry halls, silos, fuel tanks, pylons and antennas 24–80 m and 90–175 m from the road, clear of the row props, yaw along the nearest road, y = baked terrain − 0.3 m; keep-outs around the a3 and b2 cameras)
+PROP kind=silo_tank at=(-360.0,-1.8,-131.3) yaw=-24 scale=0.91
+PROP kind=station_pylon at=(-80.4,-1.8,-243.1) yaw=-99 scale=1.13
+PROP kind=station_pylon at=(161.8,-1.8,26.4) yaw=153 scale=0.91
+PROP kind=station_pylon at=(123.4,-1.8,-245.5) yaw=-95 scale=0.89
+PROP kind=antenna_mast at=(172.5,-1.8,-21.7) yaw=90 scale=0.92
+PROP kind=foundry_building at=(107.8,-1.8,76.9) yaw=110 scale=1.15
+PROP kind=foundry_building at=(42.1,-1.8,-99.2) yaw=-90 scale=0.94
+PROP kind=silo_tank at=(-272.3,-1.8,-223.9) yaw=3 scale=1.02
+PROP kind=foundry_building at=(188.5,-1.8,-221.6) yaw=-112 scale=1.11
+PROP kind=station_pylon at=(166.5,-1.8,-5.8) yaw=261 scale=0.97
+PROP kind=silo_tank at=(-368.1,-1.8,9.9) yaw=0 scale=1.08
+PROP kind=antenna_mast at=(-236.9,-1.8,-79.6) yaw=103 scale=1.03
+PROP kind=antenna_mast at=(149.4,-1.8,-34.9) yaw=270 scale=1.11
+PROP kind=silo_tank at=(-234.4,-1.8,-13.7) yaw=165 scale=0.86
+PROP kind=foundry_building at=(-359.6,-1.8,-30.5) yaw=90 scale=1.22
+PROP kind=fuel_tank at=(-380.8,-1.8,-73.1) yaw=12 scale=0.97
+PROP kind=station_pylon at=(-269.6,-1.8,91.1) yaw=87 scale=0.99
+PROP kind=fuel_tank at=(-66.6,-1.8,-204.2) yaw=-23 scale=0.95
+PROP kind=foundry_building at=(-339.0,-1.8,54.9) yaw=120 scale=0.87
+PROP kind=silo_tank at=(-58.3,-1.8,70.0) yaw=127 scale=0.87
+PROP kind=station_pylon at=(-155.7,-1.8,-78.4) yaw=-90 scale=1.06
+PROP kind=fuel_tank at=(-226.5,-1.8,5.2) yaw=158 scale=1.12
+PROP kind=silo_tank at=(64.6,-1.8,79.5) yaw=90 scale=1.08
+PROP kind=silo_tank at=(-26.2,-1.8,-90.9) yaw=0 scale=0.94
+PROP kind=fuel_tank at=(-122.1,-1.8,-123.8) yaw=20 scale=0.88
+PROP kind=station_pylon at=(-313.5,-1.8,-227.5) yaw=-67 scale=1.06
+PROP kind=fuel_tank at=(215.4,-1.8,-213.1) yaw=-120 scale=0.86
+PROP kind=antenna_mast at=(105.8,-1.8,-203.4) yaw=-91 scale=0.87
+PROP kind=station_pylon at=(-51.2,-1.8,-212.5) yaw=-119 scale=0.99
+PROP kind=antenna_mast at=(-261.5,-1.8,-240.1) yaw=0 scale=1.03
+PROP kind=station_pylon at=(150.1,-1.8,46.0) yaw=229 scale=0.92
+PROP kind=antenna_mast at=(-41.2,-1.8,-242.5) yaw=-117 scale=0.88
+PROP kind=fuel_tank at=(-36.4,-1.8,78.8) yaw=120 scale=1.19
+PROP kind=silo_tank at=(276.6,-1.8,-42.6) yaw=136 scale=0.92
+PROP kind=station_pylon at=(-116.5,-1.8,110.3) yaw=101 scale=1.02
+PROP kind=silo_tank at=(37.1,-1.8,-217.7) yaw=-90 scale=1.14
+PROP kind=silo_tank at=(68.8,-1.8,-245.2) yaw=-82 scale=0.94
+PROP kind=station_pylon at=(-329.3,-1.7,31.5) yaw=106 scale=0.95
+PROP kind=silo_tank at=(-29.4,-1.8,53.9) yaw=90 scale=0.94
+PROP kind=silo_tank at=(287.2,-1.8,-166.5) yaw=-142 scale=1.13
+PROP kind=station_pylon at=(-57.5,-1.8,-73.9) yaw=190 scale=1.06
+PROP kind=silo_tank at=(-133.8,-1.8,-247.6) yaw=16 scale=0.98
+PROP kind=foundry_building at=(-319.6,-1.8,104.3) yaw=60 scale=1.02
+PROP kind=silo_tank at=(-372.0,-1.8,-177.9) yaw=65 scale=1.20
+PROP kind=foundry_building at=(-220.1,-1.8,-57.2) yaw=90 scale=1.14
+PROP kind=antenna_mast at=(-256.5,-1.8,-202.8) yaw=0 scale=1.01
+PROP kind=station_pylon at=(-224.4,-1.8,-229.6) yaw=-103 scale=1.22
+PROP kind=silo_tank at=(-174.4,-1.8,-224.8) yaw=1 scale=1.15
+PROP kind=foundry_building at=(214.9,-1.8,-8.5) yaw=90 scale=0.94
+PROP kind=fuel_tank at=(-310.9,-1.8,71.5) yaw=52 scale=0.96
+PROP kind=silo_tank at=(-101.1,-1.8,-240.8) yaw=-89 scale=1.13
+PROP kind=station_pylon at=(-330.8,-1.8,-144.8) yaw=76 scale=1.05
+PROP kind=foundry_building at=(-389.4,-1.8,-99.0) yaw=88 scale=0.99
+PROP kind=station_pylon at=(-113.9,-1.8,-225.5) yaw=9 scale=1.07
+PROP kind=silo_tank at=(102.8,-1.8,-224.2) yaw=-90 scale=1.06
+PROP kind=station_pylon at=(-122.6,-1.8,-59.9) yaw=212 scale=0.96
+PROP kind=antenna_mast at=(-6.2,-1.8,-39.2) yaw=90 scale=0.87
+PROP kind=station_pylon at=(-177.4,-1.8,-101.9) yaw=21 scale=1.20
+PROP kind=station_pylon at=(81.2,-1.8,67.8) yaw=186 scale=1.24
+PROP kind=silo_tank at=(-62.8,-1.8,-54.6) yaw=193 scale=1.11
+PROP kind=station_pylon at=(240.2,-1.8,-51.3) yaw=118 scale=0.89
+PROP kind=station_pylon at=(-172.8,-1.8,-1.2) yaw=195 scale=1.14
+PROP kind=antenna_mast at=(-119.5,-1.8,-77.0) yaw=-76 scale=1.00
+PROP kind=antenna_mast at=(-244.5,-1.8,-235.2) yaw=-93 scale=1.01
+PROP kind=foundry_building at=(-70.8,-1.8,109.6) yaw=115 scale=1.00
+PROP kind=antenna_mast at=(-136.0,-1.8,-3.8) yaw=193 scale=1.11
+PROP kind=station_pylon at=(-205.6,-1.8,-203.0) yaw=21 scale=1.19
+PROP kind=fuel_tank at=(-145.2,-1.8,108.8) yaw=119 scale=0.89
+PROP kind=station_pylon at=(-219.3,-1.8,137.3) yaw=175 scale=0.94
+PROP kind=silo_tank at=(252.7,-1.8,-34.1) yaw=211 scale=1.14
+PROP kind=antenna_mast at=(-79.0,-1.8,-116.7) yaw=-110 scale=1.04
+PROP kind=antenna_mast at=(-242.4,-1.8,-41.9) yaw=90 scale=0.96
+PROP kind=antenna_mast at=(-186.2,-1.8,-64.2) yaw=-79 scale=1.00
+PROP kind=silo_tank at=(-177.0,-1.8,-81.7) yaw=-71 scale=1.18
+PROP kind=fuel_tank at=(289.9,-1.8,-129.5) yaw=-73 scale=1.11
+PROP kind=antenna_mast at=(225.2,-1.8,-179.1) yaw=-120 scale=0.91
+PROP kind=station_pylon at=(-199.4,-1.8,-239.3) yaw=-77 scale=1.00
+PROP kind=station_pylon at=(39.9,-1.8,-197.4) yaw=-90 scale=1.09
+PROP kind=station_pylon at=(-103.3,-1.8,-116.1) yaw=29 scale=0.99
+PROP kind=station_pylon at=(-337.5,-1.8,-53.7) yaw=90 scale=1.18
+PROP kind=silo_tank at=(-248.3,-1.8,108.8) yaw=159 scale=1.17
+PROP kind=antenna_mast at=(-179.7,-1.8,130.6) yaw=191 scale=0.92
+PROP kind=fuel_tank at=(-357.7,-1.8,-112.3) yaw=-11 scale=1.03
+PROP kind=silo_tank at=(270.6,-1.8,-95.8) yaw=258 scale=0.87
+PROP kind=station_pylon at=(-348.4,-1.8,19.4) yaw=95 scale=0.89
+PROP kind=station_pylon at=(253.9,-1.8,-174.1) yaw=-124 scale=0.97
+PROP kind=antenna_mast at=(78.0,-1.8,49.6) yaw=186 scale=1.17
+PROP kind=antenna_mast at=(-151.2,-1.8,-41.0) yaw=92 scale=1.14
+PROP kind=silo_tank at=(206.4,-1.8,-38.7) yaw=90 scale=1.19
+PROP kind=silo_tank at=(-206.4,-1.8,-19.8) yaw=154 scale=0.90
+PROP kind=silo_tank at=(302.0,-1.8,-144.9) yaw=-70 scale=1.01
+PROP kind=antenna_mast at=(-342.2,-1.7,-106.4) yaw=81 scale=1.19
+PROP kind=station_pylon at=(4.7,-1.8,-52.0) yaw=180 scale=0.98
+PROP kind=silo_tank at=(-83.7,-1.8,-38.0) yaw=203 scale=1.12
+PROP kind=station_pylon at=(-203.5,-1.8,-218.2) yaw=19 scale=1.03
+PROP kind=station_pylon at=(163.8,-1.8,-207.5) yaw=-101 scale=1.23
+PROP kind=station_pylon at=(-71.0,-1.8,-100.2) yaw=-103 scale=1.19
+PROP kind=antenna_mast at=(-34.5,-1.8,-50.8) yaw=92 scale=1.23
+PROP kind=fuel_tank at=(-295.8,-1.8,-207.1) yaw=-71 scale=1.20
+PROP kind=station_pylon at=(202.0,-1.8,-196.5) yaw=-30 scale=0.95
+PROP kind=fuel_tank at=(-289.4,-1.8,127.4) yaw=169 scale=1.06
+PROP kind=foundry_building at=(5.2,-1.8,77.0) yaw=90 scale=0.97
+PROP kind=fuel_tank at=(-373.9,-1.8,30.9) yaw=10 scale=1.21
+PROP kind=station_pylon at=(-147.5,-1.8,-14.5) yaw=91 scale=1.03
+PROP kind=antenna_mast at=(-13.3,-1.8,-77.3) yaw=90 scale=1.24
+PROP kind=antenna_mast at=(-187.7,-1.8,109.8) yaw=189 scale=0.89
+PROP kind=station_pylon at=(-101.2,-1.8,90.3) yaw=108 scale=1.11
+PROP kind=station_pylon at=(-40.7,-1.8,-111.6) yaw=-90 scale=0.88
+PROP kind=antenna_mast at=(-85.9,-1.7,63.4) yaw=208 scale=1.06
+PROP kind=station_pylon at=(233.7,-1.8,-206.9) yaw=-30 scale=1.02
+PROP kind=silo_tank at=(-434.1,-1.8,125.3) yaw=123 scale=1.29
+PROP kind=silo_tank at=(-415.1,-1.8,-260.2) yaw=48 scale=1.16
+PROP kind=station_pylon at=(136.2,-1.8,136.4) yaw=203 scale=1.22
+PROP kind=silo_tank at=(-114.4,-1.8,191.1) yaw=187 scale=1.40
+PROP kind=silo_tank at=(221.1,-1.8,-322.6) yaw=-20 scale=1.04
+PROP kind=foundry_building at=(18.0,-1.8,-322.3) yaw=-90 scale=1.14
+PROP kind=antenna_mast at=(55.9,-1.8,182.7) yaw=90 scale=1.24
+PROP kind=silo_tank at=(-178.4,-1.8,188.1) yaw=188 scale=1.11
+PROP kind=foundry_building at=(-18.1,-1.8,193.1) yaw=118 scale=1.29
+PROP kind=silo_tank at=(124.0,-1.8,-336.5) yaw=-94 scale=1.46
+PROP kind=silo_tank at=(79.7,-1.8,116.9) yaw=93 scale=1.45
+PROP kind=station_pylon at=(-309.8,-1.8,146.5) yaw=162 scale=1.30
+PROP kind=antenna_mast at=(276.2,-1.8,55.6) yaw=204 scale=1.07
+PROP kind=foundry_building at=(207.3,-1.8,41.0) yaw=246 scale=1.02
+PROP kind=station_pylon at=(-356.5,-1.8,-305.3) yaw=26 scale=1.03
+PROP kind=station_pylon at=(-67.3,-1.8,-276.5) yaw=-102 scale=1.44
+PROP kind=station_pylon at=(-452.0,-1.8,-29.0) yaw=90 scale=1.00
+PROP kind=station_pylon at=(111.0,-1.8,-267.2) yaw=-92 scale=1.19
+PROP kind=station_pylon at=(-463.4,-1.8,-118.8) yaw=82 scale=1.36
+PROP kind=station_pylon at=(-217.7,-1.8,-279.7) yaw=-11 scale=1.17
+PROP kind=foundry_building at=(-30.1,-1.8,-298.1) yaw=-22 scale=1.39
+PROP kind=antenna_mast at=(1.0,-1.8,109.6) yaw=180 scale=1.31
+PROP kind=foundry_building at=(-102.3,-1.8,-305.9) yaw=-89 scale=1.04
+PROP kind=antenna_mast at=(96.1,-1.8,-317.9) yaw=1 scale=1.41
+PROP kind=silo_tank at=(348.5,-1.8,-106.2) yaw=179 scale=1.34
+PROP kind=station_pylon at=(-347.1,-1.8,142.7) yaw=148 scale=1.18
+PROP kind=station_pylon at=(278.2,-1.8,-213.6) yaw=-34 scale=1.12
+PROP kind=station_pylon at=(-93.3,-1.8,-347.5) yaw=-1 scale=1.07
+PROP kind=antenna_mast at=(-429.1,-1.8,-170.7) yaw=-14 scale=1.06
+PROP kind=silo_tank at=(-380.5,-1.8,167.7) yaw=144 scale=1.05
+PROP kind=station_pylon at=(-219.8,-1.8,170.7) yaw=86 scale=1.13
+PROP kind=station_pylon at=(318.1,-1.8,-222.1) yaw=-135 scale=1.12
+PROP kind=station_pylon at=(-405.9,-1.8,-47.4) yaw=19 scale=1.41
+PROP kind=station_pylon at=(-367.8,-1.8,-240.9) yaw=42 scale=1.29
+PROP kind=silo_tank at=(-393.2,-1.8,-213.5) yaw=-35 scale=1.25
+PROP kind=antenna_mast at=(134.6,-1.8,-272.5) yaw=-7 scale=1.07
+PROP kind=foundry_building at=(330.8,-1.8,15.6) yaw=136 scale=1.06
+PROP kind=silo_tank at=(-335.6,-1.8,-277.7) yaw=23 scale=1.39
+PROP kind=foundry_building at=(-146.7,-1.8,-347.8) yaw=13 scale=1.37
+PROP kind=silo_tank at=(-457.7,-1.8,24.4) yaw=93 scale=1.06
+PROP kind=antenna_mast at=(-224.0,-1.8,194.0) yaw=85 scale=1.35
+PROP kind=station_pylon at=(185.0,-1.8,-304.2) yaw=-12 scale=1.08
+PROP kind=station_pylon at=(-16.7,-1.8,-260.1) yaw=0 scale=1.13
+PROP kind=silo_tank at=(332.1,-1.8,-250.7) yaw=-131 scale=1.28
+PROP kind=silo_tank at=(279.7,-1.8,-268.8) yaw=-30 scale=1.19
+PROP kind=antenna_mast at=(399.5,-1.8,-124.3) yaw=-174 scale=1.36
+PROP kind=antenna_mast at=(-353.8,-1.8,170.2) yaw=60 scale=1.32
+PROP kind=antenna_mast at=(219.4,-1.8,109.0) yaw=139 scale=1.08
+PROP kind=antenna_mast at=(-378.0,-1.8,137.2) yaw=49 scale=1.08
+PROP kind=station_pylon at=(-453.9,-1.8,-149.5) yaw=-16 scale=1.47
+PROP kind=antenna_mast at=(-398.4,-1.8,28.7) yaw=97 scale=1.38
+PROP kind=antenna_mast at=(-304.6,-1.8,212.2) yaw=169 scale=1.18
+PROP kind=station_pylon at=(-236.8,-1.8,-335.4) yaw=-4 scale=1.17
+PROP kind=silo_tank at=(-441.0,-1.8,-97.3) yaw=-0 scale=1.47
+PROP kind=station_pylon at=(363.6,-1.8,3.0) yaw=233 scale=1.38
+PROP kind=station_pylon at=(-261.9,-1.8,-334.5) yaw=-90 scale=1.44
+PROP kind=silo_tank at=(48.8,-1.8,142.3) yaw=180 scale=1.15
+PROP kind=silo_tank at=(-265.8,-1.8,-290.0) yaw=0 scale=1.23
+PROP kind=antenna_mast at=(-195.5,-1.8,-303.2) yaw=7 scale=1.15
+PROP kind=foundry_building at=(101.1,-1.8,173.5) yaw=189 scale=1.40
+PROP kind=station_pylon at=(379.7,-1.8,-104.2) yaw=269 scale=1.04
+PROP kind=silo_tank at=(-134.5,-1.8,222.1) yaw=198 scale=1.41
+PROP kind=antenna_mast at=(-404.0,-1.8,-140.3) yaw=70 scale=1.41
+PROP kind=antenna_mast at=(15.1,-1.8,150.0) yaw=180 scale=1.16
+PROP kind=station_pylon at=(-58.8,-1.8,-332.5) yaw=-12 scale=1.49
+PROP kind=foundry_building at=(220.0,-1.8,-282.3) yaw=-114 scale=1.22
+PROP kind=foundry_building at=(-452.3,-1.8,80.2) yaw=20 scale=1.31
+PROP kind=silo_tank at=(-299.3,-1.8,-320.8) yaw=10 scale=1.49
+PROP kind=station_pylon at=(33.6,-1.8,104.5) yaw=180 scale=1.36
+PROP kind=station_pylon at=(-451.2,-1.8,-207.5) yaw=-23 scale=1.39
+PROP kind=station_pylon at=(-380.1,-1.8,-262.0) yaw=39 scale=1.13
+PROP kind=station_pylon at=(159.8,-1.8,-333.6) yaw=-94 scale=1.40
+PROP kind=antenna_mast at=(23.7,-1.8,-283.4) yaw=0 scale=1.41
+PROP kind=antenna_mast at=(66.9,-1.8,-329.7) yaw=-84 scale=1.46
+PROP kind=antenna_mast at=(318.5,-1.8,54.2) yaw=215 scale=1.02
+PROP kind=station_pylon at=(-298.2,-1.8,183.8) yaw=169 scale=1.35
+PROP kind=station_pylon at=(-274.5,-1.8,148.1) yaw=66 scale=1.34
+PROP kind=station_pylon at=(-136.0,-1.8,-273.7) yaw=14 scale=1.10
+PROP kind=antenna_mast at=(240.4,-1.8,41.5) yaw=96 scale=1.05
+PROP kind=station_pylon at=(167.3,-1.8,124.7) yaw=215 scale=1.29
+PROP kind=foundry_building at=(365.1,-1.8,-225.1) yaw=-52 scale=1.02
+PROP kind=antenna_mast at=(157.8,-1.8,157.8) yaw=116 scale=1.42
+PROP kind=foundry_building at=(-38.7,-1.8,146.2) yaw=119 scale=1.30
+PROP kind=station_pylon at=(346.8,-1.8,-156.6) yaw=-160 scale=1.43
+PROP kind=foundry_building at=(-233.9,-1.8,231.4) yaw=83 scale=1.09
+PROP kind=station_pylon at=(182.6,-1.8,96.8) yaw=133 scale=1.31
+PROP kind=antenna_mast at=(242.1,-1.8,-251.8) yaw=-120 scale=1.31
+PROP kind=station_pylon at=(-73.4,-1.8,181.1) yaw=198 scale=1.18
+PROP kind=station_pylon at=(283.6,-1.8,-237.6) yaw=-30 scale=1.27
+PROP kind=station_pylon at=(219.8,-1.8,81.4) yaw=235 scale=1.10
+# -- end skyline
