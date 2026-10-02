@@ -52,6 +52,8 @@ export const TRACKSIDE_PROPS: Record<string, PropFactory> = {
   ad_board_a: { maxInstances: 60, build: () => ({ geometry: adBoard('a'), material: lit(), castShadow: true }) },
   ad_board_b: { maxInstances: 60, build: () => ({ geometry: adBoard('b'), material: lit(), castShadow: true }) },
   ad_board_c: { maxInstances: 60, build: () => ({ geometry: adBoard('c'), material: lit(), castShadow: true }) },
+  // left-side rows turn props by 180°, which would make the chevrons point backwards: use this kind on side=L
+  ad_board_b_l: { maxInstances: 60, build: () => ({ geometry: adBoard('b', true), material: lit(), castShadow: true }) },
   tyre_wall: {
     // 1.3 m run of stacked tyres (2 columns × 3 high) on the outside of a corner, banded red / white per column
     maxInstances: 200,
@@ -201,7 +203,7 @@ export const TRACKSIDE_PROPS: Record<string, PropFactory> = {
 };
 
 /** Roadside sponsor board (local +X faces the road): three looks in the village palette, our own sparkle mark only. */
-function adBoard(v: 'a' | 'b' | 'c'): THREE.BufferGeometry {
+function adBoard(v: 'a' | 'b' | 'c', leftSide = false): THREE.BufferGeometry {
   // the panel sits on posts above the 1 m rail fence in front of it, so the rails never cut across its face
   const W = 3.0, H = 0.95, y = 1.12 + H / 2;
   const NAVY = '#2f4a7a', YEL = '#f5c230', RED = '#d8423a';
@@ -212,13 +214,16 @@ function adBoard(v: 'a' | 'b' | 'c'): THREE.BufferGeometry {
   const face = v === 'a' ? TERRACOTTA : v === 'b' ? NAVY : IVORY;
   p.push(part(box(0.04, H, W), face, 0.02, y, 0));
   if (v === 'a') {
-    p.push(paint(place(sparkleGeometry(0.34, 0.03, 11), 0.05, y, -0.85, 0, Math.PI / 2, 0), IVORY));
-    p.push(part(box(0.03, 0.16, 1.6), IVORY, 0.05, y + 0.12, 0.45), part(box(0.03, 0.1, 1.2), IVORY, 0.05, y - 0.16, 0.25));
+    // symmetric: sparkle in the middle, a word-bar pair either side. With the mark at one end it read as "=▷" from
+    // a distance, i.e. an arrow pointing back at the driver on right-side rows
+    p.push(paint(place(sparkleGeometry(0.32, 0.03, 11), 0.05, y, 0, 0, Math.PI / 2, 0), IVORY));
+    for (const z of [-0.85, 0.85]) p.push(part(box(0.03, 0.15, 0.9), IVORY, 0.05, y + 0.1, z), part(box(0.03, 0.09, 0.7), IVORY, 0.05, y - 0.14, z));
   } else if (v === 'b') {
     for (let k = 0; k < 4; k++) {
       const z = -0.9 + k * 0.6;
       // tips toward +Z (the travel direction once placed): on a bend's outside they point into the turn
-      p.push(part(box(0.03, 0.5, 0.14), YEL, 0.05, y + 0.14, z, -0.8, 0, 0), part(box(0.03, 0.5, 0.14), YEL, 0.05, y - 0.14, z, 0.8, 0, 0));
+      const t = leftSide ? -0.8 : 0.8;
+      p.push(part(box(0.03, 0.5, 0.14), YEL, 0.05, y + 0.14, z, -t, 0, 0), part(box(0.03, 0.5, 0.14), YEL, 0.05, y - 0.14, z, t, 0, 0));
     }
   } else {
     for (let k = 0; k < 15; k++) p.push(part(box(0.03, 0.2, 0.2), k % 2 ? RED : INK, 0.05, y - H / 2 + 0.1, -W / 2 + 0.1 + k * 0.2));

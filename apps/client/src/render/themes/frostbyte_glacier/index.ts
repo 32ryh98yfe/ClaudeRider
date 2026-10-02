@@ -1,47 +1,90 @@
 // Frostbyte Glacier — a penguin village in a snow globe, crystal caves and a night ski resort: packed-snow road with
-// ice-blue paint, snow shoulders and banks, pale rock walls, glossy ice. The kit look is the soft overcast of Snowglobe
-// Halfpipe; Aurora Summit sets `sky=aurora time=22 headlights=on` in its THEME line and the aurora/stars below kick in.
+// ice-blue paint, snow shoulders and banks, pale rock walls, glossy ice. The kit look is the bright overcast of Snowglobe
+// Halfpipe; Aurora Summit sets `sky=aurora time=22 headlights=on` in its THEME line, and the factory (which receives
+// those THEME attributes) switches to the night rig below.
 import type { ContentTables } from '@cr/content';
 import { MaterialLibrary } from '../../materials/library.ts';
 import { makeKit, type ThemeKit, type ThemeLook } from '../kit.ts';
 import { FROSTBYTE_PROPS } from './props.ts';
+import { softAoTerrain } from '../sunstone_desert/terrain.ts';
+import { halfpipeRoad } from './halfpipe.ts';
 
+// Stylized arcade read (2026-10 pass, docs/design/34-stylized-pass.md): snow is matte white-blue around #e8eef5 (never
+// clipped to white under ACES), the road is a cool neutral grey so karts and the next corner read first, kerbs are red
+// and white against the snow, barriers are white panels with a navy band, and only ice is glossy.
 export const FROSTBYTE_LOOK: Partial<ThemeLook> = {
-  // snow is near-white, so the light rig runs lower than the other kits to keep the road and props readable
-  road: { style: 'asphalt', a: '#56616f', b: '#667282', line: '#bee9f7' },
-  shoulder: { a: '#d9e4ed', b: '#e7eef4' },
-  terrain: { a: '#e4ecf3', b: '#d2dee9', rock: '#7f8b99' },
+  // a light warm-grey road under the overcast (the cooler slate read dark navy against the snow)
+  road: { style: 'asphalt', a: '#7a7876', b: '#858381', line: '#cdeefa' },
+  shoulder: { a: '#dde6ef', b: '#e6edf4' },
+  terrain: { a: '#e3eaf2', b: '#d5dfe9', rock: '#8e99a7' },
   wall: { kind: 'stone', a: '#d2dde7', b: '#97a7b6' },
-  kerb: ['#2f6fa6', '#f7fbff'],
-  sky: { turbidity: 6, rayleigh: 0.9, elevationDeg: 28, azimuthDeg: 200, exposure: 0.85 },
-  sun: { color: '#eef6ff', intensity: 1.6 },
-  hemi: { sky: '#dcecff', ground: '#b9cad8', intensity: 1.05 },
-  fogColor: '#d3e6f2',
-  exposure: 0.85,
+  kerb: ['#d9453c', '#f1f4f7'],
+  sky: { turbidity: 6, rayleigh: 0.9, elevationDeg: 28, azimuthDeg: 200, exposure: 0.85, top: '#9db7d2', bottom: '#cdd9e5' },
+  // note: on overcast and aurora skies resolveEnvLook uses the sky kind's key (2.6 × sunK), so this only applies to
+  // a day-like glacier track; Snowglobe gets its extra light from the exposure and the back fill below
+  sun: { color: '#eef6ff', intensity: 2.2 },
+  hemi: { sky: '#e4eefa', ground: '#b4c0cd', intensity: 0.8 },
+  // a warm, shadowless back fill: the shaded side of karts and mascots keeps its colour against the white snow
+  fill: { color: '#fff1e2', intensity: 0.65 },
+  fogColor: '#dbe5ee',
+  horizon: '#e2eaf1',
+  skyStyle: 'gradient',
+  exposure: 1.05,
   bloom: 0.25,
   hour: 13,
   clouds: 0.75,
+  envIntensity: 0.45,
   // stars/moon/aurora are left to the sky kind, so only Aurora Summit's `sky=aurora` night gets them
   ambient: 'snow',
-  shadowStrength: 0.55,
-  rimBoost: 1.3,
-  grade: { tint: '#eef7ff', saturation: 1.05, highlights: '#f4fbff' },
+  shadowStrength: 0.68,
+  rimBoost: 0.6,
+  grade: { tint: '#ffffff', saturation: 1.06, shadows: '#eef3ff', highlights: '#fbfdff' },
   // no global water plane: the frozen lake and the rink are ice road surfaces
 };
 
-export default (c: ContentTables): ThemeKit => {
-  const kit = makeKit(c.themes.get('frostbyte_glacier'), FROSTBYTE_LOOK, FROSTBYTE_PROPS);
+/** Aurora Summit (22:00): moonlit snow, a cool back fill and strong rims so karts read; never turned into daytime. */
+const NIGHT_LOOK: Partial<ThemeLook> = {
+  // a mid-grey night road so the lane paint, the karts and the next corner separate from the dark verges
+  road: { style: 'asphalt', a: '#6e7684', b: '#7a8290', line: '#bee9f7' },
+  // the aurora dome reads sky.top / bottom / horizon too: keep them night colours (the day kit's would wash it white)
+  sky: { turbidity: 6, rayleigh: 0.9, elevationDeg: 28, azimuthDeg: 200, exposure: 1, top: '#050c22', bottom: '#14345e' },
+  horizon: '#21507a',
+  // moonlight: a bright, nearly neutral sky fill so snow reads pale blue-grey (not royal blue), plus a cool back fill for
+  // the chase camera; the sun-like key stays the weak moon, so it is still night
+  hemi: { sky: '#c0c9dc', ground: '#5a6274', intensity: 2.4 },
+  fill: { color: '#c3cbe6', intensity: 0.8 },
+  fogColor: '#26374f',
+  exposure: 1.08,
+  bloom: 0.3,
+  envIntensity: 0.35,
+  shadowStrength: 0.7,
+  rimBoost: 1.9,
+  grade: { tint: '#ffffff', saturation: 0.9, shadows: '#e8ebf3', highlights: '#f8faff' },
+};
+
+export default (c: ContentTables, env: Readonly<Record<string, string>> = {}): ThemeKit => {
+  const night = env['sky'] === 'aurora' || env['sky'] === 'night';
+  const kit = makeKit(c.themes.get('frostbyte_glacier'), night ? { ...FROSTBYTE_LOOK, ...NIGHT_LOOK } : FROSTBYTE_LOOK, FROSTBYTE_PROPS);
   const base = kit.materials;
+  const T = kit.look.terrain;
   kit.materials = () => ({
     ...base(),
-    'road:ice': MaterialLibrary.road({ style: 'ice', a: '#9fd8ee', b: '#c6ecf8', line: '#f7fbff', tint: [0.95, 1.05, 1.15] }),
-    'road:snow': MaterialLibrary.road({ style: 'sand', a: '#e8f0f6', b: '#f7fbff', line: '#bee9f7', tint: [1.6, 1.65, 1.7] }),
-    'shoulder:snow': MaterialLibrary.road({ style: 'sand', a: '#e6eff6', b: '#f7fbff', line: '#bee9f7', tint: [1.6, 1.65, 1.7], shoulder: true }),
-    'wall:rock': MaterialLibrary.wall('rock', '#a9b8c6', '#7d8a98', 0.85),
-    'wall:building': MaterialLibrary.wall('building', '#8a6a52', '#f7fbff', 0.9),
-    'wall:parapet': MaterialLibrary.wall('parapet', '#f2f7fb', '#bee9f7', 0.95),
-    'wall:fence': MaterialLibrary.wall('fence', '#f7fbff', '#2f6fa6', 1),
-    underside: MaterialLibrary.world({ color: '#9aa8b6', color2: '#7f8d9b', roughness: 0.9, noiseScale: 0.3, vertexAO: true }),
+    // bright snow: keep 60 % of the baked terrain AO (soft, clean ground; wall bases and gullies keep their shade)
+    terrain: softAoTerrain(T.a, T.b, T.rock, 0.6),
+    // halfpipe walls (part of the road ribbon): packed snow → ice at the lip, navy top band
+    road: halfpipeRoad(MaterialLibrary.road(kit.look.road)),
+    'road:ice': MaterialLibrary.road({ style: 'ice', a: '#9fd3ea', b: '#c0e6f5', line: '#f1f6fa', tint: [1.2, 1.4, 1.6] }),
+    'road:snow': MaterialLibrary.road({ style: 'snow', a: '#dfe7ef', b: '#e8eef5', line: '#bee9f7', tint: [1.7, 1.75, 1.8] }),
+    'shoulder:snow': MaterialLibrary.road({ style: 'snow', a: '#dce5ee', b: '#e6edf4', line: '#bee9f7', tint: [1.7, 1.75, 1.8], shoulder: true }),
+    // resort safety barrier: white panels, navy top band (the default glacier wall kind is stone)
+    // under the blue night rig the day navy turns royal blue: a greyer navy keeps the barrier calm at night
+    'wall:barrier': MaterialLibrary.wall('barrier', '#e9eef3', night ? '#3a4d6a' : '#2f5f96', 1),
+    'wall:rock': MaterialLibrary.wall('rock', '#a3b1bf', '#7b8796', 0.85),
+    'wall:building': MaterialLibrary.wall('building', '#8a6a52', '#e8eef5', 0.9),
+    'wall:parapet': MaterialLibrary.wall('parapet', '#e6edf3', '#b4dbef', 0.95),
+    'wall:fence': MaterialLibrary.wall('fence', '#e8eef5', '#2f6fa6', 1),
+    // deck skirts and cliff faces under the road: pale granite (the night rig turned the old grey into a navy block)
+    underside: MaterialLibrary.world({ color: '#a9b4c1', color2: '#8f9cab', roughness: 0.92, noiseScale: 0.3, vertexAO: true }),
   });
   return kit;
 };

@@ -91,4 +91,40 @@ PROPS kind=grandstand along=main from=@grandstand_s+15 to=@bowl_entry side=L eve
 PROPS kind=banner along=main from=@grandstand_sweep+6 to=@bowl_entry side=L every=11 offset=1.4
 PROPS kind=tyre_wall along=main from=@bowl_entry to=@bowl_entry+110 side=R every=4 offset=1.2
 PROPS kind=stadium along=main from=@stadium_tunnel+2 to=@stadium_tunnel+20 side=R every=30 offset=5
-THEME scatter=pine,tree_round,bush,rock density=6 hills=7 sky=sunset time=18:00
+# ---- stylized dressing pass (2026-10, docs/design/34-stylized-pass.md; render-only, the .ctrk is unchanged) ----------
+# the bowl: flags along the infield. No chevron boards round the hairpin: behind the tyre stacks they sit below the
+# banked bowl wall and never show from the approach, only their backs from the infield
+PROPS kind=flag_pole along=main from=@bowl_straight+8 to=@bowl_straight+70 side=L every=7 offset=2.4 seed=60
+# rally fans along the gravel stage and the wooded S, a crowd at the paddock
+PROPS kind=spectators along=main from=@gravel_straight+4 to=@rally_jump1 side=both every=16 offset=3.2 jitter=2 seed=62
+PROPS kind=spectators along=main from=@wooded_s+10 to=@off_camber side=both every=30 offset=4.5 jitter=3 seed=63
+PROPS kind=spectators along=main from=@paddock_sweeper+8 to=@paddock_sweeper+72 side=L every=18 offset=3 jitter=1 seed=64
+PROPS kind=lamp_post along=main from=@grandstand_s to=@bowl_entry side=L every=24 offset=1.6 seed=65
+# ground cover at the barrier foot (not on the crossover bridge and its ramps, nor inside the stadium tunnel)
+PROPS kind=grass_tuft along=main from=@stadium_gate to=@ridge_run+40 side=both every=1.1 offset=0.2 jitter=7 scale=1.0-1.7 seed=41
+PROPS kind=grass_tuft along=main from=@bridge_descent+50 to=@stadium_tunnel+6 side=both every=1.1 offset=0.2 jitter=7 scale=1.0-1.7 seed=42
+PROPS kind=flower_patch along=main from=@stadium_gate to=@ridge_run+40 side=both every=8 offset=0.8 jitter=9 scale=0.8-1.3 seed=43
+PROPS kind=flower_patch along=main from=@bridge_descent+50 to=@stadium_tunnel+6 side=both every=8 offset=0.8 jitter=9 scale=0.8-1.3 seed=44
+PROPS kind=bush_round along=main from=@stadium_gate to=@ridge_run+40 side=both every=13 offset=3 jitter=6 scale=0.7-1.3 seed=45
+PROPS kind=bush_round along=main from=@bridge_descent+50 to=@stadium_tunnel+6 side=both every=13 offset=3 jitter=6 scale=0.7-1.3 seed=46
+PROPS kind=rock_cluster along=main from=@gate_corner to=@ridge_run side=both every=24 offset=4 jitter=10 scale=0.6-1.4 seed=47
+PROPS kind=rock_cluster along=main from=@tarmac_return to=@grandstand_s side=both every=24 offset=4 jitter=10 scale=0.6-1.4 seed=48
+PROPS kind=grass_tuft along=service_road side=both every=1.4 offset=0.2 jitter=5 scale=0.9-1.5 seed=49
+# shade trees on the forest roads and far tree lines on the horizon
+PROPS kind=tree_round_big along=main from=@tarmac_return to=@rim_sweeper side=both every=20 offset=14 jitter=12 scale=0.8-1.3 seed=50
+PROPS kind=tree_round_big along=main from=@north_leg to=@paddock_sweeper side=both every=20 offset=14 jitter=12 scale=0.8-1.3 seed=51
+# far tree lines only where they stay >= 30 m from every other part of the track (a clump 60-175 m out from one
+# segment otherwise lands beside, or on the edge of, another; ranges from a fold check of the baked centrelines)
+PROPS kind=tree_clump along=840-910 side=L every=28 offset=60 jitter=50 scale=0.9-1.4 seed=52
+PROPS kind=tree_clump along=1050-1335 side=L every=28 offset=60 jitter=50 scale=0.9-1.4 seed=52
+PROPS kind=tree_clump along=0-135 side=R every=28 offset=60 jitter=50 scale=0.9-1.4 seed=52
+PROPS kind=tree_clump along=360-405 side=R every=28 offset=60 jitter=50 scale=0.9-1.4 seed=52
+PROPS kind=tree_clump along=950-1945 side=R every=28 offset=60 jitter=50 scale=0.9-1.4 seed=52
+PROPS kind=tree_clump along=145-225 side=L every=36 offset=125 jitter=50 scale=1.0-1.6 seed=53
+PROPS kind=tree_clump along=590-630 side=L every=36 offset=125 jitter=50 scale=1.0-1.6 seed=53
+PROPS kind=tree_clump along=0-135 side=R every=36 offset=125 jitter=50 scale=1.0-1.6 seed=53
+PROPS kind=tree_clump along=480-685 side=R every=36 offset=125 jitter=50 scale=1.0-1.6 seed=53
+PROPS kind=tree_clump along=950-1945 side=R every=36 offset=125 jitter=50 scale=1.0-1.6 seed=53
+# field scatter is low cover only: random scatter trees crowded the bowl infield in front of race control; the pines and
+# tree lines come from the PROPS rows (rally stage, forest roads, horizon)
+THEME scatter=bush,bush_round,bush_round,rock,rock_cluster,flower_patch,grass_tuft,grass_tuft density=30 hills=7 sky=sunset time=18:00 fogNear=220 fogFar=1300

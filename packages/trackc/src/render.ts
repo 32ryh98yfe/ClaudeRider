@@ -176,6 +176,26 @@ export function groundToRender(rb: RenderBuilder, m: TrackModel, c: Content, gro
 /** Walls with thickness (inner face, top, outer face); u runs 0..1 around the profile, v = s / 3. */
 export function wallsToRender(rb: RenderBuilder, walls: WallQuad[], ao: (x: number, y: number, z: number) => number): void {
   const T = 0.45;
+  // smooth shading on bends: a wall corner shared by quads of the same kind gets the average of their outward
+  // vectors, so curved walls stop reading as a plank fence (one flat normal per 1–2 m quad). Corners sharper than
+  // ≈ 37° (plaza corners, wall ends) keep the quad's flat normal, so hard edges stay crisp. Render only: .ctrk walls
+  // and collision are untouched.
+  const key = (k: string, p: ArrayLike<number>): string => `${k}|${Math.round(p[0]! * 20)},${Math.round(p[1]! * 20)},${Math.round(p[2]! * 20)}`;
+  const acc = new Map<string, [number, number, number]>();
+  for (const w of walls) {
+    if (!w.render) continue;
+    for (const p of [w.a0, w.b0]) {
+      const k = key(w.kind, p), v = acc.get(k) ?? [0, 0, 0];
+      v[0] += w.out[0]; v[1] += w.out[1]; v[2] += w.out[2]; acc.set(k, v);
+    }
+  }
+  const outAt = (w: WallQuad, p: ArrayLike<number>): number[] => {
+    const v = acc.get(key(w.kind, p)), o = w.out;
+    const l = v ? Math.hypot(v[0], v[1], v[2]) : 0;
+    if (l < 1e-6) return [o[0], o[1], o[2]];
+    const n = [v![0] / l, v![1] / l, v![2] / l];
+    return n[0]! * o[0] + n[1]! * o[1] + n[2]! * o[2] > 0.8 ? n : [o[0], o[1], o[2]];
+  };
   for (const w of walls) {
     if (!w.render) continue;
     const sl = rb.slot('wall', w.kind === 'barrier' ? 'barrier' : w.kind);
@@ -192,17 +212,19 @@ export function wallsToRender(rb: RenderBuilder, walls: WallQuad[], ao: (x: numb
     const inN = [-o[0], -o[1], -o[2]];
     const va = w.sa / 3, vb = w.sb / 3;
     // winding: faces visible from their normal side; the side sign flips the along-path direction
-    const quad = (p00: ArrayLike<number>, p01: ArrayLike<number>, p10: ArrayLike<number>, p11: ArrayLike<number>, n: ArrayLike<number>, u0: number, u1: number): void => {
-      const q0 = V(p00, n, u0, va), q1 = V(p01, n, u1, va), q2 = V(p10, n, u0, vb), q3 = V(p11, n, u1, vb);
+    // nA / nB: the shading normals at the row-A and row-B ends; the winding test below still uses the face normal n
+    const quad = (p00: ArrayLike<number>, p01: ArrayLike<number>, p10: ArrayLike<number>, p11: ArrayLike<number>, n: ArrayLike<number>, u0: number, u1: number, nA: ArrayLike<number> = n, nB: ArrayLike<number> = n): void => {
+      const q0 = V(p00, nA, u0, va), q1 = V(p01, nA, u1, va), q2 = V(p10, nB, u0, vb), q3 = V(p11, nB, u1, vb);
       // choose the orientation whose geometric normal agrees with n
       const e1 = [q2[0]! - q0[0]!, q2[1]! - q0[1]!, q2[2]! - q0[2]!], e2 = [q1[0]! - q0[0]!, q1[1]! - q0[1]!, q1[2]! - q0[2]!];
       const gx = e1[1]! * e2[2]! - e1[2]! * e2[1]!, gy = e1[2]! * e2[0]! - e1[0]! * e2[2]!, gz = e1[0]! * e2[1]! - e1[1]! * e2[0]!;
       if (gx * n[0]! + gy * n[1]! + gz * n[2]! >= 0) { rb.tri(sl, chunk, q0, q2, q1); rb.tri(sl, chunk, q1, q2, q3); }
       else { rb.tri(sl, chunk, q0, q1, q2); rb.tri(sl, chunk, q1, q3, q2); }
     };
-    quad(a0, a1, b0, b1, inN, 0, 0.33);
+    const oA = outAt(w, a0), oB = outAt(w, b0);
+    quad(a0, a1, b0, b1, inN, 0, 0.33, [-oA[0]!, -oA[1]!, -oA[2]!], [-oB[0]!, -oB[1]!, -oB[2]!]);
     quad(a1, A1o, b1, B1o, up, 0.33, 0.66);
-    quad(A1o, A0o, B1o, B0o, o, 0.66, 1);
+    quad(A1o, A0o, B1o, B0o, o, 0.66, 1, oA, oB);
   }
 }
 

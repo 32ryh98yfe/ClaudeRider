@@ -17,6 +17,13 @@ export function buildTerrainField(m: TrackModel, c: Content, bounds: number[], n
       const open = s.wallL.type === 'none' || s.wallR.type === 'none';
       const drop = s.jumpPart === 2 || p.kind === 'rail' || !!s.warp || (!!s.kill && open);
       pts.push({ x: s.x, z: s.z, y: s.y, half: s.w / 2 + Math.max(s.shL, s.shR), drop });
+      // banked roads: the edges sit above / below the centreline, so the terrain also tracks the real edge heights.
+      // Following the centreline alone left the terrain up to 1.5 m above the low (inside) edge of banked corners,
+      // where it covered the shoulder and half-buried karts and roadside props
+      if (Math.abs(s.ry) > 0.02) for (const side of [-1, 1]) {
+        const u = side * (s.w / 2 + (side < 0 ? s.shL : s.shR));
+        pts.push({ x: s.x + s.rx * u, z: s.z + s.rz * u, y: s.y + s.ry * u, half: 0.5, drop });
+      }
     }
   };
   for (const p of m.paths) addPath(p);

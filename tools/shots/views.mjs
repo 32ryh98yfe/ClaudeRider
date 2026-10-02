@@ -39,8 +39,10 @@ for (const g of groups) {
     }, [c.cam, c.hud !== false]);
     await page.waitForTimeout(c.settle ?? settle);
     const f = `${outDir}/${c.name}.png`;
-    await page.screenshot({ path: f });
-    console.log(`[shot] ${f}`);
+    // SwiftShader frames of a dressed track take tens of seconds when several lanes share the CPUs: wait for them,
+    // and let one stuck view fail on its own instead of killing the rest of the set
+    try { await page.screenshot({ path: f, timeout: 300000 }); console.log(`[shot] ${f}`); }
+    catch (e) { console.log(`[shot-timeout] ${f}: ${e.message.split('\n')[0]}`); process.exitCode = 1; }
   }
   await ctx.close();
 }

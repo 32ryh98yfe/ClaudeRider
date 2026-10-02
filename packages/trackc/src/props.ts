@@ -148,6 +148,9 @@ export function placeProps(m: TrackModel, c: Content, seed: number, gi: GroundIn
         const yRoad = smp.y + smp.ry * edge;
         if (gi.heightAt(x, z, yRoad) !== null) { DROPS.onRoad++; continue; } // never on a road
         let y = groundY(x, z, yRoad - 0.2);
+        // a stacked layout (overpass, spiral, hairpin) can put the landing point on another stretch of road: drop it
+        // there too (S-D-props-other-level); a deck more than 2.5 m above still lets props stand under the bridge
+        if (gi.heightAt(x, z, y, 2.5) !== null) { DROPS.onRoad++; continue; }
         if (y < yRoad - 3) {
           // beside an elevated deck (bridges, interchange ramps, skyways) the ground is far below:
           if (smp.kill) { DROPS.floating++; continue; }          // ledges over kill planes stay bare

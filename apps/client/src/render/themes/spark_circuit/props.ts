@@ -6,11 +6,14 @@ import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
 import { merge, paint, place, rbox, box, cyl, cone, sph, ico, sparkleGeometry } from '../../util/geo.ts';
 
-// Three shared materials for the whole kit (vertex colour carries the variation): glossy toy paint, matte, metal.
-// The parameter sets match ones the scene already uses (chevrons, default props, kart parts), so the kit adds no materials.
-const gloss = (): THREE.Material => MaterialLibrary.vertexLit(0.4, 0);
+// Shared materials for the whole kit (vertex colour carries the variation). 2026-10 stylized pass: gloss belongs on the
+// karts, so concrete, stands and tunnels are matte, painted boards / pit structures a soft satin, masts metal, and the
+// trees use the shared foliage slot (wind sway, no gloss). Every parameter set matches one the scene already builds
+// (default props, grid-slot paint, kart parts, trackside plants), so the kit adds no materials.
+const satin = (): THREE.Material => MaterialLibrary.vertexLit(0.7, 0);
 const matte = (): THREE.Material => MaterialLibrary.vertexLit(0.8, 0);
 const metal = (): THREE.Material => MaterialLibrary.vertexLit(0.5, 0.2);
+const leafy = (): THREE.Material => MaterialLibrary.foliageLit();
 
 const C = {
   tarmac: '#3a3d42', graphite: '#2b2d33', kerbRed: '#e63946', white: '#fafafa', ivory: '#f5f4ed', concrete: '#c9c6bf',
@@ -18,6 +21,8 @@ const C = {
   sage: '#788c5d', mustard: '#e0b04b', glass: '#2a3d52', lamp: '#fff4cf', straw: '#dcae52', strawDark: '#c4923c',
   pine: '#2f6b3f', pineLight: '#3f8a4c', bark: '#6b4a33',
 } as const;
+/** The shared trackside palette (34-stylized-pass §4): signal red, navy, yellow. */
+const TS = { red: '#d8423a', navy: '#2f4a7a', yellow: '#f5c230' } as const;
 const CROWD = [C.coral, C.ivory, C.sky, C.sage, C.mustard, C.purple, C.sunset, '#e8e2d6', '#b85c7a', '#4f8fa8'] as const;
 
 function rng(seed: number): () => number {
@@ -57,24 +62,26 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
   gantry: {
     build: () => {
       const parts: THREE.BufferGeometry[] = [];
+      // pillars and lamp panel in the trackside navy: graphite rendered near-black (#10141f) against the sky, a hole in
+      // the frame instead of the venue's navy truss
       for (const x of [-11.2, 11.2]) {
-        parts.push(paint(place(rbox(1.3, 8.4, 1.6, 0.35, 2), x, 4.2, 0), C.graphite));
+        parts.push(paint(place(rbox(1.3, 8.4, 1.6, 0.35, 2), x, 4.2, 0), TS.navy));
         parts.push(paint(place(rbox(1.8, 0.6, 2.2, 0.2, 2), x, 0.3, 0), C.kerbRed));
       }
       parts.push(paint(place(rbox(24, 1.8, 1.4, 0.45, 2), 0, 8.2, 0), C.white));
       parts.push(paint(place(box(24.2, 0.35, 1.45), 0, 9.0, 0), C.kerbRed));
       for (let k = 0; k < 24; k++) parts.push(paint(place(box(0.98, 0.45, 1.46), -11.5 + k, 7.45, 0), k % 2 ? '#141413' : C.white));
-      // five start-light pods on a black panel, both faces
-      parts.push(paint(place(rbox(7.4, 1.5, 1.8, 0.3, 2), 0, 10.0, 0), '#141413'));
+      // five start-light pods on a deep-navy panel (dark enough that the red pods pop), both faces
+      parts.push(paint(place(rbox(7.4, 1.5, 1.8, 0.3, 2), 0, 10.0, 0), '#24395f'));
       for (let k = 0; k < 5; k++) for (const z of [-0.92, 0.92]) parts.push(paint(place(sph(0.36, 8, 6), -2.8 + k * 1.4, 10.0, z), '#ff3b30'));
       const sp = sparkleGeometry(2.2, 0.35, 11);
       parts.push(paint(place(sp, 0, 12.2, 0), C.coral));
-      return { geometry: merge(parts), material: gloss(), castShadow: true };
+      return { geometry: merge(parts), material: satin(), castShadow: true };
     },
     maxInstances: 2,
   },
   /** Grandstand with crowd cards and a cantilever roof (24 m). */
-  grandstand: { build: () => ({ geometry: merge(stand(24, 5, 17, C.kerbRed)), material: gloss(), castShadow: true }), maxInstances: 40 },
+  grandstand: { build: () => ({ geometry: merge(stand(24, 5, 17, C.kerbRed)), material: matte(), castShadow: true }), maxInstances: 40 },
   /** Stadium stand for the sunset arena bowl: taller, longer, with two floodlight masts. */
   stadium: {
     build: () => {
@@ -84,7 +91,7 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
         parts.push(paint(place(rbox(0.8, 2.4, 5, 0.2, 2), -14.4, 26.4, z, 0, 0, -0.35), C.graphite));
         for (let k = 0; k < 4; k++) parts.push(paint(place(box(0.2, 0.8, 1.0), -13.9, 26.0 + (k % 2) * 1.0, z - 1.4 + Math.floor(k / 2) * 2.8, 0, 0, -0.35), C.lamp));
       }
-      return { geometry: merge(parts), material: gloss(), castShadow: true };
+      return { geometry: merge(parts), material: matte(), castShadow: true };
     },
     maxInstances: 24,
   },
@@ -103,7 +110,7 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
       parts.push(paint(place(box(0.35, 0.6, 20.4), 3.2, 5.25, 0), C.kerbRed));
       parts.push(paint(place(box(10.4, 0.6, 20.4), -5, 6.3, 0), C.graphite));
       parts.push(paint(place(cyl(0.06, 0.06, 2.4, 5), -7, 7.8, 7), C.graphite), paint(place(sph(0.25, 6, 4), -7, 9.1, 7), C.kerbRed));
-      return { geometry: merge(parts), material: gloss(), castShadow: true };
+      return { geometry: merge(parts), material: satin(), castShadow: true };
     },
     maxInstances: 24,
   },
@@ -115,7 +122,7 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
       for (const z of [-8, 0, 8]) parts.push(paint(place(cyl(0.08, 0.08, 2.6, 5), -1.4, 1.3, z), C.graphite));
       parts.push(paint(place(box(2.6, 0.18, 20), -1.1, 2.7, 0), C.white), paint(place(box(2.6, 0.2, 20), -1.1, 2.86, 0), C.sunset));
       for (let z = -8; z <= 8; z += 4) parts.push(paint(place(box(0.12, 0.6, 1.0), -0.6, 2.1, z), '#101216'));
-      return { geometry: merge(parts), material: gloss() };
+      return { geometry: merge(parts), material: satin() };
     },
     maxInstances: 20,
   },
@@ -134,7 +141,7 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
       for (let k = 0; k < 4; k++) parts.push(paint(place(box(0.2, 3.2, 1.4), -4 + Math.cos((k * Math.PI) / 2) * 5.05, 19.6, Math.sin((k * Math.PI) / 2) * 5.05, 0, (k * Math.PI) / 2, 0), C.white));
       const sp = place(sparkleGeometry(3.4, 0.5, 23), -4, 28.6, 0, 0, Math.PI / 2, 0);
       parts.push(paint(sp, C.coral));
-      return { geometry: merge(parts), material: gloss(), castShadow: true };
+      return { geometry: merge(parts), material: satin(), castShadow: true };
     },
     maxInstances: 2,
   },
@@ -151,25 +158,27 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
     },
     maxInstances: 160,
   },
-  /** Original sponsor-free advertising board: three panels (chevrons, a dot, stripes) on legs, 9 m. */
+  /**
+   * Original sponsor-free advertising board: three panels on legs, 9 m, in the shared trackside palette (signal red,
+   * navy, ivory, yellow). Rows place it on both sides of the road, where a left-side board is turned to face the road
+   * and its +Z runs against travel, so it carries no arrows (a chevron would read as a wrong-way sign there).
+   */
   banner: {
     build: () => {
       const parts: THREE.BufferGeometry[] = [];
       for (const z of [-4.2, 0, 4.2]) parts.push(paint(place(box(0.14, 0.5, 0.14), -0.1, 0.25, z), C.graphite));
       parts.push(paint(place(rbox(0.25, 1.5, 9.2, 0.08, 2), 0, 1.25, 0), C.white));
-      // panel 1: coral with white chevrons
-      parts.push(paint(place(box(0.08, 1.3, 2.9), 0.14, 1.25, -3.05), C.coral));
-      for (let k = 0; k < 3; k++) {
-        const z = -4.0 + k * 0.8;
-        parts.push(paint(place(box(0.06, 0.62, 0.16), 0.2, 1.47, z, -0.8, 0, 0), C.white), paint(place(box(0.06, 0.62, 0.16), 0.2, 1.03, z, 0.8, 0, 0), C.white));
-      }
-      // panel 2: deep purple with a sunset disc and a horizon line
-      parts.push(paint(place(box(0.08, 1.3, 2.9), 0.14, 1.25, 0), C.purple));
-      parts.push(paint(place(cyl(0.45, 0.45, 0.06, 14), 0.2, 1.35, 0, 0, 0, Math.PI / 2), C.sunset), paint(place(box(0.07, 0.08, 2.5), 0.21, 1.0, 0), C.mustard));
-      // panel 3: sky blue with diagonal white stripes
-      parts.push(paint(place(box(0.08, 1.3, 2.9), 0.14, 1.25, 3.05), C.sky));
-      for (let k = 0; k < 4; k++) parts.push(paint(place(box(0.06, 1.25, 0.22), 0.2, 1.25, 2.0 + k * 0.7, 0.5, 0, 0), C.white));
-      return { geometry: merge(parts), material: gloss() };
+      // panel 1: signal red with the white parametric sparkle and two bars
+      parts.push(paint(place(box(0.08, 1.3, 2.9), 0.14, 1.25, -3.05), TS.red));
+      parts.push(paint(place(sparkleGeometry(0.42, 0.04, 13), 0.2, 1.27, -3.95, 0, Math.PI / 2, 0), C.white));
+      parts.push(paint(place(box(0.06, 0.2, 1.4), 0.2, 1.42, -2.75), C.white), paint(place(box(0.06, 0.12, 1.0), 0.2, 1.1, -2.95), C.white));
+      // panel 2: navy with a yellow sun disc and a white horizon line
+      parts.push(paint(place(box(0.08, 1.3, 2.9), 0.14, 1.25, 0), TS.navy));
+      parts.push(paint(place(cyl(0.45, 0.45, 0.06, 14), 0.2, 1.35, 0, 0, 0, Math.PI / 2), TS.yellow), paint(place(box(0.07, 0.08, 2.5), 0.21, 1.0, 0), C.white));
+      // panel 3: ivory with diagonal red stripes
+      parts.push(paint(place(box(0.08, 1.3, 2.9), 0.14, 1.25, 3.05), C.ivory));
+      for (let k = 0; k < 4; k++) parts.push(paint(place(box(0.06, 1.25, 0.22), 0.2, 1.25, 2.0 + k * 0.7, 0.5, 0, 0), TS.red));
+      return { geometry: merge(parts), material: satin() };
     },
     maxInstances: 120,
   },
@@ -190,7 +199,7 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
         }
       }
       parts.push(paint(place(box(35.2, 0.4, 2.9), 0, 10.6, 0), C.kerbRed));
-      return { geometry: merge(parts), material: gloss(), castShadow: true };
+      return { geometry: merge(parts), material: satin(), castShadow: true };
     },
     maxInstances: 4,
   },
@@ -216,7 +225,7 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
         paint(place(box(0.1, 1.0, 1.6), -0.08, 1.5, 0), C.glass),
         paint(place(cyl(0.05, 0.05, 3.6, 5), 0.2, 1.8, 1.0), C.graphite),
         paint(place(box(0.05, 0.7, 1.1), 0.2, 3.2, 1.6), '#f2c14e'),
-      ]), material: gloss(),
+      ]), material: satin(),
     }),
     maxInstances: 40,
   },
@@ -249,7 +258,7 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
       for (const x of [-10, 10]) parts.push(paint(place(box(0.5, 0.18, 28), x, 8.3, 0), C.lamp));
       // the stand on the roof looks into the bowl (+Z); built facing +X, turned a quarter
       for (const g of stand(26, 4, 41, C.sunset)) parts.push(place(g, 0, 9.8, -2, 0, -Math.PI / 2, 0));
-      return { geometry: merge(parts), material: gloss(), castShadow: true };
+      return { geometry: merge(parts), material: matte(), castShadow: true };
     },
     maxInstances: 4,
   },
@@ -260,7 +269,7 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
         paint(place(box(13, 1.6, 20.4), 0, -1.15, 0), C.concrete),
         paint(place(box(13.4, 0.45, 20.4), 0, -0.55, 0), C.kerbRed),
         paint(place(box(11, 0.5, 20.4), 0, -2.1, 0), C.concreteDark),
-      ]), material: gloss(), castShadow: true,
+      ]), material: matte(), castShadow: true,
     }),
     maxInstances: 24,
   },
@@ -271,7 +280,7 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
         paint(place(rbox(1.8, 13, 2.4, 0.3, 2), -3.2, -8.4, 0), C.concrete),
         paint(place(rbox(1.8, 13, 2.4, 0.3, 2), 3.2, -8.4, 0), C.concrete),
         paint(place(box(9.6, 1.4, 2.8), 0, -2.9, 0), C.concreteDark),
-      ]), material: gloss(), castShadow: true,
+      ]), material: matte(), castShadow: true,
     }),
     maxInstances: 16,
   },
@@ -284,7 +293,7 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
         paint(place(rbox(2.2, 2.45, 2.2, 0.3, 2), 0, 1.22, 0), C.concrete),
         paint(place(box(3.0, 0.3, 3.6), 0, 2.55, 0), C.concreteDark),
         paint(place(box(2.3, 0.3, 2.3), 0, 0.55, 0), C.kerbRed),
-      ]), material: gloss(), castShadow: true,
+      ]), material: matte(), castShadow: true,
     }),
     maxInstances: 120,
   },
@@ -295,7 +304,7 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
       for (let r = 0; r < 3; r++) for (let c = 0; c < 3 - (r === 2 ? 1 : 0); c++) parts.push(paint(place(cyl(0.45, 0.45, 1.0, 10), (c - 1) * 0.95 + (r === 2 ? 0.47 : 0), 0.5, -r * 0.95), r % 2 ? '#f2c14e' : '#1d1e22'));
       parts.push(paint(place(box(2.4, 0.9, 0.12), 0, 1.5, 0.6), '#f2c14e'));
       for (let k = 0; k < 3; k++) parts.push(paint(place(box(0.16, 0.7, 0.05), -0.7 + k * 0.7, 1.5, 0.68, 0, 0, 0.6), '#1d1e22'));
-      return { geometry: merge(parts), material: gloss() };
+      return { geometry: merge(parts), material: satin() };
     },
     maxInstances: 8,
   },
@@ -317,11 +326,11 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
         paint(place(cyl(0.25, 0.35, 2.4, 7), 0, 1.2, 0), C.bark),
         paint(place(ico(1.9, 1), 0, 3.6, 0, 0, 0, 0, 1, 0.9, 1), '#5f9e45', 0.12, 3),
         paint(place(ico(1.3, 1), 0.9, 4.4, 0.4), '#72b352', 0.12, 5),
-      ]), material: matte(), castShadow: true,
+      ]), material: leafy(), castShadow: true,
     }),
     maxInstances: 400,
   },
-  bush: { build: () => ({ geometry: merge([paint(place(ico(0.9, 1), 0, 0.5, 0, 0, 0, 0, 1.3, 0.8, 1.1), '#5a9a44', 0.15, 13)]), material: matte() }), maxInstances: 400 },
+  bush: { build: () => ({ geometry: merge([paint(place(ico(0.9, 1), 0, 0.5, 0, 0, 0, 0, 1.3, 0.8, 1.1), '#5a9a44', 0.15, 13)]), material: leafy() }), maxInstances: 400 },
   /** Tall rally pine (slimmer and darker than the default pine). */
   pine: {
     build: () => ({
@@ -331,7 +340,7 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
         paint(place(cone(1.8, 2.9, 8), 0, 4.6, 0), C.pineLight, 0.1, 5),
         paint(place(cone(1.35, 2.6, 8), 0, 6.1, 0), C.pine, 0.1, 7),
         paint(place(cone(0.85, 2.0, 8), 0, 7.5, 0), C.pineLight, 0.1, 9),
-      ]), material: matte(), castShadow: true,
+      ]), material: leafy(), castShadow: true,
     }),
     maxInstances: 400,
   },

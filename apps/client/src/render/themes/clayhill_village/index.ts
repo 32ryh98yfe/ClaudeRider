@@ -34,8 +34,28 @@ export const CLAYHILL_LOOK: Partial<ThemeLook> = {
   grade: { tint: '#ffffff', saturation: 1.06, shadows: '#eef3ff', highlights: '#fffaf2' },
 };
 
-export default (c: ContentTables): ThemeKit => {
-  const kit = makeKit(c.themes.get('clayhill_village'), CLAYHILL_LOOK, CLAYHILL_PROPS);
+// Golden hour (Belltower Piazza): the same organised palette under a low warm key. The zenith stays clear blue and
+// only the horizon warms, so the frame never turns into the orange haze the old Preetham sky gave. The sun sits
+// behind-right of the start straight, so long shadows fall across the road ahead instead of backlighting the grid.
+// Also a warmer fill and a little more rim, so the mascots' shaded sides keep their colour.
+export const CLAYHILL_GOLDEN: Partial<ThemeLook> = {
+  // first cut (peach horizon #f4dabd, sun #ffd9ab, warm fog) turned the whole frame orange: the dome mixes the
+  // horizon colour up to ~33° and the chase camera sees little else, so the warmth now lives in a pale band, the
+  // key light and the long shadows, against cool blue shadow fill
+  sky: { ...CLAYHILL_LOOK.sky!, azimuthDeg: -35, top: '#4f86d6', bottom: '#eadbc8' },
+  sun: { color: '#ffe2b8', intensity: 3.0 },
+  hemi: { sky: '#c6d5f4', ground: '#8f6e5a', intensity: 1.35 },
+  fill: { color: '#ffe2cc', intensity: 0.45 },
+  fogColor: '#e4ddd4',
+  horizon: '#f1e4d3',
+  clouds: 0.3,
+  rimBoost: 0.6,
+  grade: { tint: '#ffffff', saturation: 1.04, shadows: '#e8eeff', highlights: '#fff6ea' },
+};
+
+export default (c: ContentTables, env?: Readonly<Record<string, string>>): ThemeKit => {
+  const golden = env?.['sky'] === 'goldenHour' || env?.['sky'] === 'sunset';
+  const kit = makeKit(c.themes.get('clayhill_village'), golden ? { ...CLAYHILL_LOOK, ...CLAYHILL_GOLDEN } : CLAYHILL_LOOK, CLAYHILL_PROPS);
   const base = kit.materials;
   // theme-tinted variants of the per-surface / per-wall-type slots the .vis bakes (TrackView resolves `family:variant`)
   kit.materials = () => ({

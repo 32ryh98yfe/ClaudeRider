@@ -50,10 +50,12 @@ HAZ swinger log2 at=@pendulum_run+40 d=0 capsule=(0.8,2.4) arm=6 amp=50 plane=ac
 
 # --- dressing: karst pillars flank the slalom, giant trunks carry the canopy, the treehouse tree fills the spiral
 PROPS kind=karst_pillar from=@slalom_1 to=@falls_tunnel side=both every=26 offset=9
-PROPS kind=giant_trunk from=@pool_straight to=@pool_corner+30 side=both every=24 offset=7 jitter=4
+# (the left row starts after the log grandstand by the line, so the stand and the pool corner stay readable)
+PROPS kind=giant_trunk from=@pool_straight to=@pool_corner+30 side=R every=24 offset=7 jitter=4
+PROPS kind=giant_trunk from=@pool_straight+40 to=@pool_corner+30 side=L every=24 offset=7 jitter=4 seed=60
 PROPS kind=giant_trunk from=@canopy_climb to=@pendulum_run+50 side=both every=22 offset=6 jitter=5
 PROPS kind=rope_rail from=@canopy_boardwalk to=@treehouse_spiral side=both every=6 offset=0.3
-PROPS kind=fern along=main side=both every=10 offset=1.0
+PROPS kind=grass_fern along=main from=@descent to=@canopy_climb side=both every=10 offset=1.0
 PROPS kind=bamboo from=@river_s to=@spray_hairpin side=both every=28 offset=5 jitter=4
 PROPS kind=bamboo from=@rapids_s to=@gorge_in side=both every=30 offset=6 jitter=4
 PROPS kind=rock_moss from=@rapids_s to=@rapids_exit_s side=both every=22 offset=3
@@ -66,4 +68,67 @@ PROP kind=log_gantry at=(-139.4,11.3,-251.3) yaw=-134.0
 PROP kind=log_gantry at=(-158.1,11.3,-269.3) yaw=-134.0
 PROP kind=treehouse at=(-186.0,-2.0,-262.0) yaw=0 scale=1.3
 PROP kind=waterfall at=(-283.0,-5.0,-199.8) yaw=-31.0 scale=1.2
-THEME canopy_forest sky=day time=09:30 scatter=forest_wall,forest_wall,karst_pillar,giant_trunk,bamboo,rock_moss density=8 hills=6
+# ---- stylized dressing pass (2026-10, docs/design/34-stylized-pass.md; render-only, the .ctrk is unchanged) ----------
+# start: a log grandstand left of the line, lanterns, pennants, signboards behind the wall, woodland fans
+PROPS kind=grandstand from=@pool_straight+20 to=@pool_straight+21 side=L every=100 offset=5 seed=70
+PROPS kind=ad_board_a from=@home+4 to=@pool_straight+50 side=R every=24 offset=0.4 seed=71
+PROPS kind=ad_board_c from=@home+16 to=@pool_straight+50 side=R every=24 offset=0.4 seed=72
+PROPS kind=lamp_post from=@home+2 to=@pool_straight+52 side=both every=18 offset=1.6 seed=75
+PROPS kind=flag_pole from=@pool_straight+36 to=@pool_straight+54 side=L every=6 offset=2.6 seed=76
+PROPS kind=spectators from=@home+6 to=@home+50 side=R every=16 offset=2.4 jitter=1 seed=78
+PROPS kind=spectators from=@pool_return+6 to=@home side=L every=18 offset=2.4 jitter=1 seed=77
+# the pool corner (left-hander, outside on the right): log barrier at the wall, chevron boards above it
+PROPS kind=tyre_wall from=@pool_corner+1 to=@pool_corner+38 side=R every=1.3 offset=0.6 seed=79
+PROPS kind=ad_board_b from=@pool_corner+3 to=@pool_corner+36 side=R every=10 offset=2.4 seed=80
+# ground cover at the wall foot wherever the road runs on the gorge floor (the canopy climb, boardwalk and spiral stand
+# on trestles: offsets ≤ 2 m there would sit on the deck edge)
+PROPS kind=grass_tuft from=@descent to=@canopy_climb side=both every=0.9 offset=0.2 jitter=6 scale=1.0-1.7 seed=81
+PROPS kind=flower_patch from=@descent to=@canopy_climb side=both every=6 offset=0.8 jitter=8 scale=0.8-1.3 seed=83
+PROPS kind=mushroom_patch from=@descent to=@canopy_climb side=both every=14 offset=0.6 jitter=5 scale=0.8-1.4 seed=85
+# a sparse undergrowth layer across the gorge floor out to ~25 m (the floor between the pillars never reads as bare lawn)
+PROPS kind=grass_tuft from=@descent to=@canopy_climb side=both every=4 offset=3 jitter=22 scale=0.9-1.6 seed=98
+PROPS kind=flower_patch from=@descent to=@canopy_climb side=both every=14 offset=4 jitter=20 scale=0.8-1.3 seed=99
+# fern bushes and mossy boulders behind (the falls tunnel stays clear of the water curtain)
+PROPS kind=bush_round from=@descent to=@falls_tunnel-4 side=both every=10 offset=2.5 jitter=8 scale=0.7-1.3 seed=86
+PROPS kind=bush_round from=@cave_hairpin to=@canopy_climb side=both every=10 offset=2.5 jitter=8 scale=0.7-1.3 seed=87
+PROPS kind=rock_cluster from=@descent to=@falls_tunnel-4 side=both every=15 offset=3.5 jitter=12 scale=0.6-1.5 seed=88
+PROPS kind=rock_cluster from=@cave_hairpin to=@canopy_climb side=both every=15 offset=3.5 jitter=12 scale=0.6-1.5 seed=89
+# shade trees (their crowns reach the boardwalk, so the canopy road runs among the treetops); none behind the stand/grid
+# and none on the outside of the pool corner, which stays open so the corner reads, nor round the treehouse spiral
+# (its stacked turns would put them on the level below)
+# through the slalom, the falls tunnel and into the cave hairpin the chase camera swings wide of the kart, so the shade
+# trees stand 5 m further out there (a trunk and crown filled the frame between slalom_3 and the falls tunnel); none
+# inside the cave hairpin on L (falls tunnel to canopy_climb+50): 13-34 m out there lands on the road's other leg
+PROPS kind=tree_round_big from=@pool_corner to=@slalom_1 side=L every=16 offset=13 jitter=16 scale=0.8-1.4 seed=90
+PROPS kind=tree_round_big from=@slalom_1 to=@falls_tunnel side=L every=16 offset=18 jitter=16 scale=0.8-1.4 seed=100
+PROPS kind=tree_round_big from=@canopy_climb+50 to=@boardwalk_s side=L every=16 offset=13 jitter=16 scale=0.8-1.4 seed=101
+PROPS kind=tree_round_big from=@falls_lip to=@home side=L every=16 offset=13 jitter=16 scale=0.8-1.4 seed=92
+PROPS kind=tree_round_big from=@pool_corner+50 to=@cave_hairpin+40 side=R every=16 offset=18 jitter=16 scale=0.8-1.4 seed=91
+PROPS kind=tree_round_big from=@cave_hairpin+40 to=@boardwalk_s side=R every=16 offset=13 jitter=16 scale=0.8-1.4 seed=102
+PROPS kind=tree_round_big from=@falls_lip to=@pool_corner-10 side=R every=16 offset=13 jitter=16 scale=0.8-1.4 seed=93
+# far tree lines only where they stay >= 20 m from every other part of the track (a clump 60-175 m out from one
+# segment otherwise lands beside, or on the edge of, another; ranges from a fold check of the baked centrelines)
+PROPS kind=tree_clump along=0-35 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
+PROPS kind=tree_clump along=65-135 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
+PROPS kind=tree_clump along=885-1000 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
+PROPS kind=tree_clump along=1725-1785 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
+PROPS kind=tree_clump along=1820-1950 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
+PROPS kind=tree_clump along=0-375 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
+PROPS kind=tree_clump along=500-570 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
+PROPS kind=tree_clump along=585-715 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
+PROPS kind=tree_clump along=780-1835 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
+PROPS kind=tree_clump along=1855-1950 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=94
+PROPS kind=tree_clump along=365-435 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=95
+PROPS kind=tree_clump along=705-795 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=95
+PROPS kind=tree_clump along=880-950 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=95
+PROPS kind=tree_clump along=0-370 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=95
+PROPS kind=tree_clump along=435-570 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=95
+PROPS kind=tree_clump along=585-715 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=95
+PROPS kind=tree_clump along=790-1835 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=95
+PROPS kind=tree_clump along=1860-1950 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=95
+PROP kind=hot_air_balloon at=(-60.0,62.0,-120.0) yaw=20 scale=1.1
+PROP kind=hot_air_balloon at=(-240.0,58.0,-40.0) yaw=0 scale=0.9
+# the random scatter is low cover only: no karst_pillar (the PROPS rows place the pillars, and a scattered one landed
+# beside the grid), no forest_wall or bamboo (they stood in the chase camera's swing; the forest_wall and bamboo rows
+# and the far tree lines carry the depth)
+THEME canopy_forest sky=day time=09:30 scatter=rock_moss,rock_cluster,bush_round,bush_round,stump,mossy_log,mushroom_red density=26 hills=6 fogNear=120 fogFar=850
