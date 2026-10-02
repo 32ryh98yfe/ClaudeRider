@@ -77,7 +77,9 @@ function chevronTall(leftSide: boolean): THREE.BufferGeometry {
     parts.push(paint(place(box(0.18, y + 1.5, 0.18), -0.12, (y - 1.5) / 2, z), C.graphite));
     parts.push(paint(place(box(0.3, 0.35, 0.3), -0.12, 0.1, z), C.concreteDark));
   }
+  // white border on the face; the back is navy too, so from outside the bowl it reads as a sign's back, not a blank one
   parts.push(paint(place(box(0.12, H + 0.16, W + 0.16), -0.04, y, 0), C.white));
+  parts.push(paint(place(box(0.04, H + 0.18, W + 0.18), -0.12, y, 0), TS.navy));
   parts.push(paint(place(box(0.04, H, W), 0.03, y, 0), TS.navy));
   for (let k = 0; k < 4; k++) {
     const z = -1.2 + k * 0.8;
