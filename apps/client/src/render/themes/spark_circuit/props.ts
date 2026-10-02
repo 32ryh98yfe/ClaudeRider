@@ -62,15 +62,17 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
   gantry: {
     build: () => {
       const parts: THREE.BufferGeometry[] = [];
+      // pillars and lamp panel in the trackside navy: graphite rendered near-black (#10141f) against the sky, a hole in
+      // the frame instead of the venue's navy truss
       for (const x of [-11.2, 11.2]) {
-        parts.push(paint(place(rbox(1.3, 8.4, 1.6, 0.35, 2), x, 4.2, 0), C.graphite));
+        parts.push(paint(place(rbox(1.3, 8.4, 1.6, 0.35, 2), x, 4.2, 0), TS.navy));
         parts.push(paint(place(rbox(1.8, 0.6, 2.2, 0.2, 2), x, 0.3, 0), C.kerbRed));
       }
       parts.push(paint(place(rbox(24, 1.8, 1.4, 0.45, 2), 0, 8.2, 0), C.white));
       parts.push(paint(place(box(24.2, 0.35, 1.45), 0, 9.0, 0), C.kerbRed));
       for (let k = 0; k < 24; k++) parts.push(paint(place(box(0.98, 0.45, 1.46), -11.5 + k, 7.45, 0), k % 2 ? '#141413' : C.white));
-      // five start-light pods on a black panel, both faces
-      parts.push(paint(place(rbox(7.4, 1.5, 1.8, 0.3, 2), 0, 10.0, 0), '#141413'));
+      // five start-light pods on a deep-navy panel (dark enough that the red pods pop), both faces
+      parts.push(paint(place(rbox(7.4, 1.5, 1.8, 0.3, 2), 0, 10.0, 0), '#24395f'));
       for (let k = 0; k < 5; k++) for (const z of [-0.92, 0.92]) parts.push(paint(place(sph(0.36, 8, 6), -2.8 + k * 1.4, 10.0, z), '#ff3b30'));
       const sp = sparkleGeometry(2.2, 0.35, 11);
       parts.push(paint(place(sp, 0, 12.2, 0), C.coral));
