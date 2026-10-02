@@ -81,12 +81,16 @@ PROPS kind=cave_roof along=main side=R every=46 offset=3 scale=0.9-1.1
 # (the stand sits just past the line: before it, the start-wide camera looked straight down onto its roof)
 PROPS kind=grandstand from=@plateau+54 to=@plateau+55 side=R every=100 offset=5.5 seed=60
 PROPS kind=ad_board_a from=@plateau+4 to=@plateau+68 side=L every=24 offset=0.4 seed=61
-# (no chevron ad_board_b on the left: side=L rows turn props 180°, so its arrows would point back down the straight)
+# (no chevron ad_board_b on the left: side=L rows turn props 180°, so its arrows would point back down the straight;
+# ad_board_b_l is the left-row chevron board, used round T1 below)
 PROPS kind=ad_board_a from=@plateau+12 to=@plateau+68 side=L every=24 offset=0.4 seed=62
 PROPS kind=ad_board_c from=@plateau+20 to=@plateau+68 side=L every=24 offset=0.4 seed=63
 PROPS kind=spectators from=@plateau+14 to=@plateau+30 side=R every=8 offset=2.4 jitter=1 seed=64
 PROPS kind=flag_pole from=@plateau+2 to=@plateau+10 side=R every=4 offset=2.6 seed=65
 PROPS kind=tyre_wall from=@plateau_1+1 to=@plateau_1+30 side=L every=1.3 offset=0.6 seed=66
+# final pass: chevrons on the outside of T1 (plateau_1 is a right-hander, so the outside is the left); only the first
+# 10 m: past plateau_1+12 the ground beside the road drops into the pit, and boards there stood 5-15 m below the road
+PROPS kind=ad_board_b_l from=@plateau_1+2 to=@plateau_1+10 side=L every=4 offset=2.4 seed=68
 PROPS kind=lamp_post along=main side=both every=32 offset=1.6 seed=67
 # floor cover, rubble, basalt, stalagmite columns and the far stalagmite forest round the lap (none on the lava lake)
 # (left of the helix is the lava lake, left of the rail corner and right of the geyser field are lava pits)
