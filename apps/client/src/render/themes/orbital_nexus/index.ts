@@ -43,8 +43,12 @@ export const ORBITAL_LOOK: Partial<ThemeLook> = {
 export const ORBITAL_FOUNDRY_LOOK: Partial<ThemeLook> = {
   ...ORBITAL_LOOK,
   road: { style: 'metal', a: '#6e727c', b: '#787c86', line: '#ffc36b', glow: '#ffc36b' },
-  hemi: { sky: '#a8bcff', ground: '#f0a874', intensity: 3.0 },
-  fill: { color: '#ffd8a8', intensity: 0.6 },
+  // a strong key over a lower, near-neutral sky fill and a tan floor bounce (≈ 2.5 : 1 with the back fill): the
+  // #a8bcff ×3.0 fill and its orange bounce cast the floor lilac and flattened every shape. The `space` kind keys its
+  // own sun (2.6 × 1.05); this value documents the intent. Warm-neutral chase-side back fill per the night roster
+  sun: { color: '#f2f6ff', intensity: 2.6 },
+  hemi: { sky: '#c4ccdc', ground: '#c9a58c', intensity: 2.0 },
+  fill: { color: '#ffd6bc', intensity: 0.8 },
   grade: { tint: '#fffaf4', saturation: 1.06, shadows: '#ece9ff', highlights: '#fff3e6' },
 };
 
