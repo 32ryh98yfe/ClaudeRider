@@ -50,7 +50,7 @@ export const SPARK_SUNSET_LOOK: Partial<ThemeLook> = {
   // up to ~33° and the chase camera sees little else (doc 34 §3). The warmth lives in a pale peach band (warmed a
   // touch since the highlight grade went neutral) and the key. elevationDeg is unused: the track's THEME time sets the
   // sun (17:20 → 10°, the sunset ceiling in env/look.ts)
-  sky: { turbidity: 5.0, rayleigh: 2.2, elevationDeg: 15, azimuthDeg: 250, exposure: 1.0, top: '#48528f', bottom: '#efc299' },
+  sky: { turbidity: 5.0, rayleigh: 2.2, elevationDeg: 15, azimuthDeg: 250, exposure: 1.0, top: '#48528f', bottom: '#f0b98e' },
   // the warmth lives in the key, but an orange #ffa45e one at 3.4 dyed every vertical surface (the white gantry rendered
   // #d69c7c): a pale amber key keeps whites white while the sky, the low sun disc and the long shadows say sunset
   sun: { color: '#ffbd85', intensity: 3.1 },
@@ -64,7 +64,7 @@ export const SPARK_SUNSET_LOOK: Partial<ThemeLook> = {
   fill: { color: '#e6e2dc', intensity: 0.9 },
   shadowStrength: 0.62,
   fogColor: '#e6d2c2',
-  horizon: '#f4d3b4',
+  horizon: '#f5ccaa',
   fog: { near: 220, far: 1300 },
   clouds: 0.3,
   envIntensity: 0.45,
