@@ -396,11 +396,14 @@ function neonBoard(v: 'a' | 'b' | 'c'): THREE.BufferGeometry {
  * Corner chevron board (compiler-placed on the outside of tight corners; faces +Z, chevrons point +X, variant 1 is
  * mirrored by the instance scale): a dark board whose yellow chevrons are lit, so the next corner reads at night.
  */
-function litChevron(color: string, gain: number): THREE.BufferGeometry {
-  const G = new GlowParts().add(part(rbox(2.4, 1.0, 0.12, 0.05, 2), '#1c1f26', 0, 0.9, 0), part(box(0.1, 0.9, 0.1), '#6b6f78', -1.0, 0.45, -0.05), part(box(0.1, 0.9, 0.1), '#6b6f78', 1.0, 0.45, -0.05));
+function litChevron(color: string, gain: number, o: { panel?: string; scale?: number; lift?: number } = {}): THREE.BufferGeometry {
+  // `scale` grows the board (posts stay 0.1 m), `lift` raises the panel on longer posts
+  const k = o.scale ?? 1, y = 0.9 * k + (o.lift ?? 0);
+  const G = new GlowParts().add(part(rbox(2.4 * k, 1.0 * k, 0.12, 0.05, 2), o.panel ?? '#1c1f26', 0, y, 0));
+  for (const x of [-1.0 * k, 1.0 * k]) G.add(part(box(0.1, y, 0.1), '#6b6f78', x, y / 2, -0.05));
   for (let i = 0; i < 3; i++) {
-    const x = -0.6 + i * 0.6;
-    G.light(gain, part(box(0.14, 0.5, 0.05), color, x - 0.08, 1.06, 0.07, 0, 0, -0.7), part(box(0.14, 0.5, 0.05), color, x - 0.08, 0.74, 0.07, 0, 0, 0.7));
+    const x = (-0.6 + i * 0.6) * k;
+    G.light(gain, part(box(0.14 * k, 0.5 * k, 0.05), color, x - 0.08 * k, y + 0.16 * k, 0.07, 0, 0, -0.7), part(box(0.14 * k, 0.5 * k, 0.05), color, x - 0.08 * k, y - 0.16 * k, 0.07, 0, 0, 0.7));
   }
   return G.build();
 }

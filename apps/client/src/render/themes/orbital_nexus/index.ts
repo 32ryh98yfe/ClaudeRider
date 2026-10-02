@@ -10,7 +10,7 @@
 import type { ContentTables } from '@cr/content';
 import { MaterialLibrary } from '../../materials/library.ts';
 import { makeKit, type ThemeKit, type ThemeLook } from '../kit.ts';
-import { ORBITAL_PROPS } from './props.ts';
+import { FOUNDRY_PROPS, ORBITAL_PROPS } from './props.ts';
 import { deckRoad, ledBarrier, paving } from '../neon_harbor/surfaces.ts';
 
 /** Space station (Orbital Express). The `space` sky kind supplies the white key light; these set fill, sky and grade. */
@@ -48,7 +48,7 @@ export const ORBITAL_FOUNDRY_LOOK: Partial<ThemeLook> = {
 
 export default (c: ContentTables, env?: Readonly<Record<string, string>>): ThemeKit => {
   const foundry = env?.['mood'] === 'foundry';
-  const kit = makeKit(c.themes.get('orbital_nexus'), foundry ? ORBITAL_FOUNDRY_LOOK : ORBITAL_LOOK, ORBITAL_PROPS);
+  const kit = makeKit(c.themes.get('orbital_nexus'), foundry ? ORBITAL_FOUNDRY_LOOK : ORBITAL_LOOK, foundry ? { ...ORBITAL_PROPS, ...FOUNDRY_PROPS } : ORBITAL_PROPS);
   const base = kit.materials;
   const mood = foundry ? 'foundry' : 'station';
   // vis road slots bake a per-surface tint (metal 1.15 / 1.18 / 1.22) that the deck material divides back out

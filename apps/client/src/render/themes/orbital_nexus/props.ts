@@ -321,6 +321,23 @@ function holoBoard(v: 'a' | 'b' | 'c'): THREE.BufferGeometry {
   return G.build();
 }
 
+/**
+ * Corner chevron board (ad_board_b): a 1.5× panel on posts tall enough to clear the 1.5 m impact pads in front of it,
+ * with four chevrons pointing along +Z (the travel direction once placed on side=R). Station: coral on white;
+ * foundry: yellow on black.
+ */
+export function chevronBoard(fg: string, field: string, frame: string): THREE.BufferGeometry {
+  const W = 4.5, H = 1.42, y = 2.3 + H / 2, G = new GlowParts();
+  G.add(part(box(0.1, y, 0.1), GREY, -0.06, y / 2, -W / 2 + 0.35), part(box(0.1, y, 0.1), GREY, -0.06, y / 2, W / 2 - 0.35));
+  G.add(part(box(0.12, H + 0.14, W + 0.14), frame, -0.07, y, 0));
+  G.light(0.25, part(box(0.04, H, W), field, 0.0, y, 0));
+  for (let k = 0; k < 4; k++) {
+    const z = -1.35 + k * 0.9;
+    G.light(1.05, part(box(0.03, 0.75, 0.2), fg, 0.04, y + 0.21, z, -0.8, 0, 0), part(box(0.03, 0.75, 0.2), fg, 0.04, y - 0.21, z, 0.8, 0, 0));
+  }
+  return G.build();
+}
+
 /** Impact barrier at corners (station tyre wall): padded white/orange blocks in a 1.3 m run, three high so the
  *  checker reads over the 1.1 m barrier (trackc stands the row on the ground 0.35–0.7 m below the deck). */
 function impactPads(): THREE.BufferGeometry {
@@ -430,6 +447,12 @@ function goreCushion(): THREE.BufferGeometry {
 
 const F = (geometry: () => THREE.BufferGeometry, material: () => THREE.Material, castShadow = true, maxInstances?: number): PropFactory =>
   ({ build: () => ({ geometry: geometry(), material: material(), castShadow }), ...(maxInstances ? { maxInstances } : {}) });
+
+/** Token Foundry overrides: yellow-on-black corner chevrons, 1.5×. */
+export const FOUNDRY_PROPS: Record<string, PropFactory> = {
+  ad_board_b: F(() => chevronBoard(YEL, '#14161b', DARK), station, true, 80),
+  chevron: F(() => litChevron(YEL, 1.0, { panel: '#14161b', scale: 1.5 }), station, true, 256),
+};
 
 export const ORBITAL_PROPS: Record<string, PropFactory> = {
   // station dressing
