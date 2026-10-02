@@ -9,24 +9,28 @@ import { merge, box, cyl, cone, ico, rbox, torus } from '../../util/geo.ts';
 import type { PropFactory } from '../../props/defaults.ts';
 import { CANOPY_PROPS } from '../canopy_forest/props.ts';
 import { around, blob, facet, hdr, inward, lathe, part, prng, tube } from '../canopy_forest/shapes.ts';
+import { glowLit } from './glow.ts';
 
-const C = {
+export const C = {
   indigo: '#1e1b3a', purple: '#6b4fa0', plum: '#4a3570', violet: '#8a6cc8', pumpkin: '#ff9f1c', pumpkinDeep: '#e07b12',
   stem: '#5b6b2e', leaf: '#6f8f3a', wisp: '#5ffbf1', moon: '#fff3c4', straw: '#e8c46a', strawDeep: '#c9a24a',
   wood: '#7a5234', woodDark: '#4e3322', woodPale: '#a8784e', stone: '#8f8aa3', stoneDark: '#6a6582', moss: '#6f8f5a',
   iron: '#2a2638', ivory: '#f4efe6', eye: '#141413', blush: '#ff9ec7', red: '#c9463d', cloth: '#5d7fb8', roof: '#3b2f5c',
   roofDeep: '#2b2248', hedge: '#2f5a3a', hedgeLight: '#3f7048', rose: '#e0476b', gold: '#e0b04b', white: '#f7f5ee',
 } as const;
-const GLOW = (k = 2.2): THREE.Color => hdr('#ffc46b', k);       // warm lantern light
-const FLAME = (k = 2.6): THREE.Color => hdr('#ffd98a', k);      // candle flame
-const WINDOW = (k = 1.9): THREE.Color => hdr('#ffcf7a', k);     // lit windows
+export const GLOW = (k = 2.2): THREE.Color => hdr('#ffc46b', k);       // warm lantern light
+export const FLAME = (k = 2.6): THREE.Color => hdr('#ffd98a', k);      // candle flame
+export const WINDOW = (k = 1.9): THREE.Color => hdr('#ffcf7a', k);     // lit windows
 
-const matte = (): THREE.Material => MaterialLibrary.vertexLit(0.8, 0);
 const toy = (): THREE.Material => MaterialLibrary.vinyl({ rim: '#ffd9c7' });
+// matte vertex-lit whose HDR parts (lantern paper, flames, lit windows, carved faces) glow (glow.ts); pumpkins are
+// produce, not vinyl, so they use it too (2026-10 stylized pass: gloss only where it means something)
+const matte = (): THREE.Material => glowLit(0.8, 1.2);
+const produce = (): THREE.Material => glowLit(0.65, 1.2);
 
 // ------------------------------------------------------------------------------------------------ pumpkins
 /** Low-poly pumpkin: 8 squashed lobes around a core, a curly stem and a leaf. */
-function pumpkin(parts: THREE.BufferGeometry[], x: number, y: number, z: number, r: number, seed: number, col: string = C.pumpkin): void {
+export function pumpkin(parts: THREE.BufferGeometry[], x: number, y: number, z: number, r: number, seed: number, col: string = C.pumpkin): void {
   const rnd = prng(seed);
   parts.push(...around(8, (i, a) => part(new THREE.SphereGeometry(r * 0.55, 8, 6), i % 2 ? col : C.pumpkinDeep, x + Math.cos(a) * r * 0.45, y + r * 0.62, z + Math.sin(a) * r * 0.45, 0, -a, 0, 0.75, 1.05, 1)));
   parts.push(part(new THREE.SphereGeometry(r * 0.7, 8, 6), col, x, y + r * 0.62, z, 0, 0, 0, 1, 0.9, 1));
@@ -34,7 +38,7 @@ function pumpkin(parts: THREE.BufferGeometry[], x: number, y: number, z: number,
   parts.push(part(new THREE.CircleGeometry(r * 0.28, 5), C.leaf, x - r * 0.2, y + r * 1.13, z + r * 0.15, -Math.PI / 2 + 0.3, 0, rnd() * 6));
 }
 /** Carved pumpkin facing +X: glowing slot eyes and a small smile (friendly, Clawd-style). */
-function jackFace(parts: THREE.BufferGeometry[], x: number, y: number, z: number, r: number): void {
+export function jackFace(parts: THREE.BufferGeometry[], x: number, y: number, z: number, r: number): void {
   const fx = x + r * 0.95, cy = y + r * 0.72;
   parts.push(part(box(0.06, r * 0.34, r * 0.14), GLOW(2.6), fx, cy, z - r * 0.24), part(box(0.06, r * 0.34, r * 0.14), GLOW(2.6), fx, cy, z + r * 0.24));
   for (let i = 0; i < 5; i++) {
@@ -64,7 +68,7 @@ function pumpkinPatch(): THREE.BufferGeometry {
 
 // ------------------------------------------------------------------------------------------------ lanterns
 /** Paper lantern (glowing body, dark caps) hanging from point (x, y, z). */
-function paperLantern(parts: THREE.BufferGeometry[], x: number, y: number, z: number, r: number, k = 2.2): void {
+export function paperLantern(parts: THREE.BufferGeometry[], x: number, y: number, z: number, r: number, k = 2.2): void {
   parts.push(part(cyl(0.015, 0.015, 0.5, 3), C.iron, x, y - 0.25, z));
   parts.push(part(new THREE.SphereGeometry(r, 8, 6), GLOW(k), x, y - 0.5 - r * 0.9, z, 0, 0, 0, 1, 1.25, 1));
   parts.push(part(cyl(r * 0.5, r * 0.55, r * 0.25, 8), C.red, x, y - 0.5 - r * 0.02, z), part(cyl(r * 0.55, r * 0.5, r * 0.25, 8), C.red, x, y - 0.5 - r * 1.8, z));
@@ -115,7 +119,8 @@ function lanternString(): THREE.BufferGeometry {
   const pts: [number, number, number][] = [];
   for (let i = 0; i <= 10; i++) { const t = i / 10; pts.push([0, 6.4 - Math.sin(t * Math.PI) * 1.0, -5 + t * 10]); }
   parts.push(part(tube(pts, 0.03, 10, 3), C.iron));
-  for (let i = 1; i < 10; i += 2) { const t = i / 10; paperLantern(parts, 0, 6.4 - Math.sin(t * Math.PI) * 1.0, -5 + t * 10, 0.28, 2.1); }
+  // review round: three lanterns per span (was five), so the strings stay accents and the road furniture reads first
+  for (const t of [0.2, 0.5, 0.8]) paperLantern(parts, 0, 6.4 - Math.sin(t * Math.PI) * 1.0, -5 + t * 10, 0.28, 2.1);
   return merge(parts);
 }
 
@@ -324,9 +329,12 @@ function mill(): THREE.BufferGeometry {
 /** Clipped hedge wall with a stone plinth (garden terraces; 9.6 m so rows every 8 m overlap). */
 function hedge(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
-  parts.push(part(rbox(1.8, 2.4, 9.6, 0.4, 2), C.hedge, 0.2, 1.2, 0, 0, 0, 0, 1, 1, 1, 0.08, 83));
+  // review round: a mid-value hedge green (#2e4a3a; the old one went near-black at night) with a lighter clipped top
+  // edge that catches the moon rim light, and one small rose (0.25 m) instead of two big red balls
+  parts.push(part(rbox(1.8, 2.4, 9.6, 0.4, 2), '#2e4a3a', 0.2, 1.2, 0, 0, 0, 0, 1, 1, 1, 0.08, 83));
+  parts.push(part(rbox(1.6, 0.12, 9.4, 0.05, 1), '#4f7a5a', 0.2, 2.38, 0), part(box(0.06, 0.1, 9.3), '#5f8a68', 1.08, 2.3, 0));
   parts.push(part(box(2.2, 12, 9.8), C.stoneDark, 0.2, -6, 0));
-  for (const z of [-3, 3]) parts.push(part(sphere(0.35), C.rose, 1.1, 1.6 + (z > 0 ? 0.3 : 0), z));
+  parts.push(part(sphere(0.125), C.rose, 1.1, 1.75, 2.6));
   return merge(parts);
 }
 function roseBush(): THREE.BufferGeometry {
@@ -358,7 +366,8 @@ function candelabra(): THREE.BufferGeometry {
   parts.push(part(new THREE.TorusGeometry(1.1, 0.07, 4, 12, Math.PI), C.gold, 0, 4.5, 0, 0, Math.PI / 2, Math.PI));
   for (const z of [-1.1, -0.55, 0, 0.55, 1.1]) {
     const y = 4.6 + (z === 0 ? 0.6 : Math.abs(z) < 1 ? 0.25 : 0);
-    parts.push(part(cyl(0.1, 0.1, 0.7, 6), C.ivory, 0, y + 0.35, z), part(cone(0.07, 0.25, 5), FLAME(3), 0, y + 0.82, z));
+    // review round: bigger flame tips in #ffcf7a with a small HDR halo bead (emission ≈ 2, above the 0.8 knee)
+    parts.push(part(cyl(0.1, 0.1, 0.7, 6), C.ivory, 0, y + 0.35, z), part(cone(0.11, 0.38, 6), hdr('#ffcf7a', 2.8), 0, y + 0.9, z), part(sphere(0.09), hdr('#ffcf7a', 2.4), 0, y + 0.8, z));
   }
   return merge(parts);
 }
@@ -536,8 +545,8 @@ const kind = (build: () => THREE.BufferGeometry, material: () => THREE.Material,
 };
 
 export const LANTERN_PROPS: Record<string, PropFactory> = {
-  jack_o_lantern: kind(jackOLantern, toy, false),
-  pumpkin_patch: kind(pumpkinPatch, toy, false),
+  jack_o_lantern: kind(jackOLantern, produce, false),
+  pumpkin_patch: kind(pumpkinPatch, produce, false),
   lantern_post: kind(lanternPost, matte),
   lantern_arch: kind(lanternArch, matte),
   lantern_string: kind(lanternString, matte, false),
@@ -553,12 +562,12 @@ export const LANTERN_PROPS: Record<string, PropFactory> = {
   bridge_deck: CANOPY_PROPS.bridge_deck!,
   gravestone: kind(gravestones, matte, false),
   iron_fence: kind(ironFence, matte, false),
-  ghost: kind(ghost, toy, false),
+  ghost: kind(ghost, () => glowLit(0.55, 1.2), false),
   crooked_tree: kind(crookedTree, matte),
   scarecrow: kind(scarecrow, matte),
   hay_bale: kind(hayBales, matte),
   candles: kind(candles, matte, false),
-  bat: kind(bats, toy, false),
+  bat: kind(bats, matte, false),
   wisp: kind(wisps, () => MaterialLibrary.emissive('#8ffff6', 2.2), false),
   manor: kind(manor, matte),
   chapel: kind(chapel, matte),

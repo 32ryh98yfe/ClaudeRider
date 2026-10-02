@@ -44,18 +44,28 @@ HAZ swinger cranenet at=@market_lane+86 d=0 capsule=(1.3,1.6) arm=7 amp=50 plane
 PROPS kind=sea along=50-50 side=R every=100 offset=200
 # beach straight and the sweepers home: a sand spit with palms and the lifeguard tower
 PROPS kind=beach along=0-152 side=both every=14 offset=0.3
+# review round: the item row at 60 excludes PROPS rows from 54 to 66, which left a 15 m gap in the sand where the
+# ground cover either side stood on the water: two hand-placed pieces close it (PROP lines are not excluded)
+PROP kind=beach at=(56.0,-0.2,10.8) yaw=90 scale=1.1
+PROP kind=beach at=(56.0,-0.2,-10.8) yaw=270 scale=1.1
 PROPS kind=beach along=1166-1350 side=both every=14 offset=0.3
 PROPS kind=palm along=4-96 side=R every=15 offset=5 jitter=10
-PROPS kind=palm along=10-140 side=L every=24 offset=4 jitter=6
-PROPS kind=palm along=1172-1346 side=both every=17 offset=5 jitter=9
-PROPS kind=lifeguard_tower along=124-124 side=R every=10 offset=6
+# review round: T1 (the lifeguard corner, 100-147) reads from the approach: no palms right behind the apex, big corner
+# chevron boards (scale 1.5, posts ~1.8 m) on the outside
+PROPS kind=palm along=62-98 side=L every=24 offset=4 jitter=6
+PROPS kind=ad_board_b along=102-146 side=R every=11 offset=2.4 scale=1.5-1.5 seed=196
+PROPS kind=palm along=1172-1270 side=both every=17 offset=5 jitter=9
+# (the tower stands at the corner entry so it never blocks the view of the apex)
+PROPS kind=lifeguard_tower along=104-104 side=R every=10 offset=7
 # the pier over open water: pilings, boats and buoys, the moored galleon, and the drive-through galleon on the deck
+# (sea-level kinds float at road height − 1.3 m, so they stay beside the sea-level road, not the raised pier S)
 PROPS kind=pier_post along=150-466 side=both every=6 offset=0.2
 # the drive-through galleon is hand-placed over the deck (PROPS rows never land on a drivable surface)
 PROP kind=galleon_deck at=(130.00,2.80,-257.02) yaw=180.0 scale=1   # galleon deck, s=383
 PROPS kind=galleon along=270-270 side=R every=100 offset=34
-PROPS kind=boat along=160-460 side=R every=48 offset=20 jitter=34
-PROPS kind=buoy along=150-470 side=both every=32 offset=10 jitter=22
+PROPS kind=boat along=160-280 side=R every=48 offset=20 jitter=34
+PROPS kind=boat along=470-560 side=R every=48 offset=24 jitter=20
+PROPS kind=buoy along=150-280 side=both every=32 offset=10 jitter=22
 # fish market, net sheds and the market lane waterfront (outside), a lagoon shore (inside)
 PROPS kind=beach along=464-1170 side=both every=14 offset=0.3
 PROPS kind=market_stall along=470-500 side=R every=10 offset=4
@@ -71,13 +81,126 @@ PROPS kind=cannon along=640-760 side=L every=40 offset=6
 PROPS kind=palm along=796-1170 side=both every=11 offset=4 jitter=9
 PROPS kind=bush along=980-1106 side=both every=7 offset=2 jitter=6
 # the lagoon: coral heads, islets, a few boats
-PROPS kind=coral along=150-470 side=L every=24 offset=26 jitter=50
+PROPS kind=coral along=150-280 side=L every=24 offset=26 jitter=50
 PROPS kind=coral along=620-1300 side=L every=40 offset=30 jitter=60
 PROPS kind=islet along=300-300 side=L every=100 offset=75
 PROPS kind=islet along=1000-1000 side=L every=100 offset=95
 PROPS kind=boat along=700-900 side=L every=60 offset=45 jitter=30
 # the far water: lighthouse islet across the bay, sea stacks, a kraken cameo
 PROPS kind=lighthouse along=1250-1250 side=R every=100 offset=150
-PROPS kind=sea_stack along=0-1350 side=R every=120 offset=95 jitter=120
+PROPS kind=sea_stack along=470-1350 side=R every=120 offset=95 jitter=120
+PROPS kind=sea_stack along=0-280 side=R every=120 offset=95 jitter=80
 PROPS kind=kraken_tentacle along=470-470 side=R every=100 offset=125
-THEME terrain=none scatter=sea_stack density=0 sky=day time=12:30
+# ---- stylized dressing pass (2026-10, docs/design/34-stylized-pass.md; render-only, the .ctrk is unchanged) ----
+# Land is only where a `beach` bank lies (0-152 and 464-1350, ~30 m out from each edge): ground cover, shrubs and palm
+# pairs stay inside that band; over the pier (152-464) only deck-edge lamps; the far layer is palm islets afloat at
+# sea level, beside the sea-level road only (not the raised pier S / galleon deck, 280-470).
+# start straight: beach grandstand on the lagoon side, sponsor boards behind the barrier, lamps, flags, crowd
+PROPS kind=grandstand along=40-41 side=L every=100 offset=5.5 seed=60
+PROPS kind=ad_board_a along=4-96 side=R every=24 offset=0.4 seed=61
+PROPS kind=ad_board_b along=12-96 side=R every=24 offset=0.4 seed=62
+PROPS kind=ad_board_c along=20-96 side=R every=24 offset=0.4 seed=63
+PROPS kind=ad_board_c along=66-98 side=L every=16 offset=0.4 seed=64
+# (ad_board_b chevrons point along travel only on side=R: side=L rows turn props 180°, so the left gets plain boards)
+PROPS kind=ad_board_b along=1312-1349 side=R every=16 offset=0.4 seed=65
+PROPS kind=ad_board_c along=1312-1349 side=L every=16 offset=0.4 seed=65
+PROPS kind=ad_board_a along=1320-1349 side=both every=16 offset=0.4 seed=66
+PROPS kind=lamp_post along=2-98 side=both every=20 offset=1.6 seed=67
+PROPS kind=palm_planter along=32-92 side=R every=20 offset=1.0 seed=68
+PROPS kind=flag_pole along=10-26 side=L every=6 offset=2.6 seed=69
+PROPS kind=spectators along=58-96 side=L every=14 offset=2.4 jitter=1 seed=70
+PROPS kind=spectators along=1318-1349 side=R every=15 offset=1.6 jitter=1 seed=71
+PROPS kind=beach_umbrella along=8-96 side=R every=13 offset=9 jitter=6 seed=72
+PROPS kind=beach_hut along=26-90 side=R every=32 offset=18 jitter=3 seed=73
+PROPS kind=surf_rack along=16-96 side=R every=40 offset=6 jitter=3 seed=74
+PROPS kind=beach_umbrella along=64-140 side=L every=17 offset=9 jitter=5 seed=75
+# the lifeguard corner (T1, outside R): tyre wall at the barrier, beach life round the tower
+PROPS kind=tyre_wall along=102-146 side=R every=1.3 offset=0.6 seed=76
+PROPS kind=beach_umbrella along=104-148 side=R every=15 offset=12 jitter=6 seed=77
+PROPS kind=surf_rack along=118-119 side=R every=10 offset=3.5 seed=78
+PROPS kind=beach_umbrella along=100-150 side=R every=11 offset=21 jitter=6 seed=79
+PROPS kind=beach_hut along=110-146 side=R every=18 offset=26 jitter=2 seed=179
+PROPS kind=bush_round along=100-150 side=R every=7 offset=9 jitter=8 scale=0.8-1.4 seed=180
+# ground cover, shrubs and palm pairs on both beaches
+PROPS kind=grass_tuft along=0-150 side=both every=2.5 offset=0.2 jitter=8 scale=0.6-1.0 seed=80
+PROPS kind=grass_tuft along=466-1350 side=both every=2.5 offset=0.2 jitter=8 scale=0.6-1.0 seed=81
+PROPS kind=flower_patch along=0-150 side=both every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=82
+PROPS kind=flower_patch along=466-1350 side=both every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=83
+PROPS kind=bush_round along=0-150 side=both every=11 offset=3 jitter=9 scale=0.7-1.3 seed=84
+PROPS kind=bush_round along=466-1350 side=both every=11 offset=3 jitter=9 scale=0.7-1.3 seed=85
+PROPS kind=rock_cluster along=0-150 side=both every=23 offset=4 jitter=12 scale=0.6-1.4 seed=86
+PROPS kind=rock_cluster along=466-1350 side=both every=23 offset=4 jitter=12 scale=0.6-1.4 seed=87
+PROPS kind=tree_round_big along=60-98 side=L every=17 offset=14 jitter=10 scale=0.8-1.2 seed=88
+PROPS kind=tree_round_big along=104-150 side=L every=34 offset=22 jitter=10 scale=0.8-1.2 seed=188
+PROPS kind=tree_round_big along=0-150 side=R every=17 offset=15 jitter=10 scale=0.8-1.2 seed=89
+PROPS kind=tree_round_big along=470-1260 side=both every=17 offset=14 jitter=10 scale=0.8-1.2 seed=90
+# the pier: harbour lamps on the piling line; dock clutter at the fish market and the market lane
+# (lamps stand on a piling top: pier_post rows put pilings at s ± 1.2 m, mirrored on the left side)
+PROPS kind=lamp_post along=151.2-462 side=R every=24 offset=0.2 seed=91
+PROPS kind=lamp_post along=148.8-462 side=L every=24 offset=0.2 seed=191
+PROPS kind=crate_stack along=470-504 side=L every=12 offset=2 seed=92
+PROPS kind=crate_stack along=622-792 side=R every=22 offset=1.6 jitter=1 seed=93
+PROPS kind=bunting_line along=626-790 side=both every=13 offset=1.2 seed=94
+PROPS kind=lamp_post along=800-1300 side=both every=26 offset=1.6 seed=95
+# far water: palm islets afloat (two rings, the outer one bigger), sailboats, gulls
+PROPS kind=tree_clump along=0-280 side=both every=70 offset=60 jitter=50 scale=0.9-1.4 seed=96
+PROPS kind=tree_clump along=470-1350 side=both every=70 offset=60 jitter=50 scale=0.9-1.4 seed=97
+PROPS kind=tree_clump along=0-280 side=both every=110 offset=150 jitter=60 scale=1.2-1.8 seed=98
+PROPS kind=tree_clump along=470-1350 side=both every=110 offset=150 jitter=60 scale=1.2-1.8 seed=99
+PROPS kind=sailboat along=0-280 side=both every=55 offset=38 jitter=40 seed=100
+PROPS kind=sailboat along=470-1350 side=both every=55 offset=38 jitter=40 seed=101
+PROPS kind=seagull along=0-1350 side=both every=75 offset=18 jitter=30 seed=102
+# the lagoon interior (left, ~310 × 350 m; rows stay inside half of it): an archipelago of palm islets and sailboats so the infield is never empty
+PROPS kind=tree_clump along=470-1350 side=L every=90 offset=140 jitter=40 scale=1.3-2.0 seed=103
+PROPS kind=tree_clump along=0-280 side=L every=90 offset=140 jitter=40 scale=1.3-2.0 seed=104
+PROPS kind=sailboat along=470-1350 side=L every=70 offset=120 jitter=80 seed=105
+PROPS kind=coral along=470-1350 side=L every=60 offset=70 jitter=60 seed=106
+PROPS kind=sailboat along=470-1350 side=R every=90 offset=140 jitter=80 seed=107
+# the start zone (line ±10 m and the pads at 20 / 1318 exclude PROPS rows from 1309 to 35): hand-placed ground
+# cover clumps, lamps, boards, flags, crowd, planters and beach life (poses from the baked frame, offset from the edge)
+PROP kind=grass_patch at=(-39.8,-0.2,-10.7) yaw=269 scale=1
+PROP kind=grass_patch at=(-28.0,-0.2,-10.7) yaw=270 scale=1
+PROP kind=grass_patch at=(-16.0,-0.2,-10.7) yaw=270 scale=1
+PROP kind=grass_patch at=(-4.0,-0.2,-10.7) yaw=270 scale=1
+PROP kind=grass_patch at=(8.0,-0.2,-10.7) yaw=270 scale=1
+PROP kind=grass_patch at=(20.0,-0.2,-10.7) yaw=270 scale=1
+PROP kind=grass_patch at=(32.0,-0.2,-10.7) yaw=270 scale=1
+PROP kind=grass_patch at=(-40.2,-0.2,10.7) yaw=89 scale=1
+PROP kind=grass_patch at=(-28.0,-0.2,10.7) yaw=90 scale=1
+PROP kind=grass_patch at=(-16.0,-0.2,10.7) yaw=90 scale=1
+PROP kind=grass_patch at=(-4.0,-0.2,10.7) yaw=90 scale=1
+PROP kind=grass_patch at=(8.0,-0.2,10.7) yaw=90 scale=1
+PROP kind=grass_patch at=(20.0,-0.2,10.7) yaw=90 scale=1
+PROP kind=grass_patch at=(32.0,-0.2,10.7) yaw=90 scale=1
+PROP kind=lamp_post at=(-38.0,-0.2,-12.1) yaw=270 scale=1
+PROP kind=lamp_post at=(-18.0,-0.2,-12.1) yaw=270 scale=1
+PROP kind=lamp_post at=(2.0,-0.2,-12.1) yaw=270 scale=1
+PROP kind=lamp_post at=(22.0,-0.2,-12.1) yaw=270 scale=1
+PROP kind=lamp_post at=(-38.0,-0.2,12.1) yaw=90 scale=1
+PROP kind=lamp_post at=(-18.0,-0.2,12.1) yaw=90 scale=1
+PROP kind=lamp_post at=(2.0,-0.2,12.1) yaw=90 scale=1
+PROP kind=lamp_post at=(22.0,-0.2,12.1) yaw=90 scale=1
+PROP kind=ad_board_a at=(4.0,-0.2,10.9) yaw=90 scale=1
+PROP kind=ad_board_a at=(28.0,-0.2,10.9) yaw=90 scale=1
+PROP kind=ad_board_a at=(-26.0,-0.2,-10.9) yaw=270 scale=1
+PROP kind=ad_board_b at=(12.0,-0.2,10.9) yaw=90 scale=1
+PROP kind=ad_board_c at=(-34.0,-0.2,-10.9) yaw=270 scale=1
+PROP kind=ad_board_b at=(-18.0,-0.2,10.9) yaw=90 scale=1
+PROP kind=ad_board_c at=(20.0,-0.2,10.9) yaw=90 scale=1
+PROP kind=ad_board_c at=(-18.0,-0.2,-10.9) yaw=270 scale=1
+PROP kind=ad_board_c at=(-34.0,-0.2,10.9) yaw=90 scale=1
+PROP kind=flag_pole at=(10.0,-0.2,-13.1) yaw=270 scale=1
+PROP kind=flag_pole at=(16.0,-0.2,-13.1) yaw=270 scale=1
+PROP kind=flag_pole at=(22.0,-0.2,-13.1) yaw=270 scale=1
+PROP kind=spectators at=(-30.0,-0.2,12.1) yaw=90 scale=1
+PROP kind=spectators at=(-12.0,-0.2,12.1) yaw=90 scale=1
+PROP kind=spectators at=(4.0,-0.2,-12.9) yaw=270 scale=1
+PROP kind=spectators at=(18.0,-0.2,-12.9) yaw=270 scale=1
+# (this planter sits behind the start-wide camera: at -28 its crown filled the foreground of the grid view)
+PROP kind=palm_planter at=(-40.0,-0.2,11.5) yaw=90 scale=1
+PROP kind=beach_umbrella at=(-22.0,-0.2,19.5) yaw=90 scale=1
+PROP kind=beach_umbrella at=(0.0,-0.2,19.5) yaw=90 scale=1.1
+PROP kind=beach_umbrella at=(24.0,-0.2,19.5) yaw=90 scale=1
+PROP kind=beach_umbrella at=(-8.0,-0.2,-20.5) yaw=270 scale=1
+PROP kind=surf_rack at=(-14.0,-0.2,16.5) yaw=90 scale=1
+THEME terrain=none scatter=sea_stack density=0 sky=day time=12:30 fogNear=250 fogFar=1500
