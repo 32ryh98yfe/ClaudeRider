@@ -333,7 +333,14 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   const rb = new RenderBuilder();
   groundToRender(rb, m, c, ground, kerbs, ao);
   wallsToRender(rb, walls, ao);
-  for (const p of m.paths) undersideToRender(rb, m, p, rows.get(p.index)!, (x, y, z) => (tf ? y - tf.height(x, z) : 0.6));
+  const gi = new GroundIndex(ground);
+  // skirts hang from the deck edge to the terrain, except over a lower road: there they stop as a 1.5 m fascia,
+  // or the curtain would cross the road below (Skyway's cloverleaf over the toll plaza, S-C-skirts-over-roads)
+  const skirt = (x: number, y: number, z: number): number => {
+    const d = tf ? y - tf.height(x, z) : 0.6;
+    return d > 3 && gi.heightAt(x, z, y - 1 - d / 2, d / 2) !== null ? 1.5 : d;
+  };
+  for (const p of m.paths) undersideToRender(rb, m, p, rows.get(p.index)!, skirt);
   startLineToRender(rb, m);
   jumpFacesToRender(rb, m, c);
   railsToRender(rb, m, tf);
@@ -347,7 +354,6 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   tick('ao');
   const lod1 = slots.map((sl) => buildLod1(sl));
   tick('lod');
-  const gi = new GroundIndex(ground);
   const props: PropSet[] = opts.props === false ? [] : placeProps(m, c, seed, gi, tf, exclusions(m, c, junctions, c.hazards.filter((h) => h.motion?.type !== 'lane')), junctions);
   tick('props');
 
