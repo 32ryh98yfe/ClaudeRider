@@ -227,8 +227,9 @@ function signBoard(v: 'a' | 'b' | 'c'): THREE.BufferGeometry {
   const face = v === 'a' ? CAP : v === 'b' ? G.teal : CREAM;
   p.push(part(box(0.04, H, W), face, 0.02, y, 0));
   if (v === 'a') {
-    p.push(paint(place(sparkleGeometry(0.34, 0.03, 11), 0.05, y, -0.85, 0, Math.PI / 2, 0), CREAM));
-    p.push(part(box(0.03, 0.16, 1.6), CREAM, 0.05, y + 0.12, 0.45), part(box(0.03, 0.1, 1.2), CREAM, 0.05, y - 0.16, 0.25));
+    // sparkle centred with mirrored bars either side: the old sparkle-left / bars-right layout read as a "=▷" arrow
+    p.push(paint(place(sparkleGeometry(0.34, 0.03, 11), 0.05, y, 0, 0, Math.PI / 2, 0), CREAM));
+    for (const s of [-1, 1]) p.push(part(box(0.03, 0.16, 0.8), CREAM, 0.05, y + 0.1, s * 0.92), part(box(0.03, 0.1, 0.56), CREAM, 0.05, y - 0.14, s * 0.8));
   } else if (v === 'b') {
     // chevrons tip toward +Z (the travel direction once placed on the right): only for the outside of left-handers
     for (let k = 0; k < 4; k++) {
