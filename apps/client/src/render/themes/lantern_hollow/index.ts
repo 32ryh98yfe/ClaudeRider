@@ -12,7 +12,9 @@ export default (c: ContentTables): ThemeKit => {
     // light is already blue; a violet road went saturated blue) so the karts and the pumpkin kerbs of the next corner
     // read first; grass is a mid-value moss, never black
     // review round: pale lilac-white edge paint (#e9e2f5): the warm line at half cobble paint strength read lavender
-    road: { style: 'cobble', a: '#6a6574', b: '#7c7686', line: '#e9e2f5' },
+    // final pass: the cobbles are a neutral warm grey (#6b6864 / #7b7873); with the violet sky fill and a 1.12 grade
+    // saturation the grey-violet road turned the whole frame one violet hue. The violet lives in the sky only.
+    road: { style: 'cobble', a: '#6b6864', b: '#7b7873', line: '#e9e2f5' },
     shoulder: { a: '#4f7658', b: '#5e8664' },
     terrain: { a: '#476a55', b: '#577c5f', rock: '#78729a' },
     wall: { kind: 'stone', a: '#8c8598', b: '#6a6178' },
@@ -21,8 +23,10 @@ export default (c: ContentTables): ThemeKit => {
     horizon: '#6a4aa0',
     sun: { color: '#c9d3ff', intensity: 1.7 },
     // a brighter lilac sky fill (×0.55 at night) and a shadowless warm back fill — the lanterns' bounce — so the chase
-    // camera sees the karts' shaded sides in their own colours; shadows stay soft (moonlight), rims a touch lower
-    hemi: { sky: '#958dd2', ground: '#64506a', intensity: 1.65 },
+    // camera sees the karts' shaded sides in their own colours; shadows stay soft (moonlight), rims a touch lower.
+    // Final pass: the sky fill is a desaturated lavender-grey (#a6a3c4), and the look and kit grades hold saturation
+    // at 1.0 (the look grade wins over the kit grade in resolveLook, so both are set)
+    hemi: { sky: '#a6a3c4', ground: '#64506a', intensity: 1.65 },
     fill: { color: '#ffc690', intensity: 0.45 },
     shadowStrength: 0.6,
     exposure: 1.22,
@@ -31,7 +35,7 @@ export default (c: ContentTables): ThemeKit => {
     rimBoost: 1.9,
     bloom: 0.36,
     fogColor: '#2e2756',
-    grade: { saturation: 1.08, tint: '#ffffff', shadows: '#e4e0ff', highlights: '#fff4e6' },
+    grade: { saturation: 1.0, tint: '#ffffff', shadows: '#e4e0ff', highlights: '#fff4e6' },
   }, { ...LANTERN_PROPS, ...LANTERN_DRESSING });
-  return { ...kit, grade: { slope: 1.06, saturation: 1.12 } };
+  return { ...kit, grade: { slope: 1.06, saturation: 1.0 } };
 };
