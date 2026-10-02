@@ -37,8 +37,10 @@ export const CORAL_LOOK: Partial<ThemeLook> = {
 export const CORAL_SUNSET_LOOK: Partial<ThemeLook> = {
   ...CORAL_LOOK,
   // the gradient dome mixes the horizon colour up to ~33° (most of what the chase camera sees of the sky), so the band
-  // stays a pale peach and the sunset warmth lives in the key light; a saturated #ffcaa0 band tinted the whole frame
-  sky: { turbidity: 5.5, rayleigh: 2.4, elevationDeg: 8, azimuthDeg: 255, exposure: 1.0, top: '#34488f', bottom: '#f4c9a8' },
+  // stays a pale peach and the sunset warmth lives in the key light; a saturated #ffcaa0 band tinted the whole frame.
+  // Final pass: the dome bottom, fog and highlight grade are near-neutral (#f0d4c4 / #d9d5dc / #fff8f2): the peach fog
+  // and a warm highlight split-tone together gave the whole frame an orange cast. The warmth is the sun (#ffc28c).
+  sky: { turbidity: 5.5, rayleigh: 2.4, elevationDeg: 8, azimuthDeg: 255, exposure: 1.0, top: '#34488f', bottom: '#f0d4c4' },
   horizon: '#f7dcc8',
   sun: { color: '#ffc28c', intensity: 2.9 },
   // the low sun lights mostly the sides of things: a near-neutral sky fill and a soft cool back fill keep the shaded
@@ -46,12 +48,12 @@ export const CORAL_SUNSET_LOOK: Partial<ThemeLook> = {
   // the warmth stays in the sun, the horizon stays pale)
   hemi: { sky: '#d9d4dc', ground: '#a8826a', intensity: 1.25 },
   fill: { color: '#d0d8ee', intensity: 0.35 },
-  fogColor: '#ecd3c6',
+  fogColor: '#d9d5dc',
   shadowStrength: 0.55,
   clouds: 0.28,
   rimBoost: 0.9,
   bloom: 0.3,
-  grade: { tint: '#ffffff', saturation: 1.04, shadows: '#eef0ff', highlights: '#fff1e0' },
+  grade: { tint: '#ffffff', saturation: 1.04, shadows: '#eef0ff', highlights: '#fff8f2' },
 };
 
 export default (c: ContentTables, env?: Readonly<Record<string, string>>): ThemeKit =>
