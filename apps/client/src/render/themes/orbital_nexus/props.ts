@@ -35,6 +35,22 @@ function stationPylon(): THREE.BufferGeometry {
   return G.build();
 }
 
+/** Paraboloid dish shell (axis +Y, opening up, vertex at the origin): back surface, rim, then the inner bowl. */
+function dishGeometry(R: number, depth: number): THREE.BufferGeometry {
+  const pts: THREE.Vector2[] = [], n = 6, t = 0.07;
+  for (let i = 0; i <= n; i++) { const r = (i / n) * R; pts.push(new THREE.Vector2(r, (depth * r * r) / (R * R) - t)); }
+  for (let i = n; i >= 0; i--) { const r = (i / n) * R; pts.push(new THREE.Vector2(r, (depth * r * r) / (R * R))); }
+  return new THREE.LatheGeometry(pts, 18);
+}
+
+/** A dish tilted about Z by `rz` at (x, y, z): bowl, a strut to the feed horn at the focus, and a bracket to `mount`. */
+function addDish(G: GlowParts, R: number, depth: number, x: number, y: number, z: number, rz: number, c: string, mount: readonly [number, number, number]): void {
+  G.add(part(dishGeometry(R, depth), c, x, y, z, 0, 0, rz));
+  const ax = -Math.sin(rz), ay = Math.cos(rz), f = (R * R) / (4 * depth);
+  G.add(paint(beam(x, y, z, x + ax * f, y + ay * f, z, 0.04), GREY), part(cyl(0.08, 0.13, 0.3, 8), GREY, x + ax * f, y + ay * f, z, 0, 0, rz));
+  G.add(paint(beam(mount[0], mount[1], mount[2], x - ax * 0.1, y - ay * 0.1, z, 0.13), GREY), part(box(0.45, 0.5, 0.45), GREY, mount[0], mount[1], mount[2]));
+}
+
 /** Lattice antenna mast (≈ 17 m) with two dishes, cyan nav lights and a red tip beacon. */
 function antennaMast(): THREE.BufferGeometry {
   const G = new GlowParts().add(part(rbox(2.2, 0.8, 2.2, 0.15, 2), GREY, 0, 0.4, 0));
@@ -47,9 +63,10 @@ function antennaMast(): THREE.BufferGeometry {
     const a0 = (k / 3) * Math.PI * 2, a1 = ((k + 1) / 3) * Math.PI * 2;
     G.add(paint(beam(Math.cos(a0) * r, y, Math.sin(a0) * r, Math.cos(a1) * r, y + 1.4, Math.sin(a1) * r, 0.05), PANEL));
   }
-  // dishes facing up and out (+X tilted), on short booms
-  G.add(paint(beam(0, 11, 0, 1.4, 11.4, 0, 0.12), GREY), part(sph(1.3, 14, 6), WHITE, 1.9, 11.6, 0, 0, 0, -0.9, 1, 0.3, 1));
-  G.add(paint(beam(0, 7, 0, -1.2, 7.3, 0.4, 0.1), GREY), part(sph(0.9, 12, 6), PANEL, -1.6, 7.4, 0.5, 0, 0, 0.9, 1, 0.3, 1));
+  // two dishes facing up and out, each a concave bowl with a feed horn and a bracket clamped to the mast (squashed
+  // spheres read as floating rocks)
+  addDish(G, 1.3, 0.42, 1.9, 11.6, 0, -0.9, WHITE, [0, 11.2, 0]);
+  addDish(G, 0.9, 0.3, -1.6, 7.4, 0.5, 0.9, PANEL, [0, 7.1, 0.2]);
   G.add(part(cyl(0.05, 0.05, 2.4, 4), GREY, 0, H + 2, 0));
   for (const y of [5, 10, 14.5]) G.light(1.4, part(box(0.22, 0.22, 0.22), CYAN, r + 0.05, y, 0));
   G.light(2.6, part(sph(0.22, 8, 6), RED, 0, H + 3.3, 0));
