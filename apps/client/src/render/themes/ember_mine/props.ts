@@ -230,14 +230,20 @@ function minePortal(): THREE.BufferGeometry {
   return merge(parts);
 }
 
-/** Cavern roof slab with stalactites (placed on the centreline); keeps above the intro flyover height (≥ 20 m). */
+/**
+ * Cavern roof slab with stalactites (placed on the centreline); keeps above the intro flyover height (≥ 20 m). The
+ * tips hang 23 m × row scale above the row origin, so rows skip stretches with another road less than ~10 m below
+ * that (the stacked plateau / under-plateau and switchback stretches).
+ */
 function caveRoof(seed: number): THREE.BufferGeometry {
   const R = rng(seed);
-  // origin sits beside the road (rows cannot start on it); the slab is centred ~10 m toward the road
-  const parts: THREE.BufferGeometry[] = [paint(place(rock(30, seed, 1), 10, 38, 0, 0, R() * 3, 0, 1.3, 0.42, 1.1), '#2a2429', 0.14, seed)];
+  // origin sits beside the road (rows cannot start on it); the slab is centred ~10 m toward the road.
+  // Final pass: mid basalt (#3e3438) with lighter stalactites: the underside only sees the lava bounce, and the old
+  // #2a2429 slab rendered pure black over the top half of the chase view
+  const parts: THREE.BufferGeometry[] = [paint(place(rock(30, seed, 1), 10, 38, 0, 0, R() * 3, 0, 1.3, 0.42, 1.1), '#3e3438', 0.14, seed)];
   for (let i = 0; i < 9; i++) {
     const a = R() * Math.PI * 2, d = 6 + R() * 26, h = 4 + R() * 6;
-    parts.push(paint(place(cone(1.2 + h * 0.18, h, 6), 10 + Math.cos(a) * d, 33 - h / 2, Math.sin(a) * d, Math.PI, 0, 0), i % 2 ? '#3a3238' : '#453b40', 0.1, i + seed));
+    parts.push(paint(place(cone(1.2 + h * 0.18, h, 6), 10 + Math.cos(a) * d, 33 - h / 2, Math.sin(a) * d, Math.PI, 0, 0), i % 2 ? '#4a4044' : '#564b4f', 0.1, i + seed));
   }
   return merge(parts);
 }
