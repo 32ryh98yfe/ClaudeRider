@@ -48,7 +48,7 @@ export const SPARK_SUNSET_LOOK: Partial<ThemeLook> = {
   terrain: { a: '#5b8a3e', b: '#76a050', rock: '#a0907f' },
   // first cut (horizon #ffc48e, bottom #f3a36a, fog #e9b48e) turned every view salmon: the dome mixes the horizon
   // up to ~33° and the chase camera sees little else (doc 34 §3). The warmth now lives in a pale band and the key.
-  sky: { turbidity: 5.0, rayleigh: 2.2, elevationDeg: 11, azimuthDeg: 250, exposure: 1.0, top: '#48528f', bottom: '#efcaa8' },
+  sky: { turbidity: 5.0, rayleigh: 2.2, elevationDeg: 15, azimuthDeg: 250, exposure: 1.0, top: '#48528f', bottom: '#efcaa8' },
   // the warmth lives in a strong orange key; a neutral-warm hemisphere at 1.6 under it washed every view to hazy tan
   // (art review), so the sky term is a cool, weaker fill and the sun-facing sides glow against cool shade
   sun: { color: '#ffa45e', intensity: 3.4 },
@@ -56,14 +56,17 @@ export const SPARK_SUNSET_LOOK: Partial<ThemeLook> = {
   // sky term, a cool back fill and full env light turned the asphalt violet-navy, so env light is lower and the
   // tarmac a lighter warm grey (the neutral grey read aubergine, #322c32, under the cool fill)
   road: { style: 'asphalt', a: '#6a6562', b: '#77716d', line: '#fbf8f0' },
-  hemi: { sky: '#c9c3da', ground: '#7d5c48', intensity: 1.15 },
-  fill: { color: '#e6e2dc', intensity: 0.45 },
+  // the shade still went near-black (asphalt #2f2830, black grass under the stands): a brighter, near-neutral sky term
+  // over a warm ground, more back fill and env light, and a sun at 15° rather than 11° so less of the bowl sits in the
+  // stands' shadow. Shaded asphalt should stay at or above ≈ #55504f.
+  hemi: { sky: '#d4d0d6', ground: '#86664f', intensity: 1.75 },
+  fill: { color: '#e6e2dc', intensity: 0.7 },
   shadowStrength: 0.62,
   fogColor: '#e6d2c2',
   horizon: '#f4dcc6',
   fog: { near: 220, far: 1300 },
   clouds: 0.3,
-  envIntensity: 0.34,
+  envIntensity: 0.45,
   rimBoost: 0.8,
   bloom: 0.35,
   grade: { tint: '#ffffff', saturation: 1.05, shadows: '#f2f1f6', highlights: '#fff4e8' },
