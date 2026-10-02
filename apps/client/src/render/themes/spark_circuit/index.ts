@@ -49,9 +49,9 @@ export const SPARK_SUNSET_LOOK: Partial<ThemeLook> = {
   // first cut (horizon #ffc48e, bottom #f3a36a, fog #e9b48e) turned every view salmon: the dome mixes the horizon
   // up to ~33° and the chase camera sees little else (doc 34 §3). The warmth now lives in a pale band and the key.
   sky: { turbidity: 5.0, rayleigh: 2.2, elevationDeg: 15, azimuthDeg: 250, exposure: 1.0, top: '#48528f', bottom: '#efcaa8' },
-  // the warmth lives in a strong orange key; a neutral-warm hemisphere at 1.6 under it washed every view to hazy tan
-  // (art review), so the sky term is a cool, weaker fill and the sun-facing sides glow against cool shade
-  sun: { color: '#ffa45e', intensity: 3.4 },
+  // the warmth lives in the key, but an orange #ffa45e one at 3.4 dyed every vertical surface (the white gantry rendered
+  // #d69c7c): a pale amber key keeps whites white while the sky, the low sun disc and the long shadows say sunset
+  sun: { color: '#ffbd85', intensity: 3.1 },
   // with the sun this low the road takes most of its light from the hemisphere and the dome's violet zenith: a lilac
   // sky term, a cool back fill and full env light turned the asphalt violet-navy, so env light is lower and the
   // tarmac a lighter warm grey (the neutral grey read aubergine, #322c32, under the cool fill)
@@ -69,7 +69,7 @@ export const SPARK_SUNSET_LOOK: Partial<ThemeLook> = {
   envIntensity: 0.45,
   rimBoost: 0.8,
   bloom: 0.35,
-  grade: { tint: '#ffffff', saturation: 1.05, shadows: '#f2f1f6', highlights: '#fff4e8' },
+  grade: { tint: '#ffffff', saturation: 1.05, shadows: '#f2f1f6', highlights: '#ffffff' },
 };
 
 export default (c: ContentTables, env?: Readonly<Record<string, string>>): ThemeKit => {
