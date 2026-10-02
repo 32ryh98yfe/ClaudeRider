@@ -9,7 +9,9 @@ import { EMBER_DRESSING } from './dressing.ts';
 
 export default (c: ContentTables): ThemeKit => {
   const kit = makeKit(c.themes.get('ember_mine'), {
-    road: { style: 'dirt', a: '#56515c', b: '#645e6a', line: '#ffb347' },
+    // final pass: a neutral warm-grey floor (#5a5856 / #686562) under a desaturated sky fill (#aab0c8): the lilac road and
+    // the crystal-violet fill made the floor read mauve. The colour stays in the lava, lamps and geodes
+    road: { style: 'dirt', a: '#5a5856', b: '#686562', line: '#ffb347' },
     shoulder: { a: '#554c54', b: '#63575e' },
     terrain: { a: '#50464e', b: '#625459', rock: '#3d353b' },
     wall: { kind: 'stone', a: '#4a434e', b: '#665552' },
@@ -21,7 +23,7 @@ export default (c: ContentTables): ThemeKit => {
     // a little lower so bodies do not wash out, and bloom is held to the lamps, crystals and lava
     // review round: the infield and far corners read ~85% black on Magma, so the sky fill is up (1.4 → 1.7) and the cave
     // floor is ~15% lighter; the vault's horizon lava band is cut to 0.07 so the lava props, not the sky, carry the glow
-    hemi: { sky: '#9aa6e8', ground: '#c4734a', intensity: 1.7 },
+    hemi: { sky: '#aab0c8', ground: '#c4734a', intensity: 1.7 },
     caveGlow: 0.07,
     fill: { color: '#ffb985', intensity: 0.3 },
     shadowStrength: 0.6,
