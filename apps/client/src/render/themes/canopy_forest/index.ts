@@ -49,8 +49,9 @@ export default (c: ContentTables): ThemeKit => {
     // leaf-litter shoulders a shade darker and greener than the trail, so the road edge reads at speed
     'shoulder:dirt': MaterialLibrary.road({ style: 'dirt', a: '#7a6142', b: '#86704a', line: '#f1e6c8', tint: [1.25, 1.0, 0.75], shoulder: true }),
     'road:wood': MaterialLibrary.road({ style: 'wood', a: '#9a6a3c', b: '#b07c48', line: '#f1e6c8', tint: [1.3, 1.0, 0.7] }),
-    // mossy stone blocks: rhythm from the courses, moss-green mortar tone, no extra noise
-    'wall:rock': MaterialLibrary.wall('stone', '#a6a291', '#7f8c60', 0.8),
+    // mossy stone blocks: rhythm from the courses, moss-green mortar tone, no extra noise. Lighter and greyer than the
+    // first cut (#a6a291 / #7f8c60): the 1.2 m walls lining Cascade Slalom's narrow canyon read as a heavy dark slab
+    'wall:rock': MaterialLibrary.wall('stone', '#b3ae9c', '#99967e', 0.8),
     'wall:fence': MaterialLibrary.wall('ranch', '#efe2c4', '#6b4a33', 1),
     underside: MaterialLibrary.world({ color: '#6f5a40', color2: '#5e4c36', roughness: 0.95, vertexAO: true }),
   });
