@@ -54,14 +54,14 @@
    "vis": "5307ada7"
   },
   "canopy_forest/cascade_slalom": {
-   "src": "2f90c787732779d7",
+   "src": "5eac461101ed3831",
    "ctrk": "921ea469",
-   "vis": "305adc12"
+   "vis": "75e47649"
   },
   "canopy_forest/fernwood_hollow": {
-   "src": "c74bdf84ca83addf",
+   "src": "6291c812b5e61154",
    "ctrk": "a5857e2d",
-   "vis": "93133a83"
+   "vis": "66e121ac"
   },
   "clayhill_village/belltower_piazza": {
    "src": "ad0046a9d996768d",
@@ -74,24 +74,24 @@
    "vis": "f8c746ea"
   },
   "coral_cove/coral_cove_docks": {
-   "src": "bc4d1a3dfc968fe9",
+   "src": "2e2e677f1ad98b7b",
    "ctrk": "638c79e0",
-   "vis": "3fd3ea1a"
+   "vis": "ec667e78"
   },
   "coral_cove/kraken_lighthouse": {
-   "src": "b37f161c73e3f37d",
+   "src": "aa8fa02318c1105c",
    "ctrk": "a9e57084",
-   "vis": "0ed4798a"
+   "vis": "0539e219"
   },
   "ember_mine/geode_rail_quarry": {
-   "src": "ef5a1ad9c2b68a4c",
+   "src": "56315db7ca5cc224",
    "ctrk": "27d07a3c",
-   "vis": "4f5f58d1"
+   "vis": "42031340"
   },
   "ember_mine/magma_switchback": {
-   "src": "f23eb60abbc0dd4e",
+   "src": "243216a34dee391b",
    "ctrk": "40c1e250",
-   "vis": "0458fd90"
+   "vis": "78860cdf"
   },
   "frostbyte_glacier/aurora_summit": {
    "src": "e6b15375d5af7a64",
@@ -104,14 +104,14 @@
    "vis": "8d42a90d"
   },
   "lantern_hollow/manor_catacombs": {
-   "src": "1c10d28c5191d47b",
+   "src": "d5e68246f6c3bc23",
    "ctrk": "bb91858f",
-   "vis": "9381ee08"
+   "vis": "47d17355"
   },
   "lantern_hollow/pumpkin_lane": {
-   "src": "9abdb0366e4a98ae",
+   "src": "bbfd0ddb707de4b8",
    "ctrk": "bb5b0dec",
-   "vis": "c491c99a"
+   "vis": "dadeb24c"
   },
   "neon_harbor/rainline_blvd": {
    "src": "274ff6ba66de40d6",
@@ -134,19 +134,19 @@
    "vis": "85805364"
   },
   "spark_circuit/proving_ring": {
-   "src": "567d041c2710cbba",
+   "src": "77221f3ca45ce733",
    "ctrk": "f1dc8d90",
-   "vis": "72ee05cd"
+   "vis": "7b57d45a"
   },
   "spark_circuit/spark_grand_circuit": {
-   "src": "6ce79f9511094b38",
+   "src": "044452134a1da4f7",
    "ctrk": "2e3aafc8",
-   "vis": "3784dfd8"
+   "vis": "0b37ba2c"
   },
   "spark_circuit/sunset_arena_rally": {
-   "src": "bbeaeea5c8c91826",
+   "src": "f87a7af6bab6c8c8",
    "ctrk": "06c4adc0",
-   "vis": "a2f7cc68"
+   "vis": "89728f52"
   },
   "sunstone_desert/sandglass_canyon": {
    "src": "870c020558a5fd00",
