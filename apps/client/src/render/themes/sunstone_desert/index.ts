@@ -51,9 +51,11 @@ export default (c: ContentTables, env: Readonly<Record<string, string>> = {}): T
   const kit = makeKit(c.themes.get('sunstone_desert'), look, SUNSTONE_PROPS);
   const base = kit.materials;
   const T = kit.look.terrain;
-  // the harsh noon key (Sandglass) lit the 16:00 paving brighter than the mascots: a darker, greyer stone at noon keeps
-  // the asphalt near 95–115 luma so the karts read first; the lower Bazaar afternoon sun keeps the lighter stone
-  const pave = hour >= 15 ? { a: '#8f8270', b: '#968977' } : { a: '#78716a', b: '#7f776f' };
+  // the harsh noon key (Sandglass) lit the 16:00 paving brighter than the mascots: a darker stone at noon keeps the
+  // road near 110–115 luma so the karts read first (#78716a / #7f776f still rendered 127, and the cool sky fill turned
+  // that neutral grey lilac, so the noon stone keeps a little more green and less blue); the lower Bazaar afternoon
+  // sun keeps the lighter stone
+  const pave = hour >= 15 ? { a: '#8f8270', b: '#968977' } : { a: '#686254', b: '#6f6859' };
   kit.materials = () => ({
     ...base(),
     // bright sand: keep 60 % of the baked terrain AO (soft, clean ground; wall bases and gullies keep their shade)
