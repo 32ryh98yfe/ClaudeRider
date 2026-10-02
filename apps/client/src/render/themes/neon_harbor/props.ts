@@ -130,6 +130,23 @@ function facade(f: FacadeSpec): THREE.BufferGeometry {
       }
     }
   }
+  // back face: the same window grid (a block on the far side of a corner shows its back to the drivers) and a
+  // rooftop-height light box, so no face of a street block is a blank slab
+  for (let k = 0; k < f.floors; k++) {
+    const y0 = GF + k * f.floorH;
+    G.add(part(box(0.24, 0.22, f.w + 0.06), trim, -f.d - 0.06, y0 + 0.11, 0));
+    for (let j = 0; j < nW; j++) {
+      const z = -f.w / 2 + (j + 0.5) * ww, on = R() < f.lit * 0.8;
+      const pane = part(box(0.08, 1.55, ww - 1.0), on ? f.panes[Math.floor(R() * f.panes.length)]! : GLASS_DK, -f.d - 0.03, y0 + f.floorH * 0.55, z);
+      if (on) G.light(0.5 + R() * 0.3, pane); else G.add(pane);
+    }
+  }
+  G.add(part(box(0.24, GF - 0.6, f.w + 0.02), INK, -f.d - 0.05, GF / 2, 0));
+  {
+    const by = H - 1.6;
+    G.add(part(box(0.3, 2.0, f.w * 0.55), INK, -f.d - 0.15, by, 0));
+    G.light(1.0, part(box(0.06, 0.28, f.w * 0.46), MAGENTA, -f.d - 0.33, by + 0.4, 0), part(box(0.06, 0.28, f.w * 0.32), CYAN, -f.d - 0.33, by - 0.4, -f.w * 0.06));
+  }
   // side-wall light box at the first floor: a dark sign with two neon bars on each end face
   for (const sz of [-1, 1]) {
     const sx = -f.d * 0.45, sy = GF + 1.3, zz = sz * (f.w / 2 + 0.14);
