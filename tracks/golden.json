@@ -64,9 +64,9 @@
    "vis": "66e121ac"
   },
   "clayhill_village/belltower_piazza": {
-   "src": "ad0046a9d996768d",
+   "src": "1c559db603f6e02b",
    "ctrk": "12b9e9e8",
-   "vis": "2c038733"
+   "vis": "6f362026"
   },
   "clayhill_village/meadow_loop": {
    "src": "8faddd6147dd880c",
@@ -84,14 +84,14 @@
    "vis": "0539e219"
   },
   "ember_mine/geode_rail_quarry": {
-   "src": "56315db7ca5cc224",
+   "src": "6104d0518c51a90b",
    "ctrk": "27d07a3c",
-   "vis": "42031340"
+   "vis": "c0dad252"
   },
   "ember_mine/magma_switchback": {
-   "src": "243216a34dee391b",
+   "src": "7377f683ab8e2819",
    "ctrk": "40c1e250",
-   "vis": "78860cdf"
+   "vis": "c7936df8"
   },
   "frostbyte_glacier/aurora_summit": {
    "src": "e6b15375d5af7a64",
@@ -99,14 +99,14 @@
    "vis": "acd660af"
   },
   "frostbyte_glacier/snowglobe_halfpipe": {
-   "src": "7a14861f0c0406cc",
+   "src": "d5d9a6ff0ce2e871",
    "ctrk": "e0de232a",
-   "vis": "8d42a90d"
+   "vis": "4fd84457"
   },
   "lantern_hollow/manor_catacombs": {
-   "src": "d5e68246f6c3bc23",
+   "src": "37a9b68109d58355",
    "ctrk": "bb91858f",
-   "vis": "47d17355"
+   "vis": "e57e3252"
   },
   "lantern_hollow/pumpkin_lane": {
    "src": "bbfd0ddb707de4b8",
@@ -119,9 +119,9 @@
    "vis": "fae40993"
   },
   "neon_harbor/skyway_interchange": {
-   "src": "413923a13ac05d72",
+   "src": "a7dd5848213329e7",
    "ctrk": "dbad722c",
-   "vis": "98574fb2"
+   "vis": "6bcc40d2"
   },
   "orbital_nexus/orbital_express": {
    "src": "a6f2d2065efb1cd5",
@@ -134,9 +134,9 @@
    "vis": "85805364"
   },
   "spark_circuit/proving_ring": {
-   "src": "77221f3ca45ce733",
+   "src": "ea184ec1b8aee6fc",
    "ctrk": "f1dc8d90",
-   "vis": "7b57d45a"
+   "vis": "7a92af29"
   },
   "spark_circuit/spark_grand_circuit": {
    "src": "044452134a1da4f7",
@@ -144,9 +144,9 @@
    "vis": "0b37ba2c"
   },
   "spark_circuit/sunset_arena_rally": {
-   "src": "f87a7af6bab6c8c8",
+   "src": "1b7feec74bb4e7e7",
    "ctrk": "06c4adc0",
-   "vis": "89728f52"
+   "vis": "bee0993f"
   },
   "sunstone_desert/sandglass_canyon": {
    "src": "870c020558a5fd00",
