@@ -44,9 +44,16 @@ HAZ swinger cranenet at=@market_lane+86 d=0 capsule=(1.3,1.6) arm=7 amp=50 plane
 PROPS kind=sea along=50-50 side=R every=100 offset=200
 # beach straight and the sweepers home: a sand spit with palms and the lifeguard tower
 PROPS kind=beach along=0-152 side=both every=14 offset=0.3
+# review round: the item row at 60 excludes PROPS rows from 54 to 66, which left a 15 m gap in the sand where the
+# ground cover either side stood on the water: two hand-placed pieces close it (PROP lines are not excluded)
+PROP kind=beach at=(56.0,-0.2,10.8) yaw=90 scale=1.1
+PROP kind=beach at=(56.0,-0.2,-10.8) yaw=270 scale=1.1
 PROPS kind=beach along=1166-1350 side=both every=14 offset=0.3
 PROPS kind=palm along=4-96 side=R every=15 offset=5 jitter=10
-PROPS kind=palm along=62-140 side=L every=24 offset=4 jitter=6
+# review round: T1 (the lifeguard corner, 100-147) reads from the approach: no palms right behind the apex, big corner
+# chevron boards (scale 1.5, posts ~1.8 m) on the outside
+PROPS kind=palm along=62-98 side=L every=24 offset=4 jitter=6
+PROPS kind=ad_board_b along=102-146 side=R every=11 offset=2.4 scale=1.5-1.5 seed=196
 PROPS kind=palm along=1172-1270 side=both every=17 offset=5 jitter=9
 # (the tower stands at the corner entry so it never blocks the view of the apex)
 PROPS kind=lifeguard_tower along=104-104 side=R every=10 offset=7
@@ -115,15 +122,16 @@ PROPS kind=beach_umbrella along=100-150 side=R every=11 offset=21 jitter=6 seed=
 PROPS kind=beach_hut along=110-146 side=R every=18 offset=26 jitter=2 seed=179
 PROPS kind=bush_round along=100-150 side=R every=7 offset=9 jitter=8 scale=0.8-1.4 seed=180
 # ground cover, shrubs and palm pairs on both beaches
-PROPS kind=grass_tuft along=0-150 side=both every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=80
-PROPS kind=grass_tuft along=466-1350 side=both every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=81
+PROPS kind=grass_tuft along=0-150 side=both every=2.5 offset=0.2 jitter=8 scale=0.6-1.0 seed=80
+PROPS kind=grass_tuft along=466-1350 side=both every=2.5 offset=0.2 jitter=8 scale=0.6-1.0 seed=81
 PROPS kind=flower_patch along=0-150 side=both every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=82
 PROPS kind=flower_patch along=466-1350 side=both every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=83
 PROPS kind=bush_round along=0-150 side=both every=11 offset=3 jitter=9 scale=0.7-1.3 seed=84
 PROPS kind=bush_round along=466-1350 side=both every=11 offset=3 jitter=9 scale=0.7-1.3 seed=85
 PROPS kind=rock_cluster along=0-150 side=both every=23 offset=4 jitter=12 scale=0.6-1.4 seed=86
 PROPS kind=rock_cluster along=466-1350 side=both every=23 offset=4 jitter=12 scale=0.6-1.4 seed=87
-PROPS kind=tree_round_big along=60-150 side=L every=17 offset=14 jitter=10 scale=0.8-1.2 seed=88
+PROPS kind=tree_round_big along=60-98 side=L every=17 offset=14 jitter=10 scale=0.8-1.2 seed=88
+PROPS kind=tree_round_big along=104-150 side=L every=34 offset=22 jitter=10 scale=0.8-1.2 seed=188
 PROPS kind=tree_round_big along=0-150 side=R every=17 offset=15 jitter=10 scale=0.8-1.2 seed=89
 PROPS kind=tree_round_big along=470-1260 side=both every=17 offset=14 jitter=10 scale=0.8-1.2 seed=90
 # the pier: harbour lamps on the piling line; dock clutter at the fish market and the market lane

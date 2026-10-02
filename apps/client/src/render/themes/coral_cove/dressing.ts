@@ -18,7 +18,7 @@ const paintGloss = (): THREE.Material => MaterialLibrary.vertexLit(0.4, 0);
 const leafy = (): THREE.Material => MaterialLibrary.foliageLit();
 
 const K = {
-  dune: '#9fb25f', duneLight: '#c2c97c', duneDry: '#d7bf78', leaf: '#3f9e4d', leafDeep: '#2f8441', leafLight: '#5cb85a',
+  dune: '#9aa860', duneLight: '#b4b77c', duneDry: '#cdb98a', leaf: '#3f9e4d', leafDeep: '#2f8441', leafLight: '#5cb85a',
   trunk: '#8a6340', trunkDark: '#6f4c2f', coconut: '#5a3a22', sand: '#f3dfae', sandWet: '#d9c08a', shallows: '#8fe0d6',
   sandstone: '#d2b085', sandstoneDk: '#b48f66', sandstoneLt: '#e4caa0', turq: '#1fb5c9', turqLight: '#7fe3d6', white: '#fafafa',
   red: '#d94f4f', yellow: '#f5c230', navy: '#2d4a6b', coral: '#ff7a6b', pink: '#ff6fa8', wood: '#b9854f', woodPale: '#d9b98a',
@@ -91,17 +91,22 @@ export const CORAL_DRESSING: Record<string, PropFactory> = {
     },
   },
   flower_patch: {
-    // beach flora: a mat of ice plant with pink and yellow flowers, a scallop shell and a starfish
+    // beach finds (review round: the green ice-plant mat read as lawn on the sand): two scallop shells, a coral and a
+    // yellow starfish and a few sandstone pebbles, nothing green
     maxInstances: 3000,
     build: () => {
-      const p: THREE.BufferGeometry[] = [part(ico(0.42, 1), '#5c9a48', 0, 0.04, 0, 0, 0, 0, 1.4, 0.28, 1.1, 0.08, 3)];
+      const p: THREE.BufferGeometry[] = [];
+      const shell = (x: number, z: number, k: number, c: string, a: number): void => {
+        p.push(part(new THREE.SphereGeometry(0.16 * k, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), c, x, -0.02, z, 0, a, 0, 1, 0.45, 1));
+        for (let j = 0; j < 4; j++) p.push(part(box(0.012, 0.012, 0.3 * k), '#e8bfa6', x + (j - 1.5) * 0.06 * k, 0.045 * k, z, 0, a + (j - 1.5) * 0.25, 0));
+      };
+      const star = (x: number, z: number, k: number, c: string): void => {
+        for (let j = 0; j < 5; j++) p.push(part(box(0.24 * k, 0.05, 0.07 * k), c, x + Math.cos(j * 1.2566) * 0.11 * k, 0.0, z + Math.sin(j * 1.2566) * 0.11 * k, 0, -j * 1.2566, 0));
+      };
+      shell(0.75, 0.45, 1, '#f6d7c3', 0.4); shell(-0.25, -0.55, 0.75, '#f1c4ad', 2.1);
+      star(-0.7, -0.4, 1, K.coral); star(0.35, 0.05, 0.7, K.yellow);
       const r = seeded(143);
-      for (let i = 0; i < 6; i++) {
-        const a = r() * Math.PI * 2, d = 0.15 + r() * 0.4;
-        p.push(part(ico(0.08, 0), i % 3 ? K.pink : K.yellow, Math.cos(a) * d * 1.3, 0.15, Math.sin(a) * d));
-      }
-      p.push(part(new THREE.SphereGeometry(0.16, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), '#f6d7c3', 0.75, -0.02, 0.45, 0, 0, 0, 1, 0.45, 1));
-      for (let k = 0; k < 5; k++) p.push(part(box(0.24, 0.05, 0.07), K.coral, -0.7 + Math.cos(k * 1.2566) * 0.11, 0.0, -0.4 + Math.sin(k * 1.2566) * 0.11, 0, -k * 1.2566, 0));
+      for (let i = 0; i < 3; i++) p.push(part(ico(0.06 + r() * 0.05, 0), i % 2 ? K.sandstone : K.sandstoneDk, (r() - 0.5) * 1.6, 0.02, (r() - 0.5) * 1.4, 0, 0, 0, 1.3, 0.6, 1));
       return { geometry: merge(p), material: leafy() };
     },
   },
@@ -161,8 +166,9 @@ export const CORAL_DRESSING: Record<string, PropFactory> = {
     // PROPS rows are excluded (start line, pads, item rows): it reads like the row layers next to it
     maxInstances: 80,
     build: () => ({ geometry: groundPatch(171, (p, r) => {
-      for (let i = 0; i < 26; i++) tuftInto(p, -r() * 6, (r() - 0.5) * 12, 1 + r() * 0.8, r);
-      for (let i = 0; i < 5; i++) { const x = -0.6 - r() * 5, z = (r() - 0.5) * 11; p.push(part(ico(0.3, 1), '#5c9a48', x, 0.03, z, 0, 0, 0, 1.4, 0.28, 1.1), part(ico(0.08, 0), i % 2 ? K.pink : K.yellow, x, 0.14, z)); }
+      // review round: sparse pale-olive dune grass and beach finds on the sand, not a lawn (no green mats)
+      for (let i = 0; i < 12; i++) tuftInto(p, -r() * 6, (r() - 0.5) * 12, 0.6 + r() * 0.4, r);
+      for (let i = 0; i < 4; i++) { const x = -0.6 - r() * 5, z = (r() - 0.5) * 11; p.push(part(new THREE.SphereGeometry(0.15, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), i % 2 ? '#f6d7c3' : '#f1c4ad', x, -0.02, z, 0, r() * 3, 0, 1, 0.45, 1)); }
       p.push(part(ico(0.8, 1), K.leafDeep, -4.2, 0.55, 2.5, 0, 0, 0, 1.15, 0.85, 1.1, 0.08, 3), part(ico(0.55, 1), K.leafLight, -3.7, 0.7, 3.0), part(ico(0.13, 0), K.red, -3.5, 1.2, 2.4));
       p.push(part(ico(0.6, 0), K.sandstone, -2.8, 0.2, -3.8, 0.3, 0.5, 0.2, 1.3, 0.7, 1.0, 0.1, 11), part(ico(0.35, 0), K.sandstoneDk, -2.1, 0.12, -3.2));
     }), material: leafy() }),

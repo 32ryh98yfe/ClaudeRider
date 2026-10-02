@@ -5,7 +5,7 @@
 import * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
-import { merge, paint, place, rbox, box, cyl, cone, sph, ico, sparkleGeometry } from '../../util/geo.ts';
+import { merge, paint, place, rbox, box, cyl, cone, sph, ico, sparkleGeometry, torus } from '../../util/geo.ts';
 
 /** Sea surface relative to a prop origin (road height − 0.2 m): the water sits 1.3 m below a sea-level road. */
 export const SEA_Y = -1.1;
@@ -47,6 +47,9 @@ function tentacle(height: number, curl: number, r0: number, seed: number): THREE
   }
   return parts;
 }
+
+/** Galleon rail stripe, porthole rims and road-opening frame (review round). */
+const RAIL = '#e9d6b0';
 
 export const CORAL_PROPS: Record<string, PropFactory> = {
   /** The sea: one big turquoise disc placed once per track (PROPS … every= larger than the range). */
@@ -334,6 +337,19 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
         parts.push(paint(place(box(2.3, 0.5, 66), side * 11.2, 0.6, 0), C.gold));
         parts.push(paint(place(box(2.25, 1.0, 66), side * 11.2, -5.8, 0), '#5c3a1c'));
         for (let k = 0; k < 9; k++) parts.push(paint(place(box(0.15, 0.9, 1.3), side * 12.35, -2.2, -26 + k * 6.5), '#1b1b1f'));
+        // review round: a cream rail stripe both faces, round portholes on the lower deck (outside and facing the road),
+        // and the hull tapering in towards bow and stern so it reads as a ship, not a 66 m box
+        parts.push(paint(place(box(2.34, 0.42, 66.2), side * 11.2, -1.0, 0), RAIL));
+        for (let k = 0; k < 10; k++) for (const face of [-1, 1]) {
+          const x = side * (11.2 + face * 1.12), z = -27 + k * 6;
+          parts.push(paint(place(torus(0.36, 0.08, 5, 12), x, -4.1, z, 0, Math.PI / 2, 0), RAIL), paint(place(cyl(0.3, 0.3, 0.1, 10), x, -4.1, z, 0, 0, Math.PI / 2), '#1b1b1f'));
+        }
+        for (const end of [-1, 1]) {
+          parts.push(paint(place(rbox(2.2, 8.0, 9, 0.8, 2), side * 10.7, -3.6, end * 36.5, 0, -end * side * 0.2, 0), C.wood, 0.05, 7));
+          parts.push(paint(place(box(2.3, 0.42, 9.1), side * 10.7, -1.0, end * 36.5, 0, -end * side * 0.2, 0), RAIL));
+          // the road opening is framed: cream posts at both ends of the hull
+          parts.push(paint(place(box(0.7, 9.4, 0.7), side * 9.75, 4.3, end * 33.2), RAIL));
+        }
         for (const z of [-18, 4, 22]) {
           const h = z === 4 ? 26 : 21;
           parts.push(paint(place(cyl(0.45, 0.6, h, 8), side * 11.4, h / 2 - 1, z), C.trunkDark));
@@ -352,9 +368,9 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
       parts.push(paint(place(box(24.6, 3.5, 8), 0, 7.6, -30), C.woodLight), paint(place(box(24.8, 0.5, 8.2), 0, 9.5, -30), C.red));
       for (const side of [-1, 1]) {
         parts.push(paint(place(box(2.4, 6.2, 8), side * 11.2, 3.0, -30), C.woodLight));
-        parts.push(paint(place(rbox(2.2, 6.5, 6, 0.6, 2), side * 10.6, -2.6, 35.5, 0, side * 0.25, 0), C.wood));
       }
       parts.push(paint(place(box(24.4, 1.4, 1.4), 0, 9.6, 33.5), C.woodLight));
+      parts.push(paint(place(box(20.2, 0.5, 1.5), 0, 8.8, 33.2), RAIL), paint(place(box(20.2, 0.5, 1.5), 0, 5.6, -33.2), RAIL));
       parts.push(paint(place(cyl(0.3, 0.45, 16, 6), 0, 12.5, 39, 1.15, 0, 0), C.trunkDark));
       parts.push(paint(place(sparkleGeometry(2.4, 0.4, 13), 0, 10.6, 34.4), C.gold));
       return { geometry: merge(parts), material: gloss(), castShadow: true };
