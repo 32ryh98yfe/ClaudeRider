@@ -29,7 +29,7 @@ export const FROSTBYTE_LOOK: Partial<ThemeLook> = {
   fogColor: '#dbe5ee',
   horizon: '#e2eaf1',
   skyStyle: 'gradient',
-  exposure: 0.95,
+  exposure: 1.05,
   bloom: 0.25,
   hour: 13,
   clouds: 0.75,
@@ -51,7 +51,7 @@ const NIGHT_LOOK: Partial<ThemeLook> = {
   horizon: '#21507a',
   // moonlight: a bright, nearly neutral sky fill so snow reads pale blue-grey (not royal blue), plus a cool back fill for
   // the chase camera; the sun-like key stays the weak moon, so it is still night
-  hemi: { sky: '#c0c9dc', ground: '#46526c', intensity: 2.0 },
+  hemi: { sky: '#c0c9dc', ground: '#5a6274', intensity: 2.4 },
   fill: { color: '#c3cbe6', intensity: 0.8 },
   fogColor: '#26374f',
   exposure: 1.08,
@@ -59,7 +59,7 @@ const NIGHT_LOOK: Partial<ThemeLook> = {
   envIntensity: 0.35,
   shadowStrength: 0.7,
   rimBoost: 1.9,
-  grade: { tint: '#f4f7ff', saturation: 0.9, shadows: '#dfe6ff', highlights: '#f6faff' },
+  grade: { tint: '#ffffff', saturation: 0.9, shadows: '#e8ebf3', highlights: '#f8faff' },
 };
 
 export default (c: ContentTables, env: Readonly<Record<string, string>> = {}): ThemeKit => {
