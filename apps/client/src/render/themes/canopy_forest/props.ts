@@ -8,8 +8,10 @@ import { merge, paint, place, box, cyl, cone, ico, rbox, torus, sparkleGeometry 
 import type { PropFactory } from '../../props/defaults.ts';
 import { around, blob, dome, facet, hdr, inward, lathe, part, prng, tube } from './shapes.ts';
 
+// bark a step lighter than first cut (#6b4226 / #4f3019): the 30 m giant trunks are mostly in their own canopy's shade
+// and rendered near-black
 const C = {
-  bark: '#6b4226', barkDark: '#4f3019', barkLight: '#8a5a36', wood: '#b98a57', woodPale: '#d9b27c', rings: '#e2c08a',
+  bark: '#7e5536', barkDark: '#64432c', barkLight: '#8a5a36', wood: '#b98a57', woodPale: '#d9b27c', rings: '#e2c08a',
   leaf: '#5a9649', leafDeep: '#4c7d3f', leafLight: '#6fbf4a', moss: '#7da24b', mossDeep: '#628a36',
   cap: '#e4572e', capDeep: '#c2401f', ivory: '#f9f8f4', cream: '#f4ead2', stone: '#8d8c7c', stoneDark: '#6e6d60',
   water: '#3f9a92', waterDeep: '#2d7a78', foam: '#e8f7f2', lily: '#5aa845', pink: '#ff9ec7', gold: '#ffd23f',
@@ -41,8 +43,9 @@ function giantTrunk(): THREE.BufferGeometry {
   parts.push(...around(6, (i, a) => part(facet(new THREE.BoxGeometry(3.6, 3.2, 1.3)), i % 2 ? C.barkDark : C.bark, Math.cos(a) * 3.6, -0.3, Math.sin(a) * 3.6, 0, -a, -0.35)));
   parts.push(part(blob(3.15, 1, 0.12, 11, 1, 0.35, 1), C.moss, 0, 1.4, 0, 0, 0, 0, 1, 1, 1, 0.12, 5));
   parts.push(part(blob(2.45, 1, 0.1, 12, 1, 0.3, 1), C.mossDeep, 0, 12, 0));
-  // shelf fungus facing the road
-  parts.push(part(dome(1.1, 8, 3, Math.PI / 2), C.cap, 2.2, 8.5, 0.6, 0, 0, -Math.PI / 2, 1, 0.35, 1));
+  // shelf fungus facing the road, pale wood rather than mushroom red: a red bracket at eye height on every trunk (every
+  // ~22 m) competed with the red/cream kerbs that mark the corners
+  parts.push(part(dome(1.1, 8, 3, Math.PI / 2), C.woodPale, 2.2, 8.5, 0.6, 0, 0, -Math.PI / 2, 1, 0.35, 1));
   parts.push(part(dome(0.8, 8, 3, Math.PI / 2), C.woodPale, 2.25, 9.6, -0.4, 0, 0, -Math.PI / 2, 1, 0.3, 1));
   // branches + canopy
   parts.push(part(tube([[0, 24, 0], [4, 27, 1], [8, 29, 2]], 0.7, 6, 5), C.bark));

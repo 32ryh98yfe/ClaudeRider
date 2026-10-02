@@ -41,16 +41,18 @@ export const CLAYHILL_LOOK: Partial<ThemeLook> = {
 export const CLAYHILL_GOLDEN: Partial<ThemeLook> = {
   // first cut (peach horizon #f4dabd, sun #ffd9ab, warm fog) turned the whole frame orange: the dome mixes the
   // horizon colour up to ~33° and the chase camera sees little else, so the warmth now lives in a pale band, the
-  // key light and the long shadows, against cool blue shadow fill
+  // key light and the long shadows. The shade fill and shadow grade are near-neutral: a blue-lilac sky term and a
+  // blue shadow grade on warm cobbles mixed to mauve (#5e545c) wherever the townhouses shade the street
   sky: { ...CLAYHILL_LOOK.sky!, azimuthDeg: -35, top: '#4f86d6', bottom: '#eadbc8' },
   sun: { color: '#ffe2b8', intensity: 3.0 },
-  hemi: { sky: '#c6d5f4', ground: '#8f6e5a', intensity: 1.35 },
+  hemi: { sky: '#d3d8e0', ground: '#8f6e5a', intensity: 1.35 },
   fill: { color: '#ffe2cc', intensity: 0.45 },
-  fogColor: '#e4ddd4',
-  horizon: '#f1e4d3',
+  // a slightly cool pale band: the greige #e4ddd4 / #f1e4d3 pair left the sky flat behind the warm town
+  fogColor: '#dfe3e6',
+  horizon: '#eee6da',
   clouds: 0.3,
   rimBoost: 0.6,
-  grade: { tint: '#ffffff', saturation: 1.04, shadows: '#e8eeff', highlights: '#fff6ea' },
+  grade: { tint: '#ffffff', saturation: 1.04, shadows: '#f2f2f0', highlights: '#fff6ea' },
 };
 
 export default (c: ContentTables, env?: Readonly<Record<string, string>>): ThemeKit => {
@@ -60,7 +62,8 @@ export default (c: ContentTables, env?: Readonly<Record<string, string>>): Theme
   // theme-tinted variants of the per-surface / per-wall-type slots the .vis bakes (TrackView resolves `family:variant`)
   kit.materials = () => ({
     ...base(),
-    'road:cobble': MaterialLibrary.road({ style: 'cobble', a: '#8c7c6c', b: '#a69280', line: '#fbf3df', tint: [1.08, 1.02, 0.95] }),
+    // warm grey setts rather than pink-brown ones: those read mauve wherever a townhouse shades the street
+    'road:cobble': MaterialLibrary.road({ style: 'cobble', a: '#86807a', b: '#928b80', line: '#fbf3df', tint: [1.08, 1.02, 0.95] }),
     'road:gravel': MaterialLibrary.road({ style: 'gravel', a: '#9c8e7a', b: '#b3a58f', line: '#fbf3df', tint: [1.2, 1.15, 1.08] }),
     'wall:parapet': MaterialLibrary.wall('parapet', '#e8d9bd', '#c9a57f', 0.95),
     'wall:building': MaterialLibrary.wall('building', '#f4efe6', '#d97757', 0.9),

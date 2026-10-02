@@ -5,6 +5,7 @@ import type * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
 import { merge, paint, place, rbox, box, cyl, cone, sph, ico, sparkleGeometry } from '../../util/geo.ts';
+import { sparkSignLit } from './lamps.ts';
 
 // Shared materials for the whole kit (vertex colour carries the variation). 2026-10 stylized pass: gloss belongs on the
 // karts, so concrete, stands and tunnels are matte, painted boards / pit structures a soft satin, masts metal, and the
@@ -50,11 +51,41 @@ function stand(len: number, tiers: number, seed: number, roofColor: string): THR
   }
   const top = 1.3 + tiers * 1.05;
   parts.push(paint(place(box(0.5, top + 3.2, len), -depth + 0.4, (top + 3.2) / 2, 0), C.concrete));
+  // the back wall faces other parts of the lap: a navy kick band (1.2 m above ground, run on below it for terrain
+  // dips) and a red top stripe, so it reads as part of the venue instead of a blank grey slab
+  const back = -depth + 0.15 - 0.03;
+  parts.push(paint(place(box(0.06, 2.2, len + 0.02), back, 0.1, 0), TS.navy));
+  parts.push(paint(place(box(0.06, 0.6, len + 0.02), back, top + 2.9, 0), TS.red));
   // cantilever roof with a painted fascia
   parts.push(paint(place(box(depth + 1.6, 0.35, len + 1), -depth / 2 + 0.2, top + 3.4, 0, 0, 0, -0.08), C.white));
   parts.push(paint(place(box(0.5, 0.9, len + 1), 1.0, top + 3.3, 0), roofColor));
   for (let z = -len / 2 + 1; z <= len / 2 - 1; z += (len - 2) / 3) parts.push(paint(place(cyl(0.18, 0.22, top + 3.2, 6), -depth + 1.0, (top + 3.2) / 2, z), C.graphite));
   return parts;
+}
+
+/**
+ * Tall corner chevron board: a navy panel with four yellow chevrons on 4.5 m posts, for corners whose outside is a
+ * banked bowl wall or a tall barrier that hides a normal-height board (it stands on the ground beyond the wall and
+ * shows its whole face above it). Chevron tips point along local +Z (the travel direction once placed on a right-side
+ * row), so on the outside of a bend they point into the turn; `leftSide` mirrors them for side=L rows.
+ */
+function chevronTall(leftSide: boolean): THREE.BufferGeometry {
+  const W = 3.6, H = 1.4, y = 4.5 + H / 2, t = leftSide ? -0.8 : 0.8;
+  const parts: THREE.BufferGeometry[] = [];
+  // posts run 1.5 m into the ground so a terrain dip never shows their feet
+  for (const z of [-W / 2 + 0.35, W / 2 - 0.35]) {
+    parts.push(paint(place(box(0.18, y + 1.5, 0.18), -0.12, (y - 1.5) / 2, z), C.graphite));
+    parts.push(paint(place(box(0.3, 0.35, 0.3), -0.12, 0.1, z), C.concreteDark));
+  }
+  // white border on the face; the back is navy too, so from outside the bowl it reads as a sign's back, not a blank one
+  parts.push(paint(place(box(0.12, H + 0.16, W + 0.16), -0.04, y, 0), C.white));
+  parts.push(paint(place(box(0.04, H + 0.18, W + 0.18), -0.12, y, 0), TS.navy));
+  parts.push(paint(place(box(0.04, H, W), 0.03, y, 0), TS.navy));
+  for (let k = 0; k < 4; k++) {
+    const z = -1.2 + k * 0.8;
+    parts.push(paint(place(box(0.03, 0.78, 0.22), 0.06, y + 0.23, z, -t, 0, 0), TS.yellow), paint(place(box(0.03, 0.78, 0.22), 0.06, y - 0.23, z, t, 0, 0), TS.yellow));
+  }
+  return merge(parts);
 }
 
 export const SPARK_PROPS: Record<string, PropFactory> = {
@@ -74,9 +105,10 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
       // five start-light pods on a deep-navy panel (dark enough that the red pods pop), both faces
       parts.push(paint(place(rbox(7.4, 1.5, 1.8, 0.3, 2), 0, 10.0, 0), '#24395f'));
       for (let k = 0; k < 5; k++) for (const z of [-0.92, 0.92]) parts.push(paint(place(sph(0.36, 8, 6), -2.8 + k * 1.4, 10.0, z), '#ff3b30'));
-      const sp = sparkleGeometry(2.2, 0.35, 11);
-      parts.push(paint(place(sp, 0, 12.2, 0), C.coral));
-      return { geometry: merge(parts), material: satin(), castShadow: true };
+      // the sparkle, crossed with a copy turned 90° so it reads from the side as well as head-on; self-lit coral
+      // (sparkSignLit), as lit coral went muddy brown in shade
+      for (const ry of [0, Math.PI / 2]) parts.push(paint(place(sparkleGeometry(2.2, 0.35, 11), 0, 12.2, 0, 0, ry, 0), C.coral));
+      return { geometry: merge(parts), material: sparkSignLit(), castShadow: true };
     },
     maxInstances: 2,
   },
@@ -139,19 +171,22 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
         paint(place(cyl(0.12, 0.12, 5, 5), -4, 24.7, 0), C.graphite),
       ];
       for (let k = 0; k < 4; k++) parts.push(paint(place(box(0.2, 3.2, 1.4), -4 + Math.cos((k * Math.PI) / 2) * 5.05, 19.6, Math.sin((k * Math.PI) / 2) * 5.05, 0, (k * Math.PI) / 2, 0), C.white));
-      const sp = place(sparkleGeometry(3.4, 0.5, 23), -4, 28.6, 0, 0, Math.PI / 2, 0);
-      parts.push(paint(sp, C.coral));
-      return { geometry: merge(parts), material: satin(), castShadow: true };
+      // the sparkle on the mast, crossed with a copy turned 90° and self-lit coral (see the gantry)
+      for (const ry of [Math.PI / 2, 0]) parts.push(paint(place(sparkleGeometry(3.4, 0.5, 23), -4, 28.6, 0, 0, ry, 0), C.coral));
+      return { geometry: merge(parts), material: sparkSignLit(), castShadow: true };
     },
     maxInstances: 2,
   },
-  /** Stack of tyres with a painted top ring (3 along × 2 deep × 3 high). */
+  /** Stack of tyres with a painted top ring (3 along × 2 deep × 3 high); the middle tier is painted white / red. */
   tyre_wall: {
     build: () => {
       const parts: THREE.BufferGeometry[] = [];
       for (let a = 0; a < 3; a++) for (let d = 0; d < 2; d++) for (let h = 0; h < 3; h++) {
         const z = -1.0 + a * 1.0 + (d ? 0.5 : 0), x = -d * 0.9;
-        parts.push(paint(place(cyl(0.48, 0.48, 0.34, 9), x, 0.18 + h * 0.36, z), '#1d1e22', 0.12, 3 + a + h));
+        // an all-black stack read as a dark hole along the corner (and vanished in the sunset shade): the painted
+        // middle tier alternates along the wall, checkered against the top rings, so the corner's outside line reads
+        const col = h === 1 ? ((a + d) % 2 ? TS.red : C.white) : '#1d1e22';
+        parts.push(paint(place(cyl(0.48, 0.48, 0.34, 9), x, 0.18 + h * 0.36, z), col, h === 1 ? 0.04 : 0.12, 3 + a + h));
       }
       for (let a = 0; a < 3; a++) parts.push(paint(place(cyl(0.5, 0.5, 0.1, 9), 0, 1.1, -1.0 + a * 1.0), a % 2 ? C.white : C.kerbRed));
       return { geometry: merge(parts), material: matte() };
@@ -182,6 +217,10 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
     },
     maxInstances: 120,
   },
+  /** Tall corner chevron board (right-side rows): see chevronTall(). */
+  chevron_tall: { build: () => ({ geometry: chevronTall(false), material: satin(), castShadow: true }), maxInstances: 40 },
+  /** Its left-side twin: side=L rows turn props by 180°, so its chevrons are drawn mirrored to point along travel. */
+  chevron_tall_l: { build: () => ({ geometry: chevronTall(true), material: satin(), castShadow: true }), maxInstances: 40 },
   /** Overhead bridge banner spanning the track (placed on the centreline): truss beam, chevron banner, stair towers. */
   footbridge: {
     build: () => {

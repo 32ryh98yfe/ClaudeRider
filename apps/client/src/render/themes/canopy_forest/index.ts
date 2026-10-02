@@ -7,11 +7,12 @@ import { CANOPY_PROPS } from './props.ts';
 import { CANOPY_DRESSING } from './dressing.ts';
 
 // Stylized arcade read (2026-10 pass, docs/design/34-stylized-pass.md): a clear morning gradient sky with a green-gold
-// horizon instead of the Preetham haze, a key sun that out-weighs the fill so the trunk shadows read, a warm sandy trail
+// horizon instead of the Preetham haze, a key sun that out-weighs the fill so the trunk shadows read, a cool packed-earth trail
 // (the karts and the next corner pop against it), mid-value greens instead of near-black foliage, and the mist pushed
 // back (the content fog started at 45 m and greyed the whole frame) so the forest layers read as depth, not murk.
 export const CANOPY_LOOK: Partial<ThemeLook> = {
-  road: { style: 'dirt', a: '#ae8962', b: '#bc976f', line: '#f1e6c8' },
+  // cooler packed earth: the warm sandy #ae8962 trail was the mascots' own hue, a brighter version under the kart
+  road: { style: 'dirt', a: '#9d8b74', b: '#ab9980', line: '#f1e6c8' },
   shoulder: { a: '#55863a', b: '#649545' },
   terrain: { a: '#5a8a40', b: '#6f9a4c', rock: '#8c8778' },
   wall: { kind: 'stone', a: '#a19d8a', b: '#7d8a5e' },
@@ -48,8 +49,9 @@ export default (c: ContentTables): ThemeKit => {
     // leaf-litter shoulders a shade darker and greener than the trail, so the road edge reads at speed
     'shoulder:dirt': MaterialLibrary.road({ style: 'dirt', a: '#7a6142', b: '#86704a', line: '#f1e6c8', tint: [1.25, 1.0, 0.75], shoulder: true }),
     'road:wood': MaterialLibrary.road({ style: 'wood', a: '#9a6a3c', b: '#b07c48', line: '#f1e6c8', tint: [1.3, 1.0, 0.7] }),
-    // mossy stone blocks: rhythm from the courses, moss-green mortar tone, no extra noise
-    'wall:rock': MaterialLibrary.wall('stone', '#a6a291', '#7f8c60', 0.8),
+    // mossy stone blocks: rhythm from the courses, moss-green mortar tone, no extra noise. Lighter and greyer than the
+    // first cut (#a6a291 / #7f8c60): the 1.2 m walls lining Cascade Slalom's narrow canyon read as a heavy dark slab
+    'wall:rock': MaterialLibrary.wall('stone', '#b3ae9c', '#99967e', 0.8),
     'wall:fence': MaterialLibrary.wall('ranch', '#efe2c4', '#6b4a33', 1),
     underside: MaterialLibrary.world({ color: '#6f5a40', color2: '#5e4c36', roughness: 0.95, vertexAO: true }),
   });
