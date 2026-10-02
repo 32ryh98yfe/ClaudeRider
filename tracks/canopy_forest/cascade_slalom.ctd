@@ -96,9 +96,15 @@ PROPS kind=rock_cluster from=@cave_hairpin to=@canopy_climb side=both every=15 o
 # shade trees (their crowns reach the boardwalk, so the canopy road runs among the treetops); none behind the stand/grid
 # and none on the outside of the pool corner, which stays open so the corner reads, nor round the treehouse spiral
 # (its stacked turns would put them on the level below)
-PROPS kind=tree_round_big from=@pool_corner to=@boardwalk_s side=L every=16 offset=13 jitter=16 scale=0.8-1.4 seed=90
+# through the slalom, the falls tunnel and into the cave hairpin the chase camera swings wide of the kart, so the shade
+# trees stand 5 m further out there (a trunk and crown filled the frame between slalom_3 and the falls tunnel); none
+# inside the cave hairpin on L (falls tunnel to canopy_climb+50): 13-34 m out there lands on the road's other leg
+PROPS kind=tree_round_big from=@pool_corner to=@slalom_1 side=L every=16 offset=13 jitter=16 scale=0.8-1.4 seed=90
+PROPS kind=tree_round_big from=@slalom_1 to=@falls_tunnel side=L every=16 offset=18 jitter=16 scale=0.8-1.4 seed=100
+PROPS kind=tree_round_big from=@canopy_climb+50 to=@boardwalk_s side=L every=16 offset=13 jitter=16 scale=0.8-1.4 seed=101
 PROPS kind=tree_round_big from=@falls_lip to=@home side=L every=16 offset=13 jitter=16 scale=0.8-1.4 seed=92
-PROPS kind=tree_round_big from=@pool_corner+50 to=@boardwalk_s side=R every=16 offset=13 jitter=16 scale=0.8-1.4 seed=91
+PROPS kind=tree_round_big from=@pool_corner+50 to=@cave_hairpin+40 side=R every=16 offset=18 jitter=16 scale=0.8-1.4 seed=91
+PROPS kind=tree_round_big from=@cave_hairpin+40 to=@boardwalk_s side=R every=16 offset=13 jitter=16 scale=0.8-1.4 seed=102
 PROPS kind=tree_round_big from=@falls_lip to=@pool_corner-10 side=R every=16 offset=13 jitter=16 scale=0.8-1.4 seed=93
 # far tree lines only where they stay >= 20 m from every other part of the track (a clump 60-175 m out from one
 # segment otherwise lands beside, or on the edge of, another; ranges from a fold check of the baked centrelines)
@@ -122,5 +128,7 @@ PROPS kind=tree_clump along=790-1835 side=R every=34 offset=125 jitter=50 scale=
 PROPS kind=tree_clump along=1860-1950 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=95
 PROP kind=hot_air_balloon at=(-60.0,62.0,-120.0) yaw=20 scale=1.1
 PROP kind=hot_air_balloon at=(-240.0,58.0,-40.0) yaw=0 scale=0.9
-# no karst_pillar in the random scatter: the PROPS rows place the pillars, and a scattered one landed beside the grid
-THEME canopy_forest sky=day time=09:30 scatter=forest_wall,forest_wall,bamboo,rock_moss,rock_cluster,bush_round,bush_round density=26 hills=6 fogNear=120 fogFar=850
+# the random scatter is low cover only: no karst_pillar (the PROPS rows place the pillars, and a scattered one landed
+# beside the grid), no forest_wall or bamboo (they stood in the chase camera's swing; the forest_wall and bamboo rows
+# and the far tree lines carry the depth)
+THEME canopy_forest sky=day time=09:30 scatter=rock_moss,rock_cluster,bush_round,bush_round,stump,mossy_log,mushroom_red density=26 hills=6 fogNear=120 fogFar=850
