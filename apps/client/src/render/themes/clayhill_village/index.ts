@@ -47,8 +47,9 @@ export const CLAYHILL_GOLDEN: Partial<ThemeLook> = {
   sun: { color: '#ffe2b8', intensity: 3.0 },
   hemi: { sky: '#d3d8e0', ground: '#8f6e5a', intensity: 1.35 },
   fill: { color: '#ffe2cc', intensity: 0.45 },
-  fogColor: '#e4ddd4',
-  horizon: '#f1e4d3',
+  // a slightly cool pale band: the greige #e4ddd4 / #f1e4d3 pair left the sky flat behind the warm town
+  fogColor: '#dfe3e6',
+  horizon: '#eee6da',
   clouds: 0.3,
   rimBoost: 0.6,
   grade: { tint: '#ffffff', saturation: 1.04, shadows: '#f2f2f0', highlights: '#fff6ea' },
