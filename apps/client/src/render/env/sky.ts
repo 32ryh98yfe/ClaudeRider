@@ -32,7 +32,7 @@ export function buildSky(L: EnvLook, lite = false): SkyObject {
     s.name = 'sky';
     return { object: s, moonDir: null };
   }
-  const key = `sky${lite ? 'Lite' : ''}:${L.kind}:${L.sunDir.x.toFixed(2)},${L.sunDir.y.toFixed(2)}:${L.sky.top}:${L.sky.bottom}:${L.sky.horizon}:${L.sky.stars}:${L.sky.moon}:${L.sky.aurora}:${JSON.stringify(L.sky.planet)}`;
+  const key = `sky${lite ? 'Lite' : ''}:${L.kind}:${L.sunDir.x.toFixed(2)},${L.sunDir.y.toFixed(2)}:${L.sky.top}:${L.sky.bottom}:${L.sky.horizon}:${L.sky.stars}:${L.sky.moon}:${L.sky.aurora}:${JSON.stringify(L.sky.planet)}:${L.sky.caveGlow}`;
   const moonDir = new THREE.Vector3(L.sunDir.x, Math.max(0.35, L.sunDir.y), L.sunDir.z).normalize();
   const mat = MaterialLibrary.custom(key, () => domeMaterial(L, moonDir));
   const dome = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 24), mat);
@@ -76,7 +76,7 @@ function domeMaterial(L: EnvLook, moonDir: THREE.Vector3): THREE.MeshBasicNodeMa
     // cave vault: rocky noise overhead, warm glow low on the horizon, sparse crystal glints
     const rock = n01(dir.mul(9)).mul(0.6).add(n01(dir.mul(23)).mul(0.4));
     c = mix(color('#2a1a14'), color('#0b0807'), smoothstep(-0.1, 0.5, h)).mul(rock.mul(0.6).add(0.55));
-    c = c.add(color('#ff6a2b').mul(smoothstep(0.25, -0.05, abs(h)).mul(0.18)));
+    c = c.add(color('#ff6a2b').mul(smoothstep(0.25, -0.05, abs(h)).mul(L.sky.caveGlow)));
     // round glints inside sparse cells (a whole lit cell read as a floating square once bloomed)
     const q = dir.mul(150), cell = floor(q);
     const spot = smoothstep(0.32, 0.0, fract(q).sub(0.5).length());
