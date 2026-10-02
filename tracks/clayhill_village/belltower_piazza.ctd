@@ -79,8 +79,9 @@ PROP kind=bunting at=(-58.8,1.7,-253.6) yaw=90 scale=1
 PROP kind=bunting at=(-113.8,1.7,-253.6) yaw=90 scale=1
 PROP kind=weathervane at=(-223.9,1.7,-56.9) yaw=-130 scale=1
 PROP kind=signboard at=(-242.6,1.7,-101.0) yaw=142 scale=1
-# T1 signboard on the outside of the corner, chevrons pointing into the turn (as Meadow Loop's T1 board)
-PROP kind=signboard at=(76.0,-0.3,15.0) yaw=90 scale=1.2
+# T1 signboard on the outside of the corner, chevrons pointing into the turn (as Meadow Loop's T1 board). Turned 35°
+# toward the approach (yaw 125, not 90): side-on, it read as a sliver beside the third arch's pier from the straight
+PROP kind=signboard at=(76.0,-0.3,15.0) yaw=125 scale=1.2
 # ---- dressing pass (2026-10, 34-stylized-pass): race-day town. Start-straight lamps, flags, banners and a crowd;
 # a tyre wall with chevron boards round T1; weeds and flowers at the parapet foot; shrubs, shade trees peeking over
 # the roofs and far tree lines. side=both rows skip the piazza, whose inner edge is the bell tower's base
