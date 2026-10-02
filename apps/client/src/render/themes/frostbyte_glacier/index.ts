@@ -1,5 +1,5 @@
 // Frostbyte Glacier — a penguin village in a snow globe, crystal caves and a night ski resort: packed-snow road with
-// ice-blue paint, snow shoulders and banks, pale rock walls, glossy ice. The kit look is the bright overcast of Snowglobe
+// ice-blue paint, snow shoulders and banks, pale rock walls, glossy ice. The kit look is the bright cloudy day of Snowglobe
 // Halfpipe; Aurora Summit sets `sky=aurora time=22 headlights=on` in its THEME line, and the factory (which receives
 // those THEME attributes) switches to the night rig below.
 import type { ContentTables } from '@cr/content';
@@ -19,9 +19,10 @@ export const FROSTBYTE_LOOK: Partial<ThemeLook> = {
   terrain: { a: '#e3eaf2', b: '#d5dfe9', rock: '#8e99a7' },
   wall: { kind: 'stone', a: '#d2dde7', b: '#97a7b6' },
   kerb: ['#d9453c', '#f1f4f7'],
-  sky: { turbidity: 6, rayleigh: 0.9, elevationDeg: 28, azimuthDeg: 200, exposure: 0.85, top: '#9db7d2', bottom: '#cdd9e5' },
-  // note: on overcast and aurora skies resolveEnvLook uses the sky kind's key (2.6 × sunK), so this only applies to
-  // a day-like glacier track; Snowglobe gets its extra light from the exposure and the back fill below
+  sky: { turbidity: 6, rayleigh: 0.9, elevationDeg: 28, azimuthDeg: 200, exposure: 0.85, top: '#7aa6d6', bottom: '#cdd9e5' },
+  // Snowglobe runs THEME sky=day under the kit's thick cloud (the overcast kind's weak key left the village shadowless,
+  // snow the same value as the sky): this clear key at ≈ 2.7 : 1 over the hemisphere gives the karts real shadows.
+  // On aurora skies resolveEnvLook uses the sky kind's key (2.6 × sunK) instead
   sun: { color: '#eef6ff', intensity: 2.2 },
   hemi: { sky: '#e4eefa', ground: '#b4c0cd', intensity: 0.8 },
   // a warm, shadowless back fill: the shaded side of karts and mascots keeps its colour against the white snow
