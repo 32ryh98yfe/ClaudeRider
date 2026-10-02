@@ -209,15 +209,20 @@ export const CORAL_DRESSING: Record<string, PropFactory> = {
     },
   },
   quay: {
-    // 12.4 m of stone quay outside a harbour-side road edge: paved deck 0.2 m under the road (7 m wide), granite
-    // coping, a wall down into the sea with rubber fenders and iron rings, so lamps and dock clutter have ground
+    // 12.4 m of stone quay outside a harbour-side road edge: paved deck 0.2 m under the road (7 m wide), coping, a wall
+    // down into the sea with rubber fenders and iron rings, so lamps and dock clutter have ground. Review round: warm
+    // sandstone a step below the road paint in value (the pale slab was the brightest surface in frame), paving seams
+    // every 2 m, and one iron bollard per 12 m with a manila rope swagged to the next
     maxInstances: 120,
     build: () => {
       const p: THREE.BufferGeometry[] = [
-        part(box(7.2, 0.3, 12.4), '#cfc6b6', -3.5, -0.15, 0), part(box(0.6, 0.34, 12.4), '#e2dccf', -7.0, -0.1, 0),
-        part(box(7.0, 3.4, 12.4), '#a99e8c', -3.6, -2.0, 0, 0, 0, 0, 1, 1, 1, 0.05, 3),
+        part(box(7.2, 0.3, 12.4), '#b9a493', -3.5, -0.15, 0, 0, 0, 0, 1, 1, 1, 0.04, 5), part(box(0.6, 0.34, 12.4), '#c7b4a1', -7.0, -0.1, 0),
+        part(box(7.0, 3.4, 12.4), '#9a8876', -3.6, -2.0, 0, 0, 0, 0, 1, 1, 1, 0.05, 3),
       ];
-      for (let k = 0; k < 6; k++) p.push(part(box(7.18, 0.02, 0.06), '#b5ac9c', -3.5, 0.005, -6 + k * 2.4)); // paving joints
+      for (let k = 0; k < 6; k++) p.push(part(box(7.18, 0.02, 0.06), '#8e7c6c', -3.5, 0.005, -5 + k * 2)); // cross seams
+      for (const x of [-1.2, -3.6, -6.0]) p.push(part(box(0.06, 0.02, 12.38), '#8e7c6c', x, 0.005, 0)); // running seams
+      p.push(part(cyl(0.2, 0.26, 0.5, 8), '#33363b', -6.4, 0.25, 0), part(sph(0.27, 8, 4), '#33363b', -6.4, 0.5, 0, 0, 0, 0, 1, 0.45, 1));
+      for (const sz of [-1, 1]) p.push(part(cyl(0.035, 0.035, 6.0, 5), '#d9c39a', -6.4, 0.36, sz * 3, Math.PI / 2 + sz * 0.045, 0, 0));
       for (const z of [-4.2, 0, 4.2]) p.push(part(box(0.35, 1.6, 0.9), '#2f3136', -7.25, -1.0, z), part(new THREE.TorusGeometry(0.18, 0.04, 4, 10), '#2f3136', -7.32, -0.35, z + 1.6, 0, Math.PI / 2, 0));
       p.push(part(box(7.1, 0.25, 12.42), '#7fae9a', -3.6, SEA_Y + 0.05, 0)); // weed line at the waterline
       return { geometry: merge(p), material: matte(), castShadow: true };
