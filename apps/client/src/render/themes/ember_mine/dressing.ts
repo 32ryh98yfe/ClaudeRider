@@ -245,5 +245,22 @@ export const EMBER_DRESSING: Record<string, PropFactory> = {
       return { geometry: merge(p), material: glowLit(0.55, 1.3), castShadow: true };
     },
   },
+  lava_seam: {
+    // a 4 m lava seam at the foot of the wall (rows at offset ~0.1): a basalt lip with a glowing crack in front of it.
+    // The crack is HDR vertex colour on the glow material (emission ≈ 1.8 red / 1.5 amber, above the 0.8 bloom knee),
+    // so on Magma Switchback the lava, not the lamps, is the brightest source on the start straight.
+    maxInstances: 600,
+    build: () => {
+      const R = rng(733), p: THREE.BufferGeometry[] = [];
+      let z = -2;
+      for (let i = 0; i < 4; i++) {
+        const l = 0.7 + R() * 0.5, x = 0.32 + (R() - 0.5) * 0.12, hot = i % 2 === 1;
+        p.push(paint(place(box(0.2, 0.08, l), x, 0.2, z + l / 2, 0, (R() - 0.5) * 0.25, 0), new THREE.Color(hot ? E.amber : '#ff6a2b').multiplyScalar(hot ? 2.2 : 2.4)));
+        z += l + 0.12;
+      }
+      p.push(paint(place(box(0.24, 0.22, 4.1), 0.08, 0.11, 0), E.basalt, 0.08, 7));
+      return { geometry: merge(p), material: lit(), castShadow: false };
+    },
+  },
 };
 

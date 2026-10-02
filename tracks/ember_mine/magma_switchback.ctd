@@ -66,6 +66,13 @@ PROPS kind=geyser_vent from=@geyser_field to=@rail_corner_in side=both every=31 
 PROPS kind=obsidian from=@basalt_chicane to=@climb side=both every=29 offset=3
 PROPS kind=basalt_column from=@conveyors to=@climb side=both every=57 offset=9
 PROPS kind=lava_crack from=@switchback_1 to=@climb side=both every=37 offset=5
+# review round: lava you can see from the line. Glowing cracks beside the road from the line to the first switchback,
+# a lava pool on the outside of T1, glowing seams at the foot of the start-straight walls, and lanterns every 20 m
+# through the helix and under the plateau (the stretch that read near-black)
+PROPS kind=lava_crack from=@plateau+40 to=@switchback_1 side=both every=20 offset=4 jitter=2 seed=190
+PROPS kind=lava_pool from=@plateau_1+8 to=@plateau_1+8 side=L every=100 offset=5.5 scale=1-1 seed=191
+PROPS kind=lava_seam from=@plateau to=@plateau+70 side=both every=4.2 offset=0.1 scale=1-1 seed=192
+PROPS kind=lantern from=@helix_in to=@north_run side=both every=20 offset=0.2 seed=193
 PROPS kind=lantern along=main side=both every=28 offset=0.22
 PROPS kind=cave_roof along=main side=R every=46 offset=3 scale=0.9-1.1
 # ---- stylized dressing pass (2026-10, docs/design/34-stylized-pass.md; render-only, the .ctrk is unchanged) ----

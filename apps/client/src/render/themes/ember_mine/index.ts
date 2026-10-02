@@ -10,8 +10,8 @@ import { EMBER_DRESSING } from './dressing.ts';
 export default (c: ContentTables): ThemeKit => {
   const kit = makeKit(c.themes.get('ember_mine'), {
     road: { style: 'dirt', a: '#56515c', b: '#645e6a', line: '#ffb347' },
-    shoulder: { a: '#4a4249', b: '#564c52' },
-    terrain: { a: '#463d44', b: '#55494d', rock: '#352e33' },
+    shoulder: { a: '#554c54', b: '#63575e' },
+    terrain: { a: '#50464e', b: '#625459', rock: '#3d353b' },
     wall: { kind: 'stone', a: '#4a434e', b: '#665552' },
     kerb: ['#e8622a', '#2a232c'],
     sky: { turbidity: 1, rayleigh: 0.5, elevationDeg: 70, azimuthDeg: 200, exposure: 0.8, night: true, top: '#050408', bottom: '#241018' },
@@ -19,7 +19,10 @@ export default (c: ContentTables): ThemeKit => {
     // stylized pass (2026-10): the cave stays a cave, but the crystal-violet sky fill and lava bounce are stronger and
     // a shadowless amber back fill (the work lamps) keeps the karts' shaded sides in colour; shadows stay soft, rims
     // a little lower so bodies do not wash out, and bloom is held to the lamps, crystals and lava
-    hemi: { sky: '#9aa6e8', ground: '#c4734a', intensity: 1.4 },
+    // review round: the infield and far corners read ~85% black on Magma, so the sky fill is up (1.4 → 1.7) and the cave
+    // floor is ~15% lighter; the vault's horizon lava band is cut to 0.07 so the lava props, not the sky, carry the glow
+    hemi: { sky: '#9aa6e8', ground: '#c4734a', intensity: 1.7 },
+    caveGlow: 0.07,
     fill: { color: '#ffb985', intensity: 0.3 },
     shadowStrength: 0.6,
     exposure: 1.28,
