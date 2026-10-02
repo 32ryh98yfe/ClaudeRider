@@ -36,12 +36,17 @@ export interface SpawnOpts {
 const shared = {
   now: uniform(0),
   fogColor: uniform(new THREE.Color('#cfe6f5')), fogNear: uniform(120), fogFar: uniform(900),
+  // scene light level for alpha (unlit) particles: tyre smoke and dust keep daylight brightness otherwise, and glow
+  // as pale blobs in caves and at night
+  light: uniform(1),
 };
 
 /** Current render time for all particle pools (seconds, scaled by the camera director's slow motion). */
 export function setParticleClock(t: number): void { shared.now.value = t; }
 export function particleClock(): number { return shared.now.value; }
 export function setParticleFog(c: THREE.Color, near: number, far: number): void { shared.fogColor.value.copy(c); shared.fogNear.value = near; shared.fogFar.value = far; }
+/** Light level (0–1) applied to alpha-blended particles (smoke, dust, chips); additive sparks are not affected. */
+export function setParticleLight(k: number): void { shared.light.value = k; }
 
 function particleMaterial(): THREE.MeshBasicNodeMaterial {
   return MaterialLibrary.custom('particles', () => {
@@ -101,7 +106,7 @@ function particleMaterial(): THREE.MeshBasicNodeMaterial {
     const opa = a.mul(float(1).sub(additive)).mul(attribute('iAlp', 'float'));
     // premultiplied: additive → rgb·a, alpha 0; normal → rgb·opa (fogged), alpha opa
     const addRgb = col.mul(a).mul(float(1).sub(fog));
-    const normRgb = mix(col, vec3(shared.fogColor as N), fog).mul(opa);
+    const normRgb = mix(col.mul(shared.light), vec3(shared.fogColor as N), fog).mul(opa);
     m.colorNode = mix(normRgb, addRgb, additive);
     m.opacityNode = opa;
     setEmissive(m, col.mul(iCol.w).mul(a).mul(additive).mul(float(1).sub(fog)));

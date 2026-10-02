@@ -16,8 +16,9 @@ export function buildVinyl(p: VinylParams, hq = true): THREE.MeshPhysicalNodeMat
   }) : new THREE.MeshStandardNodeMaterial({ roughness: (p.roughness ?? 0.42) * 0.85, metalness: p.metalness ?? 0 }) as unknown as THREE.MeshPhysicalNodeMaterial;
   const base: N = p.tint ? vertexColor().mul(color(p.tint)) : vertexColor();
   m.colorNode = base;
-  // rim (power 2.5) plus a faint body-colour lift so the shadow side never goes dead in dark themes
-  m.emissiveNode = color(p.rim ?? '#ffd9c7').mul(fresnel(2.5)).mul(float(0.38).mul(fxUniforms.rimBoost)).add(base.mul(0.035));
+  // rim (power 2.5) plus a body-colour lift so the shadow side never goes dead: the chase camera faces the sun on
+  // most grids, and at 0.035 the mascot's back sat at the road's value (well under the 0.8 bloom threshold at 0.07)
+  m.emissiveNode = color(p.rim ?? '#ffd9c7').mul(fresnel(2.5)).mul(float(0.38).mul(fxUniforms.rimBoost)).add(base.mul(0.07));
   return m;
 }
 

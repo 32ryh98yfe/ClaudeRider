@@ -36,10 +36,16 @@ const out2 = sign > 0 ? 1 : -1;
 const ox = M.rx * out2, oz = M.rz * out2;
 const halfW = Math.max(M.wL, M.wR);
 
+// a2 sits beside slot 0 on its left (as the Meadow pass did) when there is room, else on the roomier side; at most
+// 4.6 m out and 1 m inside the edge. On narrow
+// grids a fixed 4.6 m to the left put the camera behind the barrier (Cascade, Aurora, Skyway, Orbital, Rainline)
+const G = at(((g.x - line.px) * lfx + (g.z - line.pz) * lfz)), uR = (g.x - G.px) * G.rx + (g.z - G.pz) * G.rz;
+const roomL = G.wL + uR - 1, roomR = G.wR - uR - 1;
+const a2Side = roomL >= 2.5 || roomL >= roomR ? Math.min(4.6, Math.max(1.5, roomL)) : -Math.min(4.6, Math.max(1.5, roomR));
 const views = [
   { query: 'freezeAt=200', cams: [
     { name: 'a1-grid-chase', cam: [g.x - fx * 5.6, g.y + 2.2, g.z - fz * 5.6, g.x + fx * 10, g.y + 0.8, g.z + fz * 10, 70].map(r2), hud: true },
-    { name: 'a2-kart-34', cam: [g.x + fx * 4.8 + lx * 4.6, g.y + 1.3, g.z + fz * 4.8 + lz * 4.6, g.x, g.y + 0.55, g.z, 38].map(r2), hud: false },
+    { name: 'a2-kart-34', cam: [g.x + fx * 4.8 + lx * a2Side, g.y + 1.3, g.z + fz * 4.8 + lz * a2Side, g.x, g.y + 0.55, g.z, 38].map(r2), hud: false },
     { name: 'a3-start-wide', cam: [line.px - lfx * 32 - llx * 16, line.py + 9, line.pz - lfz * 32 - llz * 16, line.px + lfx * 15 + llx * 2, line.py, line.pz + lfz * 15 + llz * 2, 55].map(r2), hud: false },
   ] },
   { query: 'freezeAt=700', cams: [

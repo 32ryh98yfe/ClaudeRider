@@ -1,7 +1,7 @@
 // Headlights for night / underground themes (30-art-bible §4): emissive lamp dots + additive beam cones for
 // every kart in one instanced draw, plus one SpotLight on the local kart on High (no shadow).
 import * as THREE from 'three/webgpu';
-import { attribute, uv, float, smoothstep, mix, vec3, color } from 'three/tsl';
+import { attribute, uv, float, smoothstep, mix, vec3, color, abs, dot, select, frontFacing, normalView, positionView, positionViewDirection } from 'three/tsl';
 import { MaterialLibrary } from '../materials/library.ts';
 import { setEmissive } from '../materials/tsl.ts';
 import type { KartPose } from './driving.ts';
@@ -37,11 +37,18 @@ export class Headlights {
       const m = new THREE.MeshBasicNodeMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false });
       const lamp = attribute('hlLamp', 'float');
       const along = uv().y;                                // 0 at the nose → 1 at the far end
-      const beamA = smoothstep(1.0, 0.0, along).mul(smoothstep(0.0, 0.08, along)).mul(0.1);
+      // The beam fades in away from the nose and near the camera. It also fades on the cone's grazing walls, so the
+      // chase camera (which sits inside the cones of the karts behind) no longer sees a warm halo round the
+      // player's kart, or a pale band down the road. Beams stay out of bloom; only the lamp discs glow, front side only
+      // (their double-sided backs lit up beside the mascot's head)
+      const nearFade = smoothstep(3.0, 12.0, positionView.z.negate());
+      const facing = abs(dot(normalView, positionViewDirection));
+      const beamA = smoothstep(1.0, 0.0, along).mul(smoothstep(0.05, 0.3, along)).mul(nearFade).mul(facing).mul(0.1);
+      const lampOn = lamp.mul(select(frontFacing, float(1), float(0)));
       const warm = color('#fff1cf');
-      m.colorNode = mix(warm.mul(beamA), vec3(1, 0.97, 0.88).mul(3), lamp);
-      m.opacityNode = mix(beamA, float(1), lamp);
-      setEmissive(m, mix(warm.mul(beamA.mul(0.5)), vec3(1, 0.95, 0.8).mul(2.5), lamp));
+      m.colorNode = mix(warm.mul(beamA), vec3(1, 0.97, 0.88).mul(1.6), lamp).mul(mix(float(1), lampOn, lamp));
+      m.opacityNode = mix(beamA, lampOn, lamp);
+      setEmissive(m, vec3(1, 0.95, 0.8).mul(1.3).mul(lampOn));
       return m;
     });
     this.mesh = new THREE.InstancedMesh(geometry(), mat, max);

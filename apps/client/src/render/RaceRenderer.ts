@@ -32,13 +32,16 @@ import { DrivingFx, type KartPose } from './vfx/driving.ts';
 import { ItemFx } from './vfx/itemFx.ts';
 import { AmbientFx } from './vfx/ambient.ts';
 import { Headlights } from './vfx/headlights.ts';
-import { setParticleClock, particleClock, setParticleFog } from './vfx/gpuParticles.ts';
+import { setParticleClock, particleClock, setParticleFog, setParticleLight } from './vfx/gpuParticles.ts';
 import { airborneLift } from '@cr/sim/items/public.ts';
 import { setListener, listenerDist } from '../audio/listener.ts';
 import { Audio } from '../audio/engine.ts';
 import { raceAudioPrepare } from '../audio/race.ts';
 import { save, type SettingsV1 } from '../meta/save.ts';
 import { devForce } from '../dev/force.ts';
+
+/** Smoke and dust brightness per sky kind (unlit alpha particles otherwise glow at daylight value in the dark). */
+const PARTICLE_LIGHT: Partial<Record<string, number>> = { sunset: 0.85, overcast: 0.95, night: 0.45, aurora: 0.45, underground: 0.4, space: 0.6 };
 
 export interface KartSlotVisual { slot: number; characterId: string; kartBodyId: string; livery: { primary: string; secondary: string; pattern: number; number: number } }
 
@@ -140,6 +143,7 @@ export class RaceRenderer {
     const fog = this.scene.fog as THREE.Fog;
     fog.far = Math.min(fog.far, ts.far * 0.97); fog.near = Math.min(fog.near, fog.far * 0.6);
     setParticleFog(fog.color, fog.near, fog.far);
+    setParticleLight(PARTICLE_LIGHT[L.kind] ?? 1);
     // velocity-based post (TRAA, motion blur) needs every prop instance to keep its slot from frame to frame
     const stable = ts.aa === 'traa' || ts.velocityBlur !== null;
     this.view = buildTrackView(this.vis, this.track, this.kit, { mergeChunks: this.tier === 'low' ? LOW_MERGE_CHUNKS : this.tier === 'medium' ? 2 : 1, propFar: ts.propFar, foliage: ts.foliage, stableInstances: stable });

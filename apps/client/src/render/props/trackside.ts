@@ -204,8 +204,10 @@ export const TRACKSIDE_PROPS: Record<string, PropFactory> = {
 
 /** Roadside sponsor board (local +X faces the road): three looks in the village palette, our own sparkle mark only. */
 function adBoard(v: 'a' | 'b' | 'c', leftSide = false): THREE.BufferGeometry {
-  // the panel sits on posts above the 1 m rail fence in front of it, so the rails never cut across its face
-  const W = 3.0, H = 0.95, y = 1.12 + H / 2;
+  // the panel sits on posts above the 1 m rail fence in front of it, so the rails never cut across its face. The
+  // chevron board (b) is bigger and higher (bottom 1.55 m): it stands behind 1.1 m tyre stacks and walls and must
+  // read from the corner approach
+  const isB = v === 'b', W = isB ? 3.2 : 3.0, H = isB ? 1.2 : 0.95, y = (isB ? 1.55 : 1.12) + H / 2, k = H / 0.95;
   const NAVY = '#2f4a7a', YEL = '#f5c230', RED = '#d8423a';
   const p: THREE.BufferGeometry[] = [
     part(box(0.09, y, 0.09), '#5b4a3a', -0.05, y / 2, -W / 2 + 0.25), part(box(0.09, y, 0.09), '#5b4a3a', -0.05, y / 2, W / 2 - 0.25),
@@ -219,11 +221,11 @@ function adBoard(v: 'a' | 'b' | 'c', leftSide = false): THREE.BufferGeometry {
     p.push(paint(place(sparkleGeometry(0.32, 0.03, 11), 0.05, y, 0, 0, Math.PI / 2, 0), IVORY));
     for (const z of [-0.85, 0.85]) p.push(part(box(0.03, 0.15, 0.9), IVORY, 0.05, y + 0.1, z), part(box(0.03, 0.09, 0.7), IVORY, 0.05, y - 0.14, z));
   } else if (v === 'b') {
-    for (let k = 0; k < 4; k++) {
-      const z = -0.9 + k * 0.6;
+    for (let i = 0; i < 4; i++) {
+      const z = (-0.9 + i * 0.6) * k;
       // tips toward +Z (the travel direction once placed): on a bend's outside they point into the turn
       const t = leftSide ? -0.8 : 0.8;
-      p.push(part(box(0.03, 0.5, 0.14), YEL, 0.05, y + 0.14, z, -t, 0, 0), part(box(0.03, 0.5, 0.14), YEL, 0.05, y - 0.14, z, t, 0, 0));
+      p.push(part(box(0.03, 0.5 * k, 0.14 * k), YEL, 0.05, y + 0.14 * k, z, -t, 0, 0), part(box(0.03, 0.5 * k, 0.14 * k), YEL, 0.05, y - 0.14 * k, z, t, 0, 0));
     }
   } else {
     for (let k = 0; k < 15; k++) p.push(part(box(0.03, 0.2, 0.2), k % 2 ? RED : INK, 0.05, y - H / 2 + 0.1, -W / 2 + 0.1 + k * 0.2));

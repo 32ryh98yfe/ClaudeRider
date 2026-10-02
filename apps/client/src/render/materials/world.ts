@@ -62,7 +62,8 @@ export function buildRoad(p: RoadParams, prof: MaterialProfile): THREE.MeshStand
       const ex = abs(gx.sub(0.5)).mul(2), ey = abs(gy.sub(0.5)).mul(2);
       const dome = float(1).sub(max(ex.mul(ex), ey.mul(ey)));
       const mortar = smoothstep(0.0, 0.12, dome);
-      base = mix(base.mul(0.55), base.mul(rnd.mul(0.3).add(0.85)), mortar);
+      // soft joints and a narrow per-stone spread: dark mortar and ±15 % stones made cobble the loudest texture under the kart
+      base = mix(base.mul(0.72), base.mul(rnd.mul(0.14).add(0.93)), mortar);
       rough = mix(float(0.97), float(0.7).add(rnd.mul(0.12)), mortar);
       height = dome.mul(mortar);
       break;
@@ -164,9 +165,10 @@ export function buildRoad(p: RoadParams, prof: MaterialProfile): THREE.MeshStand
       const d = p.dir ?? 1;
       const slat = aaLines(U.y.mul(2).sub(time.mul(1.6 * d)), 0.03);
       const chev = fract(U.y.mul(0.5).sub(time.mul(0.8 * d)).add(abs(U.x.sub(0.5)).mul(d > 0 ? 1.2 : -1.2)));
-      const arrow = smoothstep(0.5, 0.55, chev).mul(smoothstep(0.75, 0.7, chev));
+      // a slim, dimmer chevron: the wide ×0.9 bands painted saturated stripes across whole corner approaches
+      const arrow = smoothstep(0.5, 0.53, chev).mul(smoothstep(0.66, 0.63, chev));
       base = base.mul(slat.mul(-0.35).add(1));
-      emissive = color(p.glow ?? (d > 0 ? '#3EE6C8' : '#FF9A5A')).mul(arrow.mul(0.9));
+      emissive = color(p.glow ?? (d > 0 ? '#3EE6C8' : '#FF9A5A')).mul(arrow.mul(0.45));
       rough = float(0.45).add(slat.mul(0.2));
       break;
     }
