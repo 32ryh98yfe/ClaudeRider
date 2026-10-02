@@ -132,20 +132,20 @@ PROP kind=hedge at=(-32.0,-0.2,-6.9) yaw=270 scale=1
 PROP kind=hedge at=(-32.0,-0.2,6.9) yaw=90 scale=1
 PROP kind=hedge at=(-16.0,-0.2,-6.9) yaw=270 scale=1
 PROP kind=hedge at=(-16.0,-0.2,6.9) yaw=90 scale=1
-PROP kind=hedge at=(-8.0,-0.2,-6.9) yaw=270 scale=1
 PROP kind=hedge at=(-8.0,-0.2,6.9) yaw=90 scale=1
-PROP kind=hedge at=(-0.0,-0.2,-6.9) yaw=270 scale=1
+# (review round: a garden gate at the grid on the left, framed by the lantern posts and topiary at x = -12, so the
+# standard 3/4 kart camera sees the grid instead of the back of a hedge)
 PROP kind=hedge at=(0.0,-0.2,6.9) yaw=90 scale=1
 PROP kind=hedge at=(8.0,-0.2,-6.9) yaw=270 scale=1
 PROP kind=hedge at=(8.0,-0.2,6.9) yaw=90 scale=1
 PROP kind=lantern_post at=(-28.0,-0.2,-8.5) yaw=270 scale=1
 PROP kind=lantern_post at=(-28.0,-0.2,8.5) yaw=90 scale=1
-PROP kind=lantern_post at=(-4.0,-0.2,-8.5) yaw=270 scale=1
-PROP kind=lantern_post at=(-4.0,-0.2,8.5) yaw=90 scale=1
+PROP kind=lantern_post at=(-12.0,-0.2,-8.5) yaw=270 scale=1
+PROP kind=lantern_post at=(-12.0,-0.2,8.5) yaw=90 scale=1
 PROP kind=topiary at=(-36.0,-0.2,-9.5) yaw=270 scale=1
 PROP kind=topiary at=(-36.0,-0.2,9.5) yaw=90 scale=1
 PROP kind=topiary at=(-20.0,-0.2,-9.5) yaw=270 scale=1
 PROP kind=topiary at=(-20.0,-0.2,9.5) yaw=90 scale=1
-PROP kind=topiary at=(-4.0,-0.2,-10.5) yaw=270 scale=1
-PROP kind=topiary at=(-4.0,-0.2,10.5) yaw=90 scale=1
+PROP kind=topiary at=(-12.0,-0.2,-10.5) yaw=270 scale=1
+PROP kind=topiary at=(-12.0,-0.2,10.5) yaw=90 scale=1
 THEME lantern_hollow sky=night headlights=on scatter=tree_round_big,crooked_tree,crooked_tree,rose_bush,bush_round,topiary,gravestone,pumpkin_patch,rock_cluster,flower_patch density=30 hills=3 fogNear=90 fogFar=650

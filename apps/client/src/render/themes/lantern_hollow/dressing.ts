@@ -122,7 +122,8 @@ function festivalBoard(v: 'a' | 'b' | 'c'): THREE.BufferGeometry {
     part(box(0.09, y, 0.09), C.woodDark, -0.05, y / 2, -W / 2 + 0.25), part(box(0.09, y, 0.09), C.woodDark, -0.05, y / 2, W / 2 - 0.25),
     part(box(0.1, H + 0.1, W + 0.1), C.woodDark, -0.06, y, 0),
   ];
-  const face = v === 'a' ? N.pumpkin : v === 'b' ? N.indigo : N.cream;
+  // review round: the chevron board is amber on a deep plum face (#2a1d2e) so it reads against the night hedges
+  const face = v === 'a' ? N.pumpkin : v === 'b' ? '#2a1d2e' : N.cream;
   p.push(part(box(0.04, H, W), face, 0.02, y, 0));
   if (v === 'a') {
     p.push(paint(place(sparkleGeometry(0.34, 0.03, 11), 0.05, y, -0.85, 0, Math.PI / 2, 0), N.cream));
@@ -131,7 +132,7 @@ function festivalBoard(v: 'a' | 'b' | 'c'): THREE.BufferGeometry {
     // chevrons point along +Z (the travel direction once placed): on a bend's outside they point into the turn
     for (let k = 0; k < 4; k++) {
       const z = -0.9 + k * 0.6;
-      p.push(part(box(0.03, 0.5, 0.14), N.pumpkin, 0.05, y + 0.14, z, -0.8, 0, 0), part(box(0.03, 0.5, 0.14), N.pumpkin, 0.05, y - 0.14, z, 0.8, 0, 0));
+      p.push(part(box(0.03, 0.5, 0.14), hdr('#ffb02e', 1.25), 0.05, y + 0.14, z, -0.8, 0, 0), part(box(0.03, 0.5, 0.14), hdr('#ffb02e', 1.25), 0.05, y - 0.14, z, 0.8, 0, 0));
     }
   } else {
     for (let k = 0; k < 15; k++) p.push(part(box(0.03, 0.2, 0.2), k % 2 ? N.violet : N.pumpkin, 0.05, y - H / 2 + 0.1, -W / 2 + 0.1 + k * 0.2));
@@ -231,14 +232,19 @@ export const LANTERN_DRESSING: Record<string, PropFactory> = {
     }),
   },
   topiary: {
-    // manor garden topiary behind the hedges: a clipped cone and a ball tree in stone planters, a lantern between
+    // manor garden topiary behind the hedges: two dark-green clipped cones (a lighter clipped top tier) on stone pots,
+    // a few small roses dotted on them, and a lantern between (review round: the old ball tree read as a red rock)
     maxInstances: 300,
     build: () => {
-      const p: THREE.BufferGeometry[] = [];
-      for (const [z, ball] of [[-2.2, false], [2.2, true]] as const) {
-        p.push(part(cyl(0.7, 0.55, 0.8, 8), N.stoneDark, -1.2, 0.4, z), part(cyl(0.75, 0.75, 0.12, 8), N.stone, -1.2, 0.82, z));
-        if (ball) p.push(part(cyl(0.1, 0.12, 1.6, 5), N.bark, -1.2, 1.6, z), part(blob(1.0, 1, 0.05, 391), '#3f7048', -1.2, 2.9, z));
-        else p.push(part(cone(1.0, 3.2, 10), '#2f5a3a', -1.2, 2.4, z), part(cone(0.55, 1.2, 10), '#3f7048', -1.2, 4.2, z));
+      const p: THREE.BufferGeometry[] = [], r = prng(393);
+      for (const z of [-2.2, 2.2]) {
+        p.push(part(cyl(0.62, 0.48, 0.75, 10), N.stoneDark, -1.2, 0.37, z), part(cyl(0.68, 0.68, 0.1, 10), N.stone, -1.2, 0.78, z));
+        p.push(part(cone(0.95, 2.6, 12), '#2f5a3a', -1.2, 2.1, z), part(cone(0.6, 1.3, 12), '#3f7048', -1.2, 3.55, z));
+        p.push(part(cyl(0.96, 0.96, 0.06, 12), '#4f7a5a', -1.2, 0.86, z)); // clipped hem catching the rim light
+        for (let i = 0; i < 4; i++) {
+          const a = r() * Math.PI * 2, h = 0.4 + r() * 1.6, rad = 0.95 * (1 - (h - 0.1) / 2.6) + 0.03;
+          p.push(part(ico(0.11, 0), i % 2 ? C.rose : C.white, -1.2 + Math.cos(a) * rad, 0.8 + h, z + Math.sin(a) * rad));
+        }
       }
       p.push(part(cyl(0.06, 0.08, 2.4, 6), C.iron, -1.2, 1.2, 0));
       paperLantern(p, -1.2, 2.9, 0, 0.24, 2.2);

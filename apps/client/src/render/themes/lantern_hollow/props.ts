@@ -328,9 +328,12 @@ function mill(): THREE.BufferGeometry {
 /** Clipped hedge wall with a stone plinth (garden terraces; 9.6 m so rows every 8 m overlap). */
 function hedge(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
-  parts.push(part(rbox(1.8, 2.4, 9.6, 0.4, 2), C.hedge, 0.2, 1.2, 0, 0, 0, 0, 1, 1, 1, 0.08, 83));
+  // review round: a mid-value hedge green (#2e4a3a; the old one went near-black at night) with a lighter clipped top
+  // edge that catches the moon rim light, and one small rose (0.25 m) instead of two big red balls
+  parts.push(part(rbox(1.8, 2.4, 9.6, 0.4, 2), '#2e4a3a', 0.2, 1.2, 0, 0, 0, 0, 1, 1, 1, 0.08, 83));
+  parts.push(part(rbox(1.6, 0.12, 9.4, 0.05, 1), '#4f7a5a', 0.2, 2.38, 0), part(box(0.06, 0.1, 9.3), '#5f8a68', 1.08, 2.3, 0));
   parts.push(part(box(2.2, 12, 9.8), C.stoneDark, 0.2, -6, 0));
-  for (const z of [-3, 3]) parts.push(part(sphere(0.35), C.rose, 1.1, 1.6 + (z > 0 ? 0.3 : 0), z));
+  parts.push(part(sphere(0.125), C.rose, 1.1, 1.75, 2.6));
   return merge(parts);
 }
 function roseBush(): THREE.BufferGeometry {
@@ -362,7 +365,8 @@ function candelabra(): THREE.BufferGeometry {
   parts.push(part(new THREE.TorusGeometry(1.1, 0.07, 4, 12, Math.PI), C.gold, 0, 4.5, 0, 0, Math.PI / 2, Math.PI));
   for (const z of [-1.1, -0.55, 0, 0.55, 1.1]) {
     const y = 4.6 + (z === 0 ? 0.6 : Math.abs(z) < 1 ? 0.25 : 0);
-    parts.push(part(cyl(0.1, 0.1, 0.7, 6), C.ivory, 0, y + 0.35, z), part(cone(0.07, 0.25, 5), FLAME(3), 0, y + 0.82, z));
+    // review round: bigger flame tips in #ffcf7a with a small HDR halo bead (emission ≈ 2, above the 0.8 knee)
+    parts.push(part(cyl(0.1, 0.1, 0.7, 6), C.ivory, 0, y + 0.35, z), part(cone(0.11, 0.38, 6), hdr('#ffcf7a', 2.8), 0, y + 0.9, z), part(sphere(0.09), hdr('#ffcf7a', 2.4), 0, y + 0.8, z));
   }
   return merge(parts);
 }
