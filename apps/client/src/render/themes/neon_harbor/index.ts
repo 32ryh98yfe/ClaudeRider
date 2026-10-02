@@ -15,7 +15,9 @@ import { ledBarrier, paving, shopWall, underpass, wetStreet } from './surfaces.t
 
 /** Rainy night (Rainline Boulevard). The `night` sky kind supplies its own moon key; these set fill, sky and grade. */
 export const NEON_NIGHT_LOOK: Partial<ThemeLook> = {
-  road: { style: 'asphalt', a: '#434652', b: '#4d5160', line: '#8ff4ff', wet: true },
+  // a lighter asphalt (renders ≈ #2c2c3c–#383848 under the night rig, not near-black) so the kart's contact shadow
+  // still separates from the road next to the camera; it also feeds road:wet below
+  road: { style: 'asphalt', a: '#5a5e6e', b: '#646878', line: '#8ff4ff', wet: true },
   shoulder: { a: '#454956', b: '#4f5361' },
   terrain: { a: '#4a4e5a', b: '#545866', rock: '#3a3d47' },
   wall: { kind: 'barrier', a: '#a3a7b2', b: '#d83a8e' },
@@ -26,12 +28,13 @@ export const NEON_NIGHT_LOOK: Partial<ThemeLook> = {
   // a desaturated cool sky fill from above and a warm bounce from the street, plus a warm-neutral back fill on the
   // chase side: the violet sky fill and the low dusty back fill turned the player kart mauve and lilac, so the colour
   // stays in the signs, the kerbs and the sky (34 roster rule for night rigs)
-  hemi: { sky: '#b8bcd8', ground: '#ffb088', intensity: 1.6 },
+  hemi: { sky: '#b8bcd8', ground: '#ffb088', intensity: 2.0 },
   fill: { color: '#ffd6bc', intensity: 0.8 },
   fogColor: '#2b2244',
   stars: 0.25,
   ambient: 'rain',
-  wet: 0.35,
+  // a lighter damp sheen: at 0.35 the wet darkening took the near road to black
+  wet: 0.25,
   bloom: 0.45,
   rimBoost: 1.7,
   // the violet night environment mirrored into the kart paint; less of it keeps the hero's own colour
