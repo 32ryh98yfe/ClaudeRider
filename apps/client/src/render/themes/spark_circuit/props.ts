@@ -57,6 +57,29 @@ function stand(len: number, tiers: number, seed: number, roofColor: string): THR
   return parts;
 }
 
+/**
+ * Tall corner chevron board: a navy panel with four yellow chevrons on 4.5 m posts, for corners whose outside is a
+ * banked bowl wall or a tall barrier that hides a normal-height board (it stands on the ground beyond the wall and
+ * shows its whole face above it). Chevron tips point along local +Z (the travel direction once placed on a right-side
+ * row), so on the outside of a bend they point into the turn; `leftSide` mirrors them for side=L rows.
+ */
+function chevronTall(leftSide: boolean): THREE.BufferGeometry {
+  const W = 3.6, H = 1.4, y = 4.5 + H / 2, t = leftSide ? -0.8 : 0.8;
+  const parts: THREE.BufferGeometry[] = [];
+  // posts run 1.5 m into the ground so a terrain dip never shows their feet
+  for (const z of [-W / 2 + 0.35, W / 2 - 0.35]) {
+    parts.push(paint(place(box(0.18, y + 1.5, 0.18), -0.12, (y - 1.5) / 2, z), C.graphite));
+    parts.push(paint(place(box(0.3, 0.35, 0.3), -0.12, 0.1, z), C.concreteDark));
+  }
+  parts.push(paint(place(box(0.12, H + 0.16, W + 0.16), -0.04, y, 0), C.white));
+  parts.push(paint(place(box(0.04, H, W), 0.03, y, 0), TS.navy));
+  for (let k = 0; k < 4; k++) {
+    const z = -1.2 + k * 0.8;
+    parts.push(paint(place(box(0.03, 0.78, 0.22), 0.06, y + 0.23, z, -t, 0, 0), TS.yellow), paint(place(box(0.03, 0.78, 0.22), 0.06, y - 0.23, z, t, 0, 0), TS.yellow));
+  }
+  return merge(parts);
+}
+
 export const SPARK_PROPS: Record<string, PropFactory> = {
   /** Start/finish gantry spanning the road (placed on the centreline, scaled by w/16): start lights and a checkered band. */
   gantry: {
@@ -145,13 +168,16 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
     },
     maxInstances: 2,
   },
-  /** Stack of tyres with a painted top ring (3 along × 2 deep × 3 high). */
+  /** Stack of tyres with a painted top ring (3 along × 2 deep × 3 high); the middle tier is painted white / red. */
   tyre_wall: {
     build: () => {
       const parts: THREE.BufferGeometry[] = [];
       for (let a = 0; a < 3; a++) for (let d = 0; d < 2; d++) for (let h = 0; h < 3; h++) {
         const z = -1.0 + a * 1.0 + (d ? 0.5 : 0), x = -d * 0.9;
-        parts.push(paint(place(cyl(0.48, 0.48, 0.34, 9), x, 0.18 + h * 0.36, z), '#1d1e22', 0.12, 3 + a + h));
+        // an all-black stack read as a dark hole along the corner (and vanished in the sunset shade): the painted
+        // middle tier alternates along the wall, checkered against the top rings, so the corner's outside line reads
+        const col = h === 1 ? ((a + d) % 2 ? TS.red : C.white) : '#1d1e22';
+        parts.push(paint(place(cyl(0.48, 0.48, 0.34, 9), x, 0.18 + h * 0.36, z), col, h === 1 ? 0.04 : 0.12, 3 + a + h));
       }
       for (let a = 0; a < 3; a++) parts.push(paint(place(cyl(0.5, 0.5, 0.1, 9), 0, 1.1, -1.0 + a * 1.0), a % 2 ? C.white : C.kerbRed));
       return { geometry: merge(parts), material: matte() };
@@ -182,6 +208,10 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
     },
     maxInstances: 120,
   },
+  /** Tall corner chevron board (right-side rows): see chevronTall(). */
+  chevron_tall: { build: () => ({ geometry: chevronTall(false), material: satin(), castShadow: true }), maxInstances: 40 },
+  /** Its left-side twin: side=L rows turn props by 180°, so its chevrons are drawn mirrored to point along travel. */
+  chevron_tall_l: { build: () => ({ geometry: chevronTall(true), material: satin(), castShadow: true }), maxInstances: 40 },
   /** Overhead bridge banner spanning the track (placed on the centreline): truss beam, chevron banner, stair towers. */
   footbridge: {
     build: () => {

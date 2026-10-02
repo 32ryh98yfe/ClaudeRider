@@ -92,8 +92,10 @@ PROPS kind=banner along=main from=@grandstand_sweep+6 to=@bowl_entry side=L ever
 PROPS kind=tyre_wall along=main from=@bowl_entry to=@bowl_entry+110 side=R every=4 offset=1.2
 PROPS kind=stadium along=main from=@stadium_tunnel+2 to=@stadium_tunnel+20 side=R every=30 offset=5
 # ---- stylized dressing pass (2026-10, docs/design/34-stylized-pass.md; render-only, the .ctrk is unchanged) ----------
-# the bowl: flags along the infield. No chevron boards round the hairpin: behind the tyre stacks they sit below the
-# banked bowl wall and never show from the approach, only their backs from the infield
+# the bowl: flags along the infield. The hairpin (a left-hander, outside on the right) gets the kit's tall chevron
+# boards: a normal board behind the tyre stacks sits below the banked bowl wall, these stand on 4.5 m posts in front of
+# the stands and show their whole face over the wall from the approach
+PROPS kind=chevron_tall along=main from=@bowl_hairpin+4 to=@bowl_hairpin+90 side=R every=12 offset=9 scale=1-1 seed=66
 PROPS kind=flag_pole along=main from=@bowl_straight+8 to=@bowl_straight+70 side=L every=7 offset=2.4 seed=60
 # rally fans along the gravel stage and the wooded S, a crowd at the paddock
 PROPS kind=spectators along=main from=@gravel_straight+4 to=@rally_jump1 side=both every=16 offset=3.2 jitter=2 seed=62
