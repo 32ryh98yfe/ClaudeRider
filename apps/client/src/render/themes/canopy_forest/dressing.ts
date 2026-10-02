@@ -14,6 +14,8 @@ import { blob, lathe, part, prng } from './shapes.ts';
 const G = { deep: '#4f7a42', mid: '#5a8e48', leaf: '#5f9c43', light: '#76b04f', teal: '#356f4a', tealLight: '#468458' } as const;
 const BARK = '#6b4a33', BARK_DK = '#4f3624', WOOD = '#b98a57', WOOD_PALE = '#dcb985', MOSS = '#7ca04c';
 const CAP = '#e0533a', CREAM = '#f6efdc', GOLD = '#f2c14e', STONE = '#9a978c', STONE_DK = '#827f75', INK = '#2a2826';
+/** The shared trackside navy (34-stylized-pass §4): the one non-forest colour, kept for the corner chevron boards. */
+const NAVY = '#2f4a7a';
 const FLOOR = [G.deep, G.mid, G.leaf, G.light] as const;
 
 /** Plants: vertex colour, a little tonal noise, wind sway above 1.4 m (shared foliage slot). */
@@ -219,12 +221,15 @@ export const CANOPY_DRESSING: Record<string, PropFactory> = {
 /** Forest signboard (local +X faces the road): a plank board on two log posts, high enough to read over the 1.2 m
  *  stone wall and over the 1.8 m log barrier in front of the corner boards. */
 function signBoard(v: 'a' | 'b' | 'c'): THREE.BufferGeometry {
-  const W = 3.0, H = 0.95, y = 1.85 + H / 2;
+  // the corner chevron board is bigger and stands higher (bottom 2.15 m): it sits behind the 1.8 m log barrier, and a
+  // chase camera only ~2 m up looks across the barrier top at the lower edge of a board just above it
+  const W = v === 'b' ? 3.2 : 3.0, H = v === 'b' ? 1.2 : 0.95, y = (v === 'b' ? 2.15 : 1.85) + H / 2;
   const p: THREE.BufferGeometry[] = [
     part(cyl(0.08, 0.1, y + 0.4, 6), BARK, -0.06, (y + 0.4) / 2 - 0.2, -W / 2 + 0.25), part(cyl(0.08, 0.1, y + 0.4, 6), BARK, -0.06, (y + 0.4) / 2 - 0.2, W / 2 - 0.25),
     part(rbox(0.12, H + 0.16, W + 0.16, 0.05, 1), BARK_DK, -0.07, y, 0),
   ];
-  const face = v === 'a' ? CAP : v === 'b' ? G.teal : CREAM;
+  // the chevron board's face is navy, not leaf teal: a teal board vanished into the forest behind the corner
+  const face = v === 'a' ? CAP : v === 'b' ? NAVY : CREAM;
   p.push(part(box(0.04, H, W), face, 0.02, y, 0));
   if (v === 'a') {
     // sparkle centred with mirrored bars either side: the old sparkle-left / bars-right layout read as a "=▷" arrow
@@ -233,8 +238,8 @@ function signBoard(v: 'a' | 'b' | 'c'): THREE.BufferGeometry {
   } else if (v === 'b') {
     // chevrons tip toward +Z (the travel direction once placed on the right): only for the outside of left-handers
     for (let k = 0; k < 4; k++) {
-      const z = -0.9 + k * 0.6;
-      p.push(part(box(0.03, 0.5, 0.14), GOLD, 0.05, y + 0.14, z, -0.8, 0, 0), part(box(0.03, 0.5, 0.14), GOLD, 0.05, y - 0.14, z, 0.8, 0, 0));
+      const z = -0.96 + k * 0.64;
+      p.push(part(box(0.03, 0.62, 0.17), GOLD, 0.05, y + 0.18, z, -0.8, 0, 0), part(box(0.03, 0.62, 0.17), GOLD, 0.05, y - 0.18, z, 0.8, 0, 0));
     }
   } else {
     for (let k = 0; k < 15; k++) p.push(part(box(0.03, 0.2, 0.2), k % 2 ? CAP : G.deep, 0.05, y - H / 2 + 0.1, -W / 2 + 0.1 + k * 0.2));
