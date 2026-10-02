@@ -70,7 +70,10 @@ PROPS kind=lava_crack from=@switchback_1 to=@climb side=both every=37 offset=5
 # a lava pool on the outside of T1, glowing seams at the foot of the start-straight walls, and lanterns every 20 m
 # through the helix and under the plateau (the stretch that read near-black)
 PROPS kind=lava_crack from=@plateau+40 to=@switchback_1 side=both every=20 offset=4 jitter=2 seed=190
-PROPS kind=lava_pool from=@plateau_1+8 to=@plateau_1+8 side=L every=100 offset=5.5 scale=1-1 seed=191
+# final pass: the pool is crusted lava in a basalt lip (lava_pool + lava_pool_rim, identical rows) and sits 10 m out,
+# behind the T1 chevron boards (at 5.5 m the +10 board stood in it)
+PROPS kind=lava_pool from=@plateau_1+8 to=@plateau_1+8 side=L every=100 offset=10 scale=0.9-0.9 seed=191
+PROPS kind=lava_pool_rim from=@plateau_1+8 to=@plateau_1+8 side=L every=100 offset=10 scale=0.9-0.9 seed=194
 PROPS kind=lava_seam from=@plateau to=@plateau+70 side=both every=4.2 offset=0.1 scale=1-1 seed=192
 PROPS kind=lantern from=@helix_in to=@north_run side=both every=20 offset=0.2 seed=193
 PROPS kind=lantern along=main side=both every=28 offset=0.22

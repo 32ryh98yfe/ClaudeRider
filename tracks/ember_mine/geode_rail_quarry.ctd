@@ -56,7 +56,9 @@ PROPS kind=ore_pile from=@ore_yard_s to=@headframe_exit side=R every=120 offset=
 PROPS kind=headframe from=@to_line+30 to=@to_line+30 side=L every=100 offset=34
 PROPS kind=crystal_spire from=@geode_chamber+40 to=@geode_chamber+40 side=L every=100 offset=24
 PROPS kind=crystal_spire from=@winch_corner+90 to=@winch_corner+90 side=R every=100 offset=30
-PROPS kind=lava_pool from=@crystal_s+30 to=@crystal_s+30 side=L every=100 offset=14
+# final pass: crusted lava in a basalt lip (identical rows; scale fixed so the two match; the rim row has its own seed)
+PROPS kind=lava_pool from=@crystal_s+30 to=@crystal_s+30 side=L every=100 offset=14 scale=1-1
+PROPS kind=lava_pool_rim from=@crystal_s+30 to=@crystal_s+30 side=L every=100 offset=14 scale=1-1 seed=194
 PROPS kind=cave_roof along=main side=R every=46 offset=3 scale=0.9-1.1
 # ---- stylized dressing pass (2026-10, docs/design/34-stylized-pass.md; render-only, the .ctrk is unchanged) ----
 # the cavern straight: a miners' scaffold stand, a hard-hat crowd, mine signs, work lamps; tyre wall round T1
