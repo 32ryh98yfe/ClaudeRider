@@ -4,13 +4,13 @@
 // Terrain can sit up to ~1.5 m below that near the road, so every grounded prop extends a skirt down to y ≈ −2.
 import * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../../materials/library.ts';
-import { merge, box, cyl, cone, ico, rbox, torus } from '../../util/geo.ts';
+import { merge, paint, place, box, cyl, cone, ico, rbox, torus, sparkleGeometry } from '../../util/geo.ts';
 import type { PropFactory } from '../../props/defaults.ts';
 import { around, blob, dome, facet, hdr, inward, lathe, part, prng, tube } from './shapes.ts';
 
 const C = {
   bark: '#6b4226', barkDark: '#4f3019', barkLight: '#8a5a36', wood: '#b98a57', woodPale: '#d9b27c', rings: '#e2c08a',
-  leaf: '#4e9f3d', leafDeep: '#3b7f31', leafLight: '#6fbf4a', moss: '#9bc53d', mossDeep: '#6f9a2e',
+  leaf: '#5a9649', leafDeep: '#4c7d3f', leafLight: '#6fbf4a', moss: '#7da24b', mossDeep: '#628a36',
   cap: '#e4572e', capDeep: '#c2401f', ivory: '#f9f8f4', cream: '#f4ead2', stone: '#8d8c7c', stoneDark: '#6e6d60',
   water: '#3f9a92', waterDeep: '#2d7a78', foam: '#e8f7f2', lily: '#5aa845', pink: '#ff9ec7', gold: '#ffd23f',
   eye: '#141413', panda: '#f7f5ee', rope: '#c9a46a', coral: '#d97757',
@@ -221,8 +221,15 @@ function forestGantry(): THREE.BufferGeometry {
   }
   parts.push(part(rbox(22, 1.9, 0.6, 0.25, 2), C.woodPale, 0, 7.2, 0));
   parts.push(part(rbox(22.6, 0.35, 0.8, 0.12, 1), C.barkLight, 0, 8.25, 0), part(rbox(22.6, 0.35, 0.8, 0.12, 1), C.barkLight, 0, 6.15, 0));
-  // checkered strip on the banner (start/finish language without any text)
-  for (let i = 0; i < 16; i++) parts.push(part(box(1.1, 0.5, 0.64), i % 2 ? C.ivory : '#2b2a26', -8.25 + i * 1.1, 7.2, 0));
+  // start/finish language without any text (2026-10 pass, matching the shared start gantry): two checker bands, the
+  // parametric sparkle in mushroom red on both faces, and five start lamps over the grid side (−Z faces the grid)
+  for (let i = 0; i < 32; i++) for (const [y, o] of [[7.78, 0], [6.62, 1]] as const) parts.push(part(box(0.55, 0.32, 0.64), (i + o) % 2 ? C.ivory : '#2b2a26', -8.525 + i * 0.55, y, 0));
+  for (const z of [-0.33, 0.33]) parts.push(paint(place(sparkleGeometry(0.42, 0.05, 7), 0, 7.2, z, 0, z > 0 ? 0 : Math.PI, 0), C.cap));
+  for (let i = 0; i < 5; i++) {
+    const x = -2.4 + i * 1.2;
+    parts.push(part(rbox(0.9, 0.6, 0.45, 0.08, 1), '#2b2a26', x, 5.7, -0.15));
+    for (const dx of [-0.2, 0.2]) parts.push(part(cyl(0.14, 0.14, 0.06, 10), '#e5484d', x + dx, 5.7, -0.4, Math.PI / 2, 0, 0));
+  }
   for (let i = 0; i < 9; i++) parts.push(part(ico(0.45, 0), i % 2 ? C.leaf : C.moss, -9 + i * 2.25, 5.75 - Math.sin((i / 8) * Math.PI) * 0.6, 0.45, 0, 0, 0, 1.3, 0.7, 0.6));
   return merge(parts);
 }
@@ -488,6 +495,9 @@ export const CANOPY_PROPS: Record<string, PropFactory> = {
   old_oak: kind(oldOak, matte),
   forest_wall: kind(forestWall, matte),
   fern: kind(fern, matte, false),
+  // the same fern under a name TrackView's SCATTER pattern matches ("grass"), so Low / Medium thin it and cull it early,
+  // on the swaying foliage slot like the rest of the undergrowth
+  grass_fern: kind(fern, () => MaterialLibrary.foliageLit(), false),
   mushroom_red: kind(mushroomCluster, toy, false),
   mushroom_giant: kind(mushroomGiant, toy),
   mossy_log: kind(mossyLog, matte),
