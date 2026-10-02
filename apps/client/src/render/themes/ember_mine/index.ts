@@ -16,7 +16,9 @@ export default (c: ContentTables): ThemeKit => {
     terrain: { a: '#50464e', b: '#625459', rock: '#3d353b' },
     wall: { kind: 'stone', a: '#4a434e', b: '#665552' },
     kerb: ['#e8622a', '#2a232c'],
-    sky: { turbidity: 1, rayleigh: 0.5, elevationDeg: 70, azimuthDeg: 200, exposure: 0.8, night: true, top: '#050408', bottom: '#241018' },
+    // final pass: a darker vault bottom (#160c12, was #241018): the red horizon band behind the far columns read as a
+    // city skyline at dusk
+    sky: { turbidity: 1, rayleigh: 0.5, elevationDeg: 70, azimuthDeg: 200, exposure: 0.8, night: true, top: '#050408', bottom: '#160c12' },
     sun: { color: '#ffd2a0', intensity: 1.25 },
     // stylized pass (2026-10): the cave stays a cave, but the crystal-violet sky fill and lava bounce are stronger and
     // a shadowless amber back fill (the work lamps) keeps the karts' shaded sides in colour; shadows stay soft, rims
