@@ -8,8 +8,10 @@ import { merge, paint, place, box, cyl, cone, ico, rbox, torus, sparkleGeometry 
 import type { PropFactory } from '../../props/defaults.ts';
 import { around, blob, dome, facet, hdr, inward, lathe, part, prng, tube } from './shapes.ts';
 
+// bark a step lighter than first cut (#6b4226 / #4f3019): the 30 m giant trunks are mostly in their own canopy's shade
+// and rendered near-black
 const C = {
-  bark: '#6b4226', barkDark: '#4f3019', barkLight: '#8a5a36', wood: '#b98a57', woodPale: '#d9b27c', rings: '#e2c08a',
+  bark: '#7e5536', barkDark: '#64432c', barkLight: '#8a5a36', wood: '#b98a57', woodPale: '#d9b27c', rings: '#e2c08a',
   leaf: '#5a9649', leafDeep: '#4c7d3f', leafLight: '#6fbf4a', moss: '#7da24b', mossDeep: '#628a36',
   cap: '#e4572e', capDeep: '#c2401f', ivory: '#f9f8f4', cream: '#f4ead2', stone: '#8d8c7c', stoneDark: '#6e6d60',
   water: '#3f9a92', waterDeep: '#2d7a78', foam: '#e8f7f2', lily: '#5aa845', pink: '#ff9ec7', gold: '#ffd23f',
