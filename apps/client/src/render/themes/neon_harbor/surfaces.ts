@@ -6,7 +6,7 @@
 //   shopWall   — building walls (market street, the alley): brick-dark base with lit shop windows every 3 m.
 // No per-pixel noise: variation comes from whole slabs and panels, which keeps the look organised.
 import * as THREE from 'three/webgpu';
-import { color, float, vec2, vec3, uv, positionWorld, normalWorld, mix, step, smoothstep, fract, floor, clamp, vertexColor, abs, dFdx, dFdy } from 'three/tsl';
+import { color, float, vec2, vec3, uv, positionWorld, normalWorld, mix, step, smoothstep, fract, floor, clamp, vertexColor, abs, dFdx, dFdy, max, normalView } from 'three/tsl';
 import { MaterialLibrary } from '../../materials/library.ts';
 import { aaLines, cellRand, n01, setEmissive, slope01 } from '../../materials/tsl.ts';
 
@@ -207,6 +207,40 @@ export function shopWall(key: string, p: ShopWallParams): THREE.Material {
     m.colorNode = c.add(color('#2a2c34').mul(win.mul(float(1).sub(open)))).mul(vertexColor().rgb.div(p.tint ?? 1));
     m.roughnessNode = mix(float(0.88), float(0.2), win);
     setEmissive(m, color(p.glass).mul(win.mul(open).mul(p.gain)));
+    return m;
+  });
+}
+
+export interface WetStreetParams { neon: readonly string[]; gain: number }
+
+/**
+ * Rainy street (Rainline): the library road with puddles along both kerbs (flat, dark, near-mirror roughness) and,
+ * inside them, stretched reflections of the neon: thin streaks along the road in the sign colours, 2–4 m long and
+ * under the bloom threshold, so the rain reads at a glance without the signs smearing across the racing line.
+ * vis road uv: x across 0..1, y = s / 4.
+ */
+export function wetStreet(key: string, base: THREE.MeshStandardNodeMaterial, p: WetStreetParams): THREE.Material {
+  return MaterialLibrary.custom(`wetStreet:${key}`, () => {
+    const m = new THREE.MeshStandardNodeMaterial({ roughness: base.roughness, metalness: base.metalness });
+    const U = uv();
+    const edge: N = max(smoothstep(0.17, 0.05, U.x), smoothstep(0.83, 0.95, U.x));
+    const patch: N = smoothstep(0.38, 0.58, n01(vec2(U.y.mul(0.3), U.x.mul(2.5))));
+    const puddle: N = edge.mul(patch);
+    m.colorNode = (base.colorNode as N).mul(mix(float(1), float(0.62), puddle));
+    m.roughnessNode = mix(base.roughnessNode as N, float(0.07), puddle);
+    if (base.normalNode) m.normalNode = mix(base.normalNode as N, normalView, puddle).normalize();
+    // neon streaks: 0.47 m lanes across, 8 m cells along (offset per lane); a quarter of the cells carry a streak
+    const q: N = U.x.mul(30), lane: N = floor(q), f: N = fract(q);
+    const a: N = U.y.mul(0.5).add(cellRand(vec2(lane, 7.1)));
+    const cell: N = floor(a), t: N = fract(a);
+    const on: N = step(0.74, cellRand(vec2(lane, cell)));
+    const env: N = smoothstep(0, 0.2, t).mul(smoothstep(0.7, 0.3, t));
+    const across: N = smoothstep(0.5, 0.12, abs(f.sub(0.5)));
+    const hue: N = cellRand(vec2(cell, lane.add(3.3)));
+    let col: N = color(p.neon[0]!);
+    for (let k = 1; k < p.neon.length; k++) col = mix(col, color(p.neon[k]!), step(k / p.neon.length, hue));
+    const glow: N = col.mul(on.mul(env).mul(across).mul(puddle).mul(p.gain));
+    m.emissiveNode = base.emissiveNode ? (base.emissiveNode as N).add(glow) : glow;
     return m;
   });
 }
