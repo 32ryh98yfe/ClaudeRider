@@ -5,6 +5,7 @@ import type * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
 import { merge, paint, place, rbox, box, cyl, cone, sph, ico, sparkleGeometry } from '../../util/geo.ts';
+import { sparkSignLit } from './lamps.ts';
 
 // Shared materials for the whole kit (vertex colour carries the variation). 2026-10 stylized pass: gloss belongs on the
 // karts, so concrete, stands and tunnels are matte, painted boards / pit structures a soft satin, masts metal, and the
@@ -102,9 +103,10 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
       // five start-light pods on a deep-navy panel (dark enough that the red pods pop), both faces
       parts.push(paint(place(rbox(7.4, 1.5, 1.8, 0.3, 2), 0, 10.0, 0), '#24395f'));
       for (let k = 0; k < 5; k++) for (const z of [-0.92, 0.92]) parts.push(paint(place(sph(0.36, 8, 6), -2.8 + k * 1.4, 10.0, z), '#ff3b30'));
-      const sp = sparkleGeometry(2.2, 0.35, 11);
-      parts.push(paint(place(sp, 0, 12.2, 0), C.coral));
-      return { geometry: merge(parts), material: satin(), castShadow: true };
+      // the sparkle, crossed with a copy turned 90° so it reads from the side as well as head-on; self-lit coral
+      // (sparkSignLit), as lit coral went muddy brown in shade
+      for (const ry of [0, Math.PI / 2]) parts.push(paint(place(sparkleGeometry(2.2, 0.35, 11), 0, 12.2, 0, 0, ry, 0), C.coral));
+      return { geometry: merge(parts), material: sparkSignLit(), castShadow: true };
     },
     maxInstances: 2,
   },
@@ -167,9 +169,9 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
         paint(place(cyl(0.12, 0.12, 5, 5), -4, 24.7, 0), C.graphite),
       ];
       for (let k = 0; k < 4; k++) parts.push(paint(place(box(0.2, 3.2, 1.4), -4 + Math.cos((k * Math.PI) / 2) * 5.05, 19.6, Math.sin((k * Math.PI) / 2) * 5.05, 0, (k * Math.PI) / 2, 0), C.white));
-      const sp = place(sparkleGeometry(3.4, 0.5, 23), -4, 28.6, 0, 0, Math.PI / 2, 0);
-      parts.push(paint(sp, C.coral));
-      return { geometry: merge(parts), material: satin(), castShadow: true };
+      // the sparkle on the mast, crossed with a copy turned 90° and self-lit coral (see the gantry)
+      for (const ry of [Math.PI / 2, 0]) parts.push(paint(place(sparkleGeometry(3.4, 0.5, 23), -4, 28.6, 0, 0, ry, 0), C.coral));
+      return { geometry: merge(parts), material: sparkSignLit(), castShadow: true };
     },
     maxInstances: 2,
   },
