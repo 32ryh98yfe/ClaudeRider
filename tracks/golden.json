@@ -26,7 +26,7 @@
   "_test/f2_jumps": {
    "src": "385f2620c1591a68",
    "ctrk": "b2bbe294",
-   "vis": "b5c89e8e"
+   "vis": "f685f2ef"
   },
   "_test/f3_halfpipe": {
    "src": "a83e43a32bd7c6bf",
@@ -56,7 +56,7 @@
   "canopy_forest/cascade_slalom": {
    "src": "2f90c787732779d7",
    "ctrk": "921ea469",
-   "vis": "6c55f2a4"
+   "vis": "305adc12"
   },
   "canopy_forest/fernwood_hollow": {
    "src": "c74bdf84ca83addf",
@@ -86,27 +86,27 @@
   "ember_mine/geode_rail_quarry": {
    "src": "ef5a1ad9c2b68a4c",
    "ctrk": "27d07a3c",
-   "vis": "3bed1a37"
+   "vis": "4f5f58d1"
   },
   "ember_mine/magma_switchback": {
    "src": "f23eb60abbc0dd4e",
    "ctrk": "40c1e250",
-   "vis": "81287163"
+   "vis": "0458fd90"
   },
   "frostbyte_glacier/aurora_summit": {
-   "src": "5281be4e045d19ac",
+   "src": "e6b15375d5af7a64",
    "ctrk": "0aacd9d1",
-   "vis": "7d2f7f2e"
+   "vis": "acd660af"
   },
   "frostbyte_glacier/snowglobe_halfpipe": {
-   "src": "4bbc2d65abc870be",
+   "src": "7a14861f0c0406cc",
    "ctrk": "e0de232a",
-   "vis": "36195c87"
+   "vis": "8d42a90d"
   },
   "lantern_hollow/manor_catacombs": {
    "src": "1c10d28c5191d47b",
    "ctrk": "bb91858f",
-   "vis": "9d8f5842"
+   "vis": "9381ee08"
   },
   "lantern_hollow/pumpkin_lane": {
    "src": "9abdb0366e4a98ae",
@@ -116,17 +116,17 @@
   "neon_harbor/rainline_blvd": {
    "src": "274ff6ba66de40d6",
    "ctrk": "c6a1469d",
-   "vis": "75bd96df"
+   "vis": "fae40993"
   },
   "neon_harbor/skyway_interchange": {
    "src": "413923a13ac05d72",
    "ctrk": "dbad722c",
-   "vis": "f10ba5d8"
+   "vis": "98574fb2"
   },
   "orbital_nexus/orbital_express": {
    "src": "a6f2d2065efb1cd5",
    "ctrk": "2e1dd278",
-   "vis": "ae2585f3"
+   "vis": "b6530f01"
   },
   "orbital_nexus/token_foundry": {
    "src": "e7725d172289d5bc",
@@ -146,17 +146,17 @@
   "spark_circuit/sunset_arena_rally": {
    "src": "bbeaeea5c8c91826",
    "ctrk": "06c4adc0",
-   "vis": "eededf48"
+   "vis": "a2f7cc68"
   },
   "sunstone_desert/sandglass_canyon": {
-   "src": "e2ba99d1ed618787",
+   "src": "870c020558a5fd00",
    "ctrk": "579046c1",
-   "vis": "475aea09"
+   "vis": "c6a42c55"
   },
   "sunstone_desert/sunstone_bazaar": {
-   "src": "897f28dcfe72ef1f",
+   "src": "04781b75d1fcd8e4",
    "ctrk": "622c82e5",
-   "vis": "f1b533cf"
+   "vis": "4bd8fb3f"
   }
  }
 }
