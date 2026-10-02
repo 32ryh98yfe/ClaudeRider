@@ -23,18 +23,19 @@ export const NEON_NIGHT_LOOK: Partial<ThemeLook> = {
   sky: { turbidity: 4, rayleigh: 2.2, elevationDeg: 24, azimuthDeg: 250, exposure: 1, top: '#0a0b24', bottom: '#2a1f48' },
   horizon: '#5b3d7c',
   sun: { color: '#b8c8ff', intensity: 1 },
-  // cool sky fill from above and a warm bounce from the street. The hemisphere was 2.4 and the back fill #ffc890
-  // ×1.0, which tinted the karts a dusty mauve and lit the wet road beige in the chase view; warm light now comes
-  // from the lamps and signs
-  hemi: { sky: '#a0a8e0', ground: '#ffb088', intensity: 1.6 },
-  fill: { color: '#e0b8a0', intensity: 0.45 },
+  // a desaturated cool sky fill from above and a warm bounce from the street, plus a warm-neutral back fill on the
+  // chase side: the violet sky fill and the low dusty back fill turned the player kart mauve and lilac, so the colour
+  // stays in the signs, the kerbs and the sky (34 roster rule for night rigs)
+  hemi: { sky: '#b8bcd8', ground: '#ffb088', intensity: 1.6 },
+  fill: { color: '#ffd6bc', intensity: 0.8 },
   fogColor: '#2b2244',
   stars: 0.25,
   ambient: 'rain',
   wet: 0.35,
   bloom: 0.45,
   rimBoost: 1.7,
-  envIntensity: 0.6,
+  // the violet night environment mirrored into the kart paint; less of it keeps the hero's own colour
+  envIntensity: 0.4,
   headlights: true,
   shadowStrength: 0.55,
   grade: { tint: '#f8f5ff', saturation: 1.08, shadows: '#e2e4ff', highlights: '#fff2f6' },
