@@ -75,8 +75,9 @@ export default (c: ContentTables, env: Readonly<Record<string, string>> = {}): T
   kit.materials = () => ({
     ...base(),
     // bright snow: keep 60 % of the baked terrain AO by day (soft, clean ground; wall bases and gullies keep their
-    // shade); 40 % at night, where the strong sky fill turned the baked AO into smeared dark blotches on the snow
-    terrain: softAoTerrain(T.a, T.b, T.rock, night ? 0.4 : 0.6),
+    // shade); 40 % at night, where the strong sky fill turned the baked AO into smeared dark blotches on the snow, and
+    // calm broad tones there (the library rock noise smeared down the summit cliffs)
+    terrain: softAoTerrain(T.a, T.b, T.rock, night ? 0.4 : 0.6, night),
     // halfpipe walls (part of the road ribbon): packed snow → ice at the lip, navy top band
     road: halfpipeRoad(MaterialLibrary.road(kit.look.road)),
     'road:ice': MaterialLibrary.road({ style: 'ice', a: '#9fd3ea', b: '#c0e6f5', line: '#f1f6fa', tint: [1.2, 1.4, 1.6] }),
