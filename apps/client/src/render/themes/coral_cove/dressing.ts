@@ -17,8 +17,9 @@ const matte = (): THREE.Material => MaterialLibrary.vertexLit(0.8, 0);
 const paintGloss = (): THREE.Material => MaterialLibrary.vertexLit(0.4, 0);
 const leafy = (): THREE.Material => MaterialLibrary.foliageLit();
 
+// final pass: leaves are an olive-sage green (#4f8f40 family); the lime-teal #3f9e4d set read saturated at noon
 const K = {
-  dune: '#9aa860', duneLight: '#b4b77c', duneDry: '#cdb98a', leaf: '#3f9e4d', leafDeep: '#2f8441', leafLight: '#5cb85a',
+  dune: '#9aa860', duneLight: '#b4b77c', duneDry: '#cdb98a', leaf: '#4f8f40', leafDeep: '#3e7a36', leafLight: '#6ea44c',
   trunk: '#8a6340', trunkDark: '#6f4c2f', coconut: '#5a3a22', sand: '#f3dfae', sandWet: '#d9c08a', shallows: '#8fe0d6',
   sandstone: '#d2b085', sandstoneDk: '#b48f66', sandstoneLt: '#e4caa0', turq: '#1fb5c9', turqLight: '#7fe3d6', white: '#fafafa',
   red: '#d94f4f', yellow: '#f5c230', navy: '#2d4a6b', coral: '#ff7a6b', pink: '#ff6fa8', wood: '#b9854f', woodPale: '#d9b98a',

@@ -70,23 +70,38 @@ PROPS kind=lava_crack from=@switchback_1 to=@climb side=both every=37 offset=5
 # a lava pool on the outside of T1, glowing seams at the foot of the start-straight walls, and lanterns every 20 m
 # through the helix and under the plateau (the stretch that read near-black)
 PROPS kind=lava_crack from=@plateau+40 to=@switchback_1 side=both every=20 offset=4 jitter=2 seed=190
-PROPS kind=lava_pool from=@plateau_1+8 to=@plateau_1+8 side=L every=100 offset=5.5 scale=1-1 seed=191
+# final pass: the pool (crusted melt in a basalt lip) sits 10 m out, behind the T1 chevron boards (at 5.5 m the +10
+# board stood in it)
+PROPS kind=lava_pool from=@plateau_1+8 to=@plateau_1+8 side=L every=100 offset=10 scale=0.9-0.9 seed=191
 PROPS kind=lava_seam from=@plateau to=@plateau+70 side=both every=4.2 offset=0.1 scale=1-1 seed=192
 PROPS kind=lantern from=@helix_in to=@north_run side=both every=20 offset=0.2 seed=193
 PROPS kind=lantern along=main side=both every=28 offset=0.22
-PROPS kind=cave_roof along=main side=R every=46 offset=3 scale=0.9-1.1
+# final pass: the cave roof (stalactite tips 23 m x scale above the row origin) skips the four places where another
+# road ran less than 8 m under the tips: the under-plateau stretch below the start straight and T1 (baked s 460, 506,
+# 598: 2-5 m, slabs at camera height over the grid) and the switchback stack (s 1242: 7.6 m). Ranges are DSL distances
+# (baked s + 40) on the old 46 m pitch, so every other roof keeps its place. No seed, like the old row: the rows draw
+# from the track RNG that the THEME scatter uses next (seeded rows reshuffled the scatter onto the a3 start camera)
+PROPS kind=cave_roof along=86-454 side=R every=46 offset=3 scale=0.9-1.1
+PROPS kind=cave_roof along=592-592 side=R every=46 offset=3 scale=0.9-1.1
+PROPS kind=cave_roof along=684-1236 side=R every=46 offset=3 scale=0.9-1.1
+PROPS kind=cave_roof along=1328-1834 side=R every=46 offset=3 scale=0.9-1.1
 # ---- stylized dressing pass (2026-10, docs/design/34-stylized-pass.md; render-only, the .ctrk is unchanged) ----
 # the plateau straight (the line sits 40 m in): a miners' scaffold stand, crowd, mine signs; tyre wall round T1 (R, so
 # its outside is the left)
 # (the stand sits just past the line: before it, the start-wide camera looked straight down onto its roof)
 PROPS kind=grandstand from=@plateau+54 to=@plateau+55 side=R every=100 offset=5.5 seed=60
 PROPS kind=ad_board_a from=@plateau+4 to=@plateau+68 side=L every=24 offset=0.4 seed=61
-# (no chevron ad_board_b on the left: side=L rows turn props 180°, so its arrows would point back down the straight)
+# (no chevron ad_board_b on the left: side=L rows turn props 180°, so its arrows would point back down the straight;
+# ad_board_b_l is the left-row chevron board, used round T1 below)
 PROPS kind=ad_board_a from=@plateau+12 to=@plateau+68 side=L every=24 offset=0.4 seed=62
 PROPS kind=ad_board_c from=@plateau+20 to=@plateau+68 side=L every=24 offset=0.4 seed=63
 PROPS kind=spectators from=@plateau+14 to=@plateau+30 side=R every=8 offset=2.4 jitter=1 seed=64
 PROPS kind=flag_pole from=@plateau+2 to=@plateau+10 side=R every=4 offset=2.6 seed=65
 PROPS kind=tyre_wall from=@plateau_1+1 to=@plateau_1+30 side=L every=1.3 offset=0.6 seed=66
+# final pass: chevrons on the outside of T1 (plateau_1 is a right-hander, so the outside is the left); only the first
+# 12 m (past plateau_1+12 the ground beside the road drops into the pit; boards there stood 5-15 m below the road),
+# 1.4x so the chevrons clear the 1.5 m rock wall
+PROPS kind=ad_board_b_l from=@plateau_1+2 to=@plateau_1+12 side=L every=5 offset=2.4 scale=1.4-1.4 seed=68
 PROPS kind=lamp_post along=main side=both every=32 offset=1.6 seed=67
 # floor cover, rubble, basalt, stalagmite columns and the far stalagmite forest round the lap (none on the lava lake)
 # (left of the helix is the lava lake, left of the rail corner and right of the geyser field are lava pits)

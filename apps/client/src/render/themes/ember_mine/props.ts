@@ -5,7 +5,7 @@ import * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
 import { box, cone, cyl, merge, paint, place, rbox, torus } from '../../util/geo.ts';
-import { beam, blob, crystalCluster, glow, rng, rock } from './shapes.ts';
+import { beam, blob, blobShape, crystalCluster, glow, rng, rock } from './shapes.ts';
 import { glowLit } from '../lantern_hollow/glow.ts';
 
 // glowing parts (windows, ore, lava seams, portal sign) are HDR vertex colours: the glow material lets them emit
@@ -175,12 +175,39 @@ function lanternOnWall(): THREE.BufferGeometry {
   ]);
 }
 
-function lavaPool(seed: number): THREE.BufferGeometry {
-  // a lava lake slab: glowing top plus glowing sides down to −1.8 m so it never hovers over the terrain
-  const R = rng(seed);
-  const top = blob(6, seed);
-  const parts = [paint(place(top, 0, 0.1, 0), LAVA), paint(place(cyl(5.2, 5.6, 1.9, 12), 0, -0.85, 0), LAVA)];
-  for (let i = 0; i < 4; i++) parts.push(paint(place(blob(1.4 + R() * 1.4, seed + i + 1), (R() - 0.5) * 7, 0.14, (R() - 0.5) * 7), '#ffb347'));
+/**
+ * Lava pool in a basalt basin, all on the lit glow material (final pass; the old pool was a flat emissive-orange
+ * octagon, since the emissive material ignores vertex colours): an HDR-orange molten surface (it emits, and its
+ * albedo still takes the cave light), raised crust plates and a few hot spots, and a lip of basalt slabs along the
+ * blob's own outline. The basin is that outline extruded 2.6 m down, so on a slope the pool never floats.
+ */
+function lavaPool(r = 6, seed = 4, seg = 14): THREE.BufferGeometry {
+  const R = rng(seed + 101);
+  const outline = blobShape(r, seed, seg);
+  const parts: THREE.BufferGeometry[] = [glow(paint(place(blob(r, seed, seg), 0, 0.1, 0), '#ff9a3c'), 2.4)];
+  const basin = new THREE.ExtrudeGeometry(outline, { depth: 2.6, bevelEnabled: false, curveSegments: 1 });
+  basin.rotateX(-Math.PI / 2); // extrude +Z becomes +Y, shape (x, y) lands at (x, ., -y) like blob()
+  parts.push(paint(place(basin, 0, -2.65, 0, 0, 0, 0, 1.04, 1, 1.04), '#2b2320', 0.08, seed));
+  // crust plates: low lit basalt rafts on the melt
+  for (let i = 0; i < 6; i++) {
+    const a = R() * Math.PI * 2, d = r * (0.12 + R() * 0.45), sz = 0.55 + R() * 0.55;
+    parts.push(paint(place(rock(sz, seed + 40 + i, 1), Math.cos(a) * d, 0.1, Math.sin(a) * d, 0, R() * 3, 0, 1.5, 0.14, 1.1), i % 2 ? '#3b2219' : '#4a2c1e', 0.12, i));
+  }
+  for (let i = 0; i < 3; i++) {
+    const a = R() * Math.PI * 2, d = r * R() * 0.45;
+    parts.push(glow(paint(place(blob(0.5 + R() * 0.5, seed + 60 + i, 9), Math.cos(a) * d, 0.13, Math.sin(a) * d), '#ffe08a'), 2.6));
+  }
+  // the lip: slabs at every outline vertex and edge midpoint (same radii as blobShape: rng(seed), 0.7-1.15 r)
+  const Rb = rng(seed);
+  const rad: number[] = [];
+  for (let i = 0; i < seg; i++) rad.push(r * (0.7 + Rb() * 0.45));
+  for (let k = 0; k < seg * 2; k++) {
+    const i = k >> 1, a = ((i + (k & 1) * 0.5) / seg) * Math.PI * 2;
+    const d = (k & 1 ? (rad[i]! + rad[(i + 1) % seg]!) / 2 : rad[i]!) * (1.0 + R() * 0.06);
+    const sz = 0.45 + R() * 0.3;
+    const tone = k % 3 === 0 ? '#4a3a33' : k % 3 === 1 ? '#3b2f29' : '#2b2320';
+    parts.push(paint(place(rock(sz, seed + k, 1), Math.cos(a) * d, 0.08, -Math.sin(a) * d, 0, a + Math.PI / 2 + (R() - 0.5) * 0.4, 0, 1.8, 0.5, 1.0), tone, 0.1, k));
+  }
   return merge(parts);
 }
 
@@ -230,14 +257,20 @@ function minePortal(): THREE.BufferGeometry {
   return merge(parts);
 }
 
-/** Cavern roof slab with stalactites (placed on the centreline); keeps above the intro flyover height (≥ 20 m). */
+/**
+ * Cavern roof slab with stalactites (placed on the centreline); keeps above the intro flyover height (≥ 20 m). The
+ * tips hang 23 m × row scale above the row origin, so rows skip stretches with another road less than ~10 m below
+ * that (the stacked plateau / under-plateau and switchback stretches).
+ */
 function caveRoof(seed: number): THREE.BufferGeometry {
   const R = rng(seed);
-  // origin sits beside the road (rows cannot start on it); the slab is centred ~10 m toward the road
-  const parts: THREE.BufferGeometry[] = [paint(place(rock(30, seed, 1), 10, 38, 0, 0, R() * 3, 0, 1.3, 0.42, 1.1), '#2a2429', 0.14, seed)];
+  // origin sits beside the road (rows cannot start on it); the slab is centred ~10 m toward the road.
+  // Final pass: mid basalt (#3e3438) with lighter stalactites: the underside only sees the lava bounce, and the old
+  // #2a2429 slab rendered pure black over the top half of the chase view
+  const parts: THREE.BufferGeometry[] = [paint(place(rock(30, seed, 1), 10, 38, 0, 0, R() * 3, 0, 1.3, 0.42, 1.1), '#3e3438', 0.14, seed)];
   for (let i = 0; i < 9; i++) {
     const a = R() * Math.PI * 2, d = 6 + R() * 26, h = 4 + R() * 6;
-    parts.push(paint(place(cone(1.2 + h * 0.18, h, 6), 10 + Math.cos(a) * d, 33 - h / 2, Math.sin(a) * d, Math.PI, 0, 0), i % 2 ? '#3a3238' : '#453b40', 0.1, i + seed));
+    parts.push(paint(place(cone(1.2 + h * 0.18, h, 6), 10 + Math.cos(a) * d, 33 - h / 2, Math.sin(a) * d, Math.PI, 0, 0), i % 2 ? '#4a4044' : '#564b4f', 0.1, i + seed));
   }
   return merge(parts);
 }
@@ -328,7 +361,7 @@ export const EMBER_PROPS: Record<string, PropFactory> = {
   geode_violet: { build: () => ({ geometry: geodeCluster(VIOLET, GEODE_VIOLET, 8, 4.8, 17), material: lit() }) },
   cave_roof: { build: () => ({ geometry: caveRoof(12), material: lit(), castShadow: false }) },
   crystal_spire: { build: () => ({ geometry: crystalSpire(), material: lit() }) },
-  lava_pool: { build: () => ({ geometry: lavaPool(4), material: MaterialLibrary.emissive(LAVA, 1.3) }) },
+  lava_pool: { build: () => ({ geometry: lavaPool(), material: lit() }) },
   lava_crack: { build: () => ({ geometry: lavaCracks(9), material: MaterialLibrary.emissive(LAVA, 1.4) }) },
   lava_lake: { build: () => ({ geometry: lavaLake(12, 31), material: MaterialLibrary.emissive(LAVA, 1.3) }) },
   lava_rim: { build: () => ({ geometry: lavaRim(12, 31), material: lit() }) },

@@ -191,4 +191,5 @@ PROP kind=crate_barrels at=(-34.0,-0.2,-11.0) yaw=270 scale=1
 PROP kind=crate_barrels at=(2.0,-0.2,11.0) yaw=90 scale=1
 PROP kind=flag_pole at=(-20.0,-0.2,-10.1) yaw=270 scale=1
 PROP kind=flag_pole at=(-16.0,-0.2,-10.1) yaw=270 scale=1
-THEME scatter=stalagmite,basalt_column,stalagmite,geode_violet,tree_round_big,rock_cluster,bush_round,crate_barrels,timber_crib density=34 hills=12 sky=underground fogNear=70 fogFar=520
+# final pass: no flat-topped basalt columns in the far scatter (against the horizon band they read as a city skyline)
+THEME scatter=stalagmite,stalagmite,stalagmite,geode_violet,tree_round_big,rock_cluster,bush_round,crate_barrels,timber_crib density=34 hills=12 sky=underground fogNear=70 fogFar=520

@@ -16,7 +16,7 @@ export const C = {
   stem: '#5b6b2e', leaf: '#6f8f3a', wisp: '#5ffbf1', moon: '#fff3c4', straw: '#e8c46a', strawDeep: '#c9a24a',
   wood: '#7a5234', woodDark: '#4e3322', woodPale: '#a8784e', stone: '#8f8aa3', stoneDark: '#6a6582', moss: '#6f8f5a',
   iron: '#2a2638', ivory: '#f4efe6', eye: '#141413', blush: '#ff9ec7', red: '#c9463d', cloth: '#5d7fb8', roof: '#3b2f5c',
-  roofDeep: '#2b2248', hedge: '#2f5a3a', hedgeLight: '#3f7048', rose: '#e0476b', gold: '#e0b04b', white: '#f7f5ee',
+  roofDeep: '#2b2248', hedge: '#3f6e4a', hedgeLight: '#558a5c', rose: '#e0476b', gold: '#e0b04b', white: '#f7f5ee',
 } as const;
 export const GLOW = (k = 2.2): THREE.Color => hdr('#ffc46b', k);       // warm lantern light
 export const FLAME = (k = 2.6): THREE.Color => hdr('#ffd98a', k);      // candle flame
