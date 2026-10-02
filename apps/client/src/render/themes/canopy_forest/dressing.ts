@@ -9,8 +9,9 @@ import type { PropFactory } from '../../props/defaults.ts';
 import { merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../../util/geo.ts';
 import { blob, lathe, part, prng } from './shapes.ts';
 
-// one organised forest palette: mid-value leaf greens (no lime, no near-black), bark browns, mushroom red, cream
-const G = { deep: '#3e7432', mid: '#4f8a3a', leaf: '#5f9c43', light: '#76b04f', teal: '#356f4a', tealLight: '#468458' } as const;
+// one organised forest palette: mid-value leaf greens (no lime, no near-black: shaded crowns stay ≥ 60 % of lit, like
+// Meadow's #3c8133), bark browns, mushroom red, cream
+const G = { deep: '#4f7a42', mid: '#5a8e48', leaf: '#5f9c43', light: '#76b04f', teal: '#356f4a', tealLight: '#468458' } as const;
 const BARK = '#6b4a33', BARK_DK = '#4f3624', WOOD = '#b98a57', WOOD_PALE = '#dcb985', MOSS = '#7ca04c';
 const CAP = '#e0533a', CREAM = '#f6efdc', GOLD = '#f2c14e', STONE = '#9a978c', STONE_DK = '#827f75', INK = '#2a2826';
 const FLOOR = [G.deep, G.mid, G.leaf, G.light] as const;

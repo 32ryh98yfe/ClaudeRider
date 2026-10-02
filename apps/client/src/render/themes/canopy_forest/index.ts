@@ -13,7 +13,7 @@ import { CANOPY_DRESSING } from './dressing.ts';
 export const CANOPY_LOOK: Partial<ThemeLook> = {
   road: { style: 'dirt', a: '#ae8962', b: '#bc976f', line: '#f1e6c8' },
   shoulder: { a: '#55863a', b: '#649545' },
-  terrain: { a: '#4f8038', b: '#6a9547', rock: '#8c8778' },
+  terrain: { a: '#5a8a40', b: '#6f9a4c', rock: '#8c8778' },
   wall: { kind: 'stone', a: '#a19d8a', b: '#7d8a5e' },
   kerb: ['#c9512f', '#f4ecd6'],
   sky: { turbidity: 3.0, rayleigh: 1.5, elevationDeg: 30, azimuthDeg: 120, exposure: 1.0, top: '#4f95d6', bottom: '#a9d2e2' },
@@ -34,7 +34,8 @@ export const CANOPY_LOOK: Partial<ThemeLook> = {
   rimBoost: 0.45,
   bloom: 0.25,
   wind: 0.9,
-  grade: { tint: '#ffffff', saturation: 1.06, shadows: '#eef6f0', highlights: '#fffaf0' },
+  // neutral shadow grade: the green-tinted one pushed shaded leaf faces to R = 0 (#00420b) against doc 34's ≥ 60 % rule
+  grade: { tint: '#ffffff', saturation: 1.06, shadows: '#f2f2f0', highlights: '#fffaf0' },
 };
 
 export default (c: ContentTables): ThemeKit => {
