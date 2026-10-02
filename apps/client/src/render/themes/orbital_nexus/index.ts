@@ -23,9 +23,10 @@ export const ORBITAL_LOOK: Partial<ThemeLook> = {
   sky: { turbidity: 1, rayleigh: 0.3, elevationDeg: 35, azimuthDeg: 120, exposure: 0.9, night: true, top: '#02040d', bottom: '#0b1026' },
   horizon: '#141c40',
   sun: { color: '#f2f6ff', intensity: 2.0 },
-  // a cool sky fill and the warm planet bounce from below at ≈ 1 : 2 against the key, plus a shadowless back fill
+  // a cool sky fill and the warm planet bounce from below at ≈ 1 : 2 against the key, plus a shadowless warm-neutral
+  // back fill on the chase side (the cool #cfe0ff ×0.55 left the hero a dark cut-out against the black sky)
   hemi: { sky: '#9fbcff', ground: '#e8a07a', intensity: 3.0 },
-  fill: { color: '#cfe0ff', intensity: 0.55 },
+  fill: { color: '#ffe6d6', intensity: 0.9 },
   fogColor: '#0b1026',
   stars: 1,
   planet: { color: '#d98a5f', ring: '#e8d2b8', dir: [-0.55, 0.42, -0.72], size: 0.15 },
