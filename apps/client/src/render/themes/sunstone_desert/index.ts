@@ -34,8 +34,9 @@ export const SUNSTONE_LOOK: Partial<ThemeLook> = {
   rimBoost: 0.4,
   bloom: 0.25,
   wind: 0.7,
-  // no dust particles: the shared smoke quads read as dark rotated squares on the bright sand (a frame-wide noise)
-  ambient: 'none',
+  // dust motes are back: their "dark rotated squares" were the shared GTAO bug (FX quads overwrote the AO normals),
+  // fixed in post/pipeline.ts
+  ambient: 'dust',
   grade: { tint: '#ffffff', saturation: 1.04, shadows: '#eef2ff', highlights: '#fffaf3' },
   // no global water plane: the only water is the oasis_pond prop (a sea level would flood the dune-top dip)
 };
