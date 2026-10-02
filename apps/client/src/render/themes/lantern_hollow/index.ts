@@ -20,7 +20,8 @@ export const LANTERN_LOOK: Partial<ThemeLook> = {
   // final pass: verges and infield one step lighter (#56805e / #679066) and a warm-grey ground bounce (#786a6c): the
   // old moss and plum bounce read near-black navy under the moon
   terrain: { a: '#56805e', b: '#679066', rock: '#78729a' },
-  wall: { kind: 'stone', a: '#8c8598', b: '#6a6178' },
+  // final pass: warm stone walls (were lilac #8c8598 / #6a6178, which lined Pumpkin Lane's straights in violet)
+  wall: { kind: 'stone', a: '#8b8782', b: '#6d6964' },
   kerb: ['#ff9f1c', '#3a3160'],
   sky: { turbidity: 1, rayleigh: 1, elevationDeg: 42, azimuthDeg: 215, exposure: 1, night: true, top: '#0c0a2a', bottom: '#4e3889' },
   horizon: '#6a4aa0',
