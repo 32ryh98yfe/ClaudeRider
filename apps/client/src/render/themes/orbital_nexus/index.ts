@@ -23,9 +23,10 @@ export const ORBITAL_LOOK: Partial<ThemeLook> = {
   sky: { turbidity: 1, rayleigh: 0.3, elevationDeg: 35, azimuthDeg: 120, exposure: 0.9, night: true, top: '#02040d', bottom: '#0b1026' },
   horizon: '#141c40',
   sun: { color: '#f2f6ff', intensity: 2.0 },
-  // a cool sky fill and the warm planet bounce from below at ≈ 1 : 2 against the key, plus a shadowless warm-neutral
-  // back fill on the chase side (the cool #cfe0ff ×0.55 left the hero a dark cut-out against the black sky)
-  hemi: { sky: '#9fbcff', ground: '#e8a07a', intensity: 3.0 },
+  // a desaturated sky fill (the #9fbcff one cast the station lavender; the cyan LEDs are the cool accent now) and the
+  // warm planet bounce from below at ≈ 1 : 2 against the key, plus a shadowless warm-neutral back fill on the chase
+  // side (the cool #cfe0ff ×0.55 left the hero a dark cut-out against the black sky)
+  hemi: { sky: '#c6d0e8', ground: '#e8a07a', intensity: 3.0 },
   fill: { color: '#ffe6d6', intensity: 0.9 },
   fogColor: '#0b1026',
   stars: 1,
@@ -35,7 +36,7 @@ export const ORBITAL_LOOK: Partial<ThemeLook> = {
   envIntensity: 0.35,
   shadowStrength: 0.55,
   ambient: 'motes',
-  grade: { tint: '#f6f9ff', saturation: 1.06, shadows: '#e6ecff', highlights: '#fff6ee' },
+  grade: { tint: '#ffffff', saturation: 1.06, shadows: '#e6ecff', highlights: '#fff6ee' },
 };
 
 /** Factory floor (Token Foundry): the same sky, warmer work light and hazard-striped caps. */
