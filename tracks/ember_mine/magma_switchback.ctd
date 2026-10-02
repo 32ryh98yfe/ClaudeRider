@@ -80,11 +80,12 @@ PROPS kind=lantern along=main side=both every=28 offset=0.22
 # final pass: the cave roof (stalactite tips 23 m x scale above the row origin) skips the four places where another
 # road ran less than 8 m under the tips: the under-plateau stretch below the start straight and T1 (baked s 460, 506,
 # 598: 2-5 m, slabs at camera height over the grid) and the switchback stack (s 1242: 7.6 m). Ranges are DSL distances
-# (baked s + 40) on the old 46 m pitch, so every other roof keeps its place
-PROPS kind=cave_roof along=86-454 side=R every=46 offset=3 scale=0.9-1.1 seed=195
-PROPS kind=cave_roof along=592-592 side=R every=46 offset=3 scale=0.9-1.1 seed=196
-PROPS kind=cave_roof along=684-1236 side=R every=46 offset=3 scale=0.9-1.1 seed=197
-PROPS kind=cave_roof along=1328-1834 side=R every=46 offset=3 scale=0.9-1.1 seed=198
+# (baked s + 40) on the old 46 m pitch, so every other roof keeps its place. No seed, like the old row: the rows draw
+# from the track RNG that the THEME scatter uses next (seeded rows reshuffled the scatter onto the a3 start camera)
+PROPS kind=cave_roof along=86-454 side=R every=46 offset=3 scale=0.9-1.1
+PROPS kind=cave_roof along=592-592 side=R every=46 offset=3 scale=0.9-1.1
+PROPS kind=cave_roof along=684-1236 side=R every=46 offset=3 scale=0.9-1.1
+PROPS kind=cave_roof along=1328-1834 side=R every=46 offset=3 scale=0.9-1.1
 # ---- stylized dressing pass (2026-10, docs/design/34-stylized-pass.md; render-only, the .ctrk is unchanged) ----
 # the plateau straight (the line sits 40 m in): a miners' scaffold stand, crowd, mine signs; tyre wall round T1 (R, so
 # its outside is the left)
