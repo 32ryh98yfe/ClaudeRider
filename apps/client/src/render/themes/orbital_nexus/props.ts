@@ -45,7 +45,8 @@ function dishGeometry(R: number, depth: number): THREE.BufferGeometry {
 
 /** A dish tilted about Z by `rz` at (x, y, z): bowl, a strut to the feed horn at the focus, and a bracket to `mount`. */
 function addDish(G: GlowParts, R: number, depth: number, x: number, y: number, z: number, rz: number, c: string, mount: readonly [number, number, number]): void {
-  G.add(part(dishGeometry(R, depth), c, x, y, z, 0, 0, rz));
+  // a grey rim ring defines the bowl's silhouette from behind (the back of a plain shell read as a pale dome)
+  G.add(part(dishGeometry(R, depth), c, x, y, z, 0, 0, rz), part(place(torus(R, 0.07, 4, 20), 0, depth, 0, Math.PI / 2), GREY, x, y, z, 0, 0, rz));
   const ax = -Math.sin(rz), ay = Math.cos(rz), f = (R * R) / (4 * depth);
   G.add(paint(beam(x, y, z, x + ax * f, y + ay * f, z, 0.04), GREY), part(cyl(0.08, 0.13, 0.3, 8), GREY, x + ax * f, y + ay * f, z, 0, 0, rz));
   G.add(paint(beam(mount[0], mount[1], mount[2], x - ax * 0.1, y - ay * 0.1, z, 0.13), GREY), part(box(0.45, 0.5, 0.45), GREY, mount[0], mount[1], mount[2]));
