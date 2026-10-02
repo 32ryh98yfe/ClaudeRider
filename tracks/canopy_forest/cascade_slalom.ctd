@@ -122,4 +122,5 @@ PROPS kind=tree_clump along=790-1835 side=R every=34 offset=125 jitter=50 scale=
 PROPS kind=tree_clump along=1860-1950 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=95
 PROP kind=hot_air_balloon at=(-60.0,62.0,-120.0) yaw=20 scale=1.1
 PROP kind=hot_air_balloon at=(-240.0,58.0,-40.0) yaw=0 scale=0.9
-THEME canopy_forest sky=day time=09:30 scatter=forest_wall,forest_wall,karst_pillar,bamboo,rock_moss,rock_cluster,bush_round,bush_round density=26 hills=6 fogNear=120 fogFar=850
+# no karst_pillar in the random scatter: the PROPS rows place the pillars, and a scattered one landed beside the grid
+THEME canopy_forest sky=day time=09:30 scatter=forest_wall,forest_wall,bamboo,rock_moss,rock_cluster,bush_round,bush_round density=26 hills=6 fogNear=120 fogFar=850
