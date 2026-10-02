@@ -50,10 +50,11 @@ const NIGHT_LOOK: Partial<ThemeLook> = {
   // the aurora dome reads sky.top / bottom / horizon too: keep them night colours (the day kit's would wash it white)
   sky: { turbidity: 6, rayleigh: 0.9, elevationDeg: 28, azimuthDeg: 200, exposure: 1, top: '#050c22', bottom: '#14345e' },
   horizon: '#21507a',
-  // moonlight: a bright, nearly neutral sky fill so snow reads pale blue-grey (not royal blue), plus a cool back fill for
-  // the chase camera; the sun-like key stays the weak moon, so it is still night
-  hemi: { sky: '#c0c9dc', ground: '#5a6274', intensity: 2.4 },
-  fill: { color: '#c3cbe6', intensity: 0.8 },
+  // moonlight: a near-neutral sky fill and a grey bounce (the bluer #c0c9dc / #5a6274 pair cast the road #25314b and the
+  // snow navy), plus a warm-neutral back fill for the chase camera; the blue stays in the sky, fog and aurora, and the
+  // sun-like key stays the weak moon, so it is still night
+  hemi: { sky: '#cdd0d8', ground: '#606470', intensity: 2.4 },
+  fill: { color: '#d8d4e2', intensity: 0.9 },
   fogColor: '#26374f',
   exposure: 1.08,
   bloom: 0.3,
