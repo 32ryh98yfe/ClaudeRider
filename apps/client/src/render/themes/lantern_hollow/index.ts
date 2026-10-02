@@ -11,12 +11,14 @@ export default (c: ContentTables): ThemeKit => {
     // stylized pass (2026-10): the night stays night, but the road is a lighter, low-saturation grey-violet (the moon
     // light is already blue; a violet road went saturated blue) so the karts and the pumpkin kerbs of the next corner
     // read first; grass is a mid-value moss, never black
+    // final pass: verges and infield one step lighter (#56805e / #679066) and a warm-grey ground bounce (#786a6c): the
+    // old moss and plum bounce read near-black navy under the moon
     // review round: pale lilac-white edge paint (#e9e2f5): the warm line at half cobble paint strength read lavender
     // final pass: the cobbles are a neutral warm grey (#6b6864 / #7b7873); with the violet sky fill and a 1.12 grade
     // saturation the grey-violet road turned the whole frame one violet hue. The violet lives in the sky only.
     road: { style: 'cobble', a: '#6b6864', b: '#7b7873', line: '#e9e2f5' },
     shoulder: { a: '#4f7658', b: '#5e8664' },
-    terrain: { a: '#476a55', b: '#577c5f', rock: '#78729a' },
+    terrain: { a: '#56805e', b: '#679066', rock: '#78729a' },
     wall: { kind: 'stone', a: '#8c8598', b: '#6a6178' },
     kerb: ['#ff9f1c', '#3a3160'],
     sky: { turbidity: 1, rayleigh: 1, elevationDeg: 42, azimuthDeg: 215, exposure: 1, night: true, top: '#0c0a2a', bottom: '#4e3889' },
@@ -26,7 +28,7 @@ export default (c: ContentTables): ThemeKit => {
     // camera sees the karts' shaded sides in their own colours; shadows stay soft (moonlight), rims a touch lower.
     // Final pass: the sky fill is a desaturated lavender-grey (#a6a3c4), and the look and kit grades hold saturation
     // at 1.0 (the look grade wins over the kit grade in resolveLook, so both are set)
-    hemi: { sky: '#a6a3c4', ground: '#64506a', intensity: 1.65 },
+    hemi: { sky: '#a6a3c4', ground: '#786a6c', intensity: 1.65 },
     fill: { color: '#ffc690', intensity: 0.45 },
     shadowStrength: 0.6,
     exposure: 1.22,
