@@ -19,7 +19,7 @@ const vinyl = (): THREE.Material => MaterialLibrary.vinyl({ rim: '#ffd9c7', roug
 const C = {
   sea: '#1fb5c9', lagoon: '#7fe3d6', sand: '#f6e3b4', wood: '#8b5a2b', woodLight: '#b9854f', woodPale: '#d9b98a',
   sail: '#f2f2f2', red: '#d94f4f', white: '#fafafa', rope: '#e0c79a', rock: '#9c8a74', rockDark: '#7c6c5a', rockLight: '#b8a68c',
-  leaf: '#3f9e4d', leafLight: '#62bf5c', trunk: '#8a6340', trunkDark: '#6f4c2f', coconut: '#5a3a22', kraken: '#e0607e',
+  leaf: '#4f8f40', leafLight: '#6ea44c', trunk: '#8a6340', trunkDark: '#6f4c2f', coconut: '#5a3a22', kraken: '#e0607e',
   krakenDark: '#b8456a', sucker: '#ffd1dc', gold: '#e0b04b', iron: '#2f3136', glass: '#fff3c0', navy: '#2d4a6b', net: '#3c6e5a',
 } as const;
 
