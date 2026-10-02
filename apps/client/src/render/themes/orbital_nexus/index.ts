@@ -23,9 +23,11 @@ export const ORBITAL_LOOK: Partial<ThemeLook> = {
   sky: { turbidity: 1, rayleigh: 0.3, elevationDeg: 35, azimuthDeg: 120, exposure: 0.9, night: true, top: '#02040d', bottom: '#0b1026' },
   horizon: '#141c40',
   sun: { color: '#f2f6ff', intensity: 2.0 },
-  // a cool sky fill and the warm planet bounce from below at ≈ 1 : 2 against the key, plus a shadowless back fill
-  hemi: { sky: '#9fbcff', ground: '#e8a07a', intensity: 3.0 },
-  fill: { color: '#cfe0ff', intensity: 0.55 },
+  // a desaturated sky fill (the #9fbcff one cast the station lavender; the cyan LEDs are the cool accent now) and the
+  // warm planet bounce from below at ≈ 1 : 2 against the key, plus a shadowless warm-neutral back fill on the chase
+  // side (the cool #cfe0ff ×0.55 left the hero a dark cut-out against the black sky)
+  hemi: { sky: '#c6d0e8', ground: '#e8a07a', intensity: 3.0 },
+  fill: { color: '#ffe6d6', intensity: 0.9 },
   fogColor: '#0b1026',
   stars: 1,
   planet: { color: '#d98a5f', ring: '#e8d2b8', dir: [-0.55, 0.42, -0.72], size: 0.15 },
@@ -34,15 +36,21 @@ export const ORBITAL_LOOK: Partial<ThemeLook> = {
   envIntensity: 0.35,
   shadowStrength: 0.55,
   ambient: 'motes',
-  grade: { tint: '#f6f9ff', saturation: 1.06, shadows: '#e6ecff', highlights: '#fff6ee' },
+  grade: { tint: '#ffffff', saturation: 1.06, shadows: '#e6ecff', highlights: '#fff6ee' },
 };
 
 /** Factory floor (Token Foundry): the same sky, warmer work light and hazard-striped caps. */
 export const ORBITAL_FOUNDRY_LOOK: Partial<ThemeLook> = {
   ...ORBITAL_LOOK,
   road: { style: 'metal', a: '#6e727c', b: '#787c86', line: '#ffc36b', glow: '#ffc36b' },
-  hemi: { sky: '#a8bcff', ground: '#f0a874', intensity: 3.0 },
-  fill: { color: '#ffd8a8', intensity: 0.6 },
+  // a strong key over a lower, near-neutral sky fill and a tan floor bounce (≈ 2.5 : 1 with the back fill): the
+  // #a8bcff ×3.0 fill and its orange bounce cast the floor lilac and flattened every shape. The `space` kind keys its
+  // own sun (2.6 × 1.05); this value documents the intent. Warm-neutral chase-side back fill per the night roster
+  sun: { color: '#f2f6ff', intensity: 2.6 },
+  hemi: { sky: '#c4ccdc', ground: '#c9a58c', intensity: 2.0 },
+  fill: { color: '#ffd6bc', intensity: 0.8 },
+  // no air particles on the factory floor: the station motes read as grey confetti against the black sky
+  ambient: 'none',
   grade: { tint: '#fffaf4', saturation: 1.06, shadows: '#ece9ff', highlights: '#fff3e6' },
 };
 

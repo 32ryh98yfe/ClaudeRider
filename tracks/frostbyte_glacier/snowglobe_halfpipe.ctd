@@ -44,7 +44,9 @@ ZONE surface from=@cave_s+96 to=@cave_s+114 d=[1,8] surf=ice
 # snowy grandstand, penguin crowds, sponsor boards, lamps and flags; the whole lap gets snow tufts, frost sprigs, snowy
 # junipers, snow-capped boulders, big snow firs and two layers of far pine lines. Wide props are fitted so no
 # footprint reaches into any road band (scratch fitrows).
-THEME frostbyte_glacier sky=overcast time=13:00 scatter=tree_pine_snow,tree_pine_snow,tree_round_big,bush_round,bush_round,rock_cluster,snowbank,tree_birch,serac,flower_patch density=36 hills=8 fogNear=240 fogFar=1400
+# F2 fix: sky=day (was overcast) with the kit's 0.75 cloud cover: the overcast key gave almost no shadows, snow the
+# same value as the sky and a cool road; a clear key over thick cloud keeps the bright-winter mood with real shadows.
+THEME frostbyte_glacier sky=day time=13:00 scatter=tree_pine_snow,tree_pine_snow,tree_round_big,bush_round,bush_round,rock_cluster,snowbank,tree_birch,serac,flower_patch density=36 hills=8 fogNear=240 fogFar=1400
 PROPS kind=penguin from=5 to=108 side=both every=9 offset=2 jitter=2 scale=0.9-1.3 seed=82
 PROPS kind=ice_spire from=424 to=606 side=both every=8 offset=2.4 jitter=0.6 scale=0.8-1.1 seed=88
 PROPS kind=rink_boards from=682 to=745 side=R every=5.5 offset=0.4 scale=1-1 seed=90

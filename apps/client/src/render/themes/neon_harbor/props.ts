@@ -397,10 +397,12 @@ function neonBoard(v: 'a' | 'b' | 'c'): THREE.BufferGeometry {
     G.light(1.2, paint(place(sparkleGeometry(0.34, 0.03, 11), 0.04, y, -0.85, 0, Math.PI / 2, 0), MAGENTA));
     G.light(0.95, part(box(0.03, 0.14, 1.6), '#f4f1ea', 0.04, y + 0.12, 0.45), part(box(0.03, 0.09, 1.2), MAGENTA, 0.04, y - 0.16, 0.25));
   } else if (v === 'b') {
-    // chevrons point along +Z (the travel direction once placed): on a bend's outside they point into the turn
+    // chevrons point along +Z (the travel direction once placed): on a bend's outside they point into the turn.
+    // Bold lit strokes at gain 1.4 (they were 0.14 m at 1.0 and vanished against the dusk city at T1); side=L rows
+    // would turn them backwards, so this board is for side=R rows only
     for (let k = 0; k < 4; k++) {
       const z = -0.9 + k * 0.6;
-      G.light(1.0, part(box(0.03, 0.5, 0.14), '#ffd23f', 0.04, y + 0.14, z, -0.8, 0, 0), part(box(0.03, 0.5, 0.14), '#ffd23f', 0.04, y - 0.14, z, 0.8, 0, 0));
+      G.light(1.4, part(box(0.03, 0.52, 0.19), '#ffd23f', 0.04, y + 0.14, z, -0.8, 0, 0), part(box(0.03, 0.52, 0.19), '#ffd23f', 0.04, y - 0.14, z, 0.8, 0, 0));
     }
   } else {
     for (let k = 0; k < 15; k++) G.light(k % 2 ? 0.95 : 0.5, part(box(0.03, 0.2, 0.2), k % 2 ? CYAN : '#14304a', 0.04, y - H / 2 + 0.1, -W / 2 + 0.1 + k * 0.2));
@@ -541,12 +543,14 @@ function strobeBar(): THREE.BufferGeometry {
   return merge([paint(place(box(0.35, 0.35, 5.5), 0, 5.2, 0), '#dff9ff'), paint(place(box(0.2, 5.2, 0.2), 0, 2.6, -2.6), '#dff9ff'), paint(place(box(0.2, 5.2, 0.2), 0, 2.6, 2.6), '#dff9ff')]);
 }
 
-/** Traffic car (F5 traffic hazard): rounded hatch, glowing tail and head lights; long axis along +Z. */
+/** Traffic car (F5 traffic hazard): rounded hatch, glowing tail and head lights; long axis along +Z. The near-white
+ *  body outshone the hero kart under the sky fill: a mid-value amber cab paint keeps it a hazard, not the subject,
+ *  and the brighter tail light (gain 4) still marks it from behind. */
 function car(): THREE.BufferGeometry {
   return merge([
-    paint(place(rbox(1.9, 0.8, 4.2, 0.3, 2), 0, 0.65, 0), '#d8dce4', 0.03, 5),
+    paint(place(rbox(1.9, 0.8, 4.2, 0.3, 2), 0, 0.65, 0), '#e0a83a', 0.03, 5),
     paint(place(rbox(1.7, 0.7, 2.3, 0.3, 2), 0, 1.35, -0.2), '#2a3346'),
-    glow(paint(place(box(1.6, 0.18, 0.08), 0, 0.85, -2.12), '#ff2a3a'), 2),
+    glow(paint(place(box(1.6, 0.18, 0.08), 0, 0.85, -2.12), '#ff2a3a'), 4),
     glow(paint(place(box(1.6, 0.16, 0.08), 0, 0.8, 2.12), '#fff3c4'), 2),
     ...[-1.4, 1.4].flatMap((z) => [-0.95, 0.95].map((x) => paint(place(cyl(0.34, 0.34, 0.25, 8), x, 0.34, z, 0, 0, Math.PI / 2), '#16181f'))),
   ]);

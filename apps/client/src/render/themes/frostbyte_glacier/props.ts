@@ -57,6 +57,25 @@ function lampGeometry(head: boolean): THREE.BufferGeometry {
   return merge(p);
 }
 
+/**
+ * A string of glowing bulbs across the road between two ice posts (landmark, local X crosses the road). One emissive
+ * mesh: the posts are a dim ice blue and the wire near-black, so only the bulbs glow. `gain` is the bulb emission:
+ * the night rig blooms them (2.2); by day 1.0 keeps them coloured bulbs instead of blown-out orbs.
+ */
+export function fairyLights(gain: number): PropFactory {
+  return {
+    maxInstances: 20,
+    build: () => {
+      const p: THREE.BufferGeometry[] = [part(cyl(0.14, 0.18, 7.5, 6), '#2b3d52', -13, 3.5, 0), part(cyl(0.14, 0.18, 7.5, 6), '#2b3d52', 13, 3.5, 0)];
+      const pts: [number, number, number][] = [];
+      for (let i = 0; i <= 8; i++) { const t = i / 8; pts.push([-13 + 26 * t, 7 - 1.6 * 4 * t * (1 - t), 0]); }
+      p.push(paint(tubeThrough(pts, 0.03, 24, 4), '#18202c'));
+      for (let i = 0; i < 20; i++) { const t = (i + 0.5) / 20; p.push(part(sph(0.16, 6, 4), BULBS[i % BULBS.length]!, -13 + 26 * t, 7 - 1.6 * 4 * t * (1 - t) - 0.22, 0)); }
+      return { geometry: merge(p), material: glow(gain) };
+    },
+  };
+}
+
 export const FROSTBYTE_PROPS: Record<string, PropFactory> = {
   pine_snow: {
     maxInstances: 400,
@@ -185,19 +204,7 @@ export const FROSTBYTE_PROPS: Record<string, PropFactory> = {
       return { geometry: merge(p), material: lit() };
     },
   },
-  fairy_lights: {
-    // a string of glowing bulbs across the road between two ice posts (landmark, local X crosses the road). One
-    // emissive mesh: the posts are a dim ice blue and the wire near-black, so only the bulbs glow (and bloom)
-    maxInstances: 20,
-    build: () => {
-      const p: THREE.BufferGeometry[] = [part(cyl(0.14, 0.18, 7.5, 6), '#2b3d52', -13, 3.5, 0), part(cyl(0.14, 0.18, 7.5, 6), '#2b3d52', 13, 3.5, 0)];
-      const pts: [number, number, number][] = [];
-      for (let i = 0; i <= 8; i++) { const t = i / 8; pts.push([-13 + 26 * t, 7 - 1.6 * 4 * t * (1 - t), 0]); }
-      p.push(paint(tubeThrough(pts, 0.03, 24, 4), '#18202c'));
-      for (let i = 0; i < 20; i++) { const t = (i + 0.5) / 20; p.push(part(sph(0.16, 6, 4), BULBS[i % BULBS.length]!, -13 + 26 * t, 7 - 1.6 * 4 * t * (1 - t) - 0.22, 0)); }
-      return { geometry: merge(p), material: glow(2.2) };
-    },
-  },
+  fairy_lights: fairyLights(2.2),
   aurora_ribbon: {
     // huge far-field curtain of light (placed well above the summit): 64 narrow strips along a wavy line, bright at
     // the lower hem and fading upward into the night-sky colour, so it reads as a curtain rather than lit slabs

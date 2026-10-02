@@ -15,7 +15,9 @@ import { ledBarrier, paving, shopWall, underpass, wetStreet } from './surfaces.t
 
 /** Rainy night (Rainline Boulevard). The `night` sky kind supplies its own moon key; these set fill, sky and grade. */
 export const NEON_NIGHT_LOOK: Partial<ThemeLook> = {
-  road: { style: 'asphalt', a: '#434652', b: '#4d5160', line: '#8ff4ff', wet: true },
+  // a lighter asphalt (renders ≈ #2c2c3c–#383848 under the night rig, not near-black) so the kart's contact shadow
+  // still separates from the road next to the camera; it also feeds road:wet below
+  road: { style: 'asphalt', a: '#5a5e6e', b: '#646878', line: '#8ff4ff', wet: true },
   shoulder: { a: '#454956', b: '#4f5361' },
   terrain: { a: '#4a4e5a', b: '#545866', rock: '#3a3d47' },
   wall: { kind: 'barrier', a: '#a3a7b2', b: '#d83a8e' },
@@ -23,18 +25,20 @@ export const NEON_NIGHT_LOOK: Partial<ThemeLook> = {
   sky: { turbidity: 4, rayleigh: 2.2, elevationDeg: 24, azimuthDeg: 250, exposure: 1, top: '#0a0b24', bottom: '#2a1f48' },
   horizon: '#5b3d7c',
   sun: { color: '#b8c8ff', intensity: 1 },
-  // cool sky fill from above and a warm bounce from the street. The hemisphere was 2.4 and the back fill #ffc890
-  // ×1.0, which tinted the karts a dusty mauve and lit the wet road beige in the chase view; warm light now comes
-  // from the lamps and signs
-  hemi: { sky: '#a0a8e0', ground: '#ffb088', intensity: 1.6 },
-  fill: { color: '#e0b8a0', intensity: 0.45 },
+  // a desaturated cool sky fill from above and a warm bounce from the street, plus a warm-neutral back fill on the
+  // chase side: the violet sky fill and the low dusty back fill turned the player kart mauve and lilac, so the colour
+  // stays in the signs, the kerbs and the sky (34 roster rule for night rigs)
+  hemi: { sky: '#b8bcd8', ground: '#ffb088', intensity: 2.0 },
+  fill: { color: '#ffd6bc', intensity: 0.8 },
   fogColor: '#2b2244',
   stars: 0.25,
   ambient: 'rain',
-  wet: 0.35,
+  // a lighter damp sheen: at 0.35 the wet darkening took the near road to black
+  wet: 0.25,
   bloom: 0.45,
   rimBoost: 1.7,
-  envIntensity: 0.6,
+  // the violet night environment mirrored into the kart paint; less of it keeps the hero's own colour
+  envIntensity: 0.4,
   headlights: true,
   shadowStrength: 0.55,
   grade: { tint: '#f8f5ff', saturation: 1.08, shadows: '#e2e4ff', highlights: '#fff2f6' },
@@ -48,13 +52,17 @@ export const NEON_DUSK_LOOK: Partial<ThemeLook> = {
   terrain: { a: '#74767e', b: '#7e8089', rock: '#5c5e66' },
   wall: { kind: 'barrier', a: '#b9bcc6', b: '#d83a8e' },
   kerb: ['#ff3ea5', '#f1eef6'],
-  sky: { turbidity: 4, rayleigh: 2.2, elevationDeg: 7, azimuthDeg: 250, exposure: 1, top: '#273070', bottom: '#5a3d62' },
+  // the sun 10° up (was 7°) so its key reaches over the barriers into the trench roads
+  sky: { turbidity: 4, rayleigh: 2.2, elevationDeg: 10, azimuthDeg: 250, exposure: 1, top: '#273070', bottom: '#5a3d62' },
   horizon: '#ff9c6c',
   skyStyle: 'gradient',
   clouds: 0.2,
   sun: { color: '#ffb27c', intensity: 2.7 },
-  hemi: { sky: '#9ea8ff', ground: '#ff9f7c', intensity: 1.25 },
-  fill: { color: '#a6b6ff', intensity: 0.45 },
+  // a desaturated sky fill and a warm-neutral chase-side back fill: the violet pair (#9ea8ff ×1.25, #a6b6ff back
+  // fill) cast the whole frame violet and lit the trench roads with violet alone; the dusk colour stays in the sky,
+  // the horizon and the neon (34 roster rule for non-day rigs)
+  hemi: { sky: '#c4c4dc', ground: '#ff9f7c', intensity: 1.6 },
+  fill: { color: '#ffd0b0', intensity: 0.55 },
   fogColor: '#b98a92',
   bloom: 0.3,
   rimBoost: 1.15,
@@ -72,18 +80,21 @@ export default (c: ContentTables, env?: Readonly<Record<string, string>>): Theme
   const kit = makeKit(c.themes.get('neon_harbor'), dusk ? NEON_DUSK_LOOK : NEON_NIGHT_LOOK, NEON_PROPS);
   const base = kit.materials;
   const mood = dusk ? 'dusk' : 'night';
-  // dusk (Skyway): a cyan floor-edge LED line at the barrier foot leads the eye through the underpasses into T1, and
+  // dusk (Skyway): a cyan floor-edge LED line at the barrier foot (gain 1.4, so it reads past the sunlit road) leads
+  // the eye through the underpasses into T1, and
   // the magenta cap is only a thin lit edge over a concrete top (the full cap band read as a red stripe at a grazing view)
-  const barrier = { body: dusk ? '#b3b6c0' : '#a3a7b2', base: dusk ? '#6a6d77' : '#575a65', cap: '#d83a8e', strip: '#5fe8ff', gain: dusk ? 0.6 : 1.1, ...(dusk ? { foot: '#5fe8ff', footGain: 0.9, top: '#b3b6c0', capGain: 0.7 } : {}) };
+  const barrier = { body: dusk ? '#b3b6c0' : '#a3a7b2', base: dusk ? '#6a6d77' : '#575a65', cap: '#d83a8e', strip: '#5fe8ff', gain: dusk ? 0.6 : 1.1, ...(dusk ? { foot: '#5fe8ff', footGain: 1.4, top: '#b3b6c0', capGain: 0.7 } : {}) };
   kit.materials = () => ({
     ...base(),
     // barriers: concrete with a magenta cap and a segmented cyan LED strip (the road edge reads at night)
     wall: ledBarrier(`neon-${mood}`, barrier),
     'wall:parapet': ledBarrier(`neon-${mood}-parapet`, { ...barrier, body: dusk ? '#c2bdb6' : '#a8a39c', tint: 0.95 }),
     'wall:building': shopWall(`neon-${mood}`, { body: '#3e3648', trim: '#7a6a82', glass: '#ffcf8a', gain: 0.7, tint: 0.9 }),
-    // sidewalks and plazas: slab paving (wet at night), plain retaining walls on the ramp embankments
+    // sidewalks and plazas: slab paving (wet at night), plain retaining walls on the ramp embankments (dusk: neutral
+    // warm-grey concrete; the violet walls added to the violet cast down in the trenches). Dusk plazas: 3 m slabs with
+    // soft joints, calm wall joints (the dark 1.6 m grid read as purple graph paper from the b2 camera)
     terrain: paving(`neon-${mood}`, dusk
-      ? { a: '#7a7c84', b: '#858790', joint: '#55575f', size: 1.6, wall: '#4b4168', wallB: '#5a4e7a', grid: 0.5, band: '#5fe8ff', bandGain: 0.45 }
+      ? { a: '#7a7c84', b: '#858790', joint: '#6c6e76', size: 3, wall: '#5e5c68', wallB: '#6a6874', grid: 0.25, band: '#5fe8ff', bandGain: 0.45 }
       : { a: '#4a4e5a', b: '#545866', joint: '#2c2e36', size: 1.6, wall: '#5a5d68', wet: 0.85, band: '#ff3ea5', bandGain: 0.8 }),
     // rain: an even damp sheen (the kit's `wet` uniform) instead of the mirror puddles, whose white blotches read
     // as spilt paint at a grazing view; the vis bakes the wet-surface tint (0.8 / 0.85 / 0.95) into the colours

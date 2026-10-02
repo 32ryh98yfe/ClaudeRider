@@ -5,6 +5,7 @@ import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
 import { TRACKSIDE_PROPS } from '../../props/trackside.ts';
 import { BACKED_BOARDS } from './mirror.ts';
+import { GlowParts, glowLit } from '../neon_harbor/glowlit.ts';
 import { merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../../util/geo.ts';
 import { arcTube, buntingLine, dome, lathe, part, prism, seeded, tubeThrough } from '../clayhill_village/toyshapes.ts';
 
@@ -19,8 +20,8 @@ const STRATA = ['#c27c52', '#e2bf93', '#b06a45', '#d8a06e', '#9e5d3c'] as const;
 const lit = (): THREE.Material => MaterialLibrary.vertexLit(0.85, 0);
 // statues, pots and carts are fired clay, stone and painted wood: satin-matte (gloss stays on kart paint, 34 §1.3)
 const toy = (): THREE.Material => MaterialLibrary.vertexLit(0.62, 0);
-// daytime lanterns: a gentle glow (emission ×1), so bloom stays a soft halo instead of big blobs in the sun
-const glow = (): THREE.Material => MaterialLibrary.emissiveVertex(1);
+// lit brass frames with self-lit glass in one draw (the shared lit-plus-glow material, see neon_harbor/glowlit.ts)
+const lanternLit = (): THREE.Material => glowLit(0.6, 0);
 
 /**
  * Layered sandstone strata: stacked, slightly offset slabs with crisp (small-radius) edges in an ordered band palette
@@ -151,19 +152,33 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
     },
   },
   lantern_string: {
-    // glowing brass lanterns strung between two posts across the road (landmark, local X crosses the road). One
-    // emissive mesh: posts and wire are painted near-black so only the lanterns glow (and bloom)
+    // brass lanterns strung between two posts across the road (landmark, local X crosses the road). By day the old
+    // all-emissive mesh read as flat pale stickers, so the posts, wire, caps and frames are now lit brass and bronze
+    // (they keep their form in the sun) and only the glass glows, at gain 0.65 (under the 0.8 day bloom threshold)
     maxInstances: 20,
     build: () => {
-      const p: THREE.BufferGeometry[] = [part(cyl(0.12, 0.15, 7.5, 6), '#33251a', -13, 3.5, 0), part(cyl(0.12, 0.15, 7.5, 6), '#33251a', 13, 3.5, 0)];
+      const BRASS = '#7a5a2a', BRONZE = '#4a3a28';
+      const g = new GlowParts();
+      g.add(part(cyl(0.12, 0.15, 7.5, 6), BRONZE, -13, 3.5, 0), part(cyl(0.12, 0.15, 7.5, 6), BRONZE, 13, 3.5, 0));
+      g.add(part(sph(0.2, 8, 6), BRASS, -13, 7.3, 0), part(sph(0.2, 8, 6), BRASS, 13, 7.3, 0));
       const pts: [number, number, number][] = [];
       for (let i = 0; i <= 8; i++) { const t = i / 8; pts.push([-13 + 26 * t, 7 - 1.4 * 4 * t * (1 - t), 0]); }
-      p.push(paint(tubeThrough(pts, 0.035, 24, 4), '#241a12'));
+      g.add(paint(tubeThrough(pts, 0.035, 24, 4), BRONZE));
       for (let i = 0; i < 9; i++) {
-        const t = (i + 0.5) / 9, x = -13 + 26 * t, y = 7 - 1.4 * 4 * t * (1 - t) - 0.55;
-        p.push(part(lathe([[0, -0.3], [0.26, -0.15], [0.3, 0.1], [0.16, 0.3], [0, 0.34]], 8), i % 3 === 1 ? '#ff9a52' : '#ffc46b', x, y, 0));
+        const t = (i + 0.5) / 9, x = -13 + 26 * t, wire = 7 - 1.4 * 4 * t * (1 - t), y = wire - 0.62;
+        // glass: a warm lantern body (alternate amber and orange), self-lit
+        g.light(0.65, part(lathe([[0, -0.24], [0.21, -0.14], [0.24, 0.06], [0.14, 0.22], [0, 0.26]], 8), i % 3 === 1 ? '#ff9a52' : '#ffc46b', x, y, 0));
+        // brass cap with a ring hook up to the wire, a base plate with a drop finial, and four frame ribs
+        g.add(
+          part(cone(0.22, 0.2, 8), BRASS, x, y + 0.34, 0), part(cyl(0.025, 0.025, wire - y - 0.42, 4), BRASS, x, (wire + y + 0.42) / 2, 0),
+          part(cyl(0.18, 0.12, 0.08, 8), BRASS, x, y - 0.27, 0), part(cone(0.06, 0.14, 6), BRASS, x, y - 0.37, 0, Math.PI, 0, 0),
+        );
+        for (let k = 0; k < 4; k++) {
+          const a = (k / 4) * Math.PI * 2 + Math.PI / 4;
+          g.add(part(box(0.04, 0.44, 0.04), BRASS, x + Math.cos(a) * 0.235, y + 0.02, Math.sin(a) * 0.235));
+        }
       }
-      return { geometry: merge(p), material: glow() };
+      return { geometry: g.build(), material: lanternLit(), castShadow: true };
     },
   },
   camel_statue: {
