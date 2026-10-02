@@ -397,10 +397,12 @@ function neonBoard(v: 'a' | 'b' | 'c'): THREE.BufferGeometry {
     G.light(1.2, paint(place(sparkleGeometry(0.34, 0.03, 11), 0.04, y, -0.85, 0, Math.PI / 2, 0), MAGENTA));
     G.light(0.95, part(box(0.03, 0.14, 1.6), '#f4f1ea', 0.04, y + 0.12, 0.45), part(box(0.03, 0.09, 1.2), MAGENTA, 0.04, y - 0.16, 0.25));
   } else if (v === 'b') {
-    // chevrons point along +Z (the travel direction once placed): on a bend's outside they point into the turn
+    // chevrons point along +Z (the travel direction once placed): on a bend's outside they point into the turn.
+    // Bold lit strokes at gain 1.4 (they were 0.14 m at 1.0 and vanished against the dusk city at T1); side=L rows
+    // would turn them backwards, so this board is for side=R rows only
     for (let k = 0; k < 4; k++) {
       const z = -0.9 + k * 0.6;
-      G.light(1.0, part(box(0.03, 0.5, 0.14), '#ffd23f', 0.04, y + 0.14, z, -0.8, 0, 0), part(box(0.03, 0.5, 0.14), '#ffd23f', 0.04, y - 0.14, z, 0.8, 0, 0));
+      G.light(1.4, part(box(0.03, 0.52, 0.19), '#ffd23f', 0.04, y + 0.14, z, -0.8, 0, 0), part(box(0.03, 0.52, 0.19), '#ffd23f', 0.04, y - 0.14, z, 0.8, 0, 0));
     }
   } else {
     for (let k = 0; k < 15; k++) G.light(k % 2 ? 0.95 : 0.5, part(box(0.03, 0.2, 0.2), k % 2 ? CYAN : '#14304a', 0.04, y - H / 2 + 0.1, -W / 2 + 0.1 + k * 0.2));

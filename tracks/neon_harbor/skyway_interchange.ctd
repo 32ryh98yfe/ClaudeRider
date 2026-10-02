@@ -97,8 +97,10 @@ PROP kind=billboard at=(64.0,3.9,16.5) yaw=90 scale=0.72
 # -- T1 (cloverleaf entry, a long climbing left): tyre wall and chevron boards on the outside
 # (the deck lifts > 3 m above the plaza from +10 on: edge rows there leave the plaza, so the tyre wall and the chevron
 # boards mark the turn-in, and the compiler's lit chevrons on the barrier carry the climb)
+# F2 fix: the chevron row starts 12 m before the turn-in and runs on to +30 at 1.6× (lit arrows, side=R only), so
+# the left-hander reads from the toll plaza
 PROPS kind=tyre_wall from=@cloverleaf-4 to=@cloverleaf+10 side=R every=1.3 offset=0.6 seed=210
-PROPS kind=ad_board_b from=@cloverleaf-4 to=@cloverleaf+12 side=R every=7 offset=2.6 seed=211
+PROPS kind=ad_board_b from=@cloverleaf-12 to=@cloverleaf+30 side=R every=6 offset=2.6 scale=1.6-1.6 seed=211
 # the plaza outside T1 (the b2 camera stands in it): low furniture only, so the corner stays in view
 PROPS kind=street_tree from=@cloverleaf-20 to=@cloverleaf+60 side=R every=13 offset=24 jitter=4 scale=0.9-1.2 seed=214
 PROPS kind=planter_bush from=@cloverleaf-20 to=@cloverleaf+60 side=R every=9 offset=4.5 jitter=1 seed=215
