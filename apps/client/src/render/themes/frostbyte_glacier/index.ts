@@ -73,8 +73,9 @@ export default (c: ContentTables, env: Readonly<Record<string, string>> = {}): T
   const T = kit.look.terrain;
   kit.materials = () => ({
     ...base(),
-    // bright snow: keep 60 % of the baked terrain AO (soft, clean ground; wall bases and gullies keep their shade)
-    terrain: softAoTerrain(T.a, T.b, T.rock, 0.6),
+    // bright snow: keep 60 % of the baked terrain AO by day (soft, clean ground; wall bases and gullies keep their
+    // shade); 40 % at night, where the strong sky fill turned the baked AO into smeared dark blotches on the snow
+    terrain: softAoTerrain(T.a, T.b, T.rock, night ? 0.4 : 0.6),
     // halfpipe walls (part of the road ribbon): packed snow → ice at the lip, navy top band
     road: halfpipeRoad(MaterialLibrary.road(kit.look.road)),
     'road:ice': MaterialLibrary.road({ style: 'ice', a: '#9fd3ea', b: '#c0e6f5', line: '#f1f6fa', tint: [1.2, 1.4, 1.6] }),
@@ -87,8 +88,9 @@ export default (c: ContentTables, env: Readonly<Record<string, string>> = {}): T
     'wall:building': MaterialLibrary.wall('building', '#8a6a52', '#e8eef5', 0.9),
     'wall:parapet': MaterialLibrary.wall('parapet', '#e6edf3', '#b4dbef', 0.95),
     'wall:fence': MaterialLibrary.wall('fence', '#e8eef5', '#2f6fa6', 1),
-    // deck skirts and cliff faces under the road: pale granite (the night rig turned the old grey into a navy block)
-    underside: MaterialLibrary.world({ color: '#a9b4c1', color2: '#8f9cab', roughness: 0.92, noiseScale: 0.3, vertexAO: true }),
+    // deck skirts and cliff faces under the road: pale granite (the night rig turned the old grey into a navy block),
+    // with broad, low-contrast tone patches (the 0.3 noise smeared into streaks on the tall cliff skirts)
+    underside: MaterialLibrary.world({ color: '#a9b4c1', color2: '#9eaab8', roughness: 0.92, noiseScale: 0.08, vertexAO: true }),
   });
   return kit;
 };
