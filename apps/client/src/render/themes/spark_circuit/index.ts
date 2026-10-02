@@ -7,6 +7,8 @@ import { MaterialLibrary } from '../../materials/library.ts';
 import { makeKit, type ThemeKit, type ThemeLook } from '../kit.ts';
 import { SPARK_PROPS } from './props.ts';
 import { sparkBarrier } from './barrier.ts';
+import { sparkLampLit } from './lamps.ts';
+import type { PropFactory } from '../../props/defaults.ts';
 
 // Stylized arcade read (2026-10 pass, docs/design/34-stylized-pass.md): the Meadow Loop day recipe on a racing
 // venue — a clear blue gradient sky instead of the peach Preetham haze, a key sun clearly over the fill, neutral grey
@@ -46,13 +48,14 @@ export const SPARK_SUNSET_LOOK: Partial<ThemeLook> = {
   // first cut (horizon #ffc48e, bottom #f3a36a, fog #e9b48e) turned every view salmon: the dome mixes the horizon
   // up to ~33° and the chase camera sees little else (doc 34 §3). The warmth now lives in a pale band and the key.
   sky: { turbidity: 5.0, rayleigh: 2.2, elevationDeg: 11, azimuthDeg: 250, exposure: 1.0, top: '#48528f', bottom: '#efcaa8' },
-  sun: { color: '#ffbb82', intensity: 3.0 },
+  // the warmth lives in a strong orange key; a neutral-warm hemisphere at 1.6 under it washed every view to hazy tan
+  // (art review), so the sky term is a cool, weaker fill and the sun-facing sides glow against cool shade
+  sun: { color: '#ffa45e', intensity: 3.4 },
   // with the sun this low the road takes most of its light from the hemisphere and the dome's violet zenith: a lilac
-  // sky term, a cool back fill and full env light turned the asphalt violet-navy, so the hemisphere is near neutral
-  // and a bit stronger, env light is lower, the tarmac is the doc-34 neutral grey, and the warmth stays on the
-  // sun-facing sides
+  // sky term, a cool back fill and full env light turned the asphalt violet-navy, so env light is lower and the
+  // tarmac the doc-34 neutral grey
   road: { style: 'asphalt', a: '#605e5f', b: '#6e6c6c', line: '#fbf8f0' },
-  hemi: { sky: '#e2dad8', ground: '#7d5c48', intensity: 1.6 },
+  hemi: { sky: '#c9c3da', ground: '#7d5c48', intensity: 1.15 },
   fill: { color: '#e2def0', intensity: 0.45 },
   shadowStrength: 0.62,
   fogColor: '#e6d2c2',
@@ -67,7 +70,10 @@ export const SPARK_SUNSET_LOOK: Partial<ThemeLook> = {
 
 export default (c: ContentTables, env?: Readonly<Record<string, string>>): ThemeKit => {
   const sunset = env?.['sky'] === 'sunset';
-  const kit = makeKit(c.themes.get('spark_circuit'), sunset ? SPARK_SUNSET_LOOK : SPARK_LOOK, SPARK_PROPS);
+  // at sunset the floodlights are on: their lamp faces (and the stadium stands' lamp heads) glow (lamps.ts)
+  const lampsOn = (f: PropFactory): PropFactory => ({ ...f, build: (pal) => ({ ...f.build(pal), material: sparkLampLit(1.1) }) });
+  const props = sunset ? { ...SPARK_PROPS, floodlight: lampsOn(SPARK_PROPS['floodlight']!), stadium: lampsOn(SPARK_PROPS['stadium']!) } : SPARK_PROPS;
+  const kit = makeKit(c.themes.get('spark_circuit'), sunset ? SPARK_SUNSET_LOOK : SPARK_LOOK, props);
   const base = kit.materials;
   // theme-tinted variants of the per-surface slots the .vis bakes; the tint divides out trackc's per-surface tint
   // (built inside materials(): the library is configured for the tier and cleared between scenes before this runs)
