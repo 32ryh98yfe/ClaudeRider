@@ -90,45 +90,9 @@ PROPS kind=tyre_wall from=@plateau_1+1 to=@plateau_1+30 side=L every=1.3 offset=
 PROPS kind=lamp_post along=main side=both every=32 offset=1.6 seed=67
 # floor cover, rubble, basalt, stalagmite columns and the far stalagmite forest round the lap (none on the lava lake)
 # (left of the helix is the lava lake, left of the rail corner and right of the geyser field are lava pits)
-PROPS kind=grass_tuft along=40-86 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=70
-PROPS kind=grass_tuft along=110-198 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=170
-PROPS kind=grass_tuft along=325-349 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=270
-PROPS kind=grass_tuft along=478-500 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=370
-PROPS kind=grass_tuft along=525-644 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=470
-PROPS kind=grass_tuft along=662-1785 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=570
-PROPS kind=grass_tuft along=1805-1849 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=670
-PROPS kind=grass_tuft along=0-39 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=770
-PROPS kind=grass_tuft along=504-505 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=170
-PROPS kind=grass_tuft along=522-641 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=270
-PROPS kind=grass_tuft along=682-742 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=370
-PROPS kind=grass_tuft along=775-890 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=470
-PROPS kind=grass_tuft along=1022-1262 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=171
-PROPS kind=grass_tuft along=1284-1591 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=271
-PROPS kind=grass_tuft along=1623-1786 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=371
-PROPS kind=grass_tuft along=1806-1849 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=471
-PROPS kind=grass_tuft along=0-89 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=571
-PROPS kind=grass_tuft along=107-169 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=671
-PROPS kind=flower_patch along=40-83 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=71
-PROPS kind=flower_patch along=111-200 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=171
-PROPS kind=flower_patch along=326-348 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=271
-PROPS kind=flower_patch along=476-500 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=371
-PROPS kind=flower_patch along=528-643 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=471
-PROPS kind=flower_patch along=663-1217 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=571
-PROPS kind=flower_patch along=1231-1321 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=671
-PROPS kind=flower_patch along=1337-1783 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=771
-PROPS kind=flower_patch along=1805-1849 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=871
-PROPS kind=flower_patch along=0-39 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=971
-PROPS kind=flower_patch along=522-640 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=172
-PROPS kind=flower_patch along=682-740 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=272
-PROPS kind=flower_patch along=774-890 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=372
-PROPS kind=flower_patch along=1022-1261 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=173
-PROPS kind=flower_patch along=1286-1585 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=273
-PROPS kind=flower_patch along=1625-1785 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=373
-PROPS kind=flower_patch along=1806-1849 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=473
-PROPS kind=flower_patch along=0-89 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=573
-PROPS kind=flower_patch along=107-166 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=673
-# (rows reaching out from one stretch can land on another stretch of road, above, below or across a hairpin, where
-# trackc's same-level on-road check misses them: the far-reaching rows are split round those stretches)
+# (the switchback stacks the road: rows that reach out from one stretch could stand on, or overhang, another stretch
+# above, below or across a hairpin, so the floor cover, rubble, columns, clutter and the far forest are split round those
+# stretches; generated against the baked frame, ranges are DSL distances: baked s + 40)
 PROPS kind=bush_round along=841-1148 side=R every=11 offset=3 jitter=9 scale=0.7-1.3 seed=72
 PROPS kind=bush_round along=1161-1213 side=R every=11 offset=3 jitter=9 scale=0.7-1.3 seed=172
 PROPS kind=bush_round along=1239-1311 side=R every=11 offset=3 jitter=9 scale=0.7-1.3 seed=272
@@ -206,7 +170,6 @@ PROPS kind=tree_clump along=1261-1416 side=L every=34 offset=125 jitter=50 scale
 PROPS kind=tree_clump along=1437-1483 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=1479
 PROPS kind=tree_clump along=1807-1849 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=1579
 PROPS kind=tree_clump along=0-39 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=1679
-# mine clutter: supply piles, timber cribs and a pipe run along the conveyors
 PROPS kind=tree_round_big along=841-1111 side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=180
 PROPS kind=tree_round_big along=1415-1770 side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=280
 PROPS kind=tree_round_big along=1804-1839 side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=380
@@ -217,6 +180,44 @@ PROPS kind=crate_barrels along=526-643 side=R every=45 offset=3 jitter=4 seed=38
 PROPS kind=crate_barrels along=663-1784 side=R every=45 offset=3 jitter=4 seed=480
 PROPS kind=timber_crib along=523-635 side=L every=70 offset=6 jitter=6 seed=81
 PROPS kind=timber_crib along=762-890 side=L every=70 offset=6 jitter=6 seed=181
+PROPS kind=grass_tuft along=40-86 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=70
+PROPS kind=grass_tuft along=110-198 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=170
+PROPS kind=grass_tuft along=325-349 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=270
+PROPS kind=grass_tuft along=478-500 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=370
+PROPS kind=grass_tuft along=525-644 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=470
+PROPS kind=grass_tuft along=662-1785 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=570
+PROPS kind=grass_tuft along=1805-1849 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=670
+PROPS kind=grass_tuft along=0-39 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=770
+PROPS kind=grass_tuft along=504-505 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=170
+PROPS kind=grass_tuft along=522-641 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=270
+PROPS kind=grass_tuft along=682-742 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=370
+PROPS kind=grass_tuft along=775-890 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=470
+PROPS kind=grass_tuft along=1022-1262 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=171
+PROPS kind=grass_tuft along=1284-1591 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=271
+PROPS kind=grass_tuft along=1623-1786 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=371
+PROPS kind=grass_tuft along=1806-1849 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=471
+PROPS kind=grass_tuft along=0-89 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=571
+PROPS kind=grass_tuft along=107-169 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=671
+PROPS kind=flower_patch along=40-83 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=71
+PROPS kind=flower_patch along=111-200 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=171
+PROPS kind=flower_patch along=326-348 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=271
+PROPS kind=flower_patch along=476-500 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=371
+PROPS kind=flower_patch along=528-643 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=471
+PROPS kind=flower_patch along=663-1217 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=571
+PROPS kind=flower_patch along=1231-1321 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=671
+PROPS kind=flower_patch along=1337-1783 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=771
+PROPS kind=flower_patch along=1805-1849 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=871
+PROPS kind=flower_patch along=0-39 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=971
+PROPS kind=flower_patch along=522-640 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=172
+PROPS kind=flower_patch along=682-740 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=272
+PROPS kind=flower_patch along=774-890 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=372
+PROPS kind=flower_patch along=1022-1261 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=173
+PROPS kind=flower_patch along=1286-1585 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=273
+PROPS kind=flower_patch along=1625-1785 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=373
+PROPS kind=flower_patch along=1806-1849 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=473
+PROPS kind=flower_patch along=0-89 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=573
+PROPS kind=flower_patch along=107-166 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=673
+# mine clutter: supply piles, timber cribs and a pipe run along the conveyors
 PROPS kind=pipe_run from=@conveyors to=@basalt_chicane side=R every=8.6 offset=0.9 scale=1-1 seed=82
 # the start zone (line ±10 m excludes PROPS rows): hand-placed from the baked frame (offset from the road edge)
 PROP kind=grass_patch at=(34.0,-0.2,-7.2) yaw=270 scale=1

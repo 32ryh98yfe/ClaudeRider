@@ -243,7 +243,19 @@ function caveRoof(seed: number): THREE.BufferGeometry {
 }
 
 function crystalSpire(): THREE.BufferGeometry {
-  return merge(crystalCluster(VIOLET, 9, 16, 5).map((g) => place(g, 0, -2.2, 0)));
+  return geodeCluster(VIOLET, GEODE_VIOLET, 9, 16, 5, -2.2);
+}
+
+/**
+ * Geode cluster on the lit glow material (review round): the outer facets are matte paint, so they shade like
+ * crystal instead of reading as flat pastel emissive cards, and only the central spire is an HDR core (≈ 1.6–2 after
+ * the glow gain, above the 0.8 bloom knee) for a small halo.
+ */
+function geodeCluster(face: string, core: string, count: number, size: number, seed: number, y = 0): THREE.BufferGeometry {
+  const parts = crystalCluster(face, count, size, seed);
+  const perCrystal = 2; // shapes.ts crystal(): prism + tip
+  for (let i = 0; i < perCrystal; i++) parts[i] = glow(paint(parts[i]!, core), 2.6);
+  return merge(y ? parts.map((g) => place(g, 0, y, 0)) : parts);
 }
 
 /**
@@ -312,10 +324,10 @@ export const EMBER_PROPS: Record<string, PropFactory> = {
   stalagmite: { build: () => ({ geometry: stalagmites(8), material: lit() }) },
   ore_pile: { build: () => ({ geometry: orePile(), material: lit() }) },
   lantern: { build: () => ({ geometry: lanternOnWall(), material: MaterialLibrary.emissive(AMBER, 1.15) }) },
-  geode_cyan: { build: () => ({ geometry: merge(crystalCluster(CYAN, 8, 4.4, 11)), material: MaterialLibrary.emissive(GEODE_CYAN, 0.95) }) },
-  geode_violet: { build: () => ({ geometry: merge(crystalCluster(VIOLET, 8, 4.8, 17)), material: MaterialLibrary.emissive(GEODE_VIOLET, 1.0) }) },
+  geode_cyan: { build: () => ({ geometry: geodeCluster(CYAN, GEODE_CYAN, 8, 4.4, 11), material: lit() }) },
+  geode_violet: { build: () => ({ geometry: geodeCluster(VIOLET, GEODE_VIOLET, 8, 4.8, 17), material: lit() }) },
   cave_roof: { build: () => ({ geometry: caveRoof(12), material: lit(), castShadow: false }) },
-  crystal_spire: { build: () => ({ geometry: crystalSpire(), material: MaterialLibrary.emissive(GEODE_VIOLET, 0.95) }) },
+  crystal_spire: { build: () => ({ geometry: crystalSpire(), material: lit() }) },
   lava_pool: { build: () => ({ geometry: lavaPool(4), material: MaterialLibrary.emissive(LAVA, 1.3) }) },
   lava_crack: { build: () => ({ geometry: lavaCracks(9), material: MaterialLibrary.emissive(LAVA, 1.4) }) },
   lava_lake: { build: () => ({ geometry: lavaLake(12, 31), material: MaterialLibrary.emissive(LAVA, 1.3) }) },

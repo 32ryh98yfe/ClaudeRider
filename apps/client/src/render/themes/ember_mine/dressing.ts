@@ -168,13 +168,14 @@ export const EMBER_DRESSING: Record<string, PropFactory> = {
     },
   },
   tree_clump: {
-    // far stalagmite forest: nine columns 4–12 m in a 16 m patch (the cavern's horizon)
+    // far stalagmite forest: nine columns 4–12 m in a 16 m patch (the cavern's horizon). Review round: about 15% darker
+    // than the rock walls, so the far forest sits behind the walls in value and the corners read in front of it
     maxInstances: 400,
     build: () => {
-      const R = rng(471), p: THREE.BufferGeometry[] = [paint(place(rock(7, 71, 1, 0.25), 0, -0.6, 0), E.basalt)];
+      const R = rng(471), p: THREE.BufferGeometry[] = [paint(place(rock(7, 71, 1, 0.25), 0, -0.6, 0), '#433b37')];
       for (let i = 0; i < 9; i++) {
         const x = (R() - 0.5) * 14, z = (R() - 0.5) * 14, h = 4 + R() * 8;
-        p.push(paint(place(cone(0.7 + h * 0.12, h, 6), x, h / 2 - 0.3, z), i % 3 ? E.basaltMid : E.scree, 0.08, i + 3));
+        p.push(paint(place(cone(0.7 + h * 0.12, h, 6), x, h / 2 - 0.3, z), i % 3 ? '#4f4642' : '#5a504a', 0.08, i + 3));
       }
       return { geometry: merge(p), material: lit(), castShadow: true };
     },
