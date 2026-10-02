@@ -46,6 +46,11 @@ export const ORBITAL_FOUNDRY_LOOK: Partial<ThemeLook> = {
   grade: { tint: '#fffaf4', saturation: 1.06, shadows: '#ece9ff', highlights: '#fff3e6' },
 };
 
+/** THEME `hazardAt=x:z:r,x:z:r,…` → barrier hazard zones (the key keeps one material per zone set). */
+function hazardZones(v: string | undefined): [number, number, number][] {
+  return (v ?? '').split(',').filter(Boolean).map((q) => q.split(':').map(Number) as [number, number, number]).filter((q) => q.length === 3 && q.every(Number.isFinite));
+}
+
 export default (c: ContentTables, env?: Readonly<Record<string, string>>): ThemeKit => {
   const foundry = env?.['mood'] === 'foundry';
   const kit = makeKit(c.themes.get('orbital_nexus'), foundry ? ORBITAL_FOUNDRY_LOOK : ORBITAL_LOOK, foundry ? { ...ORBITAL_PROPS, ...FOUNDRY_PROPS } : ORBITAL_PROPS);
@@ -60,7 +65,9 @@ export default (c: ContentTables, env?: Readonly<Record<string, string>>): Theme
     road: deckRoad(mood, deck),
     'road:metal': deckRoad(`${mood}-metal`, { ...deck, tint: [1.15, 1.18, 1.22] }),
     // hull barriers: white panels with an orange cap (hazard-striped in the foundry) and a cyan LED strip
-    wall: ledBarrier(`orbital-${mood}`, { body: '#dfe5ec', base: '#7a8494', cap: foundry ? '#22262e' : '#d97757', hazard: foundry ? '#f2c230' : undefined, strip: '#7de2fc', gain: 0.9, rough: 0.7 }),
+    // (foundry: a matte cap, hazard stripes in full only at the THEME `hazardAt` zones, x:z:r, i.e. T1 and the apexes)
+    wall: ledBarrier(`orbital-${mood}`, { body: '#dfe5ec', base: '#7a8494', cap: foundry ? '#22262e' : '#d97757', strip: '#7de2fc', gain: 0.9, rough: 0.7,
+      ...(foundry ? { hazard: '#f2c230', capRough: 0.9, zones: hazardZones(env?.['hazardAt']) } : {}) }),
     // the station floor below the decks: hull plating with a lit seam every fourth plate row (no fog haze to hide it)
     terrain: paving(`orbital-${mood}`, foundry
       ? { a: '#5d626c', b: '#666b75', joint: '#3a3e46', size: 3, wall: '#5e636e', rough: 0.8, band: '#ffc36b', bandGain: 0.6 }

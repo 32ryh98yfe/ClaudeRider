@@ -47,7 +47,8 @@ ITEMS at=@elevator_ramp+34,@gantry_deck+120,@token_straight+40,@cooling_s+76 n=5
 # radiator fins along the cooling line; foundry halls, silos, pylons and antennas behind (clearance pass at the end
 # of the file: every footprint ≥ 24 m from the road). The a3 camera stands 8 m right of the run-in and the b2 camera
 # 30 m outside the hall corner, so those patches keep low furniture only.
-THEME scatter=none hills=0 sky=space mood=foundry fogNear=600 fogFar=4000
+# hazardAt (x:z:r): barrier caps carry full hazard stripes only at T1 and the tight apexes (R ≤ 25 m)
+THEME scatter=none hills=0 sky=space mood=foundry fogNear=600 fogFar=4000 hazardAt=83:-4:36,132:-95:20,157:-99:20,212:-92:20,225:-113:20,-275:-156:20,-294:-140:20
 # -- assembly hall (start straight): observation stand, banner masts, holo boards, conveyors and robot arms
 PROPS kind=grandstand from=@assembly_hall+30 to=@assembly_hall+31 side=L every=100 offset=5.5 seed=301
 PROPS kind=flag_pole from=@assembly_hall+2 to=@assembly_hall+18 side=L every=8 offset=2.2 seed=302

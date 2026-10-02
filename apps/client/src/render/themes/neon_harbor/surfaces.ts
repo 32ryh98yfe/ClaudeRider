@@ -44,7 +44,7 @@ export function fasciaMask(fascia: number): N {
   return skirt.and(u.mul(det).greaterThan(duDown.mul(fascia))).not();
 }
 
-export interface BarrierParams { body: string; base: string; cap: string; strip: string; gain: number; tint?: number; rough?: number; hazard?: string; foot?: string; footGain?: number; top?: string; capGain?: number }
+export interface BarrierParams { body: string; base: string; cap: string; strip: string; gain: number; tint?: number; rough?: number; hazard?: string; foot?: string; footGain?: number; top?: string; capGain?: number; capRough?: number; zones?: readonly (readonly [number, number, number])[] }
 
 /** Barrier with a segmented LED strip (3 m segments) just under the cap on the road side; `hazard` paints the cap band as diagonal hazard stripes in that colour over the cap colour. */
 export function ledBarrier(key: string, p: BarrierParams): THREE.Material {
@@ -59,7 +59,17 @@ export function ledBarrier(key: string, p: BarrierParams): THREE.Material {
     const band: N = p.top ? smoothstep(0.92, 0.935, hFrac).mul(float(1).sub(onTop)) : smoothstep(0.84, 0.86, hFrac).add(onTop);
     let c: N = mix(color(p.base), color(p.body).mul(panel), smoothstep(0.2, 0.24, hFrac));
     let cap: N = color(p.cap);
-    if (p.hazard) cap = mix(cap, color(p.hazard), step(0.5, fract(U.y.mul(6).add(hFrac.mul(1.2)))));
+    if (p.hazard) {
+      // `zones` (x, z, r): full hazard stripes only there (T1 and the tight apexes); elsewhere the cap stays plain
+      // dark with a half-height stripe line along its upper edge
+      let stripe: N = step(0.5, fract(U.y.mul(6).add(hFrac.mul(1.2))));
+      if (p.zones?.length) {
+        let zone: N = float(0);
+        for (const [x, z, r] of p.zones) zone = max(zone, smoothstep(r, r - 6, positionWorld.xz.sub(vec2(x, z)).length()));
+        stripe = stripe.mul(mix(smoothstep(0.92, 0.93, hFrac).mul(float(1).sub(onTop)), float(1), zone));
+      }
+      cap = mix(cap, color(p.hazard), stripe);
+    }
     c = mix(c, cap, clamp(band, 0, 1));
     if (p.top) c = mix(c, color(p.top).mul(panel), onTop);
     c = c.mul(seam.mul(-0.35).add(1));
@@ -70,7 +80,7 @@ export function ledBarrier(key: string, p: BarrierParams): THREE.Material {
     const foot: N = p.foot ? smoothstep(0.05, 0.06, hFrac).mul(smoothstep(0.1, 0.09, hFrac)).mul(innerFace) : float(0);
     c = mix(c, color('#000000'), foot);
     m.colorNode = c.mul(vertexColor().rgb.div(p.tint ?? 1));
-    m.roughnessNode = mix(float(p.rough ?? 0.85), float(0.5), clamp(band, 0, 1));
+    m.roughnessNode = mix(float(p.rough ?? 0.85), float(p.capRough ?? 0.5), clamp(band, 0, 1));
     let glow: N = color(p.strip).mul(strip.mul(p.gain));
     if (p.capGain) glow = glow.add(cap.mul(band.mul(p.capGain)));
     if (p.foot) glow = glow.add(color(p.foot).mul(foot.mul(p.footGain ?? 0.8)));
