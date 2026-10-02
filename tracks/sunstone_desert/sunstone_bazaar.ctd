@@ -39,40 +39,169 @@ BRANCH awning from=@dune_top+9 to=@caravan+80 kind=shortcut aiMin=0.2 w=9 wall=b
   C R25 40 L ; S ?x ; C R25 40 L ; S ?y
 }
 
-# ---- look & dressing (Sunstone Desert kit; art bible: 16:00 heat haze over the caravan town) ----
-THEME sunstone_desert sky=day time=16:00 scatter=palm,cactus,dune,clay_pots,dome_house density=5 hills=8
-PROPS kind=awning_stall from=5 to=195 side=both every=13 offset=5 seed=41
-PROPS kind=dome_house from=5 to=195 side=both every=16 offset=12 jitter=3 seed=42
-PROPS kind=palm from=200 to=252 side=L every=8 offset=3 jitter=2 seed=43
+# ---- look & dressing (Sunstone Desert kit; art bible: 16:00 over the caravan town) ----
+# 2026-10 stylized pass (docs/design/34-stylized-pass.md, render-only: the .ctrk is unchanged): blue gradient sky and a
+# neutral grade instead of the orange haze; a continuous two-storey street frontage (three house looks with striped
+# awnings over the wall tops) along every walled stretch, a domed skyline behind it, cheering crowds on the start
+# straight's roofs and bunting across the street; the open stretch from the oasis to the camel corner gets dry tufts,
+# pebbles, desert blooms, scrub, small cacti, boulders, palms, acacias, saguaros, palm groves and dunes, and a roadside
+# caravan market. Wide props are fitted so no footprint reaches into any road band (scratch fitrows).
+THEME sunstone_desert sky=day time=16:00 scatter=tree_palm,tree_palm,tree_saguaro,bush_cactus,bush_round,bush_round,rock_cluster,tree_round_big,rock_pebbles,grass_tuft density=30 hills=8 fogNear=260 fogFar=1500
 PROPS kind=reeds from=205 to=250 side=L every=6 offset=1 jitter=2 seed=44
-PROPS kind=palm from=254 to=426 side=both every=14 offset=4 jitter=3 seed=45
-PROPS kind=cactus from=320 to=425 side=R every=18 offset=7 jitter=5 seed=46
-PROPS kind=dune from=426 to=556 side=both every=22 offset=10 jitter=6 scale=0.8-1.3 seed=47
 PROPS kind=clay_pots from=560 to=612 side=R every=12 offset=5 seed=48
-PROPS kind=dome_house from=680 to=830 side=both every=15 offset=6 jitter=2 seed=49
-PROPS kind=clay_pots from=680 to=830 side=L every=16 offset=4 seed=50
-PROPS kind=palm from=835 to=975 side=R every=12 offset=4 jitter=2 seed=51
-PROPS kind=rug_rack from=980 to=1205 side=both every=14 offset=5 seed=52
-PROPS kind=dome_house from=980 to=1205 side=both every=16 offset=12 jitter=3 seed=53
-PROPS kind=cactus from=1210 to=1312 side=R every=16 offset=6 jitter=4 seed=54
-PROPS kind=awning_stall from=1365 to=1448 side=both every=13 offset=5 seed=55
-PROPS kind=awning_stall along=awning side=both every=11 offset=4 seed=56
-PROPS kind=clay_pots along=awning side=both every=9 offset=1 seed=57
-# landmarks: lantern strings over the market street and rug market, the oasis pond, camel statues, the well-plaza
-# token monolith, far pyramids, the two sandstone gates and the finish obelisks
+# the awning shortcut: the same frontage along the caravanserai lane (its 3 m walls meet the awning lips; fitted)
+PROPS kind=bazaar_house_b along=awning from=23 to=23 side=L every=21 offset=3 seed=861
+PROPS kind=bazaar_house_b along=awning from=44 to=107 side=L every=21 offset=0.5 seed=862
+PROPS kind=bazaar_house_b along=awning from=44 to=86 side=R every=21 offset=0.5 seed=863
+PROPS kind=bazaar_house_c along=awning from=30 to=114 side=L every=21 offset=0.5 seed=870
+PROPS kind=bazaar_house_c along=awning from=51 to=93 side=R every=21 offset=0.5 seed=871
+PROPS kind=bazaar_house_a along=awning from=37 to=100 side=L every=21 offset=0.5 seed=880
+PROPS kind=bazaar_house_a along=awning from=58 to=79 side=R every=21 offset=0.5 seed=881
+# the start straight's grandstand: crowds on the roof terraces of the b-houses, both sides
+PROPS kind=spectators_roof from=11 to=179 side=both every=21 offset=1.5 seed=841
+# oasis corner (T1, a left-hander): a tyre wall and big chevron boards above the 1 m rock wall on the outside
+PROPS kind=ad_board_b from=203 to=250 side=R every=10 offset=2.4 scale=1.4-1.4 seed=842
+PROPS kind=tyre_wall from=199 to=254 side=R every=1.3 offset=0.6 seed=845
+PROPS kind=ad_board_a from=262 to=420 side=R every=48 offset=0.6 seed=843
+PROPS kind=ad_board_c from=286 to=420 side=L every=48 offset=0.6 seed=844
+# open desert (oasis → camel corner): ground cover at the wall, scrub and boulders behind it
+PROPS kind=grass_tuft from=200 to=678 side=both every=1 offset=0.3 jitter=9 scale=0.9-1.6 seed=851
+PROPS kind=grass_tuft from=200.5 to=678 side=both every=2 offset=2 jitter=14 scale=0.8-1.4 seed=857
+PROPS kind=rock_pebbles from=200 to=678 side=both every=6 offset=0.6 jitter=5 scale=0.8-1.4 seed=852
+PROPS kind=flower_patch from=200 to=678 side=both every=9 offset=1 jitter=9 scale=0.8-1.3 seed=853
+PROPS kind=bush_round from=200 to=678 side=both every=11 offset=3 jitter=9 scale=0.7-1.3 seed=854
+PROPS kind=bush_cactus from=200 to=678 side=both every=15 offset=2.5 jitter=10 scale=0.8-1.3 seed=855
+PROPS kind=rock_cluster from=200 to=678 side=both every=21 offset=4 jitter=12 scale=0.6-1.5 seed=856
+PROP kind=hot_air_balloon at=(120.0,52.0,-150.0) yaw=0 scale=1.1
+PROP kind=hot_air_balloon at=(300.0,46.0,-260.0) yaw=40 scale=0.9
+# ---- fitted rows (frontage, skyline, palms, acacias, saguaros, groves, dunes, market): every footprint, over the
+# whole jitter band at the largest scale, stays clear of every road band
+# street frontage: two-storey houses behind the 2.5 m building walls, three looks interleaved every 7 m
+PROPS kind=bazaar_house_a from=4 to=172 side=L every=21 offset=0.5 seed=501
+PROPS kind=bazaar_house_a from=193 to=193 side=L every=21 offset=1.5 seed=502
+PROPS kind=bazaar_house_a from=4 to=172 side=R every=21 offset=0.5 seed=503
+PROPS kind=bazaar_house_a from=193 to=193 side=R every=21 offset=1.5 seed=504
+PROPS kind=bazaar_house_a from=683 to=683 side=L every=21 offset=1.5 seed=505
+PROPS kind=bazaar_house_a from=725 to=851 side=L every=21 offset=0.5 seed=506
+PROPS kind=bazaar_house_a from=872 to=872 side=L every=21 offset=3 seed=507
+PROPS kind=bazaar_house_a from=893 to=977 side=L every=21 offset=1.5 seed=508
+PROPS kind=bazaar_house_a from=998 to=1439 side=L every=21 offset=0.5 seed=509
+PROPS kind=bazaar_house_a from=683 to=683 side=R every=21 offset=1.5 seed=510
+PROPS kind=bazaar_house_a from=704 to=851 side=R every=21 offset=0.5 seed=511
+PROPS kind=bazaar_house_a from=872 to=872 side=R every=21 offset=1.5 seed=512
+PROPS kind=bazaar_house_a from=893 to=956 side=R every=21 offset=0.5 seed=513
+PROPS kind=bazaar_house_a from=977 to=977 side=R every=21 offset=1.5 seed=514
+PROPS kind=bazaar_house_a from=998 to=1397 side=R every=21 offset=0.5 seed=515
+PROPS kind=bazaar_house_b from=11 to=179 side=L every=21 offset=0.5 seed=540
+PROPS kind=bazaar_house_b from=11 to=179 side=R every=21 offset=0.5 seed=541
+PROPS kind=bazaar_house_b from=732 to=858 side=L every=21 offset=0.5 seed=542
+PROPS kind=bazaar_house_b from=879 to=942 side=L every=21 offset=1.5 seed=543
+PROPS kind=bazaar_house_b from=963 to=963 side=L every=21 offset=0.5 seed=544
+PROPS kind=bazaar_house_b from=984 to=984 side=L every=21 offset=1.5 seed=545
+PROPS kind=bazaar_house_b from=1005 to=1446 side=L every=21 offset=0.5 seed=546
+PROPS kind=bazaar_house_b from=690 to=858 side=R every=21 offset=0.5 seed=547
+PROPS kind=bazaar_house_b from=879 to=879 side=R every=21 offset=1.5 seed=548
+PROPS kind=bazaar_house_b from=900 to=963 side=R every=21 offset=0.5 seed=549
+PROPS kind=bazaar_house_b from=984 to=984 side=R every=21 offset=1.5 seed=550
+PROPS kind=bazaar_house_b from=1005 to=1383 side=R every=21 offset=0.5 seed=551
+PROPS kind=bazaar_house_c from=18 to=186 side=L every=21 offset=0.5 seed=580
+PROPS kind=bazaar_house_c from=18 to=186 side=R every=21 offset=0.5 seed=581
+PROPS kind=bazaar_house_c from=718 to=844 side=L every=21 offset=0.5 seed=582
+PROPS kind=bazaar_house_c from=865 to=949 side=L every=21 offset=1.5 seed=583
+PROPS kind=bazaar_house_c from=970 to=1432 side=L every=21 offset=0.5 seed=584
+PROPS kind=bazaar_house_c from=697 to=844 side=R every=21 offset=0.5 seed=585
+PROPS kind=bazaar_house_c from=865 to=865 side=R every=21 offset=1.5 seed=586
+PROPS kind=bazaar_house_c from=886 to=1390 side=R every=21 offset=0.5 seed=587
+# an open palm plaza on the right of the run-in and grid (s 1400 to the line): breaks the frontage and keeps the grid
+# visible from above the plaza; the palms stand clear of the start-wide sightline
+PROPS kind=tree_palm from=1402 to=1410 side=R every=8 offset=3 jitter=2 seed=589
+PROPS kind=tree_palm from=1430 to=1430 side=R every=8 offset=8 seed=592
+PROPS kind=awning_stall from=1406 to=1436 side=R every=10 offset=4 seed=590
+PROPS kind=crate_stack from=1400 to=1438 side=R every=7 offset=1 jitter=1 seed=591
+PROPS kind=barrel_spice from=1403 to=1438 side=R every=12 offset=7 seed=593
+# domed skyline behind the frontage
+PROPS kind=dome_house from=5 to=181 side=L every=16 offset=14 jitter=3 seed=620
+PROPS kind=dome_house from=5 to=181 side=R every=16 offset=14 jitter=3 seed=621
+PROPS kind=dome_house from=712 to=1448 side=L every=16 offset=14 jitter=3 seed=622
+PROPS kind=dome_house from=680 to=1448 side=R every=16 offset=14 jitter=3 seed=623
+# oasis palms and the palm S
+PROPS kind=tree_palm from=200 to=248 side=L every=8 offset=3 jitter=2 seed=660
+PROPS kind=tree_palm from=254 to=422 side=L every=14 offset=4 jitter=3 seed=670
+PROPS kind=tree_palm from=254 to=422 side=R every=14 offset=4 jitter=3 seed=671
+PROPS kind=tree_palm from=835 to=975 side=R every=14 offset=4 jitter=3 seed=672
+# open desert between the oasis and the camel corner: acacias, saguaros, palm groves and dunes
+PROPS kind=tree_round_big from=200 to=570 side=L every=37 offset=14 jitter=16 scale=0.8-1.2 seed=700
+PROPS kind=tree_round_big from=200 to=644 side=R every=37 offset=14 jitter=16 scale=0.8-1.2 seed=701
+PROPS kind=tree_saguaro from=300 to=586 side=L every=26 offset=8 jitter=12 scale=0.8-1.3 seed=720
+PROPS kind=tree_saguaro from=300 to=664 side=R every=26 offset=8 jitter=12 scale=0.8-1.3 seed=721
+PROPS kind=tree_clump from=200 to=590 side=L every=30 offset=45 jitter=30 scale=0.9-1.4 seed=740
+PROPS kind=tree_clump from=620 to=620 side=L every=30 offset=60 jitter=30 scale=0.9-1.4 seed=741
+PROPS kind=tree_clump from=650 to=650 side=L every=30 offset=45 jitter=30 scale=0.9-1.4 seed=742
+PROPS kind=tree_clump from=200 to=650 side=R every=30 offset=45 jitter=30 scale=0.9-1.4 seed=743
+PROPS kind=dune from=426 to=448 side=L every=22 offset=18 jitter=6 scale=0.8-1.3 seed=770
+PROPS kind=dune from=470 to=536 side=L every=22 offset=14 jitter=6 scale=0.8-1.3 seed=771
+PROPS kind=dune from=426 to=426 side=R every=22 offset=18 jitter=6 scale=0.8-1.3 seed=772
+PROPS kind=dune from=448 to=536 side=R every=22 offset=14 jitter=6 scale=0.8-1.3 seed=773
+# roadside caravan market round the camel corner
+PROPS kind=awning_stall from=560 to=664 side=R every=13 offset=3 seed=790
+PROPS kind=rug_rack from=566 to=566 side=L every=17 offset=1.5 seed=800
+PROPS kind=rug_rack from=617 to=668 side=L every=17 offset=1.5 seed=801
+PROPS kind=crate_stack from=562 to=580 side=L every=9 offset=1.5 jitter=1.5 seed=810
+PROPS kind=crate_stack from=607 to=670 side=L every=9 offset=1.5 jitter=1.5 seed=811
+PROPS kind=crate_stack from=562 to=670 side=R every=9 offset=1.5 jitter=1.5 seed=812
+PROPS kind=barrel_spice from=570 to=570 side=L every=15 offset=3.5 seed=830
+PROPS kind=barrel_spice from=615 to=675 side=L every=15 offset=3.5 seed=831
+# caravan street inside the awning junction window (rows are excluded there): house fronts as landmarks
+PROP kind=bazaar_house_a at=(47.2,-0.7,-360.7) yaw=110 scale=1
+PROP kind=bazaar_house_a at=(27.4,-0.6,-353.6) yaw=110 scale=1
+PROP kind=bazaar_house_a at=(59.4,-0.9,-388.6) yaw=-70 scale=1
+PROP kind=bazaar_house_a at=(39.6,-0.7,-381.4) yaw=-70 scale=1
+PROP kind=bazaar_house_a at=(19.9,-0.6,-374.2) yaw=-70 scale=1
+PROP kind=bazaar_house_b at=(40.6,-0.7,-358.4) yaw=110 scale=1
+PROP kind=bazaar_house_b at=(20.8,-0.5,-351.2) yaw=110 scale=1
+PROP kind=bazaar_house_b at=(52.8,-0.8,-386.2) yaw=-70 scale=1
+PROP kind=bazaar_house_b at=(33.1,-0.7,-379.0) yaw=-70 scale=1
+PROP kind=bazaar_house_b at=(13.3,-0.5,-371.8) yaw=-70 scale=1
+PROP kind=bazaar_house_c at=(53.7,-0.8,-363.1) yaw=110 scale=1
+PROP kind=bazaar_house_c at=(34.0,-0.6,-356.0) yaw=110 scale=1
+PROP kind=bazaar_house_c at=(14.3,-0.5,-348.8) yaw=110 scale=1
+PROP kind=bazaar_house_c at=(65.9,-1.0,-391.0) yaw=-70 scale=1
+PROP kind=bazaar_house_c at=(46.2,-0.8,-383.8) yaw=-70 scale=1
+PROP kind=bazaar_house_c at=(26.5,-0.6,-376.6) yaw=-70 scale=1
+PROP kind=bazaar_house_c at=(6.7,-0.5,-369.5) yaw=-70 scale=1
+PROP kind=dome_house at=(64.3,-0.8,-351.6) yaw=110 scale=1
+PROP kind=dome_house at=(49.3,-0.7,-346.1) yaw=110 scale=1
+PROP kind=dome_house at=(34.3,-0.6,-340.6) yaw=110 scale=1
+PROP kind=dome_house at=(19.2,-0.5,-335.2) yaw=110 scale=1
+PROP kind=dome_house at=(61.9,-1.0,-405.0) yaw=-70 scale=1
+PROP kind=dome_house at=(46.9,-0.8,-399.5) yaw=-70 scale=1
+PROP kind=dome_house at=(31.8,-0.7,-394.0) yaw=-70 scale=1
+PROP kind=dome_house at=(16.8,-0.6,-388.5) yaw=-70 scale=1
+PROP kind=dome_house at=(1.8,-0.5,-383.1) yaw=-70 scale=1
+# landmarks: lantern strings and bunting over the market street and rug market, the oasis pond, camel statues, the
+# well-plaza token monolith, far pyramids, the two sandstone gates (the start gate moved behind the grid, so the grid
+# and the start view stay open) and the finish obelisks
 PROP kind=lantern_string at=(25.0,-0.3,0.0) yaw=-90 scale=1
+PROP kind=street_bunting at=(62.0,0.0,0.0) yaw=-90 scale=1
+PROP kind=street_bunting at=(118.0,0.0,0.0) yaw=-90 scale=1
 PROP kind=lantern_string at=(150.0,-0.3,0.0) yaw=-90 scale=1
 PROP kind=lantern_string at=(190.0,-0.3,0.0) yaw=-90 scale=1
+PROP kind=street_bunting at=(-14.0,0.0,0.0) yaw=-90 scale=1
+PROP kind=lantern_string at=(-44.0,-0.3,0.0) yaw=-90 scale=1
 PROP kind=oasis_pond at=(199.1,0.1,-34.9) yaw=-46 scale=1
-PROP kind=camel_statue at=(108.4,-1.3,-359.1) yaw=69 scale=1.4
-PROP kind=camel_statue at=(181.7,-1.3,-326.8) yaw=-150 scale=1
+PROP kind=camel_statue at=(108.7,-1.3,-360.1) yaw=69 scale=1.4
+PROP kind=camel_statue at=(182.2,-1.3,-327.2) yaw=-150 scale=1
 PROP kind=token_monolith at=(-125.5,-0.3,-333.3) yaw=111 scale=1
 PROP kind=pyramid at=(336.8,-1.3,-370.2) yaw=-150 scale=1
 PROP kind=pyramid at=(386.1,-1.3,-444.8) yaw=-150 scale=0.7
-PROP kind=pyramid at=(88.4,-0.3,-350.6) yaw=-166 scale=0.8
+PROP kind=pyramid at=(90.0,-1.3,-470.0) yaw=-166 scale=0.8
+PROP kind=street_bunting at=(62.2,-1.1,-377.9) yaw=110 scale=1.09
+PROP kind=lantern_string at=(24.6,-0.8,-364.2) yaw=110 scale=1
+PROP kind=street_bunting at=(-17.7,-0.5,-348.9) yaw=110 scale=1.09
+PROP kind=street_bunting at=(-191.9,-0.3,-170.1) yaw=175 scale=1
 PROP kind=lantern_string at=(-194.1,-0.3,-145.2) yaw=175 scale=1
 PROP kind=lantern_string at=(-197.2,-0.3,-110.3) yaw=175 scale=1
 PROP kind=sandstone_arch at=(-123.1,-0.3,-10.2) yaw=-121 scale=1
-PROP kind=sandstone_arch at=(-30.0,-0.3,0.0) yaw=-90 scale=1
-PROP kind=obelisk at=(-65.0,-0.3,16.0) yaw=90 scale=1
-PROP kind=obelisk at=(-65.0,-0.3,-16.0) yaw=-90 scale=1
+PROP kind=sandstone_arch at=(-58.0,-0.3,0.0) yaw=-90 scale=1
+PROP kind=obelisk at=(-72.0,-0.3,16.0) yaw=90 scale=1
+PROP kind=obelisk at=(-72.0,-0.3,-16.0) yaw=-90 scale=1
