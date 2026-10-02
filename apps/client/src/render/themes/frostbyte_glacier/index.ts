@@ -5,7 +5,7 @@
 import type { ContentTables } from '@cr/content';
 import { MaterialLibrary } from '../../materials/library.ts';
 import { makeKit, type ThemeKit, type ThemeLook } from '../kit.ts';
-import { FROSTBYTE_PROPS } from './props.ts';
+import { FROSTBYTE_PROPS, fairyLights } from './props.ts';
 import { softAoTerrain } from '../sunstone_desert/terrain.ts';
 import { halfpipeRoad } from './halfpipe.ts';
 
@@ -65,7 +65,9 @@ const NIGHT_LOOK: Partial<ThemeLook> = {
 
 export default (c: ContentTables, env: Readonly<Record<string, string>> = {}): ThemeKit => {
   const night = env['sky'] === 'aurora' || env['sky'] === 'night';
-  const kit = makeKit(c.themes.get('frostbyte_glacier'), night ? { ...FROSTBYTE_LOOK, ...NIGHT_LOOK } : FROSTBYTE_LOOK, FROSTBYTE_PROPS);
+  // fairy-light bulbs bloom only at night; by day (gain 1.0) they read as coloured bulbs rather than glowing orbs
+  const props = night ? FROSTBYTE_PROPS : { ...FROSTBYTE_PROPS, fairy_lights: fairyLights(1.0) };
+  const kit = makeKit(c.themes.get('frostbyte_glacier'), night ? { ...FROSTBYTE_LOOK, ...NIGHT_LOOK } : FROSTBYTE_LOOK, props);
   const base = kit.materials;
   const T = kit.look.terrain;
   kit.materials = () => ({
