@@ -127,6 +127,8 @@ PROPS kind=tree_clump along=590-630 side=L every=36 offset=125 jitter=50 scale=1
 PROPS kind=tree_clump along=0-135 side=R every=36 offset=125 jitter=50 scale=1.0-1.6 seed=53
 PROPS kind=tree_clump along=480-685 side=R every=36 offset=125 jitter=50 scale=1.0-1.6 seed=53
 PROPS kind=tree_clump along=950-1945 side=R every=36 offset=125 jitter=50 scale=1.0-1.6 seed=53
+# time=17:20 puts the sun at 10° (the sunset ceiling in render/env/look.ts); 18:00 put it at 3°, so the tunnel stand
+# and the stadium shaded the whole bowl straight and the grid, and the shade went near-black
 # field scatter is low cover only: random scatter trees crowded the bowl infield in front of race control; the pines and
 # tree lines come from the PROPS rows (rally stage, forest roads, horizon)
-THEME scatter=bush,bush_round,bush_round,rock,rock_cluster,flower_patch,grass_tuft,grass_tuft density=30 hills=7 sky=sunset time=18:00 fogNear=220 fogFar=1300
+THEME scatter=bush,bush_round,bush_round,rock,rock_cluster,flower_patch,grass_tuft,grass_tuft density=30 hills=7 sky=sunset time=17:20 fogNear=220 fogFar=1300

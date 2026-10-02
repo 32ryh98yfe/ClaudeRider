@@ -47,29 +47,30 @@ export const SPARK_SUNSET_LOOK: Partial<ThemeLook> = {
   ...SPARK_LOOK,
   terrain: { a: '#5b8a3e', b: '#76a050', rock: '#a0907f' },
   // first cut (horizon #ffc48e, bottom #f3a36a, fog #e9b48e) turned every view salmon: the dome mixes the horizon
-  // up to ~33° and the chase camera sees little else (doc 34 §3). The warmth now lives in a pale band and the key.
-  sky: { turbidity: 5.0, rayleigh: 2.2, elevationDeg: 15, azimuthDeg: 250, exposure: 1.0, top: '#48528f', bottom: '#efcaa8' },
+  // up to ~33° and the chase camera sees little else (doc 34 §3). The warmth lives in a pale peach band (warmed a
+  // touch since the highlight grade went neutral) and the key. elevationDeg is unused: the track's THEME time sets the
+  // sun (17:20 → 10°, the sunset ceiling in env/look.ts)
+  sky: { turbidity: 5.0, rayleigh: 2.2, elevationDeg: 15, azimuthDeg: 250, exposure: 1.0, top: '#48528f', bottom: '#efc299' },
   // the warmth lives in the key, but an orange #ffa45e one at 3.4 dyed every vertical surface (the white gantry rendered
   // #d69c7c): a pale amber key keeps whites white while the sky, the low sun disc and the long shadows say sunset
   sun: { color: '#ffbd85', intensity: 3.1 },
   // with the sun this low the road takes most of its light from the hemisphere and the dome's violet zenith: a lilac
-  // sky term, a cool back fill and full env light turned the asphalt violet-navy, so env light is lower and the
-  // tarmac a lighter warm grey (the neutral grey read aubergine, #322c32, under the cool fill)
-  road: { style: 'asphalt', a: '#6a6562', b: '#77716d', line: '#fbf8f0' },
-  // the shade still went near-black (asphalt #2f2830, black grass under the stands): a brighter, near-neutral sky term
-  // over a warm ground, more back fill and env light, and a sun at 15° rather than 11° so less of the bowl sits in the
-  // stands' shadow. Shaded asphalt should stay at or above ≈ #55504f.
-  hemi: { sky: '#d4d0d6', ground: '#86664f', intensity: 1.75 },
-  fill: { color: '#e6e2dc', intensity: 0.7 },
+  // sky term and a cool back fill turned the asphalt violet-navy. The shade still went near-black (asphalt #2f2830,
+  // black grass under the stands; the grid sits in the tunnel stand's shadow): a light neutral-grey tarmac, a strong
+  // near-neutral sky term over a warm ground, more back fill and env light, and a neutral shadow grade. Measured in
+  // the grid shade: #2b232b before, #564f53 now (target ≈ #55504f or lighter)
+  road: { style: 'asphalt', a: '#75736f', b: '#817e7a', line: '#fbf8f0' },
+  hemi: { sky: '#d4d0d6', ground: '#86664f', intensity: 2.4 },
+  fill: { color: '#e6e2dc', intensity: 0.9 },
   shadowStrength: 0.62,
   fogColor: '#e6d2c2',
-  horizon: '#f4dcc6',
+  horizon: '#f4d3b4',
   fog: { near: 220, far: 1300 },
   clouds: 0.3,
   envIntensity: 0.45,
   rimBoost: 0.8,
   bloom: 0.35,
-  grade: { tint: '#ffffff', saturation: 1.05, shadows: '#f2f1f6', highlights: '#ffffff' },
+  grade: { tint: '#ffffff', saturation: 1.0, shadows: '#f2f2f0', highlights: '#ffffff' },
 };
 
 export default (c: ContentTables, env?: Readonly<Record<string, string>>): ThemeKit => {
