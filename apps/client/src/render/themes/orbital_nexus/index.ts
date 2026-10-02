@@ -49,6 +49,8 @@ export const ORBITAL_FOUNDRY_LOOK: Partial<ThemeLook> = {
   sun: { color: '#f2f6ff', intensity: 2.6 },
   hemi: { sky: '#c4ccdc', ground: '#c9a58c', intensity: 2.0 },
   fill: { color: '#ffd6bc', intensity: 0.8 },
+  // no air particles on the factory floor: the station motes read as grey confetti against the black sky
+  ambient: 'none',
   grade: { tint: '#fffaf4', saturation: 1.06, shadows: '#ece9ff', highlights: '#fff3e6' },
 };
 
