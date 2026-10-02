@@ -384,7 +384,8 @@ export function buildTerrain(a: string, b: string, rock: string, prof: MaterialP
   // sun-dried patches and darker clover clumps break up the flat green
   const dry = smoothstep(0.62, 0.8, n01(P.xz.mul(0.035).add(9.1)));
   grass = mix(grass, grass.mul(vec3(1.18, 1.08, 0.72)), dry.mul(0.55));
-  let rockC: N = color(rock).mul(n2.mul(0.25).add(0.85));
+  // rock noise from the 3-D position: the ground's top-down noise (xz) stretched into vertical streaks down cliffs
+  let rockC: N = color(rock).mul(n01(P.mul(0.21)).mul(0.25).add(0.85));
   if (prof.hq) {
     const fine = n01(P.xz.mul(1.9));
     grass = grass.mul(fine.mul(0.16).mul(detailFade(6, 60)).add(0.92));
