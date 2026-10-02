@@ -7,11 +7,12 @@ import { CANOPY_PROPS } from './props.ts';
 import { CANOPY_DRESSING } from './dressing.ts';
 
 // Stylized arcade read (2026-10 pass, docs/design/34-stylized-pass.md): a clear morning gradient sky with a green-gold
-// horizon instead of the Preetham haze, a key sun that out-weighs the fill so the trunk shadows read, a warm sandy trail
+// horizon instead of the Preetham haze, a key sun that out-weighs the fill so the trunk shadows read, a cool packed-earth trail
 // (the karts and the next corner pop against it), mid-value greens instead of near-black foliage, and the mist pushed
 // back (the content fog started at 45 m and greyed the whole frame) so the forest layers read as depth, not murk.
 export const CANOPY_LOOK: Partial<ThemeLook> = {
-  road: { style: 'dirt', a: '#ae8962', b: '#bc976f', line: '#f1e6c8' },
+  // cooler packed earth: the warm sandy #ae8962 trail was the mascots' own hue, a brighter version under the kart
+  road: { style: 'dirt', a: '#9d8b74', b: '#ab9980', line: '#f1e6c8' },
   shoulder: { a: '#55863a', b: '#649545' },
   terrain: { a: '#5a8a40', b: '#6f9a4c', rock: '#8c8778' },
   wall: { kind: 'stone', a: '#a19d8a', b: '#7d8a5e' },
