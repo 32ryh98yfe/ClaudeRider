@@ -43,8 +43,9 @@ function giantTrunk(): THREE.BufferGeometry {
   parts.push(...around(6, (i, a) => part(facet(new THREE.BoxGeometry(3.6, 3.2, 1.3)), i % 2 ? C.barkDark : C.bark, Math.cos(a) * 3.6, -0.3, Math.sin(a) * 3.6, 0, -a, -0.35)));
   parts.push(part(blob(3.15, 1, 0.12, 11, 1, 0.35, 1), C.moss, 0, 1.4, 0, 0, 0, 0, 1, 1, 1, 0.12, 5));
   parts.push(part(blob(2.45, 1, 0.1, 12, 1, 0.3, 1), C.mossDeep, 0, 12, 0));
-  // shelf fungus facing the road
-  parts.push(part(dome(1.1, 8, 3, Math.PI / 2), C.cap, 2.2, 8.5, 0.6, 0, 0, -Math.PI / 2, 1, 0.35, 1));
+  // shelf fungus facing the road, pale wood rather than mushroom red: a red bracket at eye height on every trunk (every
+  // ~22 m) competed with the red/cream kerbs that mark the corners
+  parts.push(part(dome(1.1, 8, 3, Math.PI / 2), C.woodPale, 2.2, 8.5, 0.6, 0, 0, -Math.PI / 2, 1, 0.35, 1));
   parts.push(part(dome(0.8, 8, 3, Math.PI / 2), C.woodPale, 2.25, 9.6, -0.4, 0, 0, -Math.PI / 2, 1, 0.3, 1));
   // branches + canopy
   parts.push(part(tube([[0, 24, 0], [4, 27, 1], [8, 29, 2]], 0.7, 6, 5), C.bark));
