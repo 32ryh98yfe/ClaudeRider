@@ -79,7 +79,7 @@
 
 | Layer | `PROPS` row (side=both unless noted) |
 |---|---|
-| Fence-side ground cover | `grass_tuft every=0.8 offset=0.2 jitter=8 scale=1.0-1.8` · `flower_patch every=5 offset=0.8 jitter=9` |
+| Fence-side ground cover | `grass_tuft every=1 offset=0.2 jitter=8 scale=1.0-1.8` (trackc clamps `every` to ≥ 1 m) · `flower_patch every=5 offset=0.8 jitter=9` |
 | Shrubs and rocks | `bush_round every=11 offset=3 jitter=9` · `rock_cluster every=23 offset=4 jitter=12` |
 | Shade trees | `tree_round_big every=17 offset=14 jitter=18` (none behind the grandstand or grid) |
 | Far tree lines | `tree_clump every=26 offset=60 jitter=50` · `tree_clump every=34 offset=125 jitter=50 scale=1.0-1.6` |
