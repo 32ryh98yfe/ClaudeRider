@@ -53,10 +53,10 @@ export const SPARK_SUNSET_LOOK: Partial<ThemeLook> = {
   sun: { color: '#ffa45e', intensity: 3.4 },
   // with the sun this low the road takes most of its light from the hemisphere and the dome's violet zenith: a lilac
   // sky term, a cool back fill and full env light turned the asphalt violet-navy, so env light is lower and the
-  // tarmac the doc-34 neutral grey
-  road: { style: 'asphalt', a: '#605e5f', b: '#6e6c6c', line: '#fbf8f0' },
+  // tarmac a lighter warm grey (the neutral grey read aubergine, #322c32, under the cool fill)
+  road: { style: 'asphalt', a: '#6a6562', b: '#77716d', line: '#fbf8f0' },
   hemi: { sky: '#c9c3da', ground: '#7d5c48', intensity: 1.15 },
-  fill: { color: '#e2def0', intensity: 0.45 },
+  fill: { color: '#e6e2dc', intensity: 0.45 },
   shadowStrength: 0.62,
   fogColor: '#e6d2c2',
   horizon: '#f4dcc6',
