@@ -89,6 +89,14 @@ PROPS kind=ad_board_b from=@launch_tube+28 to=@launch_tube+138 side=R every=24 o
 PROPS kind=ad_board_c from=@launch_tube+36 to=@launch_tube+138 side=R every=24 offset=0.4 seed=406
 PROPS kind=holo_panel from=@launch_tube+66 to=@launch_tube+130 side=L every=32 offset=4.5
 PROPS kind=antenna_mast from=@launch_tube+10 to=@launch_tube+130 side=R every=30 offset=6 seed=407
+# the hull plain 34 m below the launch-tube plinth (right of the a3 view): solar arrays, fuel tanks and habitats on a
+# 48 m beat, each kind in its own slot (the plinth's retaining wall runs out to ≈ 30 m, so the rows start beyond it)
+PROPS kind=solar_array from=@launch_tube+6 to=@launch_tube+136 side=R every=48 offset=36 seed=430
+PROPS kind=fuel_tank from=@launch_tube+30 to=@launch_tube+136 side=R every=48 offset=40 seed=431
+PROPS kind=habitat_house from=@launch_tube+18 to=@launch_tube+136 side=R every=48 offset=52 jitter=3 seed=432
+PROPS kind=solar_array from=@launch_tube+42 to=@launch_tube+136 side=R every=48 offset=64 seed=433
+PROPS kind=radiator_fin from=@launch_tube+36 to=@launch_tube+136 side=R every=48 offset=46 seed=434
+PROPS kind=fuel_tank from=@launch_tube+60 to=@launch_tube+136 side=R every=48 offset=60 seed=435
 PROP kind=launch_ring at=(62.0,0.0,0.0) yaw=90 scale=1
 PROP kind=launch_ring at=(74.0,0.0,0.0) yaw=90 scale=1
 PROP kind=launch_ring at=(86.0,0.0,0.0) yaw=90 scale=1
