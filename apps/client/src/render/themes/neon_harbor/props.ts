@@ -108,7 +108,8 @@ function facade(f: FacadeSpec): THREE.BufferGeometry {
     for (let k = 0; k < 4; k++) G.add(part(box(0.065, 0.33, (bw - 0.7) / 8), '#f2eee6', 1.765, 3.0, z - (bw - 0.7) / 2 + ((bw - 0.7) / 8) * (2 * k + 0.5)));
     G.light(R() < 0.5 ? 1.05 : 0.8, part(box(0.12, 0.5, bw * 0.55), R() < 0.5 ? MAGENTA : R() < 0.5 ? CYAN : AMBER, 0.33, 3.95, z));
   }
-  // upper floors: trims and windows (front face, plus the first two bays of each side face for the gaps between blocks)
+  // upper floors: trims and windows on the front face and over the whole depth of both side faces (a block seen
+  // end-on behind a corner read as a blank slab)
   const nW = Math.max(3, Math.round(f.w / 3.1)), ww = f.w / nW;
   for (let k = 0; k < f.floors; k++) {
     const y0 = GF + k * f.floorH;
@@ -119,11 +120,22 @@ function facade(f: FacadeSpec): THREE.BufferGeometry {
       if (on) G.light(0.5 + R() * 0.3, pane); else G.add(pane);
       G.add(part(box(0.22, 0.1, ww - 0.8), trim, 0.08, y0 + f.floorH * 0.55 - 0.85, z));
     }
-    for (const sz of [-1, 1]) for (let j = 0; j < 2; j++) {
-      const on = R() < 0.5;
-      const pane = part(box(ww - 1.0, 1.55, 0.08), on ? WARM : GLASS_DK, -1.6 - j * 3.0, y0 + f.floorH * 0.55, sz * (f.w / 2 + 0.03));
-      if (on) G.light(0.55, pane); else G.add(pane);
+    const nS = Math.max(2, Math.floor((f.d - 1.2) / 3.0)), sw = (f.d - 1.2) / nS;
+    for (const sz of [-1, 1]) {
+      G.add(part(box(f.d, 0.22, 0.24), trim, -f.d / 2, y0 + 0.11, sz * (f.w / 2 + 0.06)));
+      for (let j = 0; j < nS; j++) {
+        const on = R() < f.lit;
+        const pane = part(box(sw - 1.0, 1.55, 0.08), on ? f.panes[Math.floor(R() * f.panes.length)]! : GLASS_DK, -0.6 - (j + 0.5) * sw, y0 + f.floorH * 0.55, sz * (f.w / 2 + 0.03));
+        if (on) G.light(0.5 + R() * 0.3, pane); else G.add(pane);
+      }
     }
+  }
+  // side-wall light box at the first floor: a dark sign with two neon bars on each end face
+  for (const sz of [-1, 1]) {
+    const sx = -f.d * 0.45, sy = GF + 1.3, zz = sz * (f.w / 2 + 0.14);
+    G.add(part(box(f.d * 0.5, 1.7, 0.24), INK, sx, sy, zz));
+    G.light(1.0, part(box(f.d * 0.42, 0.24, 0.06), sz > 0 ? MAGENTA : CYAN, sx, sy + 0.32, zz + sz * 0.14));
+    G.light(0.9, part(box(f.d * 0.28, 0.24, 0.06), sz > 0 ? CYAN : AMBER, sx - f.d * 0.06, sy - 0.32, zz + sz * 0.14));
   }
   // roof: parapet, then a water tank, a sign frame or AC units
   G.add(part(box(f.d + 0.2, 0.6, f.w + 0.2), trim, -f.d / 2, H + 0.3, 0));

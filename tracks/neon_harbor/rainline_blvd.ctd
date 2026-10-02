@@ -63,11 +63,11 @@ PROPS kind=bus_shelter from=@arcade_corner+38 to=@arcade_corner+39 side=R every=
 # the plaza outside T1 (the b2 camera stands in it): low furniture only, so the corner stays in view
 PROPS kind=street_tree from=@arcade_corner to=@arcade_corner+32 side=R every=9 offset=24 jitter=4 scale=0.9-1.2 seed=114
 PROPS kind=planter_bush from=@arcade_corner-4 to=@arcade_corner+34 side=R every=7 offset=4.6 jitter=1 seed=115
-PROPS kind=street_bench from=@arcade_corner+2 to=@arcade_corner+34 side=R every=11 offset=6.5 seed=116
+PROPS kind=street_bench from=@arcade_corner+2 to=@arcade_corner+34 side=R every=11 offset=7.8 seed=116
 PROPS kind=vending_machine from=@arcade_corner+8 to=@arcade_corner+30 side=R every=16 offset=13 seed=117
 PROPS kind=noodle_stall from=@arcade_corner+4 to=@arcade_corner+30 side=R every=20 offset=18 seed=118
 PROPS kind=planter_bush from=@arcade_corner-6 to=@arcade_corner+36 side=R every=6 offset=11 jitter=1 seed=119
-PROPS kind=street_bench from=@arcade_corner-2 to=@arcade_corner+36 side=R every=12 offset=15 seed=184
+PROPS kind=street_bench from=@arcade_corner+4 to=@arcade_corner+36 side=R every=12 offset=15 seed=184
 PROPS kind=street_lamp from=@arcade_corner to=@arcade_corner+36 side=R every=14 offset=21 seed=186
 # -- street blocks, both sides, the whole lap (four facade kinds in 24 m slots; setback jitter breaks the wall)
 PROPS kind=building_row_a from=@boulevard+52 to=@arcade_corner side=L every=96 offset=8 jitter=1.5 seed=120
@@ -102,7 +102,12 @@ PROPS kind=traffic_signal from=@sodium_straight+6 to=@sodium_straight+7 side=R e
 PROPS kind=planter_bush from=@boulevard+118 to=@crane_corner side=both every=9 offset=2.4 jitter=0.6 seed=161
 PROPS kind=planter_bush from=@to_line+20 to=@boulevard+118 side=R every=12 offset=2.4 jitter=0.4 seed=176
 PROPS kind=planter_bush from=@boulevard+10 to=@boulevard+50 side=L every=9 offset=4.6 jitter=0.4 seed=178
-PROPS kind=street_bench from=@to_line+24 to=@boulevard+26 side=R every=17 offset=4.2 seed=179
+# start benches sit midway between the 12 m planters and clear of the spectators before the line
+PROPS kind=street_bench from=@to_line+38 to=@boulevard+26 side=R every=12 offset=4.2 seed=179
+# start sidewalks: lamps on both sides, benches on the left; the left ones sit between the 9 m flag and planter beats
+PROPS kind=street_lamp from=@boulevard+9 to=@boulevard+100 side=R every=16 offset=3.4 seed=187
+PROPS kind=street_lamp from=@boulevard+21.5 to=@boulevard+60 side=L every=18 offset=3.4 seed=188
+PROPS kind=street_bench from=@boulevard+12.5 to=@boulevard+60 side=L every=18 offset=3.4 seed=189
 PROPS kind=street_tree from=@boulevard+34 to=@boulevard+118 side=R every=16 offset=4.6 jitter=0.6 scale=0.9-1.2 seed=177
 PROPS kind=planter_bush from=@tram_s to=@crane_hairpin side=both every=9 offset=2.4 jitter=0.6 seed=162
 # (no planters along the market: the noodle stalls stand on the same 2.4 m kerb line)
