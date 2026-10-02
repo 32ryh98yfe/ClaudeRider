@@ -13,8 +13,9 @@ import { halfpipeRoad } from './halfpipe.ts';
 // clipped to white under ACES), the road is a cool neutral grey so karts and the next corner read first, kerbs are red
 // and white against the snow, barriers are white panels with a navy band, and only ice is glossy.
 export const FROSTBYTE_LOOK: Partial<ThemeLook> = {
-  // a light warm-grey road under the overcast (the cooler slate read dark navy against the snow)
-  road: { style: 'asphalt', a: '#7a7876', b: '#858381', line: '#cdeefa' },
+  // a warm-grey road (the cooler slate read dark navy against the snow). Under the clear day key the old #7a7876 /
+  // #858381 rendered a cool #778091 at ≈ 125 luma: a darker, warmer stone renders a neutral grey near 110
+  road: { style: 'asphalt', a: '#6c645c', b: '#766e65', line: '#cdeefa' },
   shoulder: { a: '#dde6ef', b: '#e6edf4' },
   terrain: { a: '#e3eaf2', b: '#d5dfe9', rock: '#8e99a7' },
   wall: { kind: 'stone', a: '#d2dde7', b: '#97a7b6' },
