@@ -11,15 +11,23 @@ CLOSE solve=[?a] length=700
 LINE start at=120
 ITEMS at=40,220(n=6),390,560 n=5
 PAD at=60,410 d=0 len=6 w=4
-# dressing (s from the line): main straight 580-700 + 0-104 | turn 1 104-230 | back straight 230-454 | turn 2 454-580
+# dressing. `along=` takes s from START, not from the line (LINE at=120): home straight 0-224 (line at 120) |
+# turn 1 224-350 | back straight 350-575 | turn 2 575-700. Both turns are 180° left-handers, outside on the right.
+# (The rows below were first laid out as if s ran from the line, 120 m early: the tyre rows sat on the straights.)
 PROPS kind=grandstand along=590-690 side=R every=27 offset=6
 PROPS kind=grandstand along=8-92 side=R every=27 offset=6
 PROPS kind=pit_wall along=584-696 side=L every=20 offset=3
 PROPS kind=pit_garage along=586-694 side=L every=21 offset=12
 PROPS kind=control_tower along=40-40 side=L every=10 offset=14
-PROPS kind=tyre_wall along=100-234 side=R every=5 offset=1.2
-PROPS kind=tyre_wall along=450-584 side=R every=5 offset=1.2
-PROPS kind=banner along=236-450 side=both every=12 offset=1.4
+# tyre walls and chevron boards on the outside of both turns. The stacks are 3 m long and a turn's outside stretches
+# the spacing by 30 % at the tyre line (52 m from the centre of an R40), so every=2.3 keeps the wall gap-free
+PROPS kind=tyre_wall along=222-352 side=R every=2.3 offset=1.2 scale=1-1 seed=51
+PROPS kind=tyre_wall along=572-702 side=R every=2.3 offset=1.2 scale=1-1 seed=52
+PROPS kind=ad_board_b along=228-346 side=R every=10 offset=3.6 scale=1-1 seed=53
+PROPS kind=ad_board_b along=578-696 side=R every=10 offset=3.6 scale=1-1 seed=54
+# banners: the infield of turn 1 and the back straight, and the back straight's outside (turn 1's outside has the tyres)
+PROPS kind=banner along=236-450 side=L every=12 offset=1.4
+PROPS kind=banner along=356-450 side=R every=12 offset=1.4
 PROPS kind=floodlight along=240-450 side=R every=52 offset=16
 PROPS kind=marshal_post along=168-168 side=R every=10 offset=4
 PROPS kind=marshal_post along=518-518 side=R every=10 offset=4
