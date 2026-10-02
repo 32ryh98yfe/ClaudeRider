@@ -43,7 +43,10 @@ BRANCH alley from=@alley_split+1 to=@riverside+96 kind=shortcut aiMin=0.45 w=9 w
 # ---- look & dressing (Clayhill Village kit; art bible: golden hour over the hill town) ----
 # (16:30 rather than 17:30: a 22° sun keeps long golden shadows without plunging the townhouse streets into shade)
 THEME clayhill_village sky=goldenHour time=16:30 scatter=cypress,cypress,orchard_tree,tree_round_big,bush_round,bush_round,cottage,cottage,rock_cluster,flower_patch density=30 hills=5 fogNear=220 fogFar=1300
-PROPS kind=townhouse from=2 to=78 side=both every=13 offset=4 seed=21
+# the right-hand terrace stops 20 m before T1 (a left-hander) so the corner's outside, its tyre wall and the chevron
+# signboard read from the straight instead of a closed street
+PROPS kind=townhouse from=2 to=78 side=L every=13 offset=4 seed=21
+PROPS kind=townhouse from=2 to=60 side=R every=13 offset=4 seed=20
 PROPS kind=flower_box from=85 to=205 side=both every=16 offset=0.6 seed=22
 PROPS kind=cottage from=90 to=210 side=R every=22 offset=6 jitter=3 seed=23
 PROPS kind=cypress from=212 to=240 side=both every=10 offset=3 seed=24
@@ -76,6 +79,8 @@ PROP kind=bunting at=(-58.8,1.7,-253.6) yaw=90 scale=1
 PROP kind=bunting at=(-113.8,1.7,-253.6) yaw=90 scale=1
 PROP kind=weathervane at=(-223.9,1.7,-56.9) yaw=-130 scale=1
 PROP kind=signboard at=(-242.6,1.7,-101.0) yaw=142 scale=1
+# T1 signboard on the outside of the corner, chevrons pointing into the turn (as Meadow Loop's T1 board)
+PROP kind=signboard at=(76.0,-0.3,15.0) yaw=90 scale=1.2
 # ---- dressing pass (2026-10, 34-stylized-pass): race-day town. Start-straight lamps, flags, banners and a crowd;
 # a tyre wall with chevron boards round T1; weeds and flowers at the parapet foot; shrubs, shade trees peeking over
 # the roofs and far tree lines. side=both rows skip the piazza, whose inner edge is the bell tower's base
