@@ -480,12 +480,13 @@ export const ORBITAL_PROPS: Record<string, PropFactory> = {
   foundry_building: F(foundryHall, station, true, 64),
   // racing furniture
   ad_board_a: F(() => holoBoard('a'), station, true, 80),
-  ad_board_b: F(() => holoBoard('b'), station, true, 80),
+  // T1 chevrons: coral on a white panel, 1.5× and clear of the impact pads (the cyan-on-navy board read as a dark slot)
+  ad_board_b: F(() => chevronBoard(ORANGE, WHITE, PANEL), station, true, 80),
   ad_board_c: F(() => holoBoard('c'), station, true, 80),
   tyre_wall: F(impactPads, () => MaterialLibrary.vertexLit(0.8, 0), true, 300),
   flag_pole: F(bannerMast, station, true, 200),
   gantry: F(stationArch, station, true),
-  chevron: F(() => litChevron(CYAN, 1.1), station, true, 256),
+  chevron: F(() => litChevron(ORANGE, 0.9, { panel: WHITE, scale: 1.5 }), station, true, 256),
   // hazards and compiler props
   hazard_press: F(press, hull, true),
   hazard_laser: F(laserGate, hull, false),
