@@ -214,8 +214,10 @@ function adBoard(v: 'a' | 'b' | 'c', leftSide = false): THREE.BufferGeometry {
   const face = v === 'a' ? TERRACOTTA : v === 'b' ? NAVY : IVORY;
   p.push(part(box(0.04, H, W), face, 0.02, y, 0));
   if (v === 'a') {
-    p.push(paint(place(sparkleGeometry(0.34, 0.03, 11), 0.05, y, -0.85, 0, Math.PI / 2, 0), IVORY));
-    p.push(part(box(0.03, 0.16, 1.6), IVORY, 0.05, y + 0.12, 0.45), part(box(0.03, 0.1, 1.2), IVORY, 0.05, y - 0.16, 0.25));
+    // symmetric: sparkle in the middle, a word-bar pair either side. With the mark at one end it read as "=▷" from
+    // a distance, i.e. an arrow pointing back at the driver on right-side rows
+    p.push(paint(place(sparkleGeometry(0.32, 0.03, 11), 0.05, y, 0, 0, Math.PI / 2, 0), IVORY));
+    for (const z of [-0.85, 0.85]) p.push(part(box(0.03, 0.15, 0.9), IVORY, 0.05, y + 0.1, z), part(box(0.03, 0.09, 0.7), IVORY, 0.05, y - 0.14, z));
   } else if (v === 'b') {
     for (let k = 0; k < 4; k++) {
       const z = -0.9 + k * 0.6;
