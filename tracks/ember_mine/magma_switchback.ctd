@@ -83,28 +83,133 @@ PROPS kind=tyre_wall from=@plateau_1+1 to=@plateau_1+30 side=L every=1.3 offset=
 PROPS kind=lamp_post along=main side=both every=32 offset=1.6 seed=67
 # floor cover, rubble, basalt, stalagmite columns and the far stalagmite forest round the lap (none on the lava lake)
 # (left of the helix is the lava lake, left of the rail corner and right of the geyser field are lava pits)
-PROPS kind=grass_tuft side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=70
-PROPS kind=grass_tuft from=@under_plateau to=@rail_corner_in side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=170
-PROPS kind=grass_tuft from=@lava_jump+44 to=@helix side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=171
-PROPS kind=flower_patch side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=71
-PROPS kind=flower_patch from=@under_plateau to=@rail_corner_in side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=172
-PROPS kind=flower_patch from=@lava_jump+44 to=@helix side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=173
-PROPS kind=bush_round from=@geyser_gap+80 to=@geyser_field side=R every=11 offset=3 jitter=9 scale=0.7-1.3 seed=72
-PROPS kind=bush_round from=@under_plateau to=@rail_corner_in side=L every=11 offset=3 jitter=9 scale=0.7-1.3 seed=174
-PROPS kind=bush_round from=@lava_jump+44 to=@helix side=L every=11 offset=3 jitter=9 scale=0.7-1.3 seed=175
-PROPS kind=rock_cluster from=@geyser_gap+80 to=@geyser_field side=R every=23 offset=4 jitter=12 scale=0.6-1.4 seed=73
-PROPS kind=rock_cluster from=@under_plateau to=@rail_corner_in side=L every=23 offset=4 jitter=12 scale=0.6-1.4 seed=176
-PROPS kind=rock_cluster from=@lava_jump+44 to=@helix side=L every=23 offset=4 jitter=12 scale=0.6-1.4 seed=177
-PROPS kind=tree_round_big from=@plateau+40 to=@helix side=both every=17 offset=14 jitter=18 scale=0.8-1.3 seed=74
-PROPS kind=tree_round_big from=@helix to=@geyser_field side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=75
-PROPS kind=tree_round_big from=@under_plateau to=@plateau side=L every=17 offset=14 jitter=18 scale=0.8-1.3 seed=76
-PROPS kind=tree_clump side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=77
-PROPS kind=tree_clump from=@under_plateau to=@plateau side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=78
-PROPS kind=tree_clump side=both every=34 offset=125 jitter=50 scale=1.0-1.6 seed=79
+PROPS kind=grass_tuft along=40-86 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=70
+PROPS kind=grass_tuft along=110-198 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=170
+PROPS kind=grass_tuft along=325-349 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=270
+PROPS kind=grass_tuft along=478-500 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=370
+PROPS kind=grass_tuft along=525-644 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=470
+PROPS kind=grass_tuft along=662-1785 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=570
+PROPS kind=grass_tuft along=1805-1849 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=670
+PROPS kind=grass_tuft along=0-39 side=R every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=770
+PROPS kind=grass_tuft along=504-505 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=170
+PROPS kind=grass_tuft along=522-641 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=270
+PROPS kind=grass_tuft along=682-742 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=370
+PROPS kind=grass_tuft along=775-890 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=470
+PROPS kind=grass_tuft along=1022-1262 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=171
+PROPS kind=grass_tuft along=1284-1591 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=271
+PROPS kind=grass_tuft along=1623-1786 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=371
+PROPS kind=grass_tuft along=1806-1849 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=471
+PROPS kind=grass_tuft along=0-89 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=571
+PROPS kind=grass_tuft along=107-169 side=L every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=671
+PROPS kind=flower_patch along=40-83 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=71
+PROPS kind=flower_patch along=111-200 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=171
+PROPS kind=flower_patch along=326-348 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=271
+PROPS kind=flower_patch along=476-500 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=371
+PROPS kind=flower_patch along=528-643 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=471
+PROPS kind=flower_patch along=663-1217 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=571
+PROPS kind=flower_patch along=1231-1321 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=671
+PROPS kind=flower_patch along=1337-1783 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=771
+PROPS kind=flower_patch along=1805-1849 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=871
+PROPS kind=flower_patch along=0-39 side=R every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=971
+PROPS kind=flower_patch along=522-640 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=172
+PROPS kind=flower_patch along=682-740 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=272
+PROPS kind=flower_patch along=774-890 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=372
+PROPS kind=flower_patch along=1022-1261 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=173
+PROPS kind=flower_patch along=1286-1585 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=273
+PROPS kind=flower_patch along=1625-1785 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=373
+PROPS kind=flower_patch along=1806-1849 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=473
+PROPS kind=flower_patch along=0-89 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=573
+PROPS kind=flower_patch along=107-166 side=L every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=673
+# (rows reaching out from one stretch can land on another stretch of road, above, below or across a hairpin, where
+# trackc's same-level on-road check misses them: the far-reaching rows are split round those stretches)
+PROPS kind=bush_round along=841-1148 side=R every=11 offset=3 jitter=9 scale=0.7-1.3 seed=72
+PROPS kind=bush_round along=1161-1213 side=R every=11 offset=3 jitter=9 scale=0.7-1.3 seed=172
+PROPS kind=bush_round along=1239-1311 side=R every=11 offset=3 jitter=9 scale=0.7-1.3 seed=272
+PROPS kind=bush_round along=1342-1364 side=R every=11 offset=3 jitter=9 scale=0.7-1.3 seed=372
+PROPS kind=bush_round along=1382-1780 side=R every=11 offset=3 jitter=9 scale=0.7-1.3 seed=472
+PROPS kind=bush_round along=1805-1849 side=R every=11 offset=3 jitter=9 scale=0.7-1.3 seed=572
+PROPS kind=bush_round along=0-62 side=R every=11 offset=3 jitter=9 scale=0.7-1.3 seed=672
+PROPS kind=bush_round along=111-300 side=R every=11 offset=3 jitter=9 scale=0.7-1.3 seed=772
+PROPS kind=bush_round along=375-499 side=R every=11 offset=3 jitter=9 scale=0.7-1.3 seed=872
+PROPS kind=bush_round along=548-642 side=R every=11 offset=3 jitter=9 scale=0.7-1.3 seed=972
+PROPS kind=bush_round along=523-637 side=L every=11 offset=3 jitter=9 scale=0.7-1.3 seed=174
+PROPS kind=bush_round along=684-738 side=L every=11 offset=3 jitter=9 scale=0.7-1.3 seed=274
+PROPS kind=bush_round along=768-890 side=L every=11 offset=3 jitter=9 scale=0.7-1.3 seed=374
+PROPS kind=bush_round along=1022-1259 side=L every=11 offset=3 jitter=9 scale=0.7-1.3 seed=175
+PROPS kind=bush_round along=1290-1311 side=L every=11 offset=3 jitter=9 scale=0.7-1.3 seed=275
+PROPS kind=bush_round along=1321-1373 side=L every=11 offset=3 jitter=9 scale=0.7-1.3 seed=375
+PROPS kind=bush_round along=1383-1470 side=L every=11 offset=3 jitter=9 scale=0.7-1.3 seed=475
+PROPS kind=bush_round along=1480-1512 side=L every=11 offset=3 jitter=9 scale=0.7-1.3 seed=575
+PROPS kind=bush_round along=1522-1571 side=L every=11 offset=3 jitter=9 scale=0.7-1.3 seed=675
+PROPS kind=bush_round along=1628-1783 side=L every=11 offset=3 jitter=9 scale=0.7-1.3 seed=775
+PROPS kind=bush_round along=1807-1849 side=L every=11 offset=3 jitter=9 scale=0.7-1.3 seed=875
+PROPS kind=bush_round along=0-88 side=L every=11 offset=3 jitter=9 scale=0.7-1.3 seed=975
+PROPS kind=bush_round along=122-157 side=L every=11 offset=3 jitter=9 scale=0.7-1.3 seed=1075
+PROPS kind=rock_cluster along=841-1124 side=R every=23 offset=4 jitter=12 scale=0.6-1.4 seed=73
+PROPS kind=rock_cluster along=1166-1211 side=R every=23 offset=4 jitter=12 scale=0.6-1.4 seed=173
+PROPS kind=rock_cluster along=1407-1776 side=R every=23 offset=4 jitter=12 scale=0.6-1.4 seed=273
+PROPS kind=rock_cluster along=1806-1849 side=R every=23 offset=4 jitter=12 scale=0.6-1.4 seed=373
+PROPS kind=rock_cluster along=0-41 side=R every=23 offset=4 jitter=12 scale=0.6-1.4 seed=473
+PROPS kind=rock_cluster along=112-301 side=R every=23 offset=4 jitter=12 scale=0.6-1.4 seed=573
+PROPS kind=rock_cluster along=374-499 side=R every=23 offset=4 jitter=12 scale=0.6-1.4 seed=673
+PROPS kind=rock_cluster along=565-641 side=R every=23 offset=4 jitter=12 scale=0.6-1.4 seed=773
+PROPS kind=rock_cluster along=523-625 side=L every=23 offset=4 jitter=12 scale=0.6-1.4 seed=176
+PROPS kind=rock_cluster along=685-735 side=L every=23 offset=4 jitter=12 scale=0.6-1.4 seed=276
+PROPS kind=rock_cluster along=767-890 side=L every=23 offset=4 jitter=12 scale=0.6-1.4 seed=376
+PROPS kind=rock_cluster along=1022-1258 side=L every=23 offset=4 jitter=12 scale=0.6-1.4 seed=177
+PROPS kind=rock_cluster along=1630-1781 side=L every=23 offset=4 jitter=12 scale=0.6-1.4 seed=277
+PROPS kind=rock_cluster along=1809-1849 side=L every=23 offset=4 jitter=12 scale=0.6-1.4 seed=377
+PROPS kind=rock_cluster along=0-88 side=L every=23 offset=4 jitter=12 scale=0.6-1.4 seed=477
+PROPS kind=tree_round_big along=112-206 side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=74
+PROPS kind=tree_round_big along=40-86 side=L every=17 offset=14 jitter=18 scale=0.8-1.3 seed=1074
+PROPS kind=tree_round_big along=206-305 side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=75
+PROPS kind=tree_round_big along=365-497 side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=175
+PROPS kind=tree_round_big along=577-628 side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=275
+PROPS kind=tree_round_big along=524-620 side=L every=17 offset=14 jitter=18 scale=0.8-1.3 seed=76
+PROPS kind=tree_round_big along=755-1251 side=L every=17 offset=14 jitter=18 scale=0.8-1.3 seed=176
+PROPS kind=tree_round_big along=1633-1771 side=L every=17 offset=14 jitter=18 scale=0.8-1.3 seed=276
+PROPS kind=tree_round_big along=1813-1849 side=L every=17 offset=14 jitter=18 scale=0.8-1.3 seed=376
+PROPS kind=tree_clump along=40-94 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=77
+PROPS kind=tree_clump along=111-304 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=177
+PROPS kind=tree_clump along=326-570 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=277
+PROPS kind=tree_clump along=635-1123 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=377
+PROPS kind=tree_clump along=1333-1407 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=477
+PROPS kind=tree_clump along=1417-1773 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=577
+PROPS kind=tree_clump along=0-39 side=R every=26 offset=60 jitter=50 scale=0.9-1.4 seed=677
+PROPS kind=tree_clump along=510-610 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=78
+PROPS kind=tree_clump along=670-708 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=178
+PROPS kind=tree_clump along=753-807 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=278
+PROPS kind=tree_clump along=818-886 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=378
+PROPS kind=tree_clump along=917-971 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=478
+PROPS kind=tree_clump along=999-1184 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=578
+PROPS kind=tree_clump along=1257-1415 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=678
+PROPS kind=tree_clump along=1688-1720 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=778
+PROPS kind=tree_clump along=1811-1849 side=L every=26 offset=60 jitter=50 scale=0.9-1.4 seed=878
+PROPS kind=tree_clump along=40-90 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=79
+PROPS kind=tree_clump along=131-305 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=179
+PROPS kind=tree_clump along=327-1263 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=279
+PROPS kind=tree_clump along=1414-1660 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=379
+PROPS kind=tree_clump along=1679-1772 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=479
+PROPS kind=tree_clump along=1812-1849 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=579
+PROPS kind=tree_clump along=0-39 side=R every=34 offset=125 jitter=50 scale=1.0-1.6 seed=679
+PROPS kind=tree_clump along=40-216 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=1079
+PROPS kind=tree_clump along=238-392 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=1179
+PROPS kind=tree_clump along=414-608 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=1279
+PROPS kind=tree_clump along=1261-1416 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=1379
+PROPS kind=tree_clump along=1437-1483 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=1479
+PROPS kind=tree_clump along=1807-1849 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=1579
+PROPS kind=tree_clump along=0-39 side=L every=34 offset=125 jitter=50 scale=1.0-1.6 seed=1679
 # mine clutter: supply piles, timber cribs and a pipe run along the conveyors
-PROPS kind=tree_round_big from=@geyser_gap+80 to=@plateau side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=180
-PROPS kind=crate_barrels side=R every=45 offset=3 jitter=4 seed=80
-PROPS kind=timber_crib from=@under_plateau to=@rail_corner_in side=L every=70 offset=6 jitter=6 seed=81
+PROPS kind=tree_round_big along=841-1111 side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=180
+PROPS kind=tree_round_big along=1415-1770 side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=280
+PROPS kind=tree_round_big along=1804-1839 side=R every=17 offset=14 jitter=18 scale=0.8-1.3 seed=380
+PROPS kind=crate_barrels along=40-85 side=R every=45 offset=3 jitter=4 seed=80
+PROPS kind=crate_barrels along=111-300 side=R every=45 offset=3 jitter=4 seed=180
+PROPS kind=crate_barrels along=375-499 side=R every=45 offset=3 jitter=4 seed=280
+PROPS kind=crate_barrels along=526-643 side=R every=45 offset=3 jitter=4 seed=380
+PROPS kind=crate_barrels along=663-1784 side=R every=45 offset=3 jitter=4 seed=480
+PROPS kind=timber_crib along=523-635 side=L every=70 offset=6 jitter=6 seed=81
+PROPS kind=timber_crib along=762-890 side=L every=70 offset=6 jitter=6 seed=181
 PROPS kind=pipe_run from=@conveyors to=@basalt_chicane side=R every=8.6 offset=0.9 scale=1-1 seed=82
 # the start zone (line ±10 m excludes PROPS rows): hand-placed from the baked frame (offset from the road edge)
 PROP kind=grass_patch at=(34.0,-0.2,-7.2) yaw=270 scale=1
