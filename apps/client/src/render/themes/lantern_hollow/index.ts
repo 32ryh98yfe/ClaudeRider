@@ -11,7 +11,8 @@ export default (c: ContentTables): ThemeKit => {
     // stylized pass (2026-10): the night stays night, but the road is a lighter, low-saturation grey-violet (the moon
     // light is already blue; a violet road went saturated blue) so the karts and the pumpkin kerbs of the next corner
     // read first; grass is a mid-value moss, never black
-    road: { style: 'cobble', a: '#6a6574', b: '#7c7686', line: '#ffcf8a' },
+    // review round: pale lilac-white edge paint (#e9e2f5): the warm line at half cobble paint strength read lavender
+    road: { style: 'cobble', a: '#6a6574', b: '#7c7686', line: '#e9e2f5' },
     shoulder: { a: '#4f7658', b: '#5e8664' },
     terrain: { a: '#476a55', b: '#577c5f', rock: '#78729a' },
     wall: { kind: 'stone', a: '#8c8598', b: '#6a6178' },
@@ -22,11 +23,12 @@ export default (c: ContentTables): ThemeKit => {
     // a brighter lilac sky fill (×0.55 at night) and a shadowless warm back fill — the lanterns' bounce — so the chase
     // camera sees the karts' shaded sides in their own colours; shadows stay soft (moonlight), rims a touch lower
     hemi: { sky: '#958dd2', ground: '#64506a', intensity: 1.65 },
-    fill: { color: '#ffc690', intensity: 0.34 },
+    fill: { color: '#ffc690', intensity: 0.45 },
     shadowStrength: 0.6,
     exposure: 1.22,
     envIntensity: 0.32,
-    rimBoost: 1.6,
+    // review round: rims up (1.6 → 1.9) and the back fill up (0.34 → 0.45) so the karts separate from the road in value
+    rimBoost: 1.9,
     bloom: 0.36,
     fogColor: '#2e2756',
     grade: { saturation: 1.08, tint: '#ffffff', shadows: '#e4e0ff', highlights: '#fff4e6' },

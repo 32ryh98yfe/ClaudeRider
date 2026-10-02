@@ -87,6 +87,12 @@ PROPS kind=spectators from=@lantern_lane+72 to=@lantern_lane+120 side=L every=14
 PROPS kind=spectators from=@home+22 to=@home+40 side=R every=16 offset=2.0 jitter=1 seed=65
 PROPS kind=flag_pole from=@lantern_lane+30 to=@lantern_lane+40 side=L every=5 offset=2.8 seed=66
 PROPS kind=tyre_wall from=@pumpkin_patch+1 to=@pumpkin_patch+30 side=R every=1.3 offset=0.6 seed=67
+# review round: lantern posts every 12 m along the corner outsides, so the next corner reads at night
+PROPS kind=lantern_post from=@pumpkin_patch to=@pumpkin_patch+32 side=R every=12 offset=1.6 seed=197
+PROPS kind=lantern_post from=@mill_corner to=@mill_corner+44 side=R every=12 offset=1.6 seed=198
+PROPS kind=lantern_post from=@bat_tree to=@bat_tree+63 side=R every=12 offset=1.6 seed=199
+PROPS kind=lantern_post from=@orchard_in to=@orchard_in+61 side=L every=12 offset=1.6 seed=200
+PROPS kind=lantern_post from=@chapel_corner to=@chapel_corner+60 side=R every=12 offset=1.6 seed=201
 # ground cover, shrubs, autumn trees and the far woods round the whole lap (no big trees behind the stand or grid)
 PROPS kind=grass_tuft side=both every=0.8 offset=0.2 jitter=8 scale=1.0-1.8 seed=70
 PROPS kind=flower_patch side=both every=5 offset=0.8 jitter=9 scale=0.8-1.3 seed=71

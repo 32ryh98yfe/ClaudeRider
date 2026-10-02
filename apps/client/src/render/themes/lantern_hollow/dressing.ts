@@ -16,7 +16,7 @@ const leafy = (): THREE.Material => MaterialLibrary.foliageLit();
 
 // night palette: mid values (the moon key is weak), so the autumn colours still read under the lilac fill
 const N = {
-  grass: '#58804f', grassLight: '#6f9454', grassTip: '#b0954c', leafOrange: '#e0782c', leafRed: '#c2452f', leafGold: '#e8b03a',
+  grass: '#58804f', grassLight: '#6f9454', grassTip: '#b0954c', leafOrange: '#a9472c', leafRed: '#7e3328', leafGold: '#a8682e',
   leafPlum: '#8a4f96', bark: '#4e3322', barkLight: '#6a4630', moss: '#6f9a5a', stone: '#9690ad', stoneDark: '#736d8c', cap: '#d9483b',
   pine: '#2f5a48', pineLight: '#3d6b52', violet: '#6b4fa0', indigo: '#2a2552', cream: '#f4efe6', straw: '#e8c46a', strawDeep: '#c9a24a',
   ribbon: '#8a6cc8', pumpkin: '#ff9f1c', ink: '#1e1b3a',

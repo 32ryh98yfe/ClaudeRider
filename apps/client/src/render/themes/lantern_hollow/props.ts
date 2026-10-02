@@ -119,7 +119,8 @@ function lanternString(): THREE.BufferGeometry {
   const pts: [number, number, number][] = [];
   for (let i = 0; i <= 10; i++) { const t = i / 10; pts.push([0, 6.4 - Math.sin(t * Math.PI) * 1.0, -5 + t * 10]); }
   parts.push(part(tube(pts, 0.03, 10, 3), C.iron));
-  for (let i = 1; i < 10; i += 2) { const t = i / 10; paperLantern(parts, 0, 6.4 - Math.sin(t * Math.PI) * 1.0, -5 + t * 10, 0.28, 2.1); }
+  // review round: three lanterns per span (was five), so the strings stay accents and the road furniture reads first
+  for (const t of [0.2, 0.5, 0.8]) paperLantern(parts, 0, 6.4 - Math.sin(t * Math.PI) * 1.0, -5 + t * 10, 0.28, 2.1);
   return merge(parts);
 }
 
