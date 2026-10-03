@@ -1,6 +1,6 @@
 # 17 — Reference fidelity and executable calibration
 
-This is the current driving specification for simulation version 7. The user
+This is the current driving specification for simulation version 8. The user
 explicitly prioritized the supplied video over the previous immutable map and
 corner-number requirement. Preserve track themes, routes and feature order;
 adjust local geometry where the calibrated driving requires clearance. Camera
@@ -38,7 +38,7 @@ validation gate instead uses **ordinary mean absolute relative speed error over
 nonzero source samples**, with no floor. Independent tests recompute that metric
 on an in-memory flat fixture rather than importing the fitter or generated assets.
 
-| Identified clip | Before fb71b3f | Version 7 | Role |
+| Identified clip | Before fb71b3f | Version 8 | Role |
 |---|---:|---:|---|
 | Expert launch | 20.675% | 5.348% | Calibration; not a held-out claim |
 | Intermediate launch | 20.322% | 4.758% | Held out; passes 5% gate |
@@ -75,7 +75,7 @@ Finite recovery uses the version-5 algorithm with the new coefficient:
 grip to lateral damping and preserve `etaCut=0.8`; yaw relaxes with the same
 response. Final alignment occurs only inside the existing six-degree exit band.
 The independent oracle and AI lookahead model implement the launch target and
-recovery rules. SIM_VERSION 7 rejects older ghost/online trajectories; no packet
+recovery rules. SIM_VERSION 8 rejects older ghost/online trajectories; no packet
 or persistent world-state field was added.
 
 ## Actual game replay and camera
@@ -185,25 +185,26 @@ each full run must match; a changed source invalidates its certificate.
 |---|---:|---:|
 | Finishers / kart starts | 1,134 / 1,134 | 1,134 / 1,134 |
 | Hard wall contacts | 51 | 37 |
-| Respawns | 9 | 9 |
+| Respawns | 9 | 8 |
 | Maximum no-progress ticks | 302 | 315 |
-| Items used | 3,191 | 3,160 |
-| Effect hits on opponents | 2,042 | 2,008 |
+| Items used | 3,191 | 3,159 |
+| Effect hits on opponents | 2,042 | 2,012 |
 
 The adopted candidate has zero speed-mode respawns, solo hard contacts, missed
-gates or missed finishes. All nine remaining resets have current causal traces:
+gates or missed finishes. All eight remaining resets have current causal traces:
 Meadow includes self-bomb damage and opponent CC before a jump; Sunstone includes
 an Overclock attacker's and victims' pile-up before the jump; Sandglass includes
-opponent speed suppression before takeoff. Fernwood retains failed wall recovery
-after a combat queue collision. Pumpkin retains failed recovery after an airborne
-attack carries the kart into a junction with a higher branch deck. Pumpkin is not
-the creek-jump case and is not a direct midair-hit reset. These events are not
+opponent speed suppression before takeoff. Fernwood remains physically trapped
+after a combat queue collision: maximum attempted forward progress is only
+0.691 m, followed by another wall strike and the existing reset fallback. This
+is not a stale reset latch after a successful escape. These events are not
 labeled universally unavoidable.
 
 Belltower's displaced-line failure is repaired by the local width transition;
 Aurora's approach failure by the scoped jump rule; Manor's stationary warp exit
-by supported placement. Four original regression flags remain visible:
-Fernwood/7301, Meadow/4242, Pumpkin/7301 and Sunstone/7301. **The strict no-new-
+by supported placement. Pumpkin's support discontinuity is repaired as described
+below. Three original regression flags remain visible:
+Fernwood/7301, Meadow/4242 and Sunstone/7301. **The strict no-new-
 unintended-respawn/recovery criterion is not fully certified.** The unchanged
 matrix gates continue to flag these cases; keep the PR draft for that limitation.
 
@@ -212,7 +213,7 @@ Portable rebaking therefore changes battle histories even under the same public
 seed. Matrix differences are observed scenario outcomes, not a controlled
 identical-inventory causal experiment. The human reference replays retain exactly
 the same raw inputs and fixture; all 12 trajectories still match the captured
-candidate after the version-7 and compiler changes.
+candidate after the version-8 and compiler changes.
 
 A bounded post-control-loss steering candidate fixed the local Belltower example
 but increased global item respawns 16→18 and maximum no-progress ticks 184→213.
@@ -273,6 +274,21 @@ CC is unchanged. The existing attachment and integer effect parameter fields
 provide exact checkpoint replay; no new serialized state is needed. Version 7
 rejects ghosts from the published version-6 checkpoint as well as older models.
 
+Version 8 additionally preserves real support at bank/deck seams: only a grounded
+kart whose original normal-direction ray misses entirely may retry along freshly
+computed local gravity. Previous up, gravity up and the hit normal must satisfy
+the existing 65° compatibility limit. A rejected primary hit never triggers a
+retry, and airborne one-sided landing, two-metre ray range, downward SNAP and
+normal-speed limits remain unchanged. No new state or thrust is added.
+
+The Pumpkin replay matches through tick 683; at 684 the retry finds the actual
+deck and keeps contact. Slot 0 no longer respawns. In the complete 252-case
+comparison only that scenario changes (respawns 1→0, maximum stall 202→68);
+every other 251 row is identical except wall-clock measurement time. All 12
+human reference trajectories and their events also remain identical. Version 8
+rejects both published version-6 and version-7 ghosts. The ineffective locator
+and grade-adjustment experiments are absent from the delivered files.
+
 Legacy corner numbers are changed only where the new law intentionally changes
 them. Launch distance is checked against independent integration to 0.05 m.
 Gauge integration is normalized by `g0`; the R9 input plan is retimed while
@@ -293,7 +309,7 @@ with real Chrome/Tone, alongside the strict production E2E checks.
 
 ## Executed presentation checks and remaining limits
 
-Final verification on the restored runtime and five accepted maps: **854 tests
+Final verification on the restored runtime and five accepted maps: **857 tests
 pass, 61 skip, zero fail**. The skipped set includes the explicitly Linux-only
 HTTP fixture on macOS. Canonical golden verification additionally passes all
 36 focused compiler tests on both ARM64 and x64 with no stale-input notices. Frozen contracts,

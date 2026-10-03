@@ -13,15 +13,15 @@
       "height": 1080
     }
   },
-  "candidateRuntimeSimVersion": 7,
+  "candidateRuntimeSimVersion": 8,
   "inputs": {
     "before": {
       "file": "reference-baseline-measurement.json",
-      "sha256": "823c43897ee932ae0f9466555d07de03f88c7347c1a8547905c13dd7bedab4ed"
+      "sha256": "16b12d49851c66e0a07db183740836a5967714cb834a5da1e487530b5c185e38"
     },
     "after": {
       "file": "reference-final-measurement.json",
-      "sha256": "29ea3c6a867aeef89c50ea59b4124be6dedc91e8a24d2d33ddfaea5694cc8468"
+      "sha256": "ebaa7d61d2e758aa89d6292f0f5cc97f2814e174e4171a545a33cd72a20ec7d7"
     },
     "independent-before": {
       "file": "baseline-node.json",
@@ -37,7 +37,7 @@
     },
     "map-after": {
       "file": "map-candidate.json",
-      "sha256": "2472a6dca2c66a44386b7d4130aa7ee6e3bb204dbb8b1243faa0b333c0bc1e35"
+      "sha256": "6fd104b5e4a5b28f12a7dec0b46bcf3a731fbf37a46e111d076498df03236d48"
     },
     "rejected": {
       "file": "rejected-post-cc-matrix.json",
@@ -49,7 +49,7 @@
     },
     "review": {
       "file": "causal-review.json",
-      "sha256": "64da4484fa3601cfd7062ceb541b86176132735a9fb17d3503b4b2dcadd98505"
+      "sha256": "165765b1cb3ebe36439f4e27cfd72aed85adaaa68f4dbb1eaf04a347d4f40b50"
     }
   },
   "definitions": {
@@ -67,7 +67,7 @@
     "deferredAiContracts": "Legacy lane-cost/TTC projection and legacy reported closing speed remain unchanged. Broad corrections and a braking-threshold follow-up failed existing traffic gates and were rejected. A separate actual-closing diagnostic is used only to skip artificial traffic coasting on a grounded, unrestrained, under-speed jump approach without a real closing threat. This narrow exception does not claim to repair the general planner contracts."
   },
   "baselineIdentity": {
-    "measuredRuntimeSimVersion": 7,
+    "measuredRuntimeSimVersion": 8,
     "kind": "current harness with original parameter overrides",
     "referenceCommit": "fb71b3f",
     "originalProfile": {
@@ -3929,11 +3929,11 @@
         "finishedKarts": 1134,
         "kartStarts": 1134,
         "hardHits": 37,
-        "respawns": 9,
+        "respawns": 8,
         "maxStuckTicks": 315,
-        "itemsUsed": 3160,
-        "effectHits": 4512,
-        "combatEffectHits": 2008,
+        "itemsUsed": 3159,
+        "effectHits": 4516,
+        "combatEffectHits": 2012,
         "uncreditedGateOrFinish": 0
       },
       "splits": [
@@ -3990,11 +3990,11 @@
           "finishedKarts": 504,
           "kartStarts": 504,
           "hardHits": 28,
-          "respawns": 9,
+          "respawns": 8,
           "maxStuckTicks": 315,
-          "itemsUsed": 2970,
-          "effectHits": 4395,
-          "combatEffectHits": 2008,
+          "itemsUsed": 2969,
+          "effectHits": 4399,
+          "combatEffectHits": 2012,
           "uncreditedGateOrFinish": 0
         }
       ],
@@ -4085,8 +4085,8 @@
         }
       },
       "sourceStable": true,
-      "sourceTreeSha256": "22da7e5832f66b0b1e9b1c4928f8038b406d22664eb5dbddf11d4a7b6032b430",
-      "sourceTreeSha256After": "22da7e5832f66b0b1e9b1c4928f8038b406d22664eb5dbddf11d4a7b6032b430",
+      "sourceTreeSha256": "1d7c1949e39ca6917d46fadbc1b8c9daa981bd033e2a56b94d631bc0aeefb418",
+      "sourceTreeSha256After": "1d7c1949e39ca6917d46fadbc1b8c9daa981bd033e2a56b94d631bc0aeefb418",
       "sourceFingerprints": {
         "packages/sim/src/kart/dynamics.ts": "4f0eaa892b181acfc4697d717d5fb98d016fb7bd85522aef1e41ed9e5ff02834",
         "packages/sim/src/kart/params.ts": "bbe0d587cfbdca0ee50fc48fb27fb4eb22af3adf3b3f92dc7019720d49d74f3b",
@@ -4097,7 +4097,7 @@
         "packages/sim/src/ai/avoid.ts": "7a7b8fe1098c0a37f4a4dbb77f6306dd74b1e045d781402b5f779870c27830a1",
         "packages/sim/src/ai/items/decide.ts": "513e3e85f5a7a846372b45056f65ff8093874ee0acf2415852e6062e1b401c5f",
         "packages/sim/src/ai/profiles.ts": "9bc9be094f229e10e3781e480058a26b33397ff97696a5f0dca1022ebb8c514e",
-        "packages/sim/src/core/state.ts": "1c6dceb04839eda0aedd2e1bf072d9a00305f5bfb4ed7c4719f57ced0d8fe441",
+        "packages/sim/src/core/state.ts": "2bc4c64ed86930ff475f3b0dfade67a4bc004c204ef95837575f0659d072ca1f",
         "packages/sim/src/items/projectiles.ts": "5a16c67bca7e6e8034d86f0d8075bc68bab8c771c2e754003120366fd33a38f8",
         "packages/content/src/karts/pebble.ts": "2efa10a72264f599052460e6474e984f69ebd0a5265fba37cd4bf7818af54e9f"
       },
@@ -4111,7 +4111,7 @@
         "packages/sim/src/ai/avoid.ts": "7a7b8fe1098c0a37f4a4dbb77f6306dd74b1e045d781402b5f779870c27830a1",
         "packages/sim/src/ai/items/decide.ts": "513e3e85f5a7a846372b45056f65ff8093874ee0acf2415852e6062e1b401c5f",
         "packages/sim/src/ai/profiles.ts": "9bc9be094f229e10e3781e480058a26b33397ff97696a5f0dca1022ebb8c514e",
-        "packages/sim/src/core/state.ts": "1c6dceb04839eda0aedd2e1bf072d9a00305f5bfb4ed7c4719f57ced0d8fe441",
+        "packages/sim/src/core/state.ts": "2bc4c64ed86930ff475f3b0dfade67a4bc004c204ef95837575f0659d072ca1f",
         "packages/sim/src/items/projectiles.ts": "5a16c67bca7e6e8034d86f0d8075bc68bab8c771c2e754003120366fd33a38f8",
         "packages/content/src/karts/pebble.ts": "2efa10a72264f599052460e6474e984f69ebd0a5265fba37cd4bf7818af54e9f"
       }
@@ -4125,8 +4125,8 @@
         ],
         "beforeRespawns": 0,
         "afterRespawns": 1,
-        "reviewStatus": "confirmed attack/contact chain with unresolved subsequent wall recovery",
-        "cause": "Selected-fork grip braking is effective: slot 7 enters at 23.857 m/s at 1170. Its missile makes leader 2 airborne at 1176; enemy 1 traps leader 3 at 1186. Slot 7 contacts the newly trapped 3 at 1193 (within the 8-tick input delay), then airborne 2 at 1224. Repeated contacts displace 7 into the outer wall at 1253 at 14.1 m/s while redaction is active 1144–1323. Wall recovery later fails and manual reset occurs 1466. This is combat-induced queue displacement followed by incomplete recovery, not an unavoidable direct-CC reset."
+        "reviewStatus": "confirmed combat/contact-induced physical wall trapping; reset does not follow a successful escape",
+        "cause": "Selected-fork grip braking is effective: slot 7 enters at 23.857 m/s at tick 1170. Its missile makes leader 2 airborne at 1176; enemy 1 traps leader 3 at 1186. Slot 7 contacts the newly trapped 3 at 1193 (within the 8-tick input delay), then airborne 2 at 1224. Repeated contacts displace 7 into the outer wall at 1253 at 14.1 m/s while redaction is active 1144–1323. The kart physically remains trapped: its recovery attempt advances at most 0.691 m before it is pinned again, then it resets at 1466. This is combat-induced queue displacement and physical trapping, not a stale RESET latch after a successful escape; it is not proof that every alternative recovery is impossible."
       },
       {
         "key": "meadow_loop/item/pack/4242",
@@ -4139,16 +4139,6 @@
         "cause": "Slot 2 is hit by its own Token Bomb at tick 1318, stops at s 571.197 (0.192 m before the lip), resumes at 1385 and loses ground at 1394 at 2.266 m/s while applying full throttle/no brake. Token Bomb self damage is explicitly specified. Slot 6 receives slot 7's Bug Report at 1268, resumes 1316 and takes off at 1334 at 5.264 m/s; another enemy airborne hit at 1356 precedes its reset. Jump minimum is 15 m/s. These are self/opponent-CC under-speed departures with insufficient run-up, not synthetic traffic coasting."
       },
       {
-        "key": "pumpkin_lane/item/pack/7301",
-        "reasons": [
-          "respawns"
-        ],
-        "beforeRespawns": 0,
-        "afterRespawns": 1,
-        "reviewStatus": "confirmed post-attack route/deck recovery gap; attempted guard rejected without benefit",
-        "cause": "Opponent airborne at 588–653 carries slot 0 straight through the branch approach. Location changes to the raised graveyard child around 630 at lateral−6.134 m, outside its 4.5 m halfwidth, while physical support is the lower host road. After control returns, the route still targets the child. At 684 the body reaches its footprint but is 0.510 m below the deck, loses host support, and later resets 744. A bounded incoming-child rejection and stricter height-only diagnostic each retained the reset and were rejected; the final locator is unchanged. This post-attack route/height recovery limitation remains."
-      },
-      {
         "key": "sunstone_bazaar/item/pack/7301",
         "reasons": [
           "respawns"
@@ -4159,11 +4149,16 @@
         "cause": "Slot 5 activates Overclock at tick 1195 and its contacts spin slots 3/6/7 at 1218/1224/1232. Slot 6 was also trapped by slot 2 at 1179. The attacker collides with the slowed victims at 1221/1225/1233 and repeatedly with slot 6 afterward. All four leave the jump below vMin 22: slot 3 at 1265/12.465 m/s, slot 7 at 1282/8.170 m/s, slot 6 at 1299/12.064 m/s and slot 5 at 1312/8.082 m/s. Slot 5 has no opponent hit and coasts as a follower at takeoff; this is a self-item-initiated attack/collision/control chain, not unavoidable direct enemy damage to every kart."
       }
     ],
-    "remainingCaveat": "All 252 fields and 1134 kart starts finish; there are zero speed-mode resets and zero solo hard contacts. Nine item-mode resets remain: opponent damage, intentional self-Token-Bomb damage, Overclock attack/collision/control chains, and two unresolved post-combat recovery cases (Fernwood wall recovery and Pumpkin route/deck recovery). Four scenarios exceed original per-scenario reset/stall thresholds and remain explicitly flagged. The report does not claim all resets are unavoidable or all acceptance criteria are complete. Item histories also change with trackHash, so baseline/final outcomes are not matched-inventory counterfactuals.",
+    "remainingCaveat": "All 252 fields and 1134 kart starts finish; there are zero speed-mode resets and zero solo hard contacts. Eight item-mode resets remain: opponent damage, intentional self-Token-Bomb damage, and Overclock attack/collision/control chains. Fernwood combat contacts physically trap a kart against the wall; its attempted recovery advances at most 0.691 m before it is pinned again, so the later reset is not a stale RESET latch after escape. Three scenarios exceed original per-scenario reset/stall thresholds and remain explicitly flagged. This report does not claim every reset is unavoidable or all reference-fidelity acceptance criteria are complete. Item histories also change with trackHash, so original/final outcomes are not matched-inventory counterfactuals. Pumpkin is resolved by the bounded physical ground-support fallback; its locator and map are unchanged.",
     "resolvedReviewedCases": [
       {
         "key": "manor_catacombs/item/pack/4242",
         "originalCause": "Enemy Bug Report hits slot 0 at tick 2095 during the warp. The existing impact-speed fix preserves entry speed, but the legitimately active trap zeros movement after the exit at tick 2126. The declared 941 m exit has no supporting triangle; first unsupported tick is 2127, before the later stun at 2193. This is a concrete unsupported exit bug, subsequently repaired locally by placing the exit at 942 m. The focused normal 84-tick trap regression stays stationary and grounded there.",
+        "currentRespawns": 0
+      },
+      {
+        "key": "pumpkin_lane/item/pack/7301",
+        "originalCause": "Opponent airborne at ticks 588–653 displaces slot 0 through the branch approach. At tick 684 its previous-road-normal ground ray misses supporting deck geometry, while a gravity-aligned ray finds compatible support. The adopted fallback retries only for an already-grounded kart when the original ray found no hit and both up directions and surface normal are compatible; the normal one-sided and distance tests still apply. Its exact state is unchanged through tick 683, then grounded stays true at 684 and route-relative height changes from −0.510 to −0.004 m. This prevents the former tick-744 reset; all eight racers finish without resets. The locator and map were not changed. The earlier locator-only guard was rejected.",
         "currentRespawns": 0
       }
     ],

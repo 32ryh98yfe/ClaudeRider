@@ -192,7 +192,7 @@ catch at low speed; successful re-kicks have a nine-tick cooldown. Client
 keyboard smoothing uses elapsed time. Track geometry, terrain, kart statistics,
 speed limits, grip yaw, gravity and all other map calibration remain unchanged.
 
-### Amendment (reference fidelity, simulation version 7)
+### Amendment (reference fidelity, simulation version 8)
 `17-reference-fidelity.md` supersedes the version-5 preservation constraint.
 The user authorized physics, kart and camera calibration from the supplied video,
 with localized changes to existing maps while preserving their themes/routes.

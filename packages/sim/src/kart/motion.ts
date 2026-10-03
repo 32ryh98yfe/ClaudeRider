@@ -60,7 +60,20 @@ export function halfStep(w: WorldState, k: KartState, P: KartParams, ctx: StepCo
   if (was) { ux = b.nx; uy = b.ny; uz = b.nz; }
   else { const g = ctx.scratch.grav; const gl = Math.sqrt(g.x * g.x + g.y * g.y + g.z * g.z) || 1; ux = -g.x / gl; uy = -g.y / gl; uz = -g.z / gl; }
   let accept = false;
-  if (T.groundRay(b.px + ux, b.py + uy, b.pz + uz, -ux, -uy, -uz, 2.0, hit) && hit.nx * ux + hit.ny * uy + hit.nz * uz > COS65) {
+  let foundGround = T.groundRay(b.px + ux, b.py + uy, b.pz + uz, -ux, -uy, -uz, 2.0, hit);
+  if (!foundGround && was === 1) {
+    // At a junction, the old bank normal can miss a supporting deck that is reached along gravity.
+    // Retry only lost contact, never a rejected hit or an airborne approach from underneath a road.
+    gravityFor(T, k.race.loc, ctx.scratch.grav);
+    const g = ctx.scratch.grav, gl = Math.sqrt(g.x * g.x + g.y * g.y + g.z * g.z) || 1;
+    const gx = -g.x / gl, gy = -g.y / gl, gz = -g.z / gl;
+    if (ux * gx + uy * gy + uz * gz > COS65
+      && T.groundRay(b.px + gx, b.py + gy, b.pz + gz, -gx, -gy, -gz, 2.0, hit)
+      && hit.nx * ux + hit.ny * uy + hit.nz * uz > COS65) {
+      ux = gx; uy = gy; uz = gz; foundGround = true;
+    }
+  }
+  if (foundGround && hit.nx * ux + hit.ny * uy + hit.nz * uz > COS65) {
     const dd = hit.t - 1.0; // + = kart above the surface
     const vnh = b.vx * hit.nx + b.vy * hit.ny + b.vz * hit.nz;
     // Ground is one-sided. The ray starts 1 m above the kart, so an airborne kart rising from underneath a road
