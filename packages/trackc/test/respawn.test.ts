@@ -2,7 +2,7 @@
 // (which cannot reach vMin, so it fell into the same gap forever: the meadow_loop item-race regression).
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { CTRK_MAGIC, CTRK_VERSION, SMP, copyLoc, readContainer, toArrayBuffer, type BakedTrack, type SimEvent, type TrackLoc } from '@cr/sim';
+import { CTRK_MAGIC, CTRK_VERSION, SMP, StartTier, copyLoc, readContainer, toArrayBuffer, type BakedTrack, type SimEvent, type TrackLoc } from '@cr/sim';
 import { bake, reload } from './helpers.ts';
 import { place, simRig, type SimRig } from './simrig.ts';
 import { runUp } from '../src/respawn.ts';
@@ -118,6 +118,9 @@ function dropCases(shim: boolean): void {
   it('a kart that rolls off the lip too slowly falls in, respawns once past the gap, then drives on', () => {
     const rig = simRig(t);
     place(rig, 0, J.lipS - 3, 0, 6);
+    // This is a slow mid-race roll-off, not a GO-window launch. The stronger
+    // calibrated launch would otherwise accelerate this artificial placement across the gap.
+    rig.w.karts[0]!.stats.startTier = StartTier.NONE;
     const res = drive(rig, t, 60 * 8, shim);
     const k = rig.w.karts[0]!;
     expect(res.placedS.length).toBe(1);

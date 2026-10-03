@@ -209,4 +209,4 @@ export interface RaceConfig {
   countdownTicks: number;                  // 3 beats × 60
 }
 
-export const SIM_VERSION = 5; // 5: finite cut recovery and repeat-drift cooldown (doc 16); wire layout unchanged
+export const SIM_VERSION = 6; // 6: video-calibrated launch, gauge and grip recovery (doc 17); wire layout unchanged

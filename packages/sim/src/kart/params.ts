@@ -7,7 +7,7 @@ import { DT, KMH_PER_MPS } from '../core/units.ts';
 
 export interface KartParams {
   vGrip: number; vBoost: number; a0: number; kOver: number; aCoast: number; aBrake: number; aBrakeDrift: number; vReverse: number;
-  kBoost: number; aBoostMax: number; tBoostTicks: number; aStartMax: number; chainTicks: number;
+  kBoost: number; aBoostMax: number; tBoostTicks: number; aStartMax: number; startCapMul: number; chainTicks: number;
   vInst: number; vDraft: number; vTeam: number; instTicks: number; aInst: number; instWindowTicks: number; instMinDriftTicks: number; instMinSlip: number;
   yGrip: number; gripV0: number; gripV1: number; kYawGrip: number; kLatGrip: number; etaGrip: number;
   driftMinSteer: number; driftMinSpeed: number; kickR: number; kickAngle: number; kickLoss: number;
@@ -35,7 +35,8 @@ type Shared = Omit<KartParams, 'vGrip' | 'vBoost' | 'a0' | 'tBoostTicks' | 'g0' 
 
 export const SHARED: Readonly<Shared> = {
   kOver: 0.9, aCoast: 2.5, aBrake: 24, aBrakeDrift: 14, vReverse: 10.78, // 65 km/h on the M5 display
-  kBoost: 4, aBoostMax: 25, aStartMax: 30, chainTicks: 15,
+  // Doc 17: fit to the standing-start footage. Launch thrust has its own transient speed target.
+  kBoost: 4, aBoostMax: 25, aStartMax: 45, startCapMul: 1.12, chainTicks: 15,
   instTicks: 30, aInst: 9, instWindowTicks: 30, instMinDriftTicks: 15, instMinSlip: SIN.d8,
   gripV0: 4, gripV1: 33.5, kYawGrip: 12, kLatGrip: 18, etaGrip: 0.1,
   driftMinSteer: 0.3, driftMinSpeed: 10, kickR: 1.2, kickAngle: 0.06981317007977318, kickLoss: 0.99,
@@ -59,7 +60,7 @@ export const SHARED: Readonly<Shared> = {
   tapAccelMul: 2, tapTicks: 8, tapGrace: 8, tapMinGap: 6, tapMaxGap: 12,
   dragNeutral: 0.3, dragEnterLo: SIN.d20, dragEnterHi: SIN.d35, dragExitLo: SIN.d18, dragExitHi: SIN.d37,
   // cut and reverse gauge; doc 16 adds finite grip recovery, faster below vGrip for tight hairpins
-  cutSteer: 0.7, cutTicks: 2, etaCut: 0.8, kCut: 36, revGaugeMul: 3,
+  cutSteer: 0.7, cutTicks: 2, etaCut: 0.8, kCut: 12, revGaugeMul: 3,
   // brake drift turn (고속턴) and spin-out (20 km/h, 15 ticks of stun)
   brakeTurnTicks: 8, brakeTurnMul: 2, spinTicks: 11, spinSpeed: 20 / KMH_PER_MPS, spinStunTicks: 15,
 };

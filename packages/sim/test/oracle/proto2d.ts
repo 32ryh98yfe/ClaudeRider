@@ -230,7 +230,7 @@ export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): vo
   if (inp.boost && k.boosters > 0 && k.boostT < P.chainTicks) { k.boosters--; k.boostT += P.tBoostTicks; }
   // K14 target speed; any boost law, drift or instant boost cancels the bleed for good
   const boosting = k.boostT > 0 || k.startT > 0;
-  const vT = boosting ? P.vBoost : P.vGrip;
+  const vT = k.boostT > 0 ? P.vBoost : k.startT > 0 ? P.vBoost * P.startCapMul : P.vGrip;
   if (boosting || k.drift === 1 || k.instT > 0) k.postT = 0;
   // §4.8 gear machine (before the longitudinal law)
   let gear = k.gear;

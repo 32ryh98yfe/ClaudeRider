@@ -75,6 +75,8 @@ function compilerFingerprint(): string {
     }
   };
   for (const d of ['packages/trackc/src', 'packages/sim/src/track', 'packages/sim/src/core', 'packages/content/src']) walk(join(ROOT, d));
+  // aibake reads the shared braking value; a recalibrated kart model must invalidate cached AI speed tables.
+  h.update('packages/sim/src/kart/params.ts').update(readFileSync(join(ROOT, 'packages/sim/src/kart/params.ts')));
   return h.digest('hex');
 }
 

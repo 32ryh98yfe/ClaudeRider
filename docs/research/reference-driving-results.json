@@ -1,0 +1,4218 @@
+{
+  "formatVersion": 1,
+  "source": {
+    "sha256": "af4ad63b07786412742068a0ff9c239f738730532cd7ced0acfdb241aa1e16a9",
+    "fps": 30,
+    "width": 1920,
+    "height": 1080,
+    "durationSeconds": 338.0351088435374,
+    "gameViewport": {
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 1080
+    }
+  },
+  "inputs": {
+    "before": {
+      "file": "reference-baseline-measurement.json",
+      "sha256": "ea3030e70c4a360e5b68a8e9ac0d434dcbb323dc7c9509a6fa35cbbed766f756"
+    },
+    "after": {
+      "file": "reference-final-measurement.json",
+      "sha256": "407b04611d5ac6afb80aa87dcd311b26ede61c90d2bb5095a306a944ea3fff45"
+    },
+    "independent-before": {
+      "file": "baseline-node.json",
+      "sha256": "9fec2f6af825a399dac837781ee14f20def82a215cb00893dd6f90b43b92fcd5"
+    },
+    "browser-parity": {
+      "file": "node-browser-parity.json",
+      "sha256": "a84edbdccc7d34df69a72aace34262c7b9714e4788522aa216ae1a149676341e"
+    },
+    "map-before": {
+      "file": "map-baseline.json",
+      "sha256": "44f8a3647b298048f138fc7c3e2fe7323619c1fe25f40817bd909b9076338acb"
+    },
+    "map-after": {
+      "file": "map-candidate.json",
+      "sha256": "8a6412525127e0d4959e8dfc669b942c0d18e328127f39f184a3a27e2ad1eba8"
+    },
+    "rejected": {
+      "file": "rejected-post-cc-matrix.json",
+      "sha256": "8580fd596bc568c69c4a679b5d85100289e649bc1ac5fdc22a82bf64ea408e74"
+    },
+    "rejected-projection": {
+      "file": "rejected-projection-matrix.json",
+      "sha256": "b132d6ada677575a7929732734bc5d125c971e09f827e45cf730a9d5dec62545"
+    },
+    "review": {
+      "file": "causal-review.json",
+      "sha256": "3b3eac7cd9c9fa3d394d7cbec523d8c7a70b7849dbab3d2092ef687e72efb863"
+    }
+  },
+  "definitions": {
+    "speedGate": "Ordinary mean absolute percentage error over nonzero high-confidence HUD observations; measured at sourceFrame*2 simulation ticks. No temporal shift or denominator floor.",
+    "fittingError": "Only the separate calibration score divides by max(20, source HUD km/h), including zero samples.",
+    "displayedError": "Same nonzero percentage error after rounding simulated HUD speed to an integer.",
+    "motionWindow": "Each rising raw Shift input through the next rising Shift input or clip end. Input windows are interventions, not measured physical drift episodes.",
+    "motionSpeed": "Source entry is the most recent HUD sample at/before the press (at most 3 frames old); simulation entry is exact. Loss is max(0, entry-min)/entry. Post-peak loss separately records decline from the window peak to its subsequent minimum, including a launch that accelerates during drift. Speed recovery is first return to entry speed after the local minimum, not slip recovery.",
+    "responseTiming": "Sim events are stamped at the completed 60 Hz tick. Source physical entry, slip recovery, and drift duration are null because only input and inventory events were annotated. Already-held Shift at clip start is not an observed press.",
+    "inventoryTiming": "Ordinal same-kind matching without removing large errors. First awards/use in identified launches are controlled comparisons; continuation matching is diagnostic because initial gauge/history are unknown.",
+    "boostCensoring": "Timer-active intervals seen in simulated samples. Activity in frame 0 is left-censored/seeded; activity at final sample is right-censored and its duration is only a lower bound. This never establishes original-engine booster duration.",
+    "referenceLimit": "Only two held-out launches have identified initial motion. Their 90-tick start buff is a fixed model hypothesis. Beginner footage uses a different source kart. Variable key-overlay latency reaches 100 ms. No whole-video 5% fidelity claim.",
+    "matrixReview": "Flags retain the original regression rules. Causal review distinguishes direct attack, following collisions/braking, and incomplete recovery. Reviewed does not mean every reset is unavoidable. Cases no longer flagged by the selected geometry are listed separately.",
+    "deferredAiContracts": "The lane planner common-time projection and reported closing-speed contracts remain unchanged. Isolated corrections and a braking-threshold follow-up failed existing traffic gates and were rejected. They require joint planner calibration; this delivery does not claim those contracts were fixed."
+  },
+  "baselineIdentity": {
+    "measuredRuntimeSimVersion": 6,
+    "kind": "current harness with original parameter overrides",
+    "referenceCommit": "fb71b3f",
+    "originalProfile": {
+      "aStartMax": 30,
+      "startCapMul": 1,
+      "g0": 0.7,
+      "kCut": 36
+    },
+    "independentSnapshotSimVersion": 5,
+    "independentSnapshotComparison": "Every stored speed and world hash matches the independent fb71b3f simulation snapshot for all 12 clips. The older independent report omits explicit input/frame metadata; video hash, sample counts, and tick grids are independently checked.",
+    "browserComparison": "Separate native browser captures used the independent baseline snapshot and final model. The supplied parity artifact certifies captured states, not unseen portions of the source video."
+  },
+  "adoptedProfile": {
+    "aStartMax": 45,
+    "startCapMul": 1.12,
+    "g0": 1.1,
+    "kCut": 12
+  },
+  "browserParity": [
+    {
+      "variant": "baseline",
+      "id": "expert-launch",
+      "states": 185,
+      "frames": 93,
+      "allHashesEqual": true,
+      "everyFrameExactlyTwoTicks": true,
+      "allCameraStepsCorrect": true,
+      "camera": "legacy"
+    },
+    {
+      "variant": "baseline",
+      "id": "expert-right",
+      "states": 181,
+      "frames": 91,
+      "allHashesEqual": true,
+      "everyFrameExactlyTwoTicks": true,
+      "allCameraStepsCorrect": true,
+      "camera": "legacy"
+    },
+    {
+      "variant": "baseline",
+      "id": "intermediate-launch",
+      "states": 199,
+      "frames": 100,
+      "allHashesEqual": true,
+      "everyFrameExactlyTwoTicks": true,
+      "allCameraStepsCorrect": true,
+      "camera": "legacy"
+    },
+    {
+      "variant": "baseline",
+      "id": "beginner-launch",
+      "states": 203,
+      "frames": 102,
+      "allHashesEqual": true,
+      "everyFrameExactlyTwoTicks": true,
+      "allCameraStepsCorrect": true,
+      "camera": "legacy"
+    },
+    {
+      "variant": "candidate",
+      "id": "expert-launch",
+      "states": 185,
+      "frames": 93,
+      "allHashesEqual": true,
+      "everyFrameExactlyTwoTicks": true,
+      "allCameraStepsCorrect": true,
+      "camera": "reference"
+    },
+    {
+      "variant": "candidate",
+      "id": "expert-right",
+      "states": 181,
+      "frames": 91,
+      "allHashesEqual": true,
+      "everyFrameExactlyTwoTicks": true,
+      "allCameraStepsCorrect": true,
+      "camera": "reference"
+    },
+    {
+      "variant": "candidate",
+      "id": "intermediate-launch",
+      "states": 199,
+      "frames": 100,
+      "allHashesEqual": true,
+      "everyFrameExactlyTwoTicks": true,
+      "allCameraStepsCorrect": true,
+      "camera": "reference"
+    },
+    {
+      "variant": "candidate",
+      "id": "beginner-launch",
+      "states": 203,
+      "frames": 102,
+      "allHashesEqual": true,
+      "everyFrameExactlyTwoTicks": true,
+      "allCameraStepsCorrect": true,
+      "camera": "reference"
+    }
+  ],
+  "clips": [
+    {
+      "id": "expert-launch",
+      "split": "calibration",
+      "skill": "expert",
+      "family": "launch-and-opposite-drift",
+      "sourceFrames": [
+        322,
+        414
+      ],
+      "quantitativeEligible": true,
+      "initialState": {
+        "speedKmh": 0,
+        "startTicks": 90,
+        "boostTicks": 0,
+        "storedBoosters": 0
+      },
+      "sourceObservedSpeedRangeKmh": [
+        0,
+        307
+      ],
+      "speed": {
+        "before": {
+          "highConfidenceSamples": 31,
+          "nonzeroSamples": 30,
+          "nonzeroMapePercent": 20.675191,
+          "displayedNonzeroMapePercent": 20.7676,
+          "fittingErrorPercent": 19.926509,
+          "meanAbsoluteKmhError": 41.719859,
+          "minKmh": 0,
+          "maxKmh": 253.041919,
+          "endKmh": 189.341454
+        },
+        "after": {
+          "highConfidenceSamples": 31,
+          "nonzeroSamples": 30,
+          "nonzeroMapePercent": 5.347601,
+          "displayedNonzeroMapePercent": 5.33694,
+          "fittingErrorPercent": 4.733191,
+          "meanAbsoluteKmhError": 7.988658,
+          "minKmh": 0,
+          "maxKmh": 294.542497,
+          "endKmh": 260.247367
+        }
+      },
+      "heldOutFivePercentGate": null,
+      "independentBaseline": {
+        "states": 185,
+        "maxSpeedDeltaKmh": 0,
+        "allHashesEqual": true
+      },
+      "inputMotions": [
+        {
+          "pressFrame": 32,
+          "inputPressObserved": true,
+          "endFrameExclusive": 51,
+          "direction": "right",
+          "counterFrame": 45,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 268,
+              "entrySampleFrame": 32,
+              "minKmh": 268,
+              "minimumFrame": 32,
+              "lossPercent": 0,
+              "peakKmh": 307,
+              "peakFrame": 41,
+              "postPeakMinKmh": 274,
+              "postPeakLossPercent": 10.749186,
+              "speedRecoveryAfterMinimumSeconds": 0,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 51
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 191.946526,
+              "entrySampleFrame": 32,
+              "minKmh": 191.946526,
+              "minimumFrame": 32,
+              "lossPercent": 0,
+              "peakKmh": 253.041919,
+              "peakFrame": 44.5,
+              "postPeakMinKmh": 241.45101,
+              "postPeakLossPercent": 4.580628,
+              "speedRecoveryAfterMinimumSeconds": 0,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 51
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.066667,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 273.67517,
+              "entrySampleFrame": 32,
+              "minKmh": 273.212191,
+              "minimumFrame": 32.5,
+              "lossPercent": 0.169171,
+              "peakKmh": 294.542497,
+              "peakFrame": 39.5,
+              "postPeakMinKmh": 274.561675,
+              "postPeakLossPercent": 6.78368,
+              "speedRecoveryAfterMinimumSeconds": 0.016667,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 51
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.1,
+            "counterRecoveryRightCensored": false
+          }
+        },
+        {
+          "pressFrame": 51,
+          "inputPressObserved": true,
+          "endFrameExclusive": 92,
+          "direction": "left",
+          "counterFrame": 75,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 274,
+              "entrySampleFrame": 50,
+              "minKmh": 219,
+              "minimumFrame": 68,
+              "lossPercent": 20.072993,
+              "peakKmh": 261,
+              "peakFrame": 53,
+              "postPeakMinKmh": 219,
+              "postPeakLossPercent": 16.091954,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 92
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 240.628731,
+              "entrySampleFrame": 51,
+              "minKmh": 180.217594,
+              "minimumFrame": 77,
+              "lossPercent": 25.105538,
+              "peakKmh": 240.628731,
+              "peakFrame": 51,
+              "postPeakMinKmh": 180.217594,
+              "postPeakLossPercent": 25.105538,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 92
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.066667,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 273.255027,
+              "entrySampleFrame": 51,
+              "minKmh": 202.966061,
+              "minimumFrame": 74.5,
+              "lossPercent": 25.722845,
+              "peakKmh": 273.255027,
+              "peakFrame": 51,
+              "postPeakMinKmh": 202.966061,
+              "postPeakLossPercent": 25.722845,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 92
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.116667,
+            "counterRecoveryRightCensored": false
+          }
+        }
+      ],
+      "inventoryTiming": [
+        {
+          "kind": "gauge-full-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 0,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 69,
+              "sourceSeconds": 2.3,
+              "uncertaintySeconds": 0.033333,
+              "beforeSeconds": null,
+              "afterSeconds": 2.3,
+              "beforeErrorSeconds": null,
+              "afterErrorSeconds": 0
+            }
+          ]
+        },
+        {
+          "kind": "booster-consumed-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 0,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 71,
+              "sourceSeconds": 2.366667,
+              "uncertaintySeconds": 0.033333,
+              "beforeSeconds": null,
+              "afterSeconds": 2.483333,
+              "beforeErrorSeconds": null,
+              "afterErrorSeconds": 0.116667
+            }
+          ]
+        }
+      ],
+      "boostActivity": {
+        "sourceDurationSeconds": null,
+        "sourceDurationStatus": "unidentifiable from the annotated evidence",
+        "before": [
+          {
+            "timer": "startTicks",
+            "startSeconds": 0,
+            "observedSeconds": 1.5,
+            "leftCensored": true,
+            "rightCensored": false
+          }
+        ],
+        "after": [
+          {
+            "timer": "startTicks",
+            "startSeconds": 0,
+            "observedSeconds": 1.5,
+            "leftCensored": true,
+            "rightCensored": false
+          },
+          {
+            "timer": "boostTicks",
+            "startSeconds": 2.483333,
+            "observedSeconds": 0.583333,
+            "leftCensored": false,
+            "rightCensored": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "expert-right",
+      "split": "calibration",
+      "skill": "expert",
+      "family": "right-drift-and-countersteer",
+      "sourceFrames": [
+        414,
+        504
+      ],
+      "quantitativeEligible": false,
+      "initialState": {
+        "speedKmh": 259,
+        "startTicks": 0,
+        "boostTicks": 138,
+        "storedBoosters": 0
+      },
+      "sourceObservedSpeedRangeKmh": [
+        259,
+        307
+      ],
+      "speed": {
+        "before": {
+          "highConfidenceSamples": 30,
+          "nonzeroSamples": 30,
+          "nonzeroMapePercent": 6.325608,
+          "displayedNonzeroMapePercent": 6.318474,
+          "fittingErrorPercent": 6.325608,
+          "meanAbsoluteKmhError": 18.184358,
+          "minKmh": 217.314245,
+          "maxKmh": 280.938224,
+          "endKmh": 217.314245
+        },
+        "after": {
+          "highConfidenceSamples": 30,
+          "nonzeroSamples": 30,
+          "nonzeroMapePercent": 4.315445,
+          "displayedNonzeroMapePercent": 4.310298,
+          "fittingErrorPercent": 4.315445,
+          "meanAbsoluteKmhError": 12.545894,
+          "minKmh": 258.999741,
+          "maxKmh": 280.938224,
+          "endKmh": 277.569919
+        }
+      },
+      "heldOutFivePercentGate": null,
+      "independentBaseline": {
+        "states": 181,
+        "maxSpeedDeltaKmh": 0,
+        "allHashesEqual": true
+      },
+      "inputMotions": [
+        {
+          "pressFrame": 10,
+          "inputPressObserved": true,
+          "endFrameExclusive": 57,
+          "direction": "right",
+          "counterFrame": 27,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 268,
+              "entrySampleFrame": 9,
+              "minKmh": 263,
+              "minimumFrame": 24,
+              "lossPercent": 1.865672,
+              "peakKmh": 307,
+              "peakFrame": 54,
+              "postPeakMinKmh": 307,
+              "postPeakLossPercent": 0,
+              "speedRecoveryAfterMinimumSeconds": 0.2,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 57
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 268.383155,
+              "entrySampleFrame": 10,
+              "minKmh": 266.157841,
+              "minimumFrame": 10.5,
+              "lossPercent": 0.829156,
+              "peakKmh": 280.938224,
+              "peakFrame": 24,
+              "postPeakMinKmh": 272.94385,
+              "postPeakLossPercent": 2.845598,
+              "speedRecoveryAfterMinimumSeconds": 0.1,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 57
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.05,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 268.383155,
+              "entrySampleFrame": 10,
+              "minKmh": 266.157841,
+              "minimumFrame": 10.5,
+              "lossPercent": 0.829156,
+              "peakKmh": 280.938224,
+              "peakFrame": 24,
+              "postPeakMinKmh": 272.931697,
+              "postPeakLossPercent": 2.849924,
+              "speedRecoveryAfterMinimumSeconds": 0.1,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 57
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.066667,
+            "counterRecoveryRightCensored": false
+          }
+        },
+        {
+          "pressFrame": 57,
+          "inputPressObserved": true,
+          "endFrameExclusive": 90,
+          "direction": "left",
+          "counterFrame": null,
+          "shiftHeldAtCounter": null,
+          "source": {
+            "speed": {
+              "entryKmh": 307,
+              "entrySampleFrame": 57,
+              "minKmh": 278,
+              "minimumFrame": 78,
+              "lossPercent": 9.446254,
+              "peakKmh": 307,
+              "peakFrame": 57,
+              "postPeakMinKmh": 278,
+              "postPeakLossPercent": 9.446254,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 90
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 272.925211,
+              "entrySampleFrame": 57,
+              "minKmh": 218.372632,
+              "minimumFrame": 89.5,
+              "lossPercent": 19.988106,
+              "peakKmh": 273.234957,
+              "peakFrame": 68.5,
+              "postPeakMinKmh": 218.372632,
+              "postPeakLossPercent": 20.078809,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 90
+            },
+            "counterRecoveryEvent": null,
+            "counterToDriftEndSeconds": null,
+            "counterRecoveryRightCensored": null
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 272.913117,
+              "entrySampleFrame": 57,
+              "minKmh": 263.319441,
+              "minimumFrame": 72,
+              "lossPercent": 3.515286,
+              "peakKmh": 277.427681,
+              "peakFrame": 89.5,
+              "postPeakMinKmh": 277.427681,
+              "postPeakLossPercent": 0,
+              "speedRecoveryAfterMinimumSeconds": 0.283333,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 90
+            },
+            "counterRecoveryEvent": null,
+            "counterToDriftEndSeconds": null,
+            "counterRecoveryRightCensored": null
+          }
+        }
+      ],
+      "inventoryTiming": [
+        {
+          "kind": "gauge-full-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 0,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 75,
+              "sourceSeconds": 2.5,
+              "uncertaintySeconds": 0.033333,
+              "beforeSeconds": null,
+              "afterSeconds": 2.316667,
+              "beforeErrorSeconds": null,
+              "afterErrorSeconds": -0.183333
+            }
+          ]
+        },
+        {
+          "kind": "booster-consumed-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 0,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 77,
+              "sourceSeconds": 2.566667,
+              "uncertaintySeconds": 0.033333,
+              "beforeSeconds": null,
+              "afterSeconds": 2.416667,
+              "beforeErrorSeconds": null,
+              "afterErrorSeconds": -0.15
+            }
+          ]
+        }
+      ],
+      "boostActivity": {
+        "sourceDurationSeconds": null,
+        "sourceDurationStatus": "unidentifiable from the annotated evidence",
+        "before": [
+          {
+            "timer": "boostTicks",
+            "startSeconds": 0,
+            "observedSeconds": 2.3,
+            "leftCensored": true,
+            "rightCensored": false
+          }
+        ],
+        "after": [
+          {
+            "timer": "boostTicks",
+            "startSeconds": 0,
+            "observedSeconds": 2.3,
+            "leftCensored": true,
+            "rightCensored": false
+          },
+          {
+            "timer": "boostTicks",
+            "startSeconds": 2.416667,
+            "observedSeconds": 0.583333,
+            "leftCensored": false,
+            "rightCensored": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "expert-left",
+      "split": "calibration",
+      "skill": "expert",
+      "family": "left-drift-and-countersteer",
+      "sourceFrames": [
+        504,
+        594
+      ],
+      "quantitativeEligible": false,
+      "initialState": {
+        "speedKmh": 284,
+        "startTicks": 0,
+        "boostTicks": 154,
+        "storedBoosters": 0
+      },
+      "sourceObservedSpeedRangeKmh": [
+        265,
+        286
+      ],
+      "speed": {
+        "before": {
+          "highConfidenceSamples": 30,
+          "nonzeroSamples": 30,
+          "nonzeroMapePercent": 1.716585,
+          "displayedNonzeroMapePercent": 1.706588,
+          "fittingErrorPercent": 1.716585,
+          "meanAbsoluteKmhError": 4.725524,
+          "minKmh": 248.998181,
+          "maxKmh": 284.000603,
+          "endKmh": 248.998181
+        },
+        "after": {
+          "highConfidenceSamples": 30,
+          "nonzeroSamples": 30,
+          "nonzeroMapePercent": 1.715101,
+          "displayedNonzeroMapePercent": 1.694554,
+          "fittingErrorPercent": 1.715101,
+          "meanAbsoluteKmhError": 4.721356,
+          "minKmh": 248.999618,
+          "maxKmh": 284.000603,
+          "endKmh": 248.999618
+        }
+      },
+      "heldOutFivePercentGate": null,
+      "independentBaseline": {
+        "states": 181,
+        "maxSpeedDeltaKmh": 0,
+        "allHashesEqual": true
+      },
+      "inputMotions": [
+        {
+          "pressFrame": 8,
+          "inputPressObserved": true,
+          "endFrameExclusive": 47,
+          "direction": "left",
+          "counterFrame": 32,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 285,
+              "entrySampleFrame": 6,
+              "minKmh": 274,
+              "minimumFrame": 21,
+              "lossPercent": 3.859649,
+              "peakKmh": 286,
+              "peakFrame": 9,
+              "postPeakMinKmh": 274,
+              "postPeakLossPercent": 4.195804,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 47
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 281.163428,
+              "entrySampleFrame": 8,
+              "minKmh": 272.017095,
+              "minimumFrame": 46.5,
+              "lossPercent": 3.253031,
+              "peakKmh": 281.593146,
+              "peakFrame": 19,
+              "postPeakMinKmh": 272.017095,
+              "postPeakLossPercent": 3.400669,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 47
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.05,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 281.163428,
+              "entrySampleFrame": 8,
+              "minKmh": 272.043636,
+              "minimumFrame": 46.5,
+              "lossPercent": 3.243591,
+              "peakKmh": 281.593146,
+              "peakFrame": 19,
+              "postPeakMinKmh": 272.043636,
+              "postPeakLossPercent": 3.391244,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 47
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.066667,
+            "counterRecoveryRightCensored": false
+          }
+        },
+        {
+          "pressFrame": 47,
+          "inputPressObserved": true,
+          "endFrameExclusive": 90,
+          "direction": "left",
+          "counterFrame": 56,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 280,
+              "entrySampleFrame": 45,
+              "minKmh": 265,
+              "minimumFrame": 69,
+              "lossPercent": 5.357143,
+              "peakKmh": 278,
+              "peakFrame": 63,
+              "postPeakMinKmh": 265,
+              "postPeakLossPercent": 4.676259,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 90
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 271.993586,
+              "entrySampleFrame": 47,
+              "minKmh": 249.693517,
+              "minimumFrame": 89.5,
+              "lossPercent": 8.198748,
+              "peakKmh": 271.993586,
+              "peakFrame": 47,
+              "postPeakMinKmh": 249.693517,
+              "postPeakLossPercent": 8.198748,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 90
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.066667,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 272.017994,
+              "entrySampleFrame": 47,
+              "minKmh": 249.694683,
+              "minimumFrame": 89.5,
+              "lossPercent": 8.206557,
+              "peakKmh": 272.017994,
+              "peakFrame": 47,
+              "postPeakMinKmh": 249.694683,
+              "postPeakLossPercent": 8.206557,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 90
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.083333,
+            "counterRecoveryRightCensored": false
+          }
+        }
+      ],
+      "inventoryTiming": [
+        {
+          "kind": "gauge-full-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 0,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 46,
+              "sourceSeconds": 1.533333,
+              "uncertaintySeconds": 0.1,
+              "beforeSeconds": null,
+              "afterSeconds": 1.9,
+              "beforeErrorSeconds": null,
+              "afterErrorSeconds": 0.366667
+            }
+          ]
+        },
+        {
+          "kind": "booster-consumed-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 0,
+            "after": 0
+          },
+          "events": [
+            {
+              "sourceFrame": 69,
+              "sourceSeconds": 2.3,
+              "uncertaintySeconds": 0.033333,
+              "beforeSeconds": null,
+              "afterSeconds": null,
+              "beforeErrorSeconds": null,
+              "afterErrorSeconds": null
+            }
+          ]
+        }
+      ],
+      "boostActivity": {
+        "sourceDurationSeconds": null,
+        "sourceDurationStatus": "unidentifiable from the annotated evidence",
+        "before": [
+          {
+            "timer": "boostTicks",
+            "startSeconds": 0,
+            "observedSeconds": 2.566667,
+            "leftCensored": true,
+            "rightCensored": false
+          }
+        ],
+        "after": [
+          {
+            "timer": "boostTicks",
+            "startSeconds": 0,
+            "observedSeconds": 2.566667,
+            "leftCensored": true,
+            "rightCensored": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "expert-repeat",
+      "split": "calibration",
+      "skill": "expert",
+      "family": "same-direction-repeat",
+      "sourceFrames": [
+        594,
+        714
+      ],
+      "quantitativeEligible": false,
+      "initialState": {
+        "speedKmh": 276,
+        "startTicks": 0,
+        "boostTicks": 138,
+        "storedBoosters": 0
+      },
+      "sourceObservedSpeedRangeKmh": [
+        244,
+        277
+      ],
+      "speed": {
+        "before": {
+          "highConfidenceSamples": 38,
+          "nonzeroSamples": 38,
+          "nonzeroMapePercent": 5.325248,
+          "displayedNonzeroMapePercent": 5.33228,
+          "fittingErrorPercent": 5.325248,
+          "meanAbsoluteKmhError": 13.796189,
+          "minKmh": 249.635741,
+          "maxKmh": 294.994868,
+          "endKmh": 272.241077
+        },
+        "after": {
+          "highConfidenceSamples": 38,
+          "nonzeroSamples": 38,
+          "nonzeroMapePercent": 5.583434,
+          "displayedNonzeroMapePercent": 5.575684,
+          "fittingErrorPercent": 5.583434,
+          "meanAbsoluteKmhError": 14.469933,
+          "minKmh": 270.177007,
+          "maxKmh": 294.994868,
+          "endKmh": 272.346389
+        }
+      },
+      "heldOutFivePercentGate": null,
+      "independentBaseline": {
+        "states": 241,
+        "maxSpeedDeltaKmh": 0,
+        "allHashesEqual": true
+      },
+      "inputMotions": [
+        {
+          "pressFrame": 2,
+          "inputPressObserved": true,
+          "endFrameExclusive": 21,
+          "direction": "right",
+          "counterFrame": null,
+          "shiftHeldAtCounter": null,
+          "source": {
+            "speed": {
+              "entryKmh": 276,
+              "entrySampleFrame": 0,
+              "minKmh": 270,
+              "minimumFrame": 12,
+              "lossPercent": 2.173913,
+              "peakKmh": 277,
+              "peakFrame": 3,
+              "postPeakMinKmh": 270,
+              "postPeakLossPercent": 2.527076,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 21
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 275.759719,
+              "entrySampleFrame": 2,
+              "minKmh": 272.944413,
+              "minimumFrame": 3.5,
+              "lossPercent": 1.020927,
+              "peakKmh": 286.656665,
+              "peakFrame": 16.5,
+              "postPeakMinKmh": 283.236166,
+              "postPeakLossPercent": 1.193239,
+              "speedRecoveryAfterMinimumSeconds": 0.25,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 21
+            },
+            "counterRecoveryEvent": null,
+            "counterToDriftEndSeconds": null,
+            "counterRecoveryRightCensored": null
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 275.759719,
+              "entrySampleFrame": 2,
+              "minKmh": 272.944413,
+              "minimumFrame": 3.5,
+              "lossPercent": 1.020927,
+              "peakKmh": 286.656665,
+              "peakFrame": 16.5,
+              "postPeakMinKmh": 283.236166,
+              "postPeakLossPercent": 1.193239,
+              "speedRecoveryAfterMinimumSeconds": 0.25,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 21
+            },
+            "counterRecoveryEvent": null,
+            "counterToDriftEndSeconds": null,
+            "counterRecoveryRightCensored": null
+          }
+        },
+        {
+          "pressFrame": 21,
+          "inputPressObserved": true,
+          "endFrameExclusive": 57,
+          "direction": "right",
+          "counterFrame": 42,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 275,
+              "entrySampleFrame": 21,
+              "minKmh": 252,
+              "minimumFrame": 48,
+              "lossPercent": 8.363636,
+              "peakKmh": 276,
+              "peakFrame": 24,
+              "postPeakMinKmh": 252,
+              "postPeakLossPercent": 8.695652,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 57
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "doubleDrift",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 282.953772,
+              "entrySampleFrame": 21,
+              "minKmh": 279.86332,
+              "minimumFrame": 28,
+              "lossPercent": 1.092211,
+              "peakKmh": 294.994868,
+              "peakFrame": 37,
+              "postPeakMinKmh": 281.00431,
+              "postPeakLossPercent": 4.742645,
+              "speedRecoveryAfterMinimumSeconds": 0.033333,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 57
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.05,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "doubleDrift",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 282.953772,
+              "entrySampleFrame": 21,
+              "minKmh": 279.86332,
+              "minimumFrame": 28,
+              "lossPercent": 1.092211,
+              "peakKmh": 294.994868,
+              "peakFrame": 37,
+              "postPeakMinKmh": 281.028776,
+              "postPeakLossPercent": 4.734351,
+              "speedRecoveryAfterMinimumSeconds": 0.033333,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 57
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.066667,
+            "counterRecoveryRightCensored": false
+          }
+        },
+        {
+          "pressFrame": 57,
+          "inputPressObserved": true,
+          "endFrameExclusive": 95,
+          "direction": "right",
+          "counterFrame": 85,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 258,
+              "entrySampleFrame": 57,
+              "minKmh": 255,
+              "minimumFrame": 66,
+              "lossPercent": 1.162791,
+              "peakKmh": 276,
+              "peakFrame": 93,
+              "postPeakMinKmh": 276,
+              "postPeakLossPercent": 0,
+              "speedRecoveryAfterMinimumSeconds": 0.1,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 95
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.033333,
+            "speed": {
+              "entryKmh": 280.816752,
+              "entrySampleFrame": 57,
+              "minKmh": 249.635741,
+              "minimumFrame": 77,
+              "lossPercent": 11.103686,
+              "peakKmh": 280.816752,
+              "peakFrame": 57,
+              "postPeakMinKmh": 249.635741,
+              "postPeakLossPercent": 11.103686,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 95
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.05,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.033333,
+            "speed": {
+              "entryKmh": 280.841771,
+              "entrySampleFrame": 57,
+              "minKmh": 270.719796,
+              "minimumFrame": 70,
+              "lossPercent": 3.604156,
+              "peakKmh": 280.841771,
+              "peakFrame": 57,
+              "postPeakMinKmh": 270.719796,
+              "postPeakLossPercent": 3.604156,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 95
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.05,
+            "counterRecoveryRightCensored": false
+          }
+        },
+        {
+          "pressFrame": 95,
+          "inputPressObserved": true,
+          "endFrameExclusive": 120,
+          "direction": "left",
+          "counterFrame": null,
+          "shiftHeldAtCounter": null,
+          "source": {
+            "speed": {
+              "entryKmh": 276,
+              "entrySampleFrame": 93,
+              "minKmh": 244,
+              "minimumFrame": 117,
+              "lossPercent": 11.594203,
+              "peakKmh": 267,
+              "peakFrame": 96,
+              "postPeakMinKmh": 244,
+              "postPeakLossPercent": 8.614232,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 120
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 269.726679,
+              "entrySampleFrame": 95,
+              "minKmh": 267.400205,
+              "minimumFrame": 95.5,
+              "lossPercent": 0.86253,
+              "peakKmh": 272.374486,
+              "peakFrame": 114.5,
+              "postPeakMinKmh": 272.250858,
+              "postPeakLossPercent": 0.045389,
+              "speedRecoveryAfterMinimumSeconds": 0.133333,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 120
+            },
+            "counterRecoveryEvent": null,
+            "counterToDriftEndSeconds": null,
+            "counterRecoveryRightCensored": null
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 272.730568,
+              "entrySampleFrame": 95,
+              "minKmh": 270.177007,
+              "minimumFrame": 95.5,
+              "lossPercent": 0.936295,
+              "peakKmh": 272.730568,
+              "peakFrame": 95,
+              "postPeakMinKmh": 270.177007,
+              "postPeakLossPercent": 0.936295,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 120
+            },
+            "counterRecoveryEvent": null,
+            "counterToDriftEndSeconds": null,
+            "counterRecoveryRightCensored": null
+          }
+        }
+      ],
+      "inventoryTiming": [
+        {
+          "kind": "gauge-full-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 1,
+            "after": 2
+          },
+          "events": [
+            {
+              "sourceFrame": 21,
+              "sourceSeconds": 0.7,
+              "uncertaintySeconds": 0.1,
+              "beforeSeconds": 2.5,
+              "afterSeconds": 1.1,
+              "beforeErrorSeconds": 1.8,
+              "afterErrorSeconds": 0.4
+            }
+          ]
+        },
+        {
+          "kind": "booster-consumed-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 1,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 75,
+              "sourceSeconds": 2.5,
+              "uncertaintySeconds": 0.1,
+              "beforeSeconds": 2.583333,
+              "afterSeconds": 2.35,
+              "beforeErrorSeconds": 0.083333,
+              "afterErrorSeconds": -0.15
+            }
+          ]
+        }
+      ],
+      "boostActivity": {
+        "sourceDurationSeconds": null,
+        "sourceDurationStatus": "unidentifiable from the annotated evidence",
+        "before": [
+          {
+            "timer": "boostTicks",
+            "startSeconds": 0,
+            "observedSeconds": 2.3,
+            "leftCensored": true,
+            "rightCensored": false
+          },
+          {
+            "timer": "boostTicks",
+            "startSeconds": 2.583333,
+            "observedSeconds": 1.416667,
+            "leftCensored": false,
+            "rightCensored": true
+          }
+        ],
+        "after": [
+          {
+            "timer": "boostTicks",
+            "startSeconds": 0,
+            "observedSeconds": 2.3,
+            "leftCensored": true,
+            "rightCensored": false
+          },
+          {
+            "timer": "boostTicks",
+            "startSeconds": 2.35,
+            "observedSeconds": 1.65,
+            "leftCensored": false,
+            "rightCensored": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "intermediate-launch",
+      "split": "validation",
+      "skill": "intermediate",
+      "family": "launch-and-opposite-drift",
+      "sourceFrames": [
+        3441,
+        3540
+      ],
+      "quantitativeEligible": true,
+      "initialState": {
+        "speedKmh": 0,
+        "startTicks": 90,
+        "boostTicks": 0,
+        "storedBoosters": 0
+      },
+      "sourceObservedSpeedRangeKmh": [
+        0,
+        297
+      ],
+      "speed": {
+        "before": {
+          "highConfidenceSamples": 33,
+          "nonzeroSamples": 32,
+          "nonzeroMapePercent": 20.32153,
+          "displayedNonzeroMapePercent": 20.38366,
+          "fittingErrorPercent": 19.705727,
+          "meanAbsoluteKmhError": 41.130822,
+          "minKmh": 0,
+          "maxKmh": 251.648167,
+          "endKmh": 191.999918
+        },
+        "after": {
+          "highConfidenceSamples": 33,
+          "nonzeroSamples": 32,
+          "nonzeroMapePercent": 4.757625,
+          "displayedNonzeroMapePercent": 4.693687,
+          "fittingErrorPercent": 4.613455,
+          "meanAbsoluteKmhError": 8.212003,
+          "minKmh": 0,
+          "maxKmh": 296.509845,
+          "endKmh": 268.457113
+        }
+      },
+      "heldOutFivePercentGate": true,
+      "independentBaseline": {
+        "states": 199,
+        "maxSpeedDeltaKmh": 0,
+        "allHashesEqual": true
+      },
+      "inputMotions": [
+        {
+          "pressFrame": 32,
+          "inputPressObserved": true,
+          "endFrameExclusive": 50,
+          "direction": "right",
+          "counterFrame": 45,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 241,
+              "entrySampleFrame": 30,
+              "minKmh": 258,
+              "minimumFrame": 33,
+              "lossPercent": 0,
+              "peakKmh": 297,
+              "peakFrame": 45,
+              "postPeakMinKmh": 286,
+              "postPeakLossPercent": 3.703704,
+              "speedRecoveryAfterMinimumSeconds": 0,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 50
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 191.921625,
+              "entrySampleFrame": 32,
+              "minKmh": 191.921625,
+              "minimumFrame": 32,
+              "lossPercent": 0,
+              "peakKmh": 251.648167,
+              "peakFrame": 44.5,
+              "postPeakMinKmh": 240.345562,
+              "postPeakLossPercent": 4.491432,
+              "speedRecoveryAfterMinimumSeconds": 0,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 50
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.066667,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 273.663715,
+              "entrySampleFrame": 32,
+              "minKmh": 273.201777,
+              "minimumFrame": 32.5,
+              "lossPercent": 0.168798,
+              "peakKmh": 296.509845,
+              "peakFrame": 40.5,
+              "postPeakMinKmh": 277.024818,
+              "postPeakLossPercent": 6.571461,
+              "speedRecoveryAfterMinimumSeconds": 0.016667,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 50
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.1,
+            "counterRecoveryRightCensored": false
+          }
+        },
+        {
+          "pressFrame": 50,
+          "inputPressObserved": true,
+          "endFrameExclusive": 99,
+          "direction": "left",
+          "counterFrame": 74,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 286,
+              "entrySampleFrame": 48,
+              "minKmh": 222,
+              "minimumFrame": 69,
+              "lossPercent": 22.377622,
+              "peakKmh": 271,
+              "peakFrame": 51,
+              "postPeakMinKmh": 222,
+              "postPeakLossPercent": 18.081181,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 99
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 239.550159,
+              "entrySampleFrame": 50,
+              "minKmh": 180.288143,
+              "minimumFrame": 76,
+              "lossPercent": 24.738876,
+              "peakKmh": 239.550159,
+              "peakFrame": 50,
+              "postPeakMinKmh": 180.288143,
+              "postPeakLossPercent": 24.738876,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 99
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.066667,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.033333,
+            "speed": {
+              "entryKmh": 275.688316,
+              "entrySampleFrame": 50,
+              "minKmh": 212.397945,
+              "minimumFrame": 73.5,
+              "lossPercent": 22.957219,
+              "peakKmh": 275.688316,
+              "peakFrame": 50,
+              "postPeakMinKmh": 212.397945,
+              "postPeakLossPercent": 22.957219,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 99
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.116667,
+            "counterRecoveryRightCensored": false
+          }
+        }
+      ],
+      "inventoryTiming": [
+        {
+          "kind": "gauge-full-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 0,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 69,
+              "sourceSeconds": 2.3,
+              "uncertaintySeconds": 0.033333,
+              "beforeSeconds": null,
+              "afterSeconds": 2.266667,
+              "beforeErrorSeconds": null,
+              "afterErrorSeconds": -0.033333
+            }
+          ]
+        },
+        {
+          "kind": "booster-consumed-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 0,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 71,
+              "sourceSeconds": 2.366667,
+              "uncertaintySeconds": 0.033333,
+              "beforeSeconds": null,
+              "afterSeconds": 2.383333,
+              "beforeErrorSeconds": null,
+              "afterErrorSeconds": 0.016667
+            }
+          ]
+        }
+      ],
+      "boostActivity": {
+        "sourceDurationSeconds": null,
+        "sourceDurationStatus": "unidentifiable from the annotated evidence",
+        "before": [
+          {
+            "timer": "startTicks",
+            "startSeconds": 0,
+            "observedSeconds": 1.5,
+            "leftCensored": true,
+            "rightCensored": false
+          }
+        ],
+        "after": [
+          {
+            "timer": "startTicks",
+            "startSeconds": 0,
+            "observedSeconds": 1.5,
+            "leftCensored": true,
+            "rightCensored": false
+          },
+          {
+            "timer": "boostTicks",
+            "startSeconds": 2.383333,
+            "observedSeconds": 0.916667,
+            "leftCensored": false,
+            "rightCensored": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "intermediate-right",
+      "split": "validation",
+      "skill": "intermediate",
+      "family": "right-drift-and-countersteer",
+      "sourceFrames": [
+        3540,
+        3630
+      ],
+      "quantitativeEligible": false,
+      "initialState": {
+        "speedKmh": 265,
+        "startTicks": 0,
+        "boostTicks": 124,
+        "storedBoosters": 0
+      },
+      "sourceObservedSpeedRangeKmh": [
+        261,
+        302
+      ],
+      "speed": {
+        "before": {
+          "highConfidenceSamples": 30,
+          "nonzeroSamples": 30,
+          "nonzeroMapePercent": 7.131492,
+          "displayedNonzeroMapePercent": 7.167091,
+          "fittingErrorPercent": 7.131492,
+          "meanAbsoluteKmhError": 20.30462,
+          "minKmh": 223.228787,
+          "maxKmh": 275.774541,
+          "endKmh": 223.228787
+        },
+        "after": {
+          "highConfidenceSamples": 30,
+          "nonzeroSamples": 30,
+          "nonzeroMapePercent": 7.139043,
+          "displayedNonzeroMapePercent": 7.167091,
+          "fittingErrorPercent": 7.139043,
+          "meanAbsoluteKmhError": 20.325806,
+          "minKmh": 223.064326,
+          "maxKmh": 275.774541,
+          "endKmh": 223.064326
+        }
+      },
+      "heldOutFivePercentGate": null,
+      "independentBaseline": {
+        "states": 181,
+        "maxSpeedDeltaKmh": 0,
+        "allHashesEqual": true
+      },
+      "inputMotions": [
+        {
+          "pressFrame": 3,
+          "inputPressObserved": true,
+          "endFrameExclusive": 51,
+          "direction": "right",
+          "counterFrame": 14,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 268,
+              "entrySampleFrame": 3,
+              "minKmh": 261,
+              "minimumFrame": 18,
+              "lossPercent": 2.61194,
+              "peakKmh": 302,
+              "peakFrame": 48,
+              "postPeakMinKmh": 302,
+              "postPeakLossPercent": 0,
+              "speedRecoveryAfterMinimumSeconds": 0.2,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 51
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 267.350023,
+              "entrySampleFrame": 3,
+              "minKmh": 265.193393,
+              "minimumFrame": 3.5,
+              "lossPercent": 0.806669,
+              "peakKmh": 275.774541,
+              "peakFrame": 13,
+              "postPeakMinKmh": 271.853528,
+              "postPeakLossPercent": 1.421818,
+              "speedRecoveryAfterMinimumSeconds": 0.083333,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 51
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.066667,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 267.350023,
+              "entrySampleFrame": 3,
+              "minKmh": 265.193393,
+              "minimumFrame": 3.5,
+              "lossPercent": 0.806669,
+              "peakKmh": 275.774541,
+              "peakFrame": 13,
+              "postPeakMinKmh": 271.86556,
+              "postPeakLossPercent": 1.417455,
+              "speedRecoveryAfterMinimumSeconds": 0.083333,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 51
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.083333,
+            "counterRecoveryRightCensored": false
+          }
+        },
+        {
+          "pressFrame": 51,
+          "inputPressObserved": true,
+          "endFrameExclusive": 90,
+          "direction": "left",
+          "counterFrame": 75,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 295,
+              "entrySampleFrame": 51,
+              "minKmh": 278,
+              "minimumFrame": 66,
+              "lossPercent": 5.762712,
+              "peakKmh": 295,
+              "peakFrame": 51,
+              "postPeakMinKmh": 278,
+              "postPeakLossPercent": 5.762712,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 90
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 271.882185,
+              "entrySampleFrame": 51,
+              "minKmh": 223.534092,
+              "minimumFrame": 89.5,
+              "lossPercent": 17.782737,
+              "peakKmh": 272.009749,
+              "peakFrame": 61.5,
+              "postPeakMinKmh": 223.534092,
+              "postPeakLossPercent": 17.821294,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 90
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.066667,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 271.887387,
+              "entrySampleFrame": 51,
+              "minKmh": 223.368267,
+              "minimumFrame": 89.5,
+              "lossPercent": 17.8453,
+              "peakKmh": 272.011574,
+              "peakFrame": 61.5,
+              "postPeakMinKmh": 223.368267,
+              "postPeakLossPercent": 17.882808,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 90
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.1,
+            "counterRecoveryRightCensored": false
+          }
+        }
+      ],
+      "inventoryTiming": [
+        {
+          "kind": "gauge-full-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 0,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 51,
+              "sourceSeconds": 1.7,
+              "uncertaintySeconds": 0.1,
+              "beforeSeconds": null,
+              "afterSeconds": 2.3,
+              "beforeErrorSeconds": null,
+              "afterErrorSeconds": 0.6
+            }
+          ]
+        },
+        {
+          "kind": "booster-consumed-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 0,
+            "after": 0
+          },
+          "events": [
+            {
+              "sourceFrame": 64,
+              "sourceSeconds": 2.133333,
+              "uncertaintySeconds": 0.033333,
+              "beforeSeconds": null,
+              "afterSeconds": null,
+              "beforeErrorSeconds": null,
+              "afterErrorSeconds": null
+            }
+          ]
+        }
+      ],
+      "boostActivity": {
+        "sourceDurationSeconds": null,
+        "sourceDurationStatus": "unidentifiable from the annotated evidence",
+        "before": [
+          {
+            "timer": "boostTicks",
+            "startSeconds": 0,
+            "observedSeconds": 2.066667,
+            "leftCensored": true,
+            "rightCensored": false
+          }
+        ],
+        "after": [
+          {
+            "timer": "boostTicks",
+            "startSeconds": 0,
+            "observedSeconds": 2.066667,
+            "leftCensored": true,
+            "rightCensored": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "intermediate-left",
+      "split": "validation",
+      "skill": "intermediate",
+      "family": "left-drift-and-countersteer",
+      "sourceFrames": [
+        3630,
+        3720
+      ],
+      "quantitativeEligible": false,
+      "initialState": {
+        "speedKmh": 286,
+        "startTicks": 0,
+        "boostTicks": 128,
+        "storedBoosters": 0
+      },
+      "sourceObservedSpeedRangeKmh": [
+        265,
+        291
+      ],
+      "speed": {
+        "before": {
+          "highConfidenceSamples": 30,
+          "nonzeroSamples": 30,
+          "nonzeroMapePercent": 6.745172,
+          "displayedNonzeroMapePercent": 6.737511,
+          "fittingErrorPercent": 6.745172,
+          "meanAbsoluteKmhError": 18.421951,
+          "minKmh": 204.5236,
+          "maxKmh": 285.999612,
+          "endKmh": 204.5236
+        },
+        "after": {
+          "highConfidenceSamples": 30,
+          "nonzeroSamples": 30,
+          "nonzeroMapePercent": 1.749034,
+          "displayedNonzeroMapePercent": 1.765837,
+          "fittingErrorPercent": 1.749034,
+          "meanAbsoluteKmhError": 4.888574,
+          "minKmh": 264.821388,
+          "maxKmh": 285.999612,
+          "endKmh": 270.907368
+        }
+      },
+      "heldOutFivePercentGate": null,
+      "independentBaseline": {
+        "states": 181,
+        "maxSpeedDeltaKmh": 0,
+        "allHashesEqual": true
+      },
+      "inputMotions": [
+        {
+          "pressFrame": 1,
+          "inputPressObserved": true,
+          "endFrameExclusive": 48,
+          "direction": "left",
+          "counterFrame": 36,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 286,
+              "entrySampleFrame": 0,
+              "minKmh": 274,
+              "minimumFrame": 15,
+              "lossPercent": 4.195804,
+              "peakKmh": 291,
+              "peakFrame": 45,
+              "postPeakMinKmh": 291,
+              "postPeakLossPercent": 0,
+              "speedRecoveryAfterMinimumSeconds": 0.9,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 48
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 285.581668,
+              "entrySampleFrame": 1,
+              "minKmh": 272.025257,
+              "minimumFrame": 47.5,
+              "lossPercent": 4.746947,
+              "peakKmh": 285.581668,
+              "peakFrame": 1,
+              "postPeakMinKmh": 272.025257,
+              "postPeakLossPercent": 4.746947,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 48
+            },
+            "counterRecoveryEvent": null,
+            "counterToDriftEndSeconds": null,
+            "counterRecoveryRightCensored": true
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 285.581668,
+              "entrySampleFrame": 1,
+              "minKmh": 272.025257,
+              "minimumFrame": 47.5,
+              "lossPercent": 4.746947,
+              "peakKmh": 285.581668,
+              "peakFrame": 1,
+              "postPeakMinKmh": 272.025257,
+              "postPeakLossPercent": 4.746947,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 48
+            },
+            "counterRecoveryEvent": null,
+            "counterToDriftEndSeconds": null,
+            "counterRecoveryRightCensored": true
+          }
+        },
+        {
+          "pressFrame": 48,
+          "inputPressObserved": true,
+          "endFrameExclusive": 86,
+          "direction": "left",
+          "counterFrame": 57,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 275,
+              "entrySampleFrame": 48,
+              "minKmh": 265,
+              "minimumFrame": 63,
+              "lossPercent": 3.636364,
+              "peakKmh": 276,
+              "peakFrame": 84,
+              "postPeakMinKmh": 276,
+              "postPeakLossPercent": 0,
+              "speedRecoveryAfterMinimumSeconds": 0.7,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 86
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 272.010913,
+              "entrySampleFrame": 48,
+              "minKmh": 207.500766,
+              "minimumFrame": 85.5,
+              "lossPercent": 23.716014,
+              "peakKmh": 272.010913,
+              "peakFrame": 48,
+              "postPeakMinKmh": 207.500766,
+              "postPeakLossPercent": 23.716014,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 86
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.066667,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 272.010913,
+              "entrySampleFrame": 48,
+              "minKmh": 264.821388,
+              "minimumFrame": 64,
+              "lossPercent": 2.643102,
+              "peakKmh": 272.010913,
+              "peakFrame": 48,
+              "postPeakMinKmh": 264.821388,
+              "postPeakLossPercent": 2.643102,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 86
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.083333,
+            "counterRecoveryRightCensored": false
+          }
+        },
+        {
+          "pressFrame": 86,
+          "inputPressObserved": true,
+          "endFrameExclusive": 90,
+          "direction": "right",
+          "counterFrame": null,
+          "shiftHeldAtCounter": null,
+          "source": {
+            "speed": {
+              "entryKmh": 276,
+              "entrySampleFrame": 84,
+              "minKmh": 275,
+              "minimumFrame": 87,
+              "lossPercent": 0.362319,
+              "peakKmh": 275,
+              "peakFrame": 87,
+              "postPeakMinKmh": 275,
+              "postPeakLossPercent": 0,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 90
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 207.454343,
+              "entrySampleFrame": 86,
+              "minKmh": 204.718033,
+              "minimumFrame": 89.5,
+              "lossPercent": 1.318994,
+              "peakKmh": 207.454343,
+              "peakFrame": 86,
+              "postPeakMinKmh": 204.718033,
+              "postPeakLossPercent": 1.318994,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 90
+            },
+            "counterRecoveryEvent": null,
+            "counterToDriftEndSeconds": null,
+            "counterRecoveryRightCensored": null
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 271.575276,
+              "entrySampleFrame": 86,
+              "minKmh": 269.09835,
+              "minimumFrame": 86.5,
+              "lossPercent": 0.912059,
+              "peakKmh": 271.575276,
+              "peakFrame": 86,
+              "postPeakMinKmh": 269.09835,
+              "postPeakLossPercent": 0.912059,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 90
+            },
+            "counterRecoveryEvent": null,
+            "counterToDriftEndSeconds": null,
+            "counterRecoveryRightCensored": null
+          }
+        }
+      ],
+      "inventoryTiming": [
+        {
+          "kind": "gauge-full-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 0,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 51,
+              "sourceSeconds": 1.7,
+              "uncertaintySeconds": 0.1,
+              "beforeSeconds": null,
+              "afterSeconds": 1.966667,
+              "beforeErrorSeconds": null,
+              "afterErrorSeconds": 0.266667
+            }
+          ]
+        },
+        {
+          "kind": "booster-consumed-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 0,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 64,
+              "sourceSeconds": 2.133333,
+              "uncertaintySeconds": 0.033333,
+              "beforeSeconds": null,
+              "afterSeconds": 2.15,
+              "beforeErrorSeconds": null,
+              "afterErrorSeconds": 0.016667
+            }
+          ]
+        }
+      ],
+      "boostActivity": {
+        "sourceDurationSeconds": null,
+        "sourceDurationStatus": "unidentifiable from the annotated evidence",
+        "before": [
+          {
+            "timer": "boostTicks",
+            "startSeconds": 0,
+            "observedSeconds": 2.133333,
+            "leftCensored": true,
+            "rightCensored": false
+          }
+        ],
+        "after": [
+          {
+            "timer": "boostTicks",
+            "startSeconds": 0,
+            "observedSeconds": 2.133333,
+            "leftCensored": true,
+            "rightCensored": false
+          },
+          {
+            "timer": "boostTicks",
+            "startSeconds": 2.15,
+            "observedSeconds": 0.85,
+            "leftCensored": false,
+            "rightCensored": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "intermediate-repeat",
+      "split": "validation",
+      "skill": "intermediate",
+      "family": "same-direction-repeat",
+      "sourceFrames": [
+        3720,
+        3810
+      ],
+      "quantitativeEligible": false,
+      "initialState": {
+        "speedKmh": 272,
+        "startTicks": 0,
+        "boostTicks": 128,
+        "storedBoosters": 0
+      },
+      "sourceObservedSpeedRangeKmh": [
+        243,
+        275
+      ],
+      "speed": {
+        "before": {
+          "highConfidenceSamples": 30,
+          "nonzeroSamples": 30,
+          "nonzeroMapePercent": 4.256791,
+          "displayedNonzeroMapePercent": 4.264497,
+          "fittingErrorPercent": 4.256791,
+          "meanAbsoluteKmhError": 10.814388,
+          "minKmh": 229.869865,
+          "maxKmh": 282.131777,
+          "endKmh": 229.869865
+        },
+        "after": {
+          "highConfidenceSamples": 30,
+          "nonzeroSamples": 30,
+          "nonzeroMapePercent": 6.05621,
+          "displayedNonzeroMapePercent": 6.041743,
+          "fittingErrorPercent": 6.05621,
+          "meanAbsoluteKmhError": 15.201295,
+          "minKmh": 268.955998,
+          "maxKmh": 282.223218,
+          "endKmh": 271.465062
+        }
+      },
+      "heldOutFivePercentGate": null,
+      "independentBaseline": {
+        "states": 181,
+        "maxSpeedDeltaKmh": 0,
+        "allHashesEqual": true
+      },
+      "inputMotions": [
+        {
+          "pressFrame": 0,
+          "inputPressObserved": false,
+          "endFrameExclusive": 19,
+          "direction": "right",
+          "counterFrame": 11,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 272,
+              "entrySampleFrame": 0,
+              "minKmh": 267,
+              "minimumFrame": 6,
+              "lossPercent": 1.838235,
+              "peakKmh": 273,
+              "peakFrame": 18,
+              "postPeakMinKmh": 273,
+              "postPeakLossPercent": 0,
+              "speedRecoveryAfterMinimumSeconds": 0.3,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 19
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": null,
+            "speed": {
+              "entryKmh": 272.000661,
+              "entrySampleFrame": 0,
+              "minKmh": 269.474475,
+              "minimumFrame": 0.5,
+              "lossPercent": 0.928743,
+              "peakKmh": 272.000661,
+              "peakFrame": 0,
+              "postPeakMinKmh": 269.474475,
+              "postPeakLossPercent": 0.928743,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 19
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.05,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": null,
+            "speed": {
+              "entryKmh": 272.000661,
+              "entrySampleFrame": 0,
+              "minKmh": 269.474475,
+              "minimumFrame": 0.5,
+              "lossPercent": 0.928743,
+              "peakKmh": 272.000661,
+              "peakFrame": 0,
+              "postPeakMinKmh": 269.474475,
+              "postPeakLossPercent": 0.928743,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 19
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.083333,
+            "counterRecoveryRightCensored": false
+          }
+        },
+        {
+          "pressFrame": 19,
+          "inputPressObserved": true,
+          "endFrameExclusive": 56,
+          "direction": "right",
+          "counterFrame": 36,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 273,
+              "entrySampleFrame": 18,
+              "minKmh": 250,
+              "minimumFrame": 48,
+              "lossPercent": 8.424908,
+              "peakKmh": 275,
+              "peakFrame": 21,
+              "postPeakMinKmh": 250,
+              "postPeakLossPercent": 9.090909,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 56
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 271.372525,
+              "entrySampleFrame": 19,
+              "minKmh": 268.900358,
+              "minimumFrame": 19.5,
+              "lossPercent": 0.910987,
+              "peakKmh": 282.131777,
+              "peakFrame": 34,
+              "postPeakMinKmh": 274.007798,
+              "postPeakLossPercent": 2.879498,
+              "speedRecoveryAfterMinimumSeconds": 0.166667,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 56
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.066667,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 271.430946,
+              "entrySampleFrame": 19,
+              "minKmh": 268.955998,
+              "minimumFrame": 19.5,
+              "lossPercent": 0.911815,
+              "peakKmh": 282.223218,
+              "peakFrame": 34,
+              "postPeakMinKmh": 274.027489,
+              "postPeakLossPercent": 2.903988,
+              "speedRecoveryAfterMinimumSeconds": 0.166667,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 56
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.083333,
+            "counterRecoveryRightCensored": false
+          }
+        },
+        {
+          "pressFrame": 56,
+          "inputPressObserved": true,
+          "endFrameExclusive": 90,
+          "direction": "right",
+          "counterFrame": 78,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 257,
+              "entrySampleFrame": 54,
+              "minKmh": 243,
+              "minimumFrame": 72,
+              "lossPercent": 5.447471,
+              "peakKmh": 253,
+              "peakFrame": 60,
+              "postPeakMinKmh": 243,
+              "postPeakLossPercent": 3.952569,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 90
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 273.970458,
+              "entrySampleFrame": 56,
+              "minKmh": 230.311358,
+              "minimumFrame": 89.5,
+              "lossPercent": 15.935696,
+              "peakKmh": 273.970458,
+              "peakFrame": 56,
+              "postPeakMinKmh": 230.311358,
+              "postPeakLossPercent": 15.935696,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 90
+            },
+            "counterRecoveryEvent": "driftEnd",
+            "counterToDriftEndSeconds": 0.033333,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 273.989996,
+              "entrySampleFrame": 56,
+              "minKmh": 271.265909,
+              "minimumFrame": 80.5,
+              "lossPercent": 0.994229,
+              "peakKmh": 273.989996,
+              "peakFrame": 56,
+              "postPeakMinKmh": 271.265909,
+              "postPeakLossPercent": 0.994229,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 90
+            },
+            "counterRecoveryEvent": "driftEnd",
+            "counterToDriftEndSeconds": 0.016667,
+            "counterRecoveryRightCensored": false
+          }
+        }
+      ],
+      "inventoryTiming": [
+        {
+          "kind": "gauge-full-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 0,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 12,
+              "sourceSeconds": 0.4,
+              "uncertaintySeconds": 0.1,
+              "beforeSeconds": null,
+              "afterSeconds": 1.266667,
+              "beforeErrorSeconds": null,
+              "afterErrorSeconds": 0.866667
+            }
+          ]
+        },
+        {
+          "kind": "booster-consumed-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 0,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 66,
+              "sourceSeconds": 2.2,
+              "uncertaintySeconds": 0.1,
+              "beforeSeconds": null,
+              "afterSeconds": 2.083333,
+              "beforeErrorSeconds": null,
+              "afterErrorSeconds": -0.116667
+            }
+          ]
+        }
+      ],
+      "boostActivity": {
+        "sourceDurationSeconds": null,
+        "sourceDurationStatus": "unidentifiable from the annotated evidence",
+        "before": [
+          {
+            "timer": "boostTicks",
+            "startSeconds": 0,
+            "observedSeconds": 2.133333,
+            "leftCensored": true,
+            "rightCensored": false
+          }
+        ],
+        "after": [
+          {
+            "timer": "boostTicks",
+            "startSeconds": 0,
+            "observedSeconds": 3,
+            "leftCensored": true,
+            "rightCensored": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "beginner-launch",
+      "split": "validation",
+      "skill": "beginner",
+      "family": "launch-and-opposite-drift",
+      "sourceFrames": [
+        6727,
+        6828
+      ],
+      "quantitativeEligible": true,
+      "initialState": {
+        "speedKmh": 0,
+        "startTicks": 90,
+        "boostTicks": 0,
+        "storedBoosters": 0
+      },
+      "sourceObservedSpeedRangeKmh": [
+        0,
+        317
+      ],
+      "speed": {
+        "before": {
+          "highConfidenceSamples": 34,
+          "nonzeroSamples": 33,
+          "nonzeroMapePercent": 20.556975,
+          "displayedNonzeroMapePercent": 20.619931,
+          "fittingErrorPercent": 19.85528,
+          "meanAbsoluteKmhError": 39.410387,
+          "minKmh": 0,
+          "maxKmh": 253.88362,
+          "endKmh": 179.173094
+        },
+        "after": {
+          "highConfidenceSamples": 34,
+          "nonzeroSamples": 33,
+          "nonzeroMapePercent": 4.925116,
+          "displayedNonzeroMapePercent": 4.957398,
+          "fittingErrorPercent": 4.778818,
+          "meanAbsoluteKmhError": 10.893682,
+          "minKmh": 0,
+          "maxKmh": 299.159766,
+          "endKmh": 259.552395
+        }
+      },
+      "heldOutFivePercentGate": true,
+      "independentBaseline": {
+        "states": 203,
+        "maxSpeedDeltaKmh": 0,
+        "allHashesEqual": true
+      },
+      "inputMotions": [
+        {
+          "pressFrame": 39,
+          "inputPressObserved": true,
+          "endFrameExclusive": 60,
+          "direction": "right",
+          "counterFrame": 59,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 285,
+              "entrySampleFrame": 38,
+              "minKmh": 261,
+              "minimumFrame": 59,
+              "lossPercent": 8.421053,
+              "peakKmh": 317,
+              "peakFrame": 44,
+              "postPeakMinKmh": 261,
+              "postPeakLossPercent": 17.665615,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 60
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 233.516085,
+              "entrySampleFrame": 39,
+              "minKmh": 219.968678,
+              "minimumFrame": 59.5,
+              "lossPercent": 5.801488,
+              "peakKmh": 253.88362,
+              "peakFrame": 44.5,
+              "postPeakMinKmh": 219.968678,
+              "postPeakLossPercent": 13.35846,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 60
+            },
+            "counterRecoveryEvent": null,
+            "counterToDriftEndSeconds": null,
+            "counterRecoveryRightCensored": true
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 292.666097,
+              "entrySampleFrame": 39,
+              "minKmh": 247.069522,
+              "minimumFrame": 59.5,
+              "lossPercent": 15.579726,
+              "peakKmh": 299.159766,
+              "peakFrame": 44.5,
+              "postPeakMinKmh": 247.069522,
+              "postPeakLossPercent": 17.412182,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 60
+            },
+            "counterRecoveryEvent": null,
+            "counterToDriftEndSeconds": null,
+            "counterRecoveryRightCensored": true
+          }
+        },
+        {
+          "pressFrame": 60,
+          "inputPressObserved": true,
+          "endFrameExclusive": 101,
+          "direction": "left",
+          "counterFrame": 91,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 261,
+              "entrySampleFrame": 59,
+              "minKmh": 201,
+              "minimumFrame": 77,
+              "lossPercent": 22.988506,
+              "peakKmh": 250,
+              "peakFrame": 62,
+              "postPeakMinKmh": 201,
+              "postPeakLossPercent": 19.6,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 101
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "doubleDrift",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 219.487067,
+              "entrySampleFrame": 60,
+              "minKmh": 171.562315,
+              "minimumFrame": 92.5,
+              "lossPercent": 21.834886,
+              "peakKmh": 219.487067,
+              "peakFrame": 60,
+              "postPeakMinKmh": 171.562315,
+              "postPeakLossPercent": 21.834886,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 101
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.05,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "doubleDrift",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 246.146148,
+              "entrySampleFrame": 60,
+              "minKmh": 205.367657,
+              "minimumFrame": 85.5,
+              "lossPercent": 16.56678,
+              "peakKmh": 258.71018,
+              "peakFrame": 100.5,
+              "postPeakMinKmh": 258.71018,
+              "postPeakLossPercent": 0,
+              "speedRecoveryAfterMinimumSeconds": 0.35,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 101
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.083333,
+            "counterRecoveryRightCensored": false
+          }
+        }
+      ],
+      "inventoryTiming": [
+        {
+          "kind": "gauge-full-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 0,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 80,
+              "sourceSeconds": 2.666667,
+              "uncertaintySeconds": 0.033333,
+              "beforeSeconds": null,
+              "afterSeconds": 2.6,
+              "beforeErrorSeconds": null,
+              "afterErrorSeconds": -0.066667
+            }
+          ]
+        },
+        {
+          "kind": "booster-consumed-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 0,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 83,
+              "sourceSeconds": 2.766667,
+              "uncertaintySeconds": 0.033333,
+              "beforeSeconds": null,
+              "afterSeconds": 2.783333,
+              "beforeErrorSeconds": null,
+              "afterErrorSeconds": 0.016667
+            }
+          ]
+        }
+      ],
+      "boostActivity": {
+        "sourceDurationSeconds": null,
+        "sourceDurationStatus": "unidentifiable from the annotated evidence",
+        "before": [
+          {
+            "timer": "startTicks",
+            "startSeconds": 0,
+            "observedSeconds": 1.5,
+            "leftCensored": true,
+            "rightCensored": false
+          }
+        ],
+        "after": [
+          {
+            "timer": "startTicks",
+            "startSeconds": 0,
+            "observedSeconds": 1.5,
+            "leftCensored": true,
+            "rightCensored": false
+          },
+          {
+            "timer": "boostTicks",
+            "startSeconds": 2.783333,
+            "observedSeconds": 0.583333,
+            "leftCensored": false,
+            "rightCensored": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "beginner-right",
+      "split": "validation",
+      "skill": "beginner",
+      "family": "right-drift-and-countersteer",
+      "sourceFrames": [
+        6828,
+        6924
+      ],
+      "quantitativeEligible": false,
+      "initialState": {
+        "speedKmh": 240,
+        "startTicks": 0,
+        "boostTicks": 144,
+        "storedBoosters": 0
+      },
+      "sourceObservedSpeedRangeKmh": [
+        240,
+        268
+      ],
+      "speed": {
+        "before": {
+          "highConfidenceSamples": 32,
+          "nonzeroSamples": 32,
+          "nonzeroMapePercent": 7.168921,
+          "displayedNonzeroMapePercent": 7.174799,
+          "fittingErrorPercent": 7.168921,
+          "meanAbsoluteKmhError": 18.204037,
+          "minKmh": 230.433652,
+          "maxKmh": 280.993916,
+          "endKmh": 230.433652
+        },
+        "after": {
+          "highConfidenceSamples": 32,
+          "nonzeroSamples": 32,
+          "nonzeroMapePercent": 6.387743,
+          "displayedNonzeroMapePercent": 6.401541,
+          "fittingErrorPercent": 6.387743,
+          "meanAbsoluteKmhError": 16.120699,
+          "minKmh": 240.000323,
+          "maxKmh": 280.993916,
+          "endKmh": 271.90045
+        }
+      },
+      "heldOutFivePercentGate": null,
+      "independentBaseline": {
+        "states": 193,
+        "maxSpeedDeltaKmh": 0,
+        "allHashesEqual": true
+      },
+      "inputMotions": [
+        {
+          "pressFrame": 8,
+          "inputPressObserved": true,
+          "endFrameExclusive": 52,
+          "direction": "right",
+          "counterFrame": 26,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 249,
+              "entrySampleFrame": 6,
+              "minKmh": 247,
+              "minimumFrame": 36,
+              "lossPercent": 0.803213,
+              "peakKmh": 257,
+              "peakFrame": 15,
+              "postPeakMinKmh": 247,
+              "postPeakLossPercent": 3.891051,
+              "speedRecoveryAfterMinimumSeconds": 0.2,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 52
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 261.13359,
+              "entrySampleFrame": 8,
+              "minKmh": 259.45441,
+              "minimumFrame": 8.5,
+              "lossPercent": 0.643035,
+              "peakKmh": 280.993916,
+              "peakFrame": 22.5,
+              "postPeakMinKmh": 273.773967,
+              "postPeakLossPercent": 2.569432,
+              "speedRecoveryAfterMinimumSeconds": 0.033333,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 52
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.05,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 261.13359,
+              "entrySampleFrame": 8,
+              "minKmh": 259.45441,
+              "minimumFrame": 8.5,
+              "lossPercent": 0.643035,
+              "peakKmh": 280.993916,
+              "peakFrame": 22.5,
+              "postPeakMinKmh": 273.768037,
+              "postPeakLossPercent": 2.571543,
+              "speedRecoveryAfterMinimumSeconds": 0.033333,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 52
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.066667,
+            "counterRecoveryRightCensored": false
+          }
+        },
+        {
+          "pressFrame": 52,
+          "inputPressObserved": true,
+          "endFrameExclusive": 96,
+          "direction": "not-exclusive",
+          "counterFrame": null,
+          "shiftHeldAtCounter": null,
+          "source": {
+            "speed": {
+              "entryKmh": 257,
+              "entrySampleFrame": 51,
+              "minKmh": 249,
+              "minimumFrame": 54,
+              "lossPercent": 3.11284,
+              "peakKmh": 268,
+              "peakFrame": 93,
+              "postPeakMinKmh": 268,
+              "postPeakLossPercent": 0,
+              "speedRecoveryAfterMinimumSeconds": 0.5,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 96
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.05,
+            "speed": {
+              "entryKmh": 273.746945,
+              "entrySampleFrame": 52,
+              "minKmh": 231.021268,
+              "minimumFrame": 95.5,
+              "lossPercent": 15.607727,
+              "peakKmh": 273.746945,
+              "peakFrame": 52,
+              "postPeakMinKmh": 231.021268,
+              "postPeakLossPercent": 15.607727,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 96
+            },
+            "counterRecoveryEvent": null,
+            "counterToDriftEndSeconds": null,
+            "counterRecoveryRightCensored": null
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.05,
+            "speed": {
+              "entryKmh": 273.741015,
+              "entrySampleFrame": 52,
+              "minKmh": 258.702786,
+              "minimumFrame": 77,
+              "lossPercent": 5.493597,
+              "peakKmh": 273.741015,
+              "peakFrame": 52,
+              "postPeakMinKmh": 258.702786,
+              "postPeakLossPercent": 5.493597,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 96
+            },
+            "counterRecoveryEvent": null,
+            "counterToDriftEndSeconds": null,
+            "counterRecoveryRightCensored": null
+          }
+        }
+      ],
+      "inventoryTiming": [
+        {
+          "kind": "gauge-full-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 0,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 71,
+              "sourceSeconds": 2.366667,
+              "uncertaintySeconds": 0.033333,
+              "beforeSeconds": null,
+              "afterSeconds": 2.2,
+              "beforeErrorSeconds": null,
+              "afterErrorSeconds": -0.166667
+            }
+          ]
+        },
+        {
+          "kind": "booster-consumed-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 0,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 77,
+              "sourceSeconds": 2.566667,
+              "uncertaintySeconds": 0.033333,
+              "beforeSeconds": null,
+              "afterSeconds": 2.583333,
+              "beforeErrorSeconds": null,
+              "afterErrorSeconds": 0.016667
+            }
+          ]
+        }
+      ],
+      "boostActivity": {
+        "sourceDurationSeconds": null,
+        "sourceDurationStatus": "unidentifiable from the annotated evidence",
+        "before": [
+          {
+            "timer": "boostTicks",
+            "startSeconds": 0,
+            "observedSeconds": 2.4,
+            "leftCensored": true,
+            "rightCensored": false
+          }
+        ],
+        "after": [
+          {
+            "timer": "boostTicks",
+            "startSeconds": 0,
+            "observedSeconds": 2.4,
+            "leftCensored": true,
+            "rightCensored": false
+          },
+          {
+            "timer": "boostTicks",
+            "startSeconds": 2.583333,
+            "observedSeconds": 0.616667,
+            "leftCensored": false,
+            "rightCensored": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "beginner-left",
+      "split": "validation",
+      "skill": "beginner",
+      "family": "left-drift-and-opposite-reentry",
+      "sourceFrames": [
+        6924,
+        7026
+      ],
+      "quantitativeEligible": false,
+      "initialState": {
+        "speedKmh": 270,
+        "startTicks": 0,
+        "boostTicks": 142,
+        "storedBoosters": 0
+      },
+      "sourceObservedSpeedRangeKmh": [
+        238,
+        278
+      ],
+      "speed": {
+        "before": {
+          "highConfidenceSamples": 34,
+          "nonzeroSamples": 34,
+          "nonzeroMapePercent": 9.630021,
+          "displayedNonzeroMapePercent": 9.615178,
+          "fittingErrorPercent": 9.630021,
+          "meanAbsoluteKmhError": 24.30386,
+          "minKmh": 188.346167,
+          "maxKmh": 281.282553,
+          "endKmh": 188.904907
+        },
+        "after": {
+          "highConfidenceSamples": 34,
+          "nonzeroSamples": 34,
+          "nonzeroMapePercent": 7.095991,
+          "displayedNonzeroMapePercent": 7.088628,
+          "fittingErrorPercent": 7.095991,
+          "meanAbsoluteKmhError": 17.784736,
+          "minKmh": 268.773175,
+          "maxKmh": 285.702623,
+          "endKmh": 280.39598
+        }
+      },
+      "heldOutFivePercentGate": null,
+      "independentBaseline": {
+        "states": 205,
+        "maxSpeedDeltaKmh": 0,
+        "allHashesEqual": true
+      },
+      "inputMotions": [
+        {
+          "pressFrame": 14,
+          "inputPressObserved": true,
+          "endFrameExclusive": 38,
+          "direction": "left",
+          "counterFrame": 36,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 277,
+              "entrySampleFrame": 12,
+              "minKmh": 261,
+              "minimumFrame": 36,
+              "lossPercent": 5.776173,
+              "peakKmh": 278,
+              "peakFrame": 15,
+              "postPeakMinKmh": 261,
+              "postPeakLossPercent": 6.115108,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 38
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 271.211659,
+              "entrySampleFrame": 14,
+              "minKmh": 268.773175,
+              "minimumFrame": 14.5,
+              "lossPercent": 0.899107,
+              "peakKmh": 281.282553,
+              "peakFrame": 27,
+              "postPeakMinKmh": 274.22013,
+              "postPeakLossPercent": 2.510793,
+              "speedRecoveryAfterMinimumSeconds": 0.15,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 38
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.05,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 271.211659,
+              "entrySampleFrame": 14,
+              "minKmh": 268.773175,
+              "minimumFrame": 14.5,
+              "lossPercent": 0.899107,
+              "peakKmh": 281.282553,
+              "peakFrame": 27,
+              "postPeakMinKmh": 274.22013,
+              "postPeakLossPercent": 2.510793,
+              "speedRecoveryAfterMinimumSeconds": 0.15,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 38
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.05,
+            "counterRecoveryRightCensored": false
+          }
+        },
+        {
+          "pressFrame": 38,
+          "inputPressObserved": true,
+          "endFrameExclusive": 83,
+          "direction": "right",
+          "counterFrame": 63,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 261,
+              "entrySampleFrame": 36,
+              "minKmh": 238,
+              "minimumFrame": 60,
+              "lossPercent": 8.812261,
+              "peakKmh": 257,
+              "peakFrame": 39,
+              "postPeakMinKmh": 238,
+              "postPeakLossPercent": 7.392996,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 83
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.083333,
+            "speed": {
+              "entryKmh": 274.186646,
+              "entrySampleFrame": 38,
+              "minKmh": 210.700115,
+              "minimumFrame": 82.5,
+              "lossPercent": 23.154494,
+              "peakKmh": 276.816332,
+              "peakFrame": 63,
+              "postPeakMinKmh": 210.700115,
+              "postPeakLossPercent": 23.884507,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 83
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.066667,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.083333,
+            "speed": {
+              "entryKmh": 274.186646,
+              "entrySampleFrame": 38,
+              "minKmh": 271.359552,
+              "minimumFrame": 40.5,
+              "lossPercent": 1.031084,
+              "peakKmh": 276.816332,
+              "peakFrame": 63,
+              "postPeakMinKmh": 271.848874,
+              "postPeakLossPercent": 1.794496,
+              "speedRecoveryAfterMinimumSeconds": 0.633333,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 83
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.1,
+            "counterRecoveryRightCensored": false
+          }
+        },
+        {
+          "pressFrame": 83,
+          "inputPressObserved": true,
+          "endFrameExclusive": 102,
+          "direction": "left",
+          "counterFrame": 99,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 255,
+              "entrySampleFrame": 81,
+              "minKmh": 249,
+              "minimumFrame": 99,
+              "lossPercent": 2.352941,
+              "peakKmh": 260,
+              "peakFrame": 87,
+              "postPeakMinKmh": 249,
+              "postPeakLossPercent": 4.230769,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 102
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 210.101264,
+              "entrySampleFrame": 83,
+              "minKmh": 188.346167,
+              "minimumFrame": 101,
+              "lossPercent": 10.354577,
+              "peakKmh": 210.101264,
+              "peakFrame": 83,
+              "postPeakMinKmh": 188.346167,
+              "postPeakLossPercent": 10.354577,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 102
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.066667,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 271.809459,
+              "entrySampleFrame": 83,
+              "minKmh": 269.325954,
+              "minimumFrame": 83.5,
+              "lossPercent": 0.913693,
+              "peakKmh": 285.702623,
+              "peakFrame": 99,
+              "postPeakMinKmh": 280.87483,
+              "postPeakLossPercent": 1.689797,
+              "speedRecoveryAfterMinimumSeconds": 0.15,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 102
+            },
+            "counterRecoveryEvent": null,
+            "counterToDriftEndSeconds": null,
+            "counterRecoveryRightCensored": true
+          }
+        }
+      ],
+      "inventoryTiming": [
+        {
+          "kind": "gauge-full-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 0,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 57,
+              "sourceSeconds": 1.9,
+              "uncertaintySeconds": 0.1,
+              "beforeSeconds": null,
+              "afterSeconds": 1.933333,
+              "beforeErrorSeconds": null,
+              "afterErrorSeconds": 0.033333
+            }
+          ]
+        },
+        {
+          "kind": "booster-consumed-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 0,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 72,
+              "sourceSeconds": 2.4,
+              "uncertaintySeconds": 0.1,
+              "beforeSeconds": null,
+              "afterSeconds": 2.216667,
+              "beforeErrorSeconds": null,
+              "afterErrorSeconds": -0.183333
+            }
+          ]
+        }
+      ],
+      "boostActivity": {
+        "sourceDurationSeconds": null,
+        "sourceDurationStatus": "unidentifiable from the annotated evidence",
+        "before": [
+          {
+            "timer": "boostTicks",
+            "startSeconds": 0,
+            "observedSeconds": 2.366667,
+            "leftCensored": true,
+            "rightCensored": false
+          }
+        ],
+        "after": [
+          {
+            "timer": "boostTicks",
+            "startSeconds": 0,
+            "observedSeconds": 3.4,
+            "leftCensored": true,
+            "rightCensored": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "beginner-repeat",
+      "split": "validation",
+      "skill": "beginner",
+      "family": "same-direction-repeat-and-rise",
+      "sourceFrames": [
+        7104,
+        7230
+      ],
+      "quantitativeEligible": false,
+      "initialState": {
+        "speedKmh": 214,
+        "startTicks": 0,
+        "boostTicks": 0,
+        "storedBoosters": 1
+      },
+      "sourceObservedSpeedRangeKmh": [
+        214,
+        239
+      ],
+      "speed": {
+        "before": {
+          "highConfidenceSamples": 42,
+          "nonzeroSamples": 42,
+          "nonzeroMapePercent": 14.094638,
+          "displayedNonzeroMapePercent": 14.108316,
+          "fittingErrorPercent": 14.094638,
+          "meanAbsoluteKmhError": 32.280098,
+          "minKmh": 184.547956,
+          "maxKmh": 278.949206,
+          "endKmh": 278.949206
+        },
+        "after": {
+          "highConfidenceSamples": 42,
+          "nonzeroSamples": 42,
+          "nonzeroMapePercent": 14.088592,
+          "displayedNonzeroMapePercent": 14.108316,
+          "fittingErrorPercent": 14.088592,
+          "meanAbsoluteKmhError": 32.265868,
+          "minKmh": 185.085856,
+          "maxKmh": 278.951351,
+          "endKmh": 278.951351
+        }
+      },
+      "heldOutFivePercentGate": null,
+      "independentBaseline": {
+        "states": 253,
+        "maxSpeedDeltaKmh": 0,
+        "allHashesEqual": true
+      },
+      "inputMotions": [
+        {
+          "pressFrame": 6,
+          "inputPressObserved": true,
+          "endFrameExclusive": 35,
+          "direction": "right",
+          "counterFrame": 24,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 221,
+              "entrySampleFrame": 6,
+              "minKmh": 218,
+              "minimumFrame": 33,
+              "lossPercent": 1.357466,
+              "peakKmh": 231,
+              "peakFrame": 18,
+              "postPeakMinKmh": 218,
+              "postPeakLossPercent": 5.627706,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 35
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 212.300258,
+              "entrySampleFrame": 6,
+              "minKmh": 192.307381,
+              "minimumFrame": 25.5,
+              "lossPercent": 9.417265,
+              "peakKmh": 212.300258,
+              "peakFrame": 6,
+              "postPeakMinKmh": 192.307381,
+              "postPeakLossPercent": 9.417265,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 35
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.05,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 212.300258,
+              "entrySampleFrame": 6,
+              "minKmh": 192.477,
+              "minimumFrame": 26,
+              "lossPercent": 9.337369,
+              "peakKmh": 212.300258,
+              "peakFrame": 6,
+              "postPeakMinKmh": 192.477,
+              "postPeakLossPercent": 9.337369,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 35
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.066667,
+            "counterRecoveryRightCensored": false
+          }
+        },
+        {
+          "pressFrame": 35,
+          "inputPressObserved": true,
+          "endFrameExclusive": 82,
+          "direction": "left",
+          "counterFrame": 52,
+          "shiftHeldAtCounter": false,
+          "source": {
+            "speed": {
+              "entryKmh": 218,
+              "entrySampleFrame": 33,
+              "minKmh": 219,
+              "minimumFrame": 36,
+              "lossPercent": 0,
+              "peakKmh": 239,
+              "peakFrame": 60,
+              "postPeakMinKmh": 236,
+              "postPeakLossPercent": 1.25523,
+              "speedRecoveryAfterMinimumSeconds": 0,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 82
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 195.67124,
+              "entrySampleFrame": 35,
+              "minKmh": 184.547956,
+              "minimumFrame": 53.5,
+              "lossPercent": 5.68468,
+              "peakKmh": 249.886681,
+              "peakFrame": 81.5,
+              "postPeakMinKmh": 249.886681,
+              "postPeakLossPercent": 0,
+              "speedRecoveryAfterMinimumSeconds": 0.55,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 82
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.05,
+            "counterRecoveryRightCensored": false
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 195.675341,
+              "entrySampleFrame": 35,
+              "minKmh": 185.085856,
+              "minimumFrame": 54,
+              "lossPercent": 5.411763,
+              "peakKmh": 249.936935,
+              "peakFrame": 81.5,
+              "postPeakMinKmh": 249.936935,
+              "postPeakLossPercent": 0,
+              "speedRecoveryAfterMinimumSeconds": 0.533333,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 82
+            },
+            "counterRecoveryEvent": "cut",
+            "counterToDriftEndSeconds": 0.083333,
+            "counterRecoveryRightCensored": false
+          }
+        },
+        {
+          "pressFrame": 82,
+          "inputPressObserved": true,
+          "endFrameExclusive": 115,
+          "direction": "left",
+          "counterFrame": null,
+          "shiftHeldAtCounter": null,
+          "source": {
+            "speed": {
+              "entryKmh": 237,
+              "entrySampleFrame": 81,
+              "minKmh": 221,
+              "minimumFrame": 114,
+              "lossPercent": 6.751055,
+              "peakKmh": 237,
+              "peakFrame": 84,
+              "postPeakMinKmh": 221,
+              "postPeakLossPercent": 6.751055,
+              "speedRecoveryAfterMinimumSeconds": null,
+              "recoveryRightCensored": true,
+              "recoveryObservationEndsAtFrame": 115
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 251.351611,
+              "entrySampleFrame": 82,
+              "minKmh": 250.403049,
+              "minimumFrame": 82.5,
+              "lossPercent": 0.377385,
+              "peakKmh": 273.556923,
+              "peakFrame": 93,
+              "postPeakMinKmh": 271.236962,
+              "postPeakLossPercent": 0.848073,
+              "speedRecoveryAfterMinimumSeconds": 0.016667,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 115
+            },
+            "counterRecoveryEvent": null,
+            "counterToDriftEndSeconds": null,
+            "counterRecoveryRightCensored": null
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 251.398632,
+              "entrySampleFrame": 82,
+              "minKmh": 250.446929,
+              "minimumFrame": 82.5,
+              "lossPercent": 0.378563,
+              "peakKmh": 273.566406,
+              "peakFrame": 93,
+              "postPeakMinKmh": 271.240059,
+              "postPeakLossPercent": 0.850378,
+              "speedRecoveryAfterMinimumSeconds": 0.016667,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 115
+            },
+            "counterRecoveryEvent": null,
+            "counterToDriftEndSeconds": null,
+            "counterRecoveryRightCensored": null
+          }
+        },
+        {
+          "pressFrame": 115,
+          "inputPressObserved": true,
+          "endFrameExclusive": 126,
+          "direction": "left",
+          "counterFrame": null,
+          "shiftHeldAtCounter": null,
+          "source": {
+            "speed": {
+              "entryKmh": 221,
+              "entrySampleFrame": 114,
+              "minKmh": 222,
+              "minimumFrame": 117,
+              "lossPercent": 0,
+              "peakKmh": 225,
+              "peakFrame": 120,
+              "postPeakMinKmh": 225,
+              "postPeakLossPercent": 0,
+              "speedRecoveryAfterMinimumSeconds": 0,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 126
+            },
+            "physicalEntryResponseSeconds": null,
+            "physicalDriftRecoverySeconds": null,
+            "physicalDriftDurationSeconds": null
+          },
+          "before": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 271.6135,
+              "entrySampleFrame": 115,
+              "minKmh": 269.132461,
+              "minimumFrame": 115.5,
+              "lossPercent": 0.913445,
+              "peakKmh": 278.106681,
+              "peakFrame": 125.5,
+              "postPeakMinKmh": 278.106681,
+              "postPeakLossPercent": 0,
+              "speedRecoveryAfterMinimumSeconds": 0.166667,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 126
+            },
+            "counterRecoveryEvent": null,
+            "counterToDriftEndSeconds": null,
+            "counterRecoveryRightCensored": null
+          },
+          "after": {
+            "responseEvent": "driftStart",
+            "entryResponseSeconds": 0.016667,
+            "speed": {
+              "entryKmh": 271.615243,
+              "entrySampleFrame": 115,
+              "minKmh": 269.13423,
+              "minimumFrame": 115.5,
+              "lossPercent": 0.913429,
+              "peakKmh": 278.109476,
+              "peakFrame": 125.5,
+              "postPeakMinKmh": 278.109476,
+              "postPeakLossPercent": 0,
+              "speedRecoveryAfterMinimumSeconds": 0.166667,
+              "recoveryRightCensored": false,
+              "recoveryObservationEndsAtFrame": 126
+            },
+            "counterRecoveryEvent": null,
+            "counterToDriftEndSeconds": null,
+            "counterRecoveryRightCensored": null
+          }
+        }
+      ],
+      "inventoryTiming": [
+        {
+          "kind": "gauge-full-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 1,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 114,
+              "sourceSeconds": 3.8,
+              "uncertaintySeconds": 0.1,
+              "beforeSeconds": 4.083333,
+              "afterSeconds": 2.983333,
+              "beforeErrorSeconds": 0.283333,
+              "afterErrorSeconds": -0.816667
+            }
+          ]
+        },
+        {
+          "kind": "booster-consumed-visible",
+          "observedCount": 1,
+          "simulatedCounts": {
+            "before": 1,
+            "after": 1
+          },
+          "events": [
+            {
+              "sourceFrame": 69,
+              "sourceSeconds": 2.3,
+              "uncertaintySeconds": 0.1,
+              "beforeSeconds": 2.316667,
+              "afterSeconds": 2.316667,
+              "beforeErrorSeconds": 0.016667,
+              "afterErrorSeconds": 0.016667
+            }
+          ]
+        }
+      ],
+      "boostActivity": {
+        "sourceDurationSeconds": null,
+        "sourceDurationStatus": "unidentifiable from the annotated evidence",
+        "before": [
+          {
+            "timer": "boostTicks",
+            "startSeconds": 2.316667,
+            "observedSeconds": 1.883333,
+            "leftCensored": false,
+            "rightCensored": true
+          }
+        ],
+        "after": [
+          {
+            "timer": "boostTicks",
+            "startSeconds": 2.316667,
+            "observedSeconds": 1.883333,
+            "leftCensored": false,
+            "rightCensored": true
+          }
+        ]
+      }
+    }
+  ],
+  "actualCombatMatrix": {
+    "before": {
+      "total": {
+        "races": 252,
+        "fullFields": 252,
+        "finishedKarts": 1134,
+        "kartStarts": 1134,
+        "hardHits": 51,
+        "respawns": 9,
+        "maxStuckTicks": 302,
+        "itemsUsed": 3191,
+        "effectHits": 4567,
+        "combatEffectHits": 2042,
+        "uncreditedGateOrFinish": 0
+      },
+      "splits": [
+        {
+          "mode": "speed",
+          "field": "solo",
+          "races": 63,
+          "fullFields": 63,
+          "finishedKarts": 63,
+          "kartStarts": 63,
+          "hardHits": 0,
+          "respawns": 0,
+          "maxStuckTicks": 81,
+          "itemsUsed": 0,
+          "effectHits": 3,
+          "combatEffectHits": 0,
+          "uncreditedGateOrFinish": 0
+        },
+        {
+          "mode": "speed",
+          "field": "pack",
+          "races": 63,
+          "fullFields": 63,
+          "finishedKarts": 504,
+          "kartStarts": 504,
+          "hardHits": 11,
+          "respawns": 0,
+          "maxStuckTicks": 94,
+          "itemsUsed": 0,
+          "effectHits": 11,
+          "combatEffectHits": 0,
+          "uncreditedGateOrFinish": 0
+        },
+        {
+          "mode": "item",
+          "field": "solo",
+          "races": 63,
+          "fullFields": 63,
+          "finishedKarts": 63,
+          "kartStarts": 63,
+          "hardHits": 2,
+          "respawns": 0,
+          "maxStuckTicks": 87,
+          "itemsUsed": 197,
+          "effectHits": 98,
+          "combatEffectHits": 0,
+          "uncreditedGateOrFinish": 0
+        },
+        {
+          "mode": "item",
+          "field": "pack",
+          "races": 63,
+          "fullFields": 63,
+          "finishedKarts": 504,
+          "kartStarts": 504,
+          "hardHits": 38,
+          "respawns": 9,
+          "maxStuckTicks": 302,
+          "itemsUsed": 2994,
+          "effectHits": 4455,
+          "combatEffectHits": 2042,
+          "uncreditedGateOrFinish": 0
+        }
+      ],
+      "bakedTracks": {
+        "aurora_summit": {
+          "trackHash": "0aacd9d1",
+          "sha256": "226f9affb37224b2d3919e5a4df29297205fdaefc16059a368f400d8eefde91f"
+        },
+        "belltower_piazza": {
+          "trackHash": "12b9e9e8",
+          "sha256": "5d495025324ff6e7c8e187487cfccce95029853fc646ff9f7bc3f099388f0f4b"
+        },
+        "cascade_slalom": {
+          "trackHash": "921ea469",
+          "sha256": "b9b77f01700ba7c2f1e86e28119751ea8412700f365a92756729df40907a005b"
+        },
+        "coral_cove_docks": {
+          "trackHash": "638c79e0",
+          "sha256": "e9453b3e0a68362f8426bad1a83a95770b9a66f9efe04578e05abbc7ddac1342"
+        },
+        "fernwood_hollow": {
+          "trackHash": "a5857e2d",
+          "sha256": "66108fabff2355f44d0781240f28b94942c6873c6c1ffe7340fef5ad30636f5e"
+        },
+        "geode_rail_quarry": {
+          "trackHash": "27d07a3c",
+          "sha256": "15fcc72877e24f2c00f080b2a4b61aa6e5fb2e6678d210c04f5f46a3958c8fb1"
+        },
+        "kraken_lighthouse": {
+          "trackHash": "a9e57084",
+          "sha256": "ee68847070dd6a03214e3a56ae5dc083083a6502c9579955468d4452b52bb9a8"
+        },
+        "magma_switchback": {
+          "trackHash": "40c1e250",
+          "sha256": "b26cb4c92f9d4c99caf1ddbb3c97bd940233d00ff925e13513f29c1332389b4f"
+        },
+        "manor_catacombs": {
+          "trackHash": "bb91858f",
+          "sha256": "994eed20414e8d4db975a79ad8dbbc8008717b97144c7eea29ef6c243033696b"
+        },
+        "meadow_loop": {
+          "trackHash": "60566780",
+          "sha256": "415a59dcae2b4b07fccc1e682099a2b7a94317eb0b337f27f0a6c28c5b7e059f"
+        },
+        "orbital_express": {
+          "trackHash": "8df15a70",
+          "sha256": "7f280195e5a20da4b78b3d93c1844f8a8d2ab41e1c3417f76a2bc2f4fbfd68d3"
+        },
+        "proving_ring": {
+          "trackHash": "f1dc8d90",
+          "sha256": "34587da6c38ca199429bebb78513446efc356aedaa465ab1d0046736ba4fde44"
+        },
+        "pumpkin_lane": {
+          "trackHash": "bb5b0dec",
+          "sha256": "feed6b9a20f18b6985ae77faf48328daa6a1bcf03b599549bc84dca348e7491e"
+        },
+        "rainline_blvd": {
+          "trackHash": "c6a1469d",
+          "sha256": "1469b65714feeba4bd9b730434305e26391b8efdf5513acb30c2ab1d994a414d"
+        },
+        "sandglass_canyon": {
+          "trackHash": "579046c1",
+          "sha256": "7b667ef58a943f862282e0f1497e1b9f770fe10fb4a679d9e93e0d2aad6a4c9e"
+        },
+        "skyway_interchange": {
+          "trackHash": "dbad722c",
+          "sha256": "773970bf87174658024fcbf907b24dd5da39b0558c2b553f4229295cd2391e27"
+        },
+        "snowglobe_halfpipe": {
+          "trackHash": "a2156ae7",
+          "sha256": "92be0d338eac3ce0351bcbba4323e11337c9f9f0414c769088eeeed857e309cd"
+        },
+        "spark_grand_circuit": {
+          "trackHash": "2e3aafc8",
+          "sha256": "5b4944898c5bf253a53fed2df7969c4c3ff74073ae492f79a67eff66cc144f0a"
+        },
+        "sunset_arena_rally": {
+          "trackHash": "06c4adc0",
+          "sha256": "586f5d94eda65371d453041eb2b65c9e6d1e30d461e13a9954e478506c5d1793"
+        },
+        "sunstone_bazaar": {
+          "trackHash": "622c82e5",
+          "sha256": "2bd04380b33a66066d33e98825b23596e5a71cf218d99906125b98beec8ff754"
+        },
+        "token_foundry": {
+          "trackHash": "4284d4cb",
+          "sha256": "c27e994f68c3981463302ea65247c65bbd2f646685a0455326fad2b2f43aa905"
+        }
+      },
+      "sourceStable": null,
+      "sourceTreeSha256": null,
+      "sourceTreeSha256After": null,
+      "sourceFingerprints": {
+        "packages/sim/src/kart/dynamics.ts": "5322fa0569336b9ee8d13f19db8f3724281098383872a03d1b69124f249194cf",
+        "packages/sim/src/kart/params.ts": "6037855e1ded24b463a700916462ac4471af109b12ea4a242b1dbfc5e0b33eda",
+        "packages/sim/src/ai/driver.ts": "d87a064047c5a84824059e559c73040a4c3b93ac584cd3ebee91a1c94bfb0572",
+        "packages/sim/src/ai/predict.ts": "824579fcf58337364f79b6f42c992638f46d6efe1ac97812fac9427bdc2cc5f3",
+        "packages/sim/src/core/state.ts": "d3d937333fd6f68fe46b673898ebff2c43ddb358698e6a969e896de6cf7b37e6",
+        "packages/sim/src/items/projectiles.ts": "5acdd8d9f33af9e28a6133411be6b3c564d3d5494ae9fa9c64759f4f2d845343",
+        "packages/content/src/karts/pebble.ts": "91573ea3b26cae800fc6660ee5c530dd1b6a109885812f1160671492f71f332a"
+      },
+      "sourceFingerprintsAfter": null
+    },
+    "after": {
+      "total": {
+        "races": 252,
+        "fullFields": 252,
+        "finishedKarts": 1134,
+        "kartStarts": 1134,
+        "hardHits": 38,
+        "respawns": 15,
+        "maxStuckTicks": 183,
+        "itemsUsed": 3166,
+        "effectHits": 4443,
+        "combatEffectHits": 1867,
+        "uncreditedGateOrFinish": 0
+      },
+      "splits": [
+        {
+          "mode": "speed",
+          "field": "solo",
+          "races": 63,
+          "fullFields": 63,
+          "finishedKarts": 63,
+          "kartStarts": 63,
+          "hardHits": 0,
+          "respawns": 0,
+          "maxStuckTicks": 51,
+          "itemsUsed": 0,
+          "effectHits": 6,
+          "combatEffectHits": 0,
+          "uncreditedGateOrFinish": 0
+        },
+        {
+          "mode": "speed",
+          "field": "pack",
+          "races": 63,
+          "fullFields": 63,
+          "finishedKarts": 504,
+          "kartStarts": 504,
+          "hardHits": 5,
+          "respawns": 0,
+          "maxStuckTicks": 86,
+          "itemsUsed": 0,
+          "effectHits": 11,
+          "combatEffectHits": 0,
+          "uncreditedGateOrFinish": 0
+        },
+        {
+          "mode": "item",
+          "field": "solo",
+          "races": 63,
+          "fullFields": 63,
+          "finishedKarts": 63,
+          "kartStarts": 63,
+          "hardHits": 0,
+          "respawns": 0,
+          "maxStuckTicks": 50,
+          "itemsUsed": 189,
+          "effectHits": 125,
+          "combatEffectHits": 0,
+          "uncreditedGateOrFinish": 0
+        },
+        {
+          "mode": "item",
+          "field": "pack",
+          "races": 63,
+          "fullFields": 63,
+          "finishedKarts": 504,
+          "kartStarts": 504,
+          "hardHits": 33,
+          "respawns": 15,
+          "maxStuckTicks": 183,
+          "itemsUsed": 2977,
+          "effectHits": 4301,
+          "combatEffectHits": 1867,
+          "uncreditedGateOrFinish": 0
+        }
+      ],
+      "bakedTracks": {
+        "aurora_summit": {
+          "trackHash": "15962ceb",
+          "sha256": "ffcf40191eb7a2355ebe837ff94309cbec66c95632a6efdeca2d1b591d5588ee"
+        },
+        "belltower_piazza": {
+          "trackHash": "99cd27f7",
+          "sha256": "108703a1d6ea65a4adf742398a365fcd66c22f43e04ca806945386175eeea2db"
+        },
+        "cascade_slalom": {
+          "trackHash": "921ea469",
+          "sha256": "b9b77f01700ba7c2f1e86e28119751ea8412700f365a92756729df40907a005b"
+        },
+        "coral_cove_docks": {
+          "trackHash": "638c79e0",
+          "sha256": "e9453b3e0a68362f8426bad1a83a95770b9a66f9efe04578e05abbc7ddac1342"
+        },
+        "fernwood_hollow": {
+          "trackHash": "a5857e2d",
+          "sha256": "66108fabff2355f44d0781240f28b94942c6873c6c1ffe7340fef5ad30636f5e"
+        },
+        "geode_rail_quarry": {
+          "trackHash": "27d07a3c",
+          "sha256": "15fcc72877e24f2c00f080b2a4b61aa6e5fb2e6678d210c04f5f46a3958c8fb1"
+        },
+        "kraken_lighthouse": {
+          "trackHash": "a9e57084",
+          "sha256": "ee68847070dd6a03214e3a56ae5dc083083a6502c9579955468d4452b52bb9a8"
+        },
+        "magma_switchback": {
+          "trackHash": "40c1e250",
+          "sha256": "b26cb4c92f9d4c99caf1ddbb3c97bd940233d00ff925e13513f29c1332389b4f"
+        },
+        "manor_catacombs": {
+          "trackHash": "3b3dda51",
+          "sha256": "bd386853a4ecdb30f4b77ca05d1db71b6a4dd36dfa2bc2b273c8ad1a8d91ae65"
+        },
+        "meadow_loop": {
+          "trackHash": "60566780",
+          "sha256": "415a59dcae2b4b07fccc1e682099a2b7a94317eb0b337f27f0a6c28c5b7e059f"
+        },
+        "orbital_express": {
+          "trackHash": "8df15a70",
+          "sha256": "7f280195e5a20da4b78b3d93c1844f8a8d2ab41e1c3417f76a2bc2f4fbfd68d3"
+        },
+        "proving_ring": {
+          "trackHash": "f1dc8d90",
+          "sha256": "34587da6c38ca199429bebb78513446efc356aedaa465ab1d0046736ba4fde44"
+        },
+        "pumpkin_lane": {
+          "trackHash": "bb5b0dec",
+          "sha256": "feed6b9a20f18b6985ae77faf48328daa6a1bcf03b599549bc84dca348e7491e"
+        },
+        "rainline_blvd": {
+          "trackHash": "c6a1469d",
+          "sha256": "1469b65714feeba4bd9b730434305e26391b8efdf5513acb30c2ab1d994a414d"
+        },
+        "sandglass_canyon": {
+          "trackHash": "579046c1",
+          "sha256": "7b667ef58a943f862282e0f1497e1b9f770fe10fb4a679d9e93e0d2aad6a4c9e"
+        },
+        "skyway_interchange": {
+          "trackHash": "dbad722c",
+          "sha256": "773970bf87174658024fcbf907b24dd5da39b0558c2b553f4229295cd2391e27"
+        },
+        "snowglobe_halfpipe": {
+          "trackHash": "a2156ae7",
+          "sha256": "92be0d338eac3ce0351bcbba4323e11337c9f9f0414c769088eeeed857e309cd"
+        },
+        "spark_grand_circuit": {
+          "trackHash": "2e3aafc8",
+          "sha256": "5b4944898c5bf253a53fed2df7969c4c3ff74073ae492f79a67eff66cc144f0a"
+        },
+        "sunset_arena_rally": {
+          "trackHash": "359a6d28",
+          "sha256": "da29a6024510ca07f1dca24389c54a0fa4c4f932fc93607e34d27318d49a551c"
+        },
+        "sunstone_bazaar": {
+          "trackHash": "2f29aee2",
+          "sha256": "a6183ef48590bc669516b93110858b8534ac68f7ae1cdf300d4dcb3019df7027"
+        },
+        "token_foundry": {
+          "trackHash": "4284d4cb",
+          "sha256": "c27e994f68c3981463302ea65247c65bbd2f646685a0455326fad2b2f43aa905"
+        }
+      },
+      "sourceStable": true,
+      "sourceTreeSha256": "7de3e5b542d0631a0b03d085cef537911f5a9707f1861d9608e1624495ba151d",
+      "sourceTreeSha256After": "7de3e5b542d0631a0b03d085cef537911f5a9707f1861d9608e1624495ba151d",
+      "sourceFingerprints": {
+        "packages/sim/src/kart/dynamics.ts": "4f0eaa892b181acfc4697d717d5fb98d016fb7bd85522aef1e41ed9e5ff02834",
+        "packages/sim/src/kart/params.ts": "bbe0d587cfbdca0ee50fc48fb27fb4eb22af3adf3b3f92dc7019720d49d74f3b",
+        "packages/sim/src/ai/driver.ts": "69bc5a79edba68a4c49be8000ca387b5db34e591f4c58797823e6e0c31fa7421",
+        "packages/sim/src/ai/api.ts": "b8881d5c3536302a91b24b32b54c1cee2476fb9d769cfa3d00fcba06aabd0d53",
+        "packages/sim/src/ai/predict.ts": "c2ac0b701d9997fe4d0b9dfa06f86e6544b05de62a1fc6dea9014c91faa04ff8",
+        "packages/sim/src/ai/plan.ts": "a8df0c1fec8dc006b6eb0fec086a24e22668849276290dd051c9bb6bc1f8a8f9",
+        "packages/sim/src/ai/avoid.ts": "0fc1ca1be1ce999481af66237285e1bd67e1d48caa8298ef4ebcdfe1d8202f54",
+        "packages/sim/src/ai/items/decide.ts": "513e3e85f5a7a846372b45056f65ff8093874ee0acf2415852e6062e1b401c5f",
+        "packages/sim/src/ai/profiles.ts": "9bc9be094f229e10e3781e480058a26b33397ff97696a5f0dca1022ebb8c514e",
+        "packages/sim/src/core/state.ts": "61940377425c6ce8497100c2846d132befd6216ac9a1c1273ed15e21f4a5a124",
+        "packages/sim/src/items/projectiles.ts": "5a16c67bca7e6e8034d86f0d8075bc68bab8c771c2e754003120366fd33a38f8",
+        "packages/content/src/karts/pebble.ts": "2efa10a72264f599052460e6474e984f69ebd0a5265fba37cd4bf7818af54e9f"
+      },
+      "sourceFingerprintsAfter": {
+        "packages/sim/src/kart/dynamics.ts": "4f0eaa892b181acfc4697d717d5fb98d016fb7bd85522aef1e41ed9e5ff02834",
+        "packages/sim/src/kart/params.ts": "bbe0d587cfbdca0ee50fc48fb27fb4eb22af3adf3b3f92dc7019720d49d74f3b",
+        "packages/sim/src/ai/driver.ts": "69bc5a79edba68a4c49be8000ca387b5db34e591f4c58797823e6e0c31fa7421",
+        "packages/sim/src/ai/api.ts": "b8881d5c3536302a91b24b32b54c1cee2476fb9d769cfa3d00fcba06aabd0d53",
+        "packages/sim/src/ai/predict.ts": "c2ac0b701d9997fe4d0b9dfa06f86e6544b05de62a1fc6dea9014c91faa04ff8",
+        "packages/sim/src/ai/plan.ts": "a8df0c1fec8dc006b6eb0fec086a24e22668849276290dd051c9bb6bc1f8a8f9",
+        "packages/sim/src/ai/avoid.ts": "0fc1ca1be1ce999481af66237285e1bd67e1d48caa8298ef4ebcdfe1d8202f54",
+        "packages/sim/src/ai/items/decide.ts": "513e3e85f5a7a846372b45056f65ff8093874ee0acf2415852e6062e1b401c5f",
+        "packages/sim/src/ai/profiles.ts": "9bc9be094f229e10e3781e480058a26b33397ff97696a5f0dca1022ebb8c514e",
+        "packages/sim/src/core/state.ts": "61940377425c6ce8497100c2846d132befd6216ac9a1c1273ed15e21f4a5a124",
+        "packages/sim/src/items/projectiles.ts": "5a16c67bca7e6e8034d86f0d8075bc68bab8c771c2e754003120366fd33a38f8",
+        "packages/content/src/karts/pebble.ts": "2efa10a72264f599052460e6474e984f69ebd0a5265fba37cd4bf7818af54e9f"
+      }
+    },
+    "flags": [
+      {
+        "key": "aurora_summit/item/pack/2026",
+        "reasons": [
+          "respawns"
+        ],
+        "beforeRespawns": 0,
+        "afterRespawns": 1,
+        "reviewStatus": "attack-associated; retain recovery limitation",
+        "cause": "Opponent stun at3192 and post-stun slow at3246 leave slot3 below jumping speed. At3327 it takes off16.5m/s below vMin20. No self tether. Subsequent traffic coasting delays speed recovery; classify attack-associated under-speed approach, not direct midair knockdown."
+      },
+      {
+        "key": "pumpkin_lane/item/pack/2026",
+        "reasons": [
+          "respawns"
+        ],
+        "beforeRespawns": 0,
+        "afterRespawns": 2,
+        "reviewStatus": "confirmed attack/collision chain",
+        "cause": "Slot1 receives airborne1044 and stun1148 just before under-speed takeoff1150 (17m/s<vMin24). Unhit slot7 bumps into slowed1 at1097-1100 and takes off1156 at18.1m/s<vMin24. Both apply full throttle/no brake at takeoff; repeated collisions continue in air. Demonstrated opponent-attack collision chain."
+      },
+      {
+        "key": "sunstone_bazaar/item/pack/4242",
+        "reasons": [
+          "respawns"
+        ],
+        "beforeRespawns": 2,
+        "afterRespawns": 8,
+        "reviewStatus": "confirmed attack-induced braking/collision chain",
+        "cause": "Opponent SPIN hits slot3 at1082 and TRAP_BUG hits slot5 at1083; TRAP_BUG hits slot4 at1148. Unhit2 contacts trapped5 at1101 (impulse22.94,speed33.12→17.28). The subsequent physical pileup connects4→0 at1153,0→7 at1153,7→6 at1154. Follower1 brakes from1110 for the slowed field and contacts3 at1157. All8 take off at11.62–15.46m/s below declared vMin22; each resets once. No self tether."
+      },
+      {
+        "key": "sunstone_bazaar/item/pack/7301",
+        "reasons": [
+          "respawns"
+        ],
+        "beforeRespawns": 0,
+        "afterRespawns": 2,
+        "reviewStatus": "confirmed opponent slowing/CC before jump",
+        "cause": "Opponent REDACTION hits7 at1120 and6 at1179. TRAP_BUG additionally hits7 at1197. They take off at15.85/18.44m/s, below vMin22, and reset1378/1405."
+      }
+    ],
+    "resolvedReviewedCases": [
+      {
+        "key": "belltower_piazza/item/pack/2026",
+        "originalCause": "Opponent airborne at1021 forces wide travel on plaza. Later AI does not recover the displaced line before narrowing exit: u13.9 at1200, ground lost1204. No active effect/bump at exit and no self tether/Mirror in this interval. Attack-induced initial deviation with unresolved line recovery, not unavoidable midair damage.",
+        "currentRespawns": 0
+      }
+    ]
+  },
+  "rejectedPostHitRecoveryExperiment": {
+    "adopted": false,
+    "reason": "Single scoped recovery experiment was rejected: it repaired Belltower but increased global item-mode respawns 16→18 against its contemporaneous control. No further parameter tuning of that experiment was accepted.",
+    "driverSha256": "1e94e102059199c2ee065eb175d433bf74362ab4deddb42180387c5121bd4034",
+    "sourceStable": true,
+    "total": {
+      "races": 252,
+      "fullFields": 252,
+      "finishedKarts": 1134,
+      "kartStarts": 1134,
+      "hardHits": 40,
+      "respawns": 18,
+      "maxStuckTicks": 213,
+      "itemsUsed": 3171,
+      "effectHits": 4543,
+      "combatEffectHits": 1952,
+      "uncreditedGateOrFinish": 0
+    }
+  },
+  "rejectedCommonTimeProjectionExperiment": {
+    "adopted": false,
+    "reason": "The common-time gap correction was rejected after full-matrix navigation regressions and an existing traffic-test failure. The delivered policy must not be described as fixing that projection calculation; joint planner calibration is deferred.",
+    "sourceFingerprints": {
+      "packages/sim/src/kart/dynamics.ts": "4f0eaa892b181acfc4697d717d5fb98d016fb7bd85522aef1e41ed9e5ff02834",
+      "packages/sim/src/kart/params.ts": "bbe0d587cfbdca0ee50fc48fb27fb4eb22af3adf3b3f92dc7019720d49d74f3b",
+      "packages/sim/src/ai/driver.ts": "69bc5a79edba68a4c49be8000ca387b5db34e591f4c58797823e6e0c31fa7421",
+      "packages/sim/src/ai/api.ts": "b8881d5c3536302a91b24b32b54c1cee2476fb9d769cfa3d00fcba06aabd0d53",
+      "packages/sim/src/ai/predict.ts": "c2ac0b701d9997fe4d0b9dfa06f86e6544b05de62a1fc6dea9014c91faa04ff8",
+      "packages/sim/src/ai/plan.ts": "a8df0c1fec8dc006b6eb0fec086a24e22668849276290dd051c9bb6bc1f8a8f9",
+      "packages/sim/src/ai/avoid.ts": "8dc41e5d7930610e630ab24c9d67b26e55994f255b1239738de7c99912929641",
+      "packages/sim/src/ai/items/decide.ts": "513e3e85f5a7a846372b45056f65ff8093874ee0acf2415852e6062e1b401c5f",
+      "packages/sim/src/ai/profiles.ts": "9bc9be094f229e10e3781e480058a26b33397ff97696a5f0dca1022ebb8c514e",
+      "packages/sim/src/core/state.ts": "61940377425c6ce8497100c2846d132befd6216ac9a1c1273ed15e21f4a5a124",
+      "packages/sim/src/items/projectiles.ts": "5a16c67bca7e6e8034d86f0d8075bc68bab8c771c2e754003120366fd33a38f8",
+      "packages/content/src/karts/pebble.ts": "2efa10a72264f599052460e6474e984f69ebd0a5265fba37cd4bf7818af54e9f"
+    },
+    "sourceStable": true,
+    "total": {
+      "races": 252,
+      "fullFields": 252,
+      "finishedKarts": 1134,
+      "kartStarts": 1134,
+      "hardHits": 57,
+      "respawns": 27,
+      "maxStuckTicks": 344,
+      "itemsUsed": 3155,
+      "effectHits": 4641,
+      "combatEffectHits": 2048,
+      "uncreditedGateOrFinish": 0
+    }
+  }
+}

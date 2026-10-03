@@ -38,8 +38,8 @@ C R140 12 L dy=-2.5 w=12 wall=rock:3      @gully         # avalanche-gully tunne
 C R140 12 R dy=-2.5
 WIGGLE R18 35/70/35 R dy=-2 w=13 wall=barrier:1.1 @gully_s   # (V19 ×2)
 WIGGLE R16 30/60/30 L dy=-2 wall=barrier:1.1:soft @serac_s  # snow-padded (AI hard hits)       # (V19 ×2)
-S 68 dy=-4 w=13 wall=barrier:1.1          @ski_runup     # pads before the lip
-J ramp=12@8 gap=10 drop=3 land=60 vmin=20 vmax=46 @ski_jump  # ski jump: ~0.8 s of air (longer flights trip the no-ground respawn, see L5 request)
+S 68 dy=-4 w=15 wall=barrier:1.1          @ski_runup     # doc 17: clearance for residual slide leaving the serac S
+J ramp=12@8 gap=10 drop=3 land=60 w=13 vmin=20 vmax=46 @ski_jump  # ski jump: ~0.8 s of air (longer flights trip the no-ground respawn, see L5 request)
 S 26 dy=-2
 C R40 90 L bank=5 w=12                    @landing_bend
 WIGGLE R80 30/60/30 L dy=-2               @landing_s

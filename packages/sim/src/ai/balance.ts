@@ -34,6 +34,8 @@ export interface RaceSetup {
   seed: number;
   laps?: number;
   mode?: ModeId;
+  /** Opt into the room's item brain. Pace-only callers retain their historical no-combat runs. */
+  itemCombat?: boolean;
   /** Bot lookahead (RaceRoom uses 8). */
   lookahead?: number;
   /** Stop after this many ticks past GO (default: hard cap). */
@@ -50,12 +52,13 @@ export interface KartResult {
   slot: number; tier: AiTier; character: CharacterId | undefined; finished: boolean; raceTicks: number; bestLapTicks: number;
   drifts: number; instantBoosts: number; boostsUsed: number; wallHits: number; hardHits: number; respawns: number; startTier: number;
   draftBursts: number; driftMeters: number; bumps: number; hardBumps: number; maxStuckTicks: number; hazardHits: number; ai: AiDriverStats;
+  itemsUsed: number; effectHits: number; combatEffectHits: number; attacksLanded: number; hitsTaken: number;
   /** Driving techniques (M5), counted from the sim events: drag entries (끌기), valid taps (톡톡이), cuts, spin-outs,
    *  brake drift turns (고속턴); and the longest brake run (sim brakeTicks) seen while drifting. */
   drags: number; taps: number; cuts: number; spinOuts: number; brakeTurns: number; maxDriftBrakeTicks: number;
 }
 
-export interface RaceOutcome { ticks: number; karts: KartResult[]; bumps: number; hardBumps: number; /** hard bumps in the first 5 s after GO (start pile-ups) */ startHardBumps: number; aiMs: number; stepMs: number; decides: number; drivers: readonly AiDriverEx[] }
+export interface RaceOutcome { ticks: number; karts: KartResult[]; bumps: number; hardBumps: number; /** hard bumps in the first 5 s after GO (start pile-ups) */ startHardBumps: number; itemsUsed: number; effectHits: number; combatEffectHits: number; aiMs: number; stepMs: number; decides: number; drivers: readonly AiDriverEx[] }
 
 export function runRace(o: RaceSetup): RaceOutcome {
   const { track, content } = o;
@@ -73,6 +76,9 @@ export function runRace(o: RaceSetup): RaceOutcome {
   const ctx = makeContext({ track, cfg, content, role: 'authority', events: sink });
   const drivers: AiDriverEx[] = o.bots.map((b, i) => createAiDriver(track, content, i, AI_TIERS[b.tier], {
     ...b.overrides, character: b.role === 'ghost' ? undefined : b.personality ?? b.character, role: b.role, lookaheadTicks: LA, noJitter: b.noJitter, startOffsetTicks: b.startOffset, mode: o.mode,
+    // Supplying cfg activates createAiDriver's normal item brain. Authority rolls
+    // use decisions.ts's existing seed-derived local hooks, just as other tools do.
+    ...(o.itemCombat ? { cfg } : {}),
   }, (o.seed * 7919 + i * 104729) >>> 0));
   o.onDrivers?.(drivers);
   const lines = o.bots.map(() => new InputDelayLine(LA));
@@ -81,6 +87,7 @@ export function runRace(o: RaceSetup): RaceOutcome {
   const n = o.bots.length;
   const lastDist = new Float64Array(n).fill(-1e9), lastMove = new Int32Array(n), maxStuck = new Int32Array(n), bumps = new Int32Array(n), hardB = new Int32Array(n), hazHits = new Int32Array(n);
   const drags = new Int32Array(n), taps = new Int32Array(n), cuts = new Int32Array(n), spins = new Int32Array(n), bturns = new Int32Array(n), maxBrk = new Int32Array(n);
+  const itemHits = new Int32Array(n), combatHits = new Int32Array(n);
   const evs: SimEvent[] = [];
   const now = o.now;
   let aiMs = 0, stepMs = 0, decides = 0, totalBumps = 0, totalHard = 0, startHard = 0;
@@ -100,7 +107,10 @@ export function runRace(o: RaceSetup): RaceOutcome {
         totalBumps++; if (e.a < n) bumps[e.a]!++; if (e.b < n) bumps[e.b]!++;
         if (e.impulse >= 1.3) { totalHard++; if (w.tick <= w.goTick + 300) startHard++; if (e.a < n) hardB[e.a]!++; if (e.b < n) hardB[e.b]!++; }
       }
-      else if (e.t === 'effect' && e.source === 255 && e.result === 'hit' && e.victim < n) hazHits[e.victim]!++;
+      else if (e.t === 'effect' && e.result === 'hit' && e.victim < n) {
+        if (e.source === 255) hazHits[e.victim]!++;
+        else { itemHits[e.victim]!++; if (e.source !== e.victim) combatHits[e.victim]!++; }
+      }
       else if (e.t === 'drag') { if (e.on && e.kart < n) drags[e.kart]!++; }
       else if (e.t === 'tapBoost') { if (e.kart < n) taps[e.kart]!++; }
       else if (e.t === 'cut') { if (e.kart < n) cuts[e.kart]!++; }
@@ -126,10 +136,13 @@ export function runRace(o: RaceSetup): RaceOutcome {
       drifts: k.stats.drifts, instantBoosts: k.stats.instantBoosts, boostsUsed: k.stats.boostsUsed, wallHits: k.stats.wallHits, hardHits: k.stats.hardHits,
       respawns: k.stats.respawns, startTier: k.stats.startTier, draftBursts: k.stats.draftBursts, driftMeters: k.stats.driftMeters,
       bumps: bumps[i]!, hardBumps: hardB[i]!, maxStuckTicks: maxStuck[i]!, hazardHits: hazHits[i]!, ai: drivers[i]!.stats,
+      itemsUsed: k.stats.itemsUsed, effectHits: itemHits[i]!, combatEffectHits: combatHits[i]!, attacksLanded: k.stats.attacksLanded, hitsTaken: k.stats.hitsTaken,
       drags: drags[i]!, taps: taps[i]!, cuts: cuts[i]!, spinOuts: spins[i]!, brakeTurns: bturns[i]!, maxDriftBrakeTicks: maxBrk[i]!,
     };
   });
-  return { ticks: w.tick - w.goTick, karts, bumps: totalBumps, hardBumps: totalHard, startHardBumps: startHard, aiMs, stepMs, decides, drivers };
+  return { ticks: w.tick - w.goTick, karts, bumps: totalBumps, hardBumps: totalHard, startHardBumps: startHard,
+    itemsUsed: karts.reduce((sum, k) => sum + k.itemsUsed, 0), effectHits: karts.reduce((sum, k) => sum + k.effectHits, 0),
+    combatEffectHits: karts.reduce((sum, k) => sum + k.combatEffectHits, 0), aiMs, stepMs, decides, drivers };
 }
 
 /**

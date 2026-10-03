@@ -40,6 +40,8 @@ const GEAR_LETTER: Record<number, GearLetter> = { [Gear.STOP]: 'N', [Gear.D]: 'D
 const NO_DRAG = { on: false, streak: 0 } as const;
 
 export class HudPresenter {
+  /** A mid-race reference clip starts at local tick zero without a new race countdown. */
+  suppressStartCountdown = false;
   private lastFast = 0;
   private lastSlow = 0;
   private toastId = 1;
@@ -124,7 +126,7 @@ export class HudPresenter {
       if (w.phase === Phase.COUNTDOWN || w.phase === Phase.PRE) {
         const left = goTick - w.tick;
         hud.countdown.value = left <= 180 && left > 0 ? Math.ceil(left / 60) : null;
-      } else hud.countdown.value = w.tick - goTick < 45 ? 0 : null;
+      } else hud.countdown.value = !this.suppressStartCountdown && w.tick - goTick < 45 ? 0 : null;
       hud.retireLeft.value = w.firstFinishTick >= 0 && k.race.finishTick < 0 && w.phase !== Phase.DONE ? Math.max(0, Math.ceil((w.firstFinishTick + this.cfg.rules.retireTicks - w.tick) / 60)) : null;
       const st: Standing[] = [];
       const rail: RailDot[] = [];

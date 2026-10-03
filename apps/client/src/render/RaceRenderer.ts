@@ -76,6 +76,10 @@ export class RaceRenderer {
   private budget!: BudgetTracker;
   private ts: TierSettings;
   private t = 0;
+  private frameDt = 0;
+  /** Actual submitted frames/delta, including frame-cap skips, for development capture diagnostics. */
+  get renderedFrameCount(): number { return this.budget?.snap.frames ?? 0; }
+  get renderedDeltaSeconds(): number { return this.frameDt; }
   private tmpM = new THREE.Matrix4(); private tmpX = new THREE.Vector3(); private tmpF = new THREE.Vector3(); private tmpP = new THREE.Vector3();
   private camFwd = new THREE.Vector3(); private camPrev = new THREE.Vector3(); private camVel = new THREE.Vector3();
   private lineAt = new THREE.Vector3();
@@ -265,13 +269,14 @@ export class RaceRenderer {
   }
 
   /** Per-frame update. `alpha` interpolates prev→curr sim states. */
-  update(prev: Readonly<WorldState>, curr: Readonly<WorldState>, alpha: number, dtIn: number): void {
+  update(prev: Readonly<WorldState>, curr: Readonly<WorldState>, alpha: number, dtIn: number, forceFrame = false): void {
     const now = performance.now();
     // Settings → frame cap: skipped frames bank their time for the next drawn one (springs and particles stay in step)
     this.dtBank += dtIn;
-    this.skipFrame = !this.cap.ready(now);
+    this.skipFrame = !forceFrame && !this.cap.ready(now);
     if (this.skipFrame) return;
     const dt = Math.min(0.25, this.dtBank);
+    this.frameDt = dt;
     this.dtBank = 0;
     this.budget.beginFrame(now);
     const fxDt = dt * this.director.timeScale;
@@ -344,11 +349,15 @@ export class RaceRenderer {
       const k = curr.karts[me.slot]!;
       const d = k.drive;
       const boosting = d.boostTicks > 0 || d.startTicks > 0;
+      // Establish the close launch view during the ordinary countdown too. A
+      // tick-zero reference replay starts here directly; normal play must not
+      // first zoom inward after GO because its chase rig was already running.
+      const starting = (curr.phase === Phase.COUNTDOWN || d.startTicks > 0) && d.boostTicks === 0;
       const u = me.pose.fwd.x * k.body.vx + me.pose.fwd.y * k.body.vy + me.pose.fwd.z * k.body.vz;
       const slip = -Math.atan2(me.pose.lat, Math.max(1, Math.abs(u)));
       this.director.update({
         phase: curr.phase, tick: curr.tick, goTick: curr.goTick, countdownTicks: this.countdownTicks, finished: k.race.finishTick >= 0, dt,
-        target: { pos: me.pose.pos, fwd: me.pose.fwd, up: me.pose.up, speed: me.pose.speed, boosting, drift: d.drift ? d.driftDir : 0, lookBack: this.lookBack, airborne: k.body.grounded === 0, slip },
+        target: { pos: me.pose.pos, fwd: me.pose.fwd, up: me.pose.up, speed: me.pose.speed, boosting, starting, drift: d.drift ? d.driftDir : 0, lookBack: this.lookBack, airborne: k.body.grounded === 0, slip },
       });
       if (this.localTeleport) { this.director.bumpCut(); this.localTeleport = false; }
       // cascades re-split when the projection changes (boost FOV kick, resize)

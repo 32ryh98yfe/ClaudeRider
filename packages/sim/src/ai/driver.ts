@@ -101,7 +101,7 @@ export const AI_TUNING = {
   bturnFrames: 5, bturnEh: 0.45, hairpinTurn: 2.0, hairpinR: 20, dragMaxTurn: 2.6,
   // Pro/Legend fire straight-line boosters so they run out inside a drift (a drift cancels the bleed): wait at most
   // expiryWaitS for that, assuming the boost covers expirySpeed·boost time metres
-  expiryWaitS: 0.6, expirySpeed: 0.95,
+  expiryWaitS: 0.4, expirySpeed: 0.95,
 };
 
 /** Drift execution plan for one corner on one lap (14-ai §3.9). */
@@ -319,7 +319,7 @@ class BotDriver implements AiDriverEx {
     // L2 item brain: the single item call site, after the driving controls are final (it may add item edges, aim
     // and LOOK_BACK, and counter-steer under Mirror Mode). Never while cruising after the finish or on a kill-risk branch.
     if (this.brain && this.itemEnv && k.race.finishTick < 0 && this.role !== 'cruise') {
-      decideItem(this.brain, w, this.itemEnv, out);
+      decideItem(this.brain, w, this.itemEnv, out, w.tick + 1 + this.LA);
       if (this.onRiskBranch) out.edges &= ~Edge.USE_ITEM;
     }
   }
@@ -783,8 +783,10 @@ class BotDriver implements AiDriverEx {
     // traffic: never ram a kart ahead (lift, then brake when contact is imminent and no lane is free)
     // traffic: never ram a kart ahead — lift when contact is near and no lane is free, brake when it is imminent
     // (also mid-drift: a drift brakes at 14 m/s² and keeps its slide)
-    if (this.laneTtc < 0.6 && this.laneClosing > 1.5) {
-      if (this.laneTtc < 0.35 && this.laneClosing > 3) wantBrake = true;
+    // The lane scorer uses a synthetic closing floor for stopped traffic: it must not suppress the throttle
+    // needed to steer out of a queue. Moving karts start braking earlier for the more frequent booster arrivals.
+    if (vS > 6 && this.laneTtc < 0.6 && this.laneClosing > 1.5) {
+      if (this.laneTtc < 0.45 && this.laneClosing > 3) wantBrake = true;
       else if (!drifting) wantCoast = true;
     }
     if (wantBrake) { brk = 1; if (!keepThrottle) thr = 0; }
@@ -1238,4 +1240,3 @@ class BotDriver implements AiDriverEx {
     return best;
   }
 }
-

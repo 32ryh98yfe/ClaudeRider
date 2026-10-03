@@ -1,5 +1,6 @@
 // Behavioral acceptance for docs/design/16-reference-driving.md. These checks use observed world state and
-// event timing rather than duplicating the recovery equation. Existing corner and terrain tests keep their bounds.
+// event timing rather than duplicating the recovery equation. Doc 17 permits
+// new corner input plans while preserving clean completion and terrain invariants.
 import { describe, expect, it } from 'vitest';
 import { Boost, Held, cloneWorld, copyWorld, hashWorld, type KartState } from '@cr/sim';
 import type { SurfaceId } from '@cr/content';

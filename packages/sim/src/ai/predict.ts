@@ -248,7 +248,7 @@ export class SelfPredictor {
       // ---- K14 target speed
       let vT: number, boostLaw = true, cap = P.aBoostMax;
       if (boostT > 0) vT = team ? P.vTeam : P.vBoost;
-      else if (startT > 0) { vT = P.vBoost; cap = P.aStartMax; }
+      else if (startT > 0) { vT = P.vBoost * P.startCapMul; cap = P.aStartMax; }
       else { vT = draft > 0 ? P.vDraft : P.vGrip; boostLaw = false; }
       vT *= vSurf * vMul;
       const instOn = inst > 0 && !boostLaw && u < P.vInst * vMul;

@@ -1,6 +1,9 @@
 // Reproducible map-compatibility probe: pnpm bake, then
 // node tools/bench/reference-driving.ts /tmp/driving.json
 // Run on both revisions with the same baked maps to compare transient-control changes.
+// The expanded fidelity-era acceptance matrix (both supported modes, solo + 8-kart fields, three seeds,
+// incident locations and baseline deltas) is tools/reference/map-matrix.ts. This small legacy probe remains
+// useful for comparing the earlier single-Legend result without silently changing that report's meaning.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { loadContent, type TrackId } from '@cr/content';

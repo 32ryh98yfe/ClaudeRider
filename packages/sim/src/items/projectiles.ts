@@ -20,6 +20,10 @@ import { inRace, inWarp } from './team.ts';
 export const LEAD = 21;
 const DEAD = 255;
 const CRUISE_H = 1.2, DRONE_H = 3.5;
+// Keep a high airborne launch from visibly dropping metres in one tick. The
+// ordinary 20% height response remains unchanged near the route; only its large
+// transient is limited. This is route-relative so banked/looped roads still work.
+const MAX_HEIGHT_STEP = 0.75;
 
 const POOL: ProjectileState[] = [];
 const F = frameScratch(), F2 = frameScratch();
@@ -144,7 +148,8 @@ export function stepProjectiles(w: WorldState, ctx: StepContext): void {
     // a target in warp transit: hold s until it exits (§4.2)
     if (!inWarp(t)) p.s = dist <= step ? Dt : p.s + dir * step;
     p.u += (t.race.loc.u - p.u) * 0.2;
-    p.h += ((pd.route === 'direct' ? DRONE_H : CRUISE_H) - p.h) * 0.2;
+    const heightStep = ((pd.route === 'direct' ? DRONE_H : CRUISE_H) - p.h) * 0.2;
+    p.h += Math.max(-MAX_HEIGHT_STEP, Math.min(MAX_HEIGHT_STEP, heightStep));
     // follow the target onto its branch when the branch covers the projectile's progress
     if (t.race.loc.path !== p.path && t.race.loc.path !== 0 && pathCovers(T, t.race.loc.path, sMainOf(T, p.s))) p.path = t.race.loc.path;
     p.path = routePoint(T, p.path, p.s, p.u, p.h, F, POS);

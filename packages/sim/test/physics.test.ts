@@ -232,6 +232,22 @@ describe('physics: walls at 30 m/s in a 16 m corridor (§10.4, §14.4)', () => {
 
 describe('physics: start boost (§7.1, §14.5)', () => {
   const base = launch(null, 300);
+  // Doc 17 changes the start acceleration and target only. Compare the physical
+  // distance to the independent flat-plane oracle instead of retaining M5's
+  // 30 m/s² launch-distance pins. The reference test independently checks the
+  // resulting speeds against the recording, so changing both models is not enough.
+  const P = paramsFor(getContent().karts.get('pebble')) as OracleParams;
+  function startOracle(duration: number, ticksAfterGo = 300): OracleKart {
+    const k = oracleKart(0, 0, 1, 0, 0);
+    // The race grants the timer after the GO tick's decrement; the dynamics-only
+    // oracle decrements first. Both runs include GO and ticksAfterGo later ticks.
+    k.startT = duration > 0 ? duration + 1 : 0;
+    for (let t = 0; t <= ticksAfterGo; t++) oracleStep(k, {
+      steer: 0, thr: 1, brk: 0, drift: false, boost: false, tapL: false, tapR: false,
+    }, P);
+    return k;
+  }
+  const oracleGain = (duration: number): number => startOracle(duration).px - startOracle(0).px;
   const gain = (d: number): { gain: number; tier: number; r: Rig } => {
     const r = launch(d, 300);
     return { gain: r.w.karts[0]!.race.raceDist - base.w.karts[0]!.race.raceDist, tier: r.w.karts[0]!.stats.startTier, r };
@@ -239,21 +255,20 @@ describe('physics: start boost (§7.1, §14.5)', () => {
   it('holding the throttle through the countdown is no boost and no penalty', () => {
     expect(base.w.karts[0]!.stats.startTier).toBe(1);
   });
-  it('PERFECT [0, +6] gains 28 ± 3 m at 5 s (162 km/h at 1.0 s)', () => {
+  it('PERFECT [0, +6] uses the reference launch law and preserves the timing window', () => {
     for (const d of [0, 3, 6]) {
       const g = gain(d);
       expect(g.tier).toBe(5);
-      // M5: gap-2 +35 m (pre-merge 35.46 m with the M5 vBoost). The PERFECT boost expires at 42.4 m/s, above
-      // vGrip, so the 0.5 s post-boost bleed now replaces the τ 1.1 s decay: a 1D replay of that bleed from the measured
-      // expiry speed predicts −7.1 m, i.e. ≈ 28.3 m. (GREAT and GOOD expire below vGrip: no bleed, unchanged.)
-      if (d === 0) { expect(g.gain).toBeGreaterThan(25.3); expect(g.gain).toBeLessThan(31.3); }
+      // Independent doc-17 integration: +42.646 m at 5 s; old M5 pin was +28 m.
+      if (d === 0) expect(Math.abs(g.gain - oracleGain(90))).toBeLessThan(0.05);
     }
     const r = launch(0, 60);
-    expect(Math.abs(fwdKmh(r.w.karts[0]!, KMH_GAP2) - 162)).toBeLessThanOrEqual(4);
+    expect(Math.abs(fwdKmh(r.w.karts[0]!, KMH_GAP2) - startOracle(90, 60).vx * KMH_GAP2)).toBeLessThan(0.05);
   });
-  it('GREAT −3 ticks: +21 ± 3 m; GOOD −9 ticks: +12 ± 3 m', () => {
-    const g = gain(-3); expect(g.tier).toBe(4); expect(Math.abs(g.gain - 21)).toBeLessThanOrEqual(3);
-    const o = gain(-9); expect(o.tier).toBe(3); expect(Math.abs(o.gain - 12)).toBeLessThanOrEqual(3);
+  it('GREAT −3 ticks and GOOD −9 ticks retain their shorter 60/36-tick launch durations', () => {
+    // Independent integration: +34.583 m and +24.886 m. No wider old tolerance.
+    const g = gain(-3); expect(g.tier).toBe(4); expect(Math.abs(g.gain - oracleGain(60))).toBeLessThan(0.05);
+    const o = gain(-9); expect(o.tier).toBe(3); expect(Math.abs(o.gain - oracleGain(36))).toBeLessThan(0.05);
   });
   it('FALSE −24 ticks: −7 ± 3 m (wheelspin); a press 24 ticks late: none, −13 ± 3 m', () => {
     const f = gain(-24); expect(f.tier).toBe(2); expect(Math.abs(f.gain + 7)).toBeLessThanOrEqual(3);
@@ -265,19 +280,22 @@ describe('physics: start boost (§7.1, §14.5)', () => {
   });
 });
 
-// M5: every corner plan ends its drift with a counter-steer and DRIFT released (corner.ts phase 3, cCs 0.6
-// or 1). A full counter-steer (cCs 1) now cuts on its 2nd tick (doc 15 §4.5: u += 0.8·(v − u), β → 0, instant window
-// kept), where gap-2 let kLatCounter end the drift over several ticks; cCs 0.6 does not cut. Speeds stay on the gap-2
-// scale (KMH_GAP2). Expect the cut rows to land within a few km/h and ±0.1 s of the current numbers; re-measure them.
+// Corner plans end with counter-steer and DRIFT released. Doc 17's slower finite
+// cut recovery changes the best tight-hairpin input timing, not the zero-wall-hit
+// acceptance criterion. Speeds here retain the historical KMH_GAP2 scale.
 describe('physics: corners on a 12 m road at 34 m/s (§14.6)', () => {
   const kit = cornerKit(12, 90, 12);
-  it('90° R12 optimal drift: drop ≤ 8%, 0.30–0.43 gauge (drift term), 3.38 ± 0.10 s', () => {
+  it('90° R12 optimal drift: drop ≤ 8%, preserved normalized charge and 3.38 ± 0.10 s', () => {
     const o = bestDrift(kit, 34, { dTr: [18, 20, 22], tSh: [0.05, 0.1, 0.18], sD: [0.6, 0.7], phi: [15, 20, 25], cCs: [1], brakes: [1] });
     expect(o).not.toBeNull();
     const r = o!.res;
     expect(r.hits).toBe(0);
     expect(1 - r.vMin / 34).toBeLessThanOrEqual(0.08);
-    expect(r.gauge).toBeGreaterThanOrEqual(0.3); expect(r.gauge).toBeLessThanOrEqual(0.43);
+    // Preserve the integrated slip/fatigue criterion while doc 17 raises g0 from
+    // 0.7 to 1.1 to match the visible first inventory award. Timing is source-tested.
+    const normalizedCharge = r.gauge / paramsFor(getContent().karts.get('pebble')).g0;
+    expect(normalizedCharge).toBeGreaterThanOrEqual(0.3 / 0.7);
+    expect(normalizedCharge).toBeLessThanOrEqual(0.43 / 0.7);
     expect(Math.abs(r.time - 3.38)).toBeLessThanOrEqual(0.1);
     expect(r.vX * KMH_GAP2).toBeGreaterThanOrEqual(186); // M5: cut exit (cCs 1)
   });
@@ -298,7 +316,9 @@ describe('physics: corners on a 12 m road at 34 m/s (§14.6)', () => {
     // deg, Rc, plan, min km/h, exit km/h, time s — re-searched with the M5 cut          pre-M5: min, exit, t
     [90, 9, { dTrig: 20, tSh: 0.1, sD: 0.7, phiCs: 30, cCs: 1, rek: 0, vBr: 34, inst: true }, 172, 192, 3.27], // 173 189 3.28
     [90, 16, { dTrig: 20, tSh: 0.05, sD: 0.45, phiCs: 20, cCs: 1, rek: 0, vBr: 34, inst: true }, 177, 193, 3.55], // 176 193 3.57
-    [180, 9, { dTrig: 20, tSh: 0.3, sD: 1, phiCs: 45, cCs: 1, rek: 0.5, vBr: 34, inst: true }, 113, 148, 4.30], // 124 156 4.62
+    // Doc 17: re-press 0.05 s earlier and counter with 40° remaining. The old
+    // 45°/0.50 s input touches one wall under finite recovery; this remains clean.
+    [180, 9, { dTrig: 20, tSh: 0.3, sD: 1, phiCs: 40, cCs: 1, rek: 0.45, vBr: 34, inst: true }, 110, 146, 4.35],
     [180, 12, { dTrig: 20, tSh: 0.05, sD: 1, phiCs: 45, cCs: 1, rek: 0.5, vBr: 34, inst: true }, 125, 158, 4.37], // 115 144 4.63
     [180, 16, { dTrig: 15, tSh: 0.18, sD: 1, phiCs: 45, cCs: 1, rek: 0, vBr: 34, inst: true }, 134, 167, 4.70], // 122 159 4.80
   ];

@@ -41,9 +41,10 @@ C R70 90 L bank=6 w=15                             @bowl_entry
 S ?a                                               @stadium_tunnel
 CLOSE solve=[?a,?b,?c] length=1950
 LINE start at=0
-# the service road: an 8 m dirt track that skips the quarry hook, for drivers who dare the ruts
+# the service road: an 8 m dirt track that skips the quarry hook, with a wider entry/corner recovery corridor
 BRANCH service_road from=@quarry_entry to=@tarmac_return+45 kind=shortcut aiMin=0.45 w=8 wall=fence:1.2 surf=dirt shoulder=0 {
-  S ?x ; C R30 90 L ; S ?y
+  # Doc 17: preserve the route while allowing the reference-style drift to settle after the R30 bend.
+  S ?x w=10 ; C R30 90 L ; S 12 ; S ?y w=8
 }
 ITEMS at=@bowl_straight+60,@gravel_straight+40,@bridge_approach+25,@crossover_bridge+30,@rim_sweeper+30,@forest_s+120,@grandstand_sweep+70 n=5
 PAD at=@stadium_tunnel+8,@stadium_tunnel+40 d=0 len=6 w=4

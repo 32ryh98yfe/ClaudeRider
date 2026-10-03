@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Edge, Held } from '@cr/sim';
+import type { ReferenceClip, ReferenceKey } from '@cr/content/reference-driving.ts';
+import { ReferenceReplay } from '../src/dev/reference/replay.ts';
 import { defaultKeys, defaultPad } from '../src/input/bindings.ts';
 
 const source = vi.hoisted(() => ({
@@ -49,6 +51,7 @@ beforeAll(() => {
 afterAll(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 beforeEach(() => {
   time = 0;
+  source.settings.autoBoost = true;
   source.settings.keys = defaultKeys();
   source.settings.pad = defaultPad();
   Object.assign(source.pad, { connected: false, steer: 0, throttle: 0, brake: 0, buttons: [] });
@@ -80,6 +83,28 @@ function steeringAt(hz: number, changes: readonly KeyChange[], end: number): num
 }
 
 describe('driving input timing', () => {
+  it('matches observed key playback to real keyboard events across steer, drift, countersteer and boost edges', () => {
+    source.settings.autoBoost = false;
+    const clip: ReferenceClip = {
+      id: 'keyboard-parity', split: 'validation', skill: 'expert', family: 'parity', sourceStartFrame: 0, sourceEndFrame: 20,
+      initialSpeedKmh: 0, initialBoostTicks: 0, quantitativeEligible: false, observations: [], events: [], notes: [],
+      keys: [{ frame: 0, keys: ['up', 'right'] }, { frame: 3, keys: ['up', 'right', 'drift'] },
+        { frame: 5, keys: ['up', 'left'] }, { frame: 8, keys: ['up', 'boost'] }, { frame: 9, keys: ['up'] }, { frame: 12, keys: [] }],
+    };
+    const replay = new ReferenceReplay(clip);
+    const codes: Record<ReferenceKey, string> = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', drift: 'ShiftLeft', boost: 'ControlLeft' };
+    let held = new Set<ReferenceKey>();
+    for (let tick = 0; tick < replay.durationTicks; tick++) {
+      const change = clip.keys.find((entry) => entry.frame * 2 === tick);
+      if (change) {
+        for (const action of held) if (!change.keys.includes(action)) key('keyup', codes[action], tick * 1000 / 60);
+        for (const action of change.keys) if (!held.has(action)) key('keydown', codes[action], tick * 1000 / 60);
+        held = new Set(change.keys);
+      }
+      expect(sample((tick + 1) * 1000 / 60)).toEqual(replay.frameAt(tick));
+    }
+  });
+
   it('preserves the initial calibrated 60 Hz keyboard response', () => {
     key('keydown', 'ArrowRight');
     expect(sample(1000 / 60).steer).toBe(76);

@@ -53,7 +53,8 @@ WARP portal transit=0.8 keep
 # the last crypt straight (half the road always stays open)
 HAZ swinger chandelier1 at=@ballroom_table+30 d=0 capsule=(1.2,1.0) arm=8 amp=40 plane=across period=3 offset=0 prop=hazard_chandelier
 HAZ swinger chandelier2 at=@chandelier_bend+18 d=0 capsule=(1.2,1.0) arm=8 amp=30 plane=along period=3 offset=1.5 prop=hazard_chandelier
-HAZ press bookcase at=@crypt_c+11 d=+4 box=(4,6,3) period=4 on=0-2 tele=0.8 rise=4 effect=block prop=hazard_bookcase
+# Doc 17: keep the right-side press, with a clear center pass when the faster field arrives together.
+HAZ press bookcase at=@crypt_c+11 d=+4.5 box=(4,5,3) period=4 on=0-2 tele=0.8 rise=4 effect=block prop=hazard_bookcase
 
 # 6 rows ≈ L/250 (−1): garden straight, catacomb entry, bat cave, garden terrace, orangery, greenhouse walk
 ITEMS at=@garden_straight+70,@catacomb_entry+19,@bat_cave+16,@garden_terrace+14,@orangery_sweeper+32,@greenhouse_walk+12 n=5

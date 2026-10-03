@@ -383,11 +383,16 @@ describe('self and team items', () => {
   });
 
   it('Attention Tether: hook 21 ticks, pull, slingshot on reaching a slowing target', () => {
-    const sc = pair(60);
+    // Doc 17's stronger start adds ~13 m to the leader's head start. Keep this
+    // catchable-gap fixture near the old 63.6 m instead of silently testing an
+    // out-of-reach target (the separate cruising-target test covers no catch).
+    const sc = pair(35);
     sc.give(2, 'attention_tether');
     sc.aim[2] = 0;
     sc.until(() => sc.w.karts[2]!.items.aimLockTicks >= 17, 60);
     const T = use(sc, 2);
+    const gap = sc.w.karts[0]!.race.raceDist - sc.w.karts[2]!.race.raceDist;
+    expect(gap).toBeGreaterThan(60); expect(gap).toBeLessThan(67);
     sc.brakeAt[0] = T;
     expect(dec(sc, 'effect').filter((d) => d.code === EF.tether_pull)).toMatchObject([{ victim: 2, start: T + 21, dur: 132 }]);
     sc.until(() => hits(sc, 2, EF.slingshot).length > 0 || sc.w.tick > T + 21 + 132, 200);

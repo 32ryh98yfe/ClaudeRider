@@ -2,6 +2,7 @@ node_modules/
 dist/
 **/generated/
 apps/client/public/tracks/
+apps/client/public/reference/
 apps/client/public/art/overrides/*
 !apps/client/public/art/overrides/README.md
 !apps/client/public/art/overrides/.gitkeep

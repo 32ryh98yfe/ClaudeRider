@@ -3,9 +3,9 @@
 // item bits to the frame (USE_ITEM / SWAP / TAP_L / TAP_R edges, `aim`, Held.LOOK_BACK).
 import type { ItemDef } from '@cr/content';
 import { Edge, Held, type InputFrame } from '../../core/input.ts';
-import { Phase, type KartState, type WorldState } from '../../core/state.ts';
+import { Phase, type EffectInstance, type KartState, type WorldState } from '../../core/state.ts';
 import type { AiProfile } from '../api.ts';
-import { EF, NO_TARGET, itemDef } from '../../items/codes.ts';
+import { EF, EFlag, Res, NO_TARGET, itemDef } from '../../items/codes.ts';
 import { activeEffect } from '../../items/effects.ts';
 import { aimCandidateValid, lockNeed } from '../../items/use.ts';
 import { DT } from '../../core/units.ts';
@@ -234,21 +234,33 @@ function reaction(b: ItemBrain, w: Readonly<WorldState>, k: Readonly<KartState>,
   return t;
 }
 
+/** Publicly known Mirror interval at input application time, including telegraphed future starts. */
+function mirrorAt(w: Readonly<WorldState>, slot: number, applyTick: number): Readonly<EffectInstance> | undefined {
+  for (const effect of w.effects) {
+    if (effect.victim !== slot || effect.code !== EF.mirror || (effect.flags & (EFlag.DEAD | EFlag.ENDED)) !== 0) continue;
+    if ((effect.flags & EFlag.RESOLVED) !== 0 && effect.result !== Res.HIT) continue;
+    if (effect.start <= applyTick && applyTick < effect.end) return effect;
+  }
+  return undefined;
+}
+
 /**
- * Adds this bot's item intent for the current tick to `out` (call after the driver filled it). Mash-out while trapped;
+ * Adds this bot's item intent to `out` after driving controls. `applyTick` is the step receiving the queued input;
+ * ordinary callers target the next step. Only Mirror compensation forecasts that time; item/reaction timers
+ * continue to use the observed world tick. Mash-out while trapped;
  * aim + use per the tier's itemSkill; swaps a hoarded defensive item behind a usable one.
  */
-export function decideItem(b: ItemBrain, w: Readonly<WorldState>, env: ItemEnv, out: InputFrame): void {
+export function decideItem(b: ItemBrain, w: Readonly<WorldState>, env: ItemEnv, out: InputFrame, applyTick = w.tick + 1): void {
   const k = w.karts[b.slot];
   if (!k || !k.active || w.phase < Phase.RACING || !inRace(k) || b.profile.itemSkill === 0) return;
   const tick = w.tick, st = k.status;
   // ---- Mirror Mode: the reversal is telegraphed 30 ticks ahead (public), so a tactical bot counter-steers from the
   // start (itemSkill 3) or after half its reaction time (2); a random-timing bot needs its reaction time, at most 45
   // ticks of the 150 (1)
-  const mirror = activeEffect(w, k.slot, EF.mirror, tick);
+  const mirror = mirrorAt(w, k.slot, applyTick);
   if (mirror) {
     const s = b.profile.itemSkill, adapt = s >= 3 ? 0 : s === 2 ? b.profile.reactionTicks >> 1 : Math.min(b.profile.reactionTicks, 45);
-    if (tick - mirror.start >= adapt) {
+    if (applyTick - mirror.start >= adapt) {
       out.steer = -out.steer;
       // the sim swaps the tap keys with the steer (15-driving-techniques §3): swap the driver's tap-boost edges too
       const tl = out.edges & Edge.TAP_L, tr = out.edges & Edge.TAP_R;

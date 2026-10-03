@@ -2,8 +2,9 @@
 // Browser pitfalls (31-ui-spec §7.4): Alt keyup menu bar, Ctrl+W, Sticky Keys → alternates Space/E/C; F-keys, Tab,
 // Backspace and Space defaults are suppressed only while a race has focus; text fields and IME composition suspend game keys.
 import { signal } from '@preact/signals';
-import { Held, Edge, makeInput, type InputFrame } from '@cr/sim';
+import { Edge, makeInput, type InputFrame } from '@cr/sim';
 import { save } from '../meta/save.ts';
+import { InputActionFilter, actionPressEdge, type DriveActions } from './actionFilter.ts';
 import { installGamepad, padState, consumePadPresses, consumeStickFlicks, releasePad, onPadButton } from './gamepad.ts';
 
 /** Where the last input came from; HUD and menus switch their key hints to pad glyphs on 'pad' (31-ui-spec §7.2). */
@@ -15,8 +16,7 @@ const down = new Set<string>();
 let edges = 0;
 let emote = 0;
 let anyKeyCbs: (() => void)[] = [];
-let lastSteer = 0;
-let steerAt = 0;
+const actionFilter = new InputActionFilter();
 let gameActive = false;
 let composing = false;
 let focused = true;
@@ -86,13 +86,9 @@ function onDown(e: KeyboardEvent): void {
   if (acts.length || BROWSER_DEFAULTS.has(e.code)) e.preventDefault();
   if (!e.repeat) {
     for (const a of acts) {
+      edges |= actionPressEdge(a);
       switch (a) {
-        case 'item': edges |= Edge.USE_ITEM; break;
-        case 'swap': edges |= Edge.SWAP; break;
-        case 'reset': edges |= Edge.RESPAWN; break;
-        case 'left': edges |= Edge.TAP_L; break;
-        case 'right': edges |= Edge.TAP_R; break;
-        case 'emote1': case 'emote2': case 'emote3': case 'emote4': edges |= Edge.EMOTE; emote = Number(a.slice(5)); fire(a); break;
+        case 'emote1': case 'emote2': case 'emote3': case 'emote4': emote = Number(a.slice(5)); fire(a); break;
         case 'pause': case 'restart': fire(a); break;
         case 'standings': heldUi.value = { ...heldUi.value, standings: true }; break;
         case 'look': heldUi.value = { ...heldUi.value, look: true }; break;
@@ -114,7 +110,7 @@ function onUp(e: KeyboardEvent): void {
 }
 
 function clearInput(now = performance.now()): void {
-  down.clear(); edges = 0; emote = 0; lastSteer = 0; steerAt = now; releasePad();
+  down.clear(); edges = 0; emote = 0; actionFilter.reset(now); releasePad();
   if (heldUi.value.look || heldUi.value.standings) heldUi.value = { look: false, standings: false };
 }
 
@@ -151,16 +147,17 @@ export function onAnyKey(cb: () => void): () => void { anyKeyCbs.push(cb); retur
 
 const held = (a: string): boolean => (save.get().settings.keys[a] ?? []).some((c) => down.has(c));
 
+const actions: DriveActions = { up: false, down: false, left: false, right: false, drift: false, boost: false };
+function readActions(gp: typeof padOut): DriveActions {
+  actions.up = held('accel'); actions.down = held('brake');
+  actions.left = held('left') || gp.left; actions.right = held('right') || gp.right;
+  actions.drift = held('drift') || gp.drift; actions.boost = held('item') || gp.item;
+  actions.look = held('look') || gp.look;
+  actions.analogSteer = gp.steer; actions.analogThrottle = gp.accel; actions.analogBrake = gp.brake;
+  return actions;
+}
 function advanceSteering(gp: typeof padOut, now: number): number {
-  const elapsedMs = Math.max(0, now - steerAt);
-  steerAt = Math.max(steerAt, now);
-  const l = held('left') || gp.left, r = held('right') || gp.right;
-  const target = (r ? 1 : 0) - (l ? 1 : 0);
-  // Retain the original 0.6 response at 60 Hz, measured in elapsed time. Do not
-  // snap the filter on a sample boundary: that makes its tail depend on frame rate.
-  if (gp.steer === 0) lastSteer += (target - lastSteer) * (1 - Math.pow(0.4, elapsedMs * 60 / 1000));
-  else lastSteer = gp.steer;
-  return lastSteer;
+  return actionFilter.advance(readActions(gp), now);
 }
 
 const frame = makeInput();
@@ -172,15 +169,7 @@ export function sampleInput(now = performance.now()): InputFrame {
     frame.steer = 0; frame.throttle = 0; frame.brake = 0; frame.held = 0; frame.edges = 0; frame.aim = 255; frame.emote = 0;
     return frame;
   }
-  const steer = advanceSteering(gp, now);
-  frame.steer = Math.round(Math.max(-1, Math.min(1, steer)) * 127);
-  frame.throttle = held('accel') ? 15 : gp.accel > 0.1 ? Math.max(1, Math.round(gp.accel * 15)) : 0;
-  frame.brake = held('brake') ? 15 : gp.brake > 0.1 ? Math.max(1, Math.round(gp.brake * 15)) : 0;
-  const look = held('look') || gp.look;
-  frame.held = (held('drift') || gp.drift ? Held.DRIFT : 0) | (look ? Held.LOOK_BACK : 0) | (save.get().settings.autoBoost && (held('item') || gp.item) ? Held.ITEM : 0);
-  frame.edges = edges | gp.edges;
-  frame.aim = 255;
-  frame.emote = gp.edges & Edge.EMOTE ? 1 : emote;
+  actionFilter.sample(readActions(gp), now, edges | gp.edges, frame, save.get().settings.autoBoost, gp.edges & Edge.EMOTE ? 1 : emote);
   if (gp.look !== heldUi.value.look && !held('look')) heldUi.value = { ...heldUi.value, look: gp.look };
   edges = 0; emote = 0;
   return frame;

@@ -7,7 +7,7 @@ export default defineKart({
   vBoost: 45.92,
   a0: 16.35,
   tBoostTicks: 186,
-  g0: 0.64,
+  g0: 1.005714,
   kLatIn: 2.8,
   kLatNeutral: 5.2,
   yGrip: 1.5,

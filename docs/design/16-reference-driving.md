@@ -1,5 +1,11 @@
 # 16 — Reference-video driving refinement
 
+**Historical first pass (simulation version 5).** The user subsequently prioritized
+reference fidelity and authorized localized map, kart, physical and camera changes.
+`17-reference-fidelity.md` supersedes this document's preservation requirements,
+coefficient choices and old comparison table. The observations below remain useful
+evidence; the new frame-level annotations refine their timing.
+
 This amendment refines transient controls in `15-driving-techniques.md`. The
 track envelope, kart statistics, speedometer scale, acceleration, grip steering,
 gravity, collision, surfaces, jumps, rails and warps remain unchanged. It takes

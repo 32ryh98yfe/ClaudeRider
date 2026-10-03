@@ -327,7 +327,7 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
     const conv = zoned ? conveyorMul(k, T, surf) : (surf.conveyor ?? 1);
     let vT: number, boostLaw = true, cap = P.aBoostMax;
     if (d.boostTicks > 0) vT = d.boostKind === Boost.TEAM ? P.vTeam : P.vBoost;
-    else if (d.startTicks > 0) { vT = P.vBoost; cap = P.aStartMax; }
+    else if (d.startTicks > 0) { vT = P.vBoost * P.startCapMul; cap = P.aStartMax; }
     else if (mods.vTarget > 0) vT = mods.vTarget;
     else { vT = d.draftTicks > 0 ? P.vDraft : P.vGrip; boostLaw = false; }
     const capMul = mods.vCapMul;
