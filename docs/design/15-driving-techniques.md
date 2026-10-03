@@ -6,7 +6,7 @@ For simulation version 5, `16-reference-driving.md` supersedes the instantaneous
 cut in §4.5 and the frame-based keyboard smoothing description in §4.4. Other
 M5 behavior and speed targets remain in effect.
 
-Simulation version 6 additionally follows `17-reference-fidelity.md` for launch
+Simulation version 7 additionally follows `17-reference-fidelity.md` for launch
 target/thrust, kart gauge coefficients, grip recovery and reference acceptance.
 
 ## 0. User spec (verbatim summary, Korean)

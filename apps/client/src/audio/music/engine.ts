@@ -192,18 +192,24 @@ export function buildSong(Tlib: ToneLib, out: ToneNodeLike, spec: SongSpec, v: V
   const swing16 = v.feel === 'swing';
   const loop = new T.Loop((time: number) => {
     const s = step % steps, bar = Math.floor(step / steps);
+    step++;
     const sec = sectionOf(bar);
     const beatLen = 60 / tr.bpm.value / 4; // one 16th
     const t = swing16 && s % 2 === 1 ? time + beatLen * 0.33 : time;
+    // A busy render frame can deliver several old transport callbacks together. Tone clamps old
+    // starts to the same audio time and monophonic voices then throw on the repeated start. Drop
+    // missed notes while advancing the arrangement; leave one audio quantum for on-time scheduling.
+    if (t < tr.context.currentTime + tr.blockTime) return;
     const root = rootAt(bar);
     const energy = sec.name === 'intro' ? 0.4 : sec.name === 'bridge' ? 0.7 : sec.name === 'B' ? 1 : 0.85;
     // drums
     const ps = s % pat.k.length;
     if (pat.k[ps]) drums.kick.triggerAttackRelease(hz(v.root - 24), '8n', t, 0.9);
-    if (pat.s[ps] && sec.name !== 'intro') drums.snare.triggerAttackRelease('16n', t, 0.7 * energy + 0.2);
+    const snareFill = sec.name === 'bridge' && sec.local === (bridge - 1) && s >= steps - 4;
+    if (snareFill) drums.snare.triggerAttackRelease('32n', t, 0.8); // fill replaces this step's backbeat
+    else if (pat.s[ps] && sec.name !== 'intro') drums.snare.triggerAttackRelease('16n', t, 0.7 * energy + 0.2);
     if (pat.h[ps]) drums.hat.triggerAttackRelease('32n', t, (s % 4 === 0 ? 0.5 : 0.3) * energy);
     if (pat.p?.[ps]) drums.perc.triggerAttackRelease(hz(v.root - 12 + (s % 3 === 0 ? 7 : 0)), '8n', t, 0.6);
-    if (sec.name === 'bridge' && sec.local === (bridge - 1) && s >= steps - 4) drums.snare.triggerAttackRelease('32n', t, 0.8); // fill into the loop
     hats.triggerAttackRelease('64n', t, s % 2 === 0 ? 0.6 : 0.35);
     // bass
     const bRoot = deg(root, -2);
@@ -236,7 +242,6 @@ export function buildSong(Tlib: ToneLib, out: ToneNodeLike, spec: SongSpec, v: V
       const e = m[idx];
       if (e) lead.play(deg(e[0] + (root % 7 === 0 ? 0 : 0), leadOct), e[1] === 2 ? '4n' : '8n', t, 0.7);
     }
-    step++;
   }, '16n');
 
   let intensity = 0;

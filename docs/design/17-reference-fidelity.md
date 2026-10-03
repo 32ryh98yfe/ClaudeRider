@@ -1,6 +1,6 @@
 # 17 — Reference fidelity and executable calibration
 
-This is the current driving specification for simulation version 6. The user
+This is the current driving specification for simulation version 7. The user
 explicitly prioritized the supplied video over the previous immutable map and
 corner-number requirement. Preserve track themes, routes and feature order;
 adjust local geometry where the calibrated driving requires clearance. Camera
@@ -38,7 +38,7 @@ validation gate instead uses **ordinary mean absolute relative speed error over
 nonzero source samples**, with no floor. Independent tests recompute that metric
 on an in-memory flat fixture rather than importing the fitter or generated assets.
 
-| Identified clip | Before fb71b3f | Version 6 | Role |
+| Identified clip | Before fb71b3f | Version 7 | Role |
 |---|---:|---:|---|
 | Expert launch | 20.675% | 5.348% | Calibration; not a held-out claim |
 | Intermediate launch | 20.322% | 4.758% | Held out; passes 5% gate |
@@ -75,7 +75,7 @@ Finite recovery uses the version-5 algorithm with the new coefficient:
 grip to lateral damping and preserve `etaCut=0.8`; yaw relaxes with the same
 response. Final alignment occurs only inside the existing six-degree exit band.
 The independent oracle and AI lookahead model implement the launch target and
-recovery rules. SIM_VERSION 6 rejects older ghost/online trajectories; no packet
+recovery rules. SIM_VERSION 7 rejects older ghost/online trajectories; no packet
 or persistent world-state field was added.
 
 ## Actual game replay and camera
@@ -118,6 +118,9 @@ The legacy camera is selectable only in a development reference run.
   straight widen 9→11 m, then restore 9 m. Route lengths and the centerline remain.
 - Manor Catacombs: the bookcase moves laterally 4→4.5 m and its across-road
   footprint narrows 6→5 m, keeping the same timed press and a clearer center pass.
+  The portal's sampled entry stays at 817 m; its exit moves 941→942 m onto
+  supporting terrace ground. A trapped, stationary kart now remains grounded
+  after the normal 48-tick transit instead of falling back into the warp span.
 - Sunset Arena Rally: the first 80.0406 m of the service-road branch widens
   8→10 m through its R30 bend and 12 m exit. The remaining 68.6625 m returns to
   8 m. This removes an independently reproduced, unhit branch-corner wall/reset.
@@ -126,17 +129,51 @@ The legacy camera is selectable only in a development reference run.
   elevation change remains −2 m. This avoids a retreating road edge before a
   displaced kart has time to return from the broad plaza to the ordinary road.
 
-Only those five physical track files change; 16 shipped `.ctrk` outputs remain
-byte-identical. Their golden entries are regenerated and independently rebaked.
+Only those five authored track files change. An initial same-compiler comparison
+confirmed that the other 16 maps and all ten fixtures had identical physics and
+visual bytes. The portable serializer described below subsequently regenerates
+all binary hashes; that encoding change is distinct from authored geometry.
 The compiler reads `SHARED.aBrake`, and its cache fingerprint includes kart
 parameters so future brake calibration cannot reuse stale approach tables.
-Canonical golden entries, including the global external fingerprint, are regenerated
-after independently rebuilding the baseline and candidate with the same default
-compiler profile. This restores the existing golden assertions instead of relying
-on their stale-input skip. The baseline already had 18 stale entries (14 roster
-tracks and four fixtures); refreshing them does not imply 18 additional map edits.
-Cached visual assets built with different AO/PVS profiles are not compared as if
-they used identical compiler options.
+
+### Portable compiler outputs
+
+Remote CI disproved the initial interpretation of 18 baseline golden mismatches
+as merely stale data. Node 22 ARM64 and Node 26 ARM64 produced identical outputs;
+Node 22 x64 reproduced every Linux CI difference. The cause was architecture-level
+last-bit floating-point differences in metadata and render vertex welding, not
+18 additional authored map changes. Cached visual assets built with different
+AO/PVS profiles also cannot be compared as if their options were identical.
+
+Compiler 2.1 canonicalizes only the physical metadata groups with measured
+architecture differences (bounds, grid poses, item boxes and pad boundaries) to
+1e−9 precision, removes tiny
+AI-angle/normal residuals below 1e−10, rounds UVs at 1e−9 before float32 storage,
+and welds the float32 attributes actually stored in the render file. Design-space
+calculations retain their original precision. This also prevents rounded bounds
+from feeding back into terrain generation. The compiler version invalidates old
+cache entries; no binary schema or world-state layout changes.
+
+An initial blanket metadata normalization was rejected: even changing Meadow's
+`ds` from `0.9999999999999999` to `1` altered discrete AI sampling and failed
+existing pace, contact and body-balance tests. The final narrow policy preserves
+path parameterization, lap length, key gates, zones, jumps, rails, warps and spatial
+grid headers exactly. All four affected tests pass again without relaxed bounds.
+Three complete 8-Pro Meadow races retain identical per-tick body/drive/race states
+and applied inputs, including the original 18/14/26 hard-bump counts.
+
+All 31 default physics and visual files are byte-identical between ARM64 and x64.
+The expanded render triangles retain **exactly identical positions, colors and
+triangle counts** compared with the pre-normalization candidate. Maximum normal
+change is 9.21e−11 and UV change is 9.54e−7 (about 0.004 pixel on a 4096-pixel
+texture). Physics integer arrays are identical; floating payload changes are
+limited to AI-angle residuals of at most 8.35e−14. Metadata changes by at most
+4.998e−10. Collision geometry is unchanged.
+
+Canonical goldens, including the global external fingerprint, are regenerated
+after these independent comparisons. Their assertions execute without a stale
+skip. CI now bakes before testing so a fresh runner includes the all-track race
+tests that discover generated assets at import time.
 
 The matrix covers 21 tracks × speed/item × solo/eight racers × seeds
 4242/2026/7301: 252 races, 1,134 kart starts. Version 2 explicitly enables the item
@@ -147,21 +184,35 @@ each full run must match; a changed source invalidates its certificate.
 | Actual-combat matrix metric | fb71b3f baseline | Adopted candidate |
 |---|---:|---:|
 | Finishers / kart starts | 1,134 / 1,134 | 1,134 / 1,134 |
-| Hard wall contacts | 51 | 38 |
-| Respawns | 9 | 15 |
-| Maximum no-progress ticks | 302 | 183 |
-| Items used | 3,191 | 3,166 |
-| Effect hits on opponents | 2,042 | 1,867 |
+| Hard wall contacts | 51 | 37 |
+| Respawns | 9 | 9 |
+| Maximum no-progress ticks | 302 | 315 |
+| Items used | 3,191 | 3,160 |
+| Effect hits on opponents | 2,042 | 2,008 |
 
 The adopted candidate has zero speed-mode respawns, solo hard contacts, missed
-gates or missed finishes. Its 15 respawns occur in item packs. Traces identify
-attack/pile-up chains before jumps in Sunstone and Pumpkin, but also remaining
-recoverable behavior: Aurora's post-stun traffic coast can starve a jump approach.
-Belltower's displaced-line failure at the narrowing exit is repaired by the local
-width transition. The remaining incidents are not all unavoidable attacks.
-**The no-new-unintended-respawn
-completion criterion remains unmet.** The matrix deliberately exits nonzero on
-these review flags; do not weaken its gates to certify the result.
+gates or missed finishes. All nine remaining resets have current causal traces:
+Meadow includes self-bomb damage and opponent CC before a jump; Sunstone includes
+an Overclock attacker's and victims' pile-up before the jump; Sandglass includes
+opponent speed suppression before takeoff. Fernwood retains failed wall recovery
+after a combat queue collision. Pumpkin retains failed recovery after an airborne
+attack carries the kart into a junction with a higher branch deck. Pumpkin is not
+the creek-jump case and is not a direct midair-hit reset. These events are not
+labeled universally unavoidable.
+
+Belltower's displaced-line failure is repaired by the local width transition;
+Aurora's approach failure by the scoped jump rule; Manor's stationary warp exit
+by supported placement. Four original regression flags remain visible:
+Fernwood/7301, Meadow/4242, Pumpkin/7301 and Sunstone/7301. **The strict no-new-
+unintended-respawn/recovery criterion is not fully certified.** The unchanged
+matrix gates continue to flag these cases; keep the PR draft for that limitation.
+
+Item draws include the baked track hash as well as seed, slot, box and tick.
+Portable rebaking therefore changes battle histories even under the same public
+seed. Matrix differences are observed scenario outcomes, not a controlled
+identical-inventory causal experiment. The human reference replays retain exactly
+the same raw inputs and fixture; all 12 trajectories still match the captured
+candidate after the version-7 and compiler changes.
 
 A bounded post-control-loss steering candidate fixed the local Belltower example
 but increased global item respawns 16→18 and maximum no-progress ticks 184→213.
@@ -177,6 +228,20 @@ Correcting only the signed closing return, including a bounded earlier-braking
 trial, also exceeded the unchanged pack-contact test. These candidates and their
 new tests were rejected together; **neither lane-planner correction is shipped**.
 They require coordinated lane-execution work rather than a safe isolated patch.
+The final scoped remedy instead adds a separate diagnostic: the maximum actual
+signed closing speed among chosen-lane threats, including a second or overlapping
+slower kart. Below a declared jump's minimum speed, within 60 m of its lip, while
+grounded and without hard CC, a non-closing spacing warning cannot request traffic
+coast. Real closing threats, other braking/hazard decisions, and ordinary traffic
+behavior remain intact. This adds derived AI scratch/cache data, no persistent
+world state. Its isolated pre-serializer matrix introduced no scenario regressions
+against the preceding five-map candidate, and existing traffic/pace/body gates
+still pass. The final combined matrix is reported separately above.
+
+The Aurora seed-2026 replay is identical through tick 3324. Restored throttle at
+3325 raises takeoff speed at 3327 from 16.491 to 17.288 m/s and removes the landing
+face impact/reset. This is a direct local improvement; it still does not establish
+universal compliance with the conservative declared 20 m/s jump minimum.
 The narrow Aurora gap trial also retained its reset and added a solo hard contact,
 so its original 10 m gap / 60 m landing were restored. Belltower's local exit
 clearance is the retained physical repair, separately verified against the old
@@ -190,6 +255,24 @@ separate start/expiry tests; ordinary item decisions still use present time.
 Homing projectile route-height correction retains its 20% response but caps a
 large airborne-launch transient at 0.75 m per tick, preventing a measured snap.
 
+Selected non-rail forks with an immediate drift-worthy entry corner use the
+kart's existing grip-speed budget while drift is unavailable at the split. The
+driver previews at most 90 m using its existing 0.8×braking envelope, then keeps
+that budget through the entry arc until it actually drifts. A controlled Turbo
+Token run with eight-tick delayed inputs changes entry speed 45.036→24.455 m/s
+and clears the corner with zero contacts. Untaken branches do not apply the cap.
+This introduces no latched state or map-specific rule.
+
+Committed hard CC that resolves during warp transit now captures the existing
+saved warp-entry speed (`attachS`) instead of the temporary zero body velocity.
+Physical item-motion curves remain suspended during transit; effect resolution,
+damage and start/end times still advance. After exit the same curve resumes at
+its current age. This prevents an active airborne effect from erasing restored
+exit movement and dropping the kart back into the warp gap. Ordinary non-warp
+CC is unchanged. The existing attachment and integer effect parameter fields
+provide exact checkpoint replay; no new serialized state is needed. Version 7
+rejects ghosts from the published version-6 checkpoint as well as older models.
+
 Legacy corner numbers are changed only where the new law intentionally changes
 them. Launch distance is checked against independent integration to 0.05 m.
 Gauge integration is normalized by `g0`; the R9 input plan is retimed while
@@ -201,14 +284,21 @@ three guaranteed shots across the loop, low-gravity tube and helix, in addition
 to all three random races, so a different AI battle cannot silently remove feature
 coverage. Impact, no-fizzle and the existing geometric limits are still asserted.
 
+Actual browser execution also exposed two existing music scheduling faults: late
+transport callbacks could collapse onto one Tone start time, and a bridge fill
+could start the same snare twice. Missed steps now advance without a catch-up
+burst, and the fill replaces its overlapping backbeat. Normal note timing and
+all music/SFX assets are preserved. Both failures were reproduced and eliminated
+with real Chrome/Tone, alongside the strict production E2E checks.
+
 ## Executed presentation checks and remaining limits
 
-Final verification on the restored runtime and five accepted maps: **836 tests
+Final verification on the restored runtime and five accepted maps: **854 tests
 pass, 61 skip, zero fail**. The skipped set includes the explicitly Linux-only
 HTTP fixture on macOS. Canonical golden verification additionally passes all
-32 focused compiler build tests with no stale-input notices. Frozen contracts,
+36 focused compiler tests on both ARM64 and x64 with no stale-input notices. Frozen contracts,
 dependency boundaries, TypeScript, ESLint, all-track bake/validation and production
-build pass. The two original production browser E2E tests pass in 47.8 s with
+build pass. The two original production browser E2E tests pass with
 only the missing favicon request intercepted.
 
 Eight actual browser sequences (four clips, independent baseline and candidate)

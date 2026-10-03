@@ -8,6 +8,7 @@ import type { Content } from './content.ts';
 import { profileHeight } from './content.ts';
 import { ROLE } from './mesh.ts';
 import { TriSoup, VS, type WallQuad } from './soup.ts';
+import { canonicalF32, canonicalNumber } from './canonical.ts';
 
 export const CHUNK_LEN = 50;
 
@@ -75,6 +76,12 @@ export class RenderBuilder {
   finalise(): RenderSlot[] {
     const out: RenderSlot[] = [];
     for (const sl of [...this.slots.values()].sort((a, b) => a.name.localeCompare(b.name))) {
+      // Weld the attributes the file actually stores. Raw double-string keys can split the same float32
+      // vertex differently on ARM64 and x64, changing indices and LOD topology without changing its geometry.
+      for (const attribute of [sl.pos, sl.col]) for (let i = 0; i < attribute.length; i++) attribute[i] = Math.fround(attribute[i]!);
+      for (let i = 0; i < sl.nrm.length; i++) sl.nrm[i] = canonicalF32(sl.nrm[i]!);
+      // UV subtraction at a pad boundary can amplify sub-picometre station residuals near zero.
+      for (let i = 0; i < sl.uv.length; i++) sl.uv[i] = canonicalF32(canonicalNumber(sl.uv[i]!));
       const nt = sl.idx.length / 3;
       const order = Array.from({ length: nt }, (_, i) => i).sort((p, q) => sl.triChunk[p]! - sl.triChunk[q]! || p - q);
       const map = new Map<string, number>();

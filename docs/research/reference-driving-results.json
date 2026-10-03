@@ -13,14 +13,15 @@
       "height": 1080
     }
   },
+  "candidateRuntimeSimVersion": 7,
   "inputs": {
     "before": {
       "file": "reference-baseline-measurement.json",
-      "sha256": "ea3030e70c4a360e5b68a8e9ac0d434dcbb323dc7c9509a6fa35cbbed766f756"
+      "sha256": "823c43897ee932ae0f9466555d07de03f88c7347c1a8547905c13dd7bedab4ed"
     },
     "after": {
       "file": "reference-final-measurement.json",
-      "sha256": "407b04611d5ac6afb80aa87dcd311b26ede61c90d2bb5095a306a944ea3fff45"
+      "sha256": "29ea3c6a867aeef89c50ea59b4124be6dedc91e8a24d2d33ddfaea5694cc8468"
     },
     "independent-before": {
       "file": "baseline-node.json",
@@ -36,7 +37,7 @@
     },
     "map-after": {
       "file": "map-candidate.json",
-      "sha256": "8a6412525127e0d4959e8dfc669b942c0d18e328127f39f184a3a27e2ad1eba8"
+      "sha256": "2472a6dca2c66a44386b7d4130aa7ee6e3bb204dbb8b1243faa0b333c0bc1e35"
     },
     "rejected": {
       "file": "rejected-post-cc-matrix.json",
@@ -48,7 +49,7 @@
     },
     "review": {
       "file": "causal-review.json",
-      "sha256": "3b3eac7cd9c9fa3d394d7cbec523d8c7a70b7849dbab3d2092ef687e72efb863"
+      "sha256": "64da4484fa3601cfd7062ceb541b86176132735a9fb17d3503b4b2dcadd98505"
     }
   },
   "definitions": {
@@ -62,10 +63,11 @@
     "boostCensoring": "Timer-active intervals seen in simulated samples. Activity in frame 0 is left-censored/seeded; activity at final sample is right-censored and its duration is only a lower bound. This never establishes original-engine booster duration.",
     "referenceLimit": "Only two held-out launches have identified initial motion. Their 90-tick start buff is a fixed model hypothesis. Beginner footage uses a different source kart. Variable key-overlay latency reaches 100 ms. No whole-video 5% fidelity claim.",
     "matrixReview": "Flags retain the original regression rules. Causal review distinguishes direct attack, following collisions/braking, and incomplete recovery. Reviewed does not mean every reset is unavoidable. Cases no longer flagged by the selected geometry are listed separately.",
-    "deferredAiContracts": "The lane planner common-time projection and reported closing-speed contracts remain unchanged. Isolated corrections and a braking-threshold follow-up failed existing traffic gates and were rejected. They require joint planner calibration; this delivery does not claim those contracts were fixed."
+    "itemSeedCaveat": "Item draws include trackHash and trackId as well as public seed, slot, box, and pickup tick. Canonical rebaking or geometry changes can change battle histories under the same public seed. Matrix deltas are observed outcome comparisons, not identical-inventory controlled experiments.",
+    "deferredAiContracts": "Legacy lane-cost/TTC projection and legacy reported closing speed remain unchanged. Broad corrections and a braking-threshold follow-up failed existing traffic gates and were rejected. A separate actual-closing diagnostic is used only to skip artificial traffic coasting on a grounded, unrestrained, under-speed jump approach without a real closing threat. This narrow exception does not claim to repair the general planner contracts."
   },
   "baselineIdentity": {
-    "measuredRuntimeSimVersion": 6,
+    "measuredRuntimeSimVersion": 7,
     "kind": "current harness with original parameter overrides",
     "referenceCommit": "fb71b3f",
     "originalProfile": {
@@ -3926,12 +3928,12 @@
         "fullFields": 252,
         "finishedKarts": 1134,
         "kartStarts": 1134,
-        "hardHits": 38,
-        "respawns": 15,
-        "maxStuckTicks": 183,
-        "itemsUsed": 3166,
-        "effectHits": 4443,
-        "combatEffectHits": 1867,
+        "hardHits": 37,
+        "respawns": 9,
+        "maxStuckTicks": 315,
+        "itemsUsed": 3160,
+        "effectHits": 4512,
+        "combatEffectHits": 2008,
         "uncreditedGateOrFinish": 0
       },
       "splits": [
@@ -3957,7 +3959,7 @@
           "fullFields": 63,
           "finishedKarts": 504,
           "kartStarts": 504,
-          "hardHits": 5,
+          "hardHits": 9,
           "respawns": 0,
           "maxStuckTicks": 86,
           "itemsUsed": 0,
@@ -3974,9 +3976,9 @@
           "kartStarts": 63,
           "hardHits": 0,
           "respawns": 0,
-          "maxStuckTicks": 50,
-          "itemsUsed": 189,
-          "effectHits": 125,
+          "maxStuckTicks": 84,
+          "itemsUsed": 190,
+          "effectHits": 100,
           "combatEffectHits": 0,
           "uncreditedGateOrFinish": 0
         },
@@ -3987,163 +3989,164 @@
           "fullFields": 63,
           "finishedKarts": 504,
           "kartStarts": 504,
-          "hardHits": 33,
-          "respawns": 15,
-          "maxStuckTicks": 183,
-          "itemsUsed": 2977,
-          "effectHits": 4301,
-          "combatEffectHits": 1867,
+          "hardHits": 28,
+          "respawns": 9,
+          "maxStuckTicks": 315,
+          "itemsUsed": 2970,
+          "effectHits": 4395,
+          "combatEffectHits": 2008,
           "uncreditedGateOrFinish": 0
         }
       ],
       "bakedTracks": {
         "aurora_summit": {
-          "trackHash": "15962ceb",
-          "sha256": "ffcf40191eb7a2355ebe837ff94309cbec66c95632a6efdeca2d1b591d5588ee"
+          "trackHash": "9a467c5c",
+          "sha256": "646ae7028b1015fae1ee4266424a1c864f2779e852c3b8fb3a129c8cb524aef9"
         },
         "belltower_piazza": {
-          "trackHash": "99cd27f7",
-          "sha256": "108703a1d6ea65a4adf742398a365fcd66c22f43e04ca806945386175eeea2db"
+          "trackHash": "43d68b68",
+          "sha256": "99bf5f3b0f6966874ad3818e95ae066bb89e5cd5857d0eb56064743f83f8d325"
         },
         "cascade_slalom": {
-          "trackHash": "921ea469",
-          "sha256": "b9b77f01700ba7c2f1e86e28119751ea8412700f365a92756729df40907a005b"
+          "trackHash": "7eef36a9",
+          "sha256": "dff0b72f1f287d7198730ed46db4b4657a17b7e1120a5eeb967bb9ad2130a940"
         },
         "coral_cove_docks": {
-          "trackHash": "638c79e0",
-          "sha256": "e9453b3e0a68362f8426bad1a83a95770b9a66f9efe04578e05abbc7ddac1342"
+          "trackHash": "231a5d10",
+          "sha256": "8e672c7849ad0ec8f048b392ad790b31075e52ac1064befb86cc721c901f05f7"
         },
         "fernwood_hollow": {
-          "trackHash": "a5857e2d",
-          "sha256": "66108fabff2355f44d0781240f28b94942c6873c6c1ffe7340fef5ad30636f5e"
+          "trackHash": "f0b76dd5",
+          "sha256": "3a8a49ce51930d27a4a86b5ab3f66f896ddd1a7ac4f9c61959c298f0ec106d2c"
         },
         "geode_rail_quarry": {
-          "trackHash": "27d07a3c",
-          "sha256": "15fcc72877e24f2c00f080b2a4b61aa6e5fb2e6678d210c04f5f46a3958c8fb1"
+          "trackHash": "806d22e4",
+          "sha256": "71f5722ca510de90e2994b5568e17c3de67794ae15c9ddff39ccc22d7e122a75"
         },
         "kraken_lighthouse": {
-          "trackHash": "a9e57084",
-          "sha256": "ee68847070dd6a03214e3a56ae5dc083083a6502c9579955468d4452b52bb9a8"
+          "trackHash": "c0690d1c",
+          "sha256": "5f04969b4994122cdbb4959af75562a9fb328dfe0791114a96bdb694bd9058e8"
         },
         "magma_switchback": {
-          "trackHash": "40c1e250",
-          "sha256": "b26cb4c92f9d4c99caf1ddbb3c97bd940233d00ff925e13513f29c1332389b4f"
+          "trackHash": "13b8261b",
+          "sha256": "98d08b46ad6038a061540cd5f622e3b76a4b168d56bd7a6f872bba18e5fd6fa7"
         },
         "manor_catacombs": {
-          "trackHash": "3b3dda51",
-          "sha256": "bd386853a4ecdb30f4b77ca05d1db71b6a4dd36dfa2bc2b273c8ad1a8d91ae65"
+          "trackHash": "3ea88254",
+          "sha256": "2e787b87dbf8d25f2a6053783adeaf22239f59e31efe83038d5cd4fa8ddf8ac5"
         },
         "meadow_loop": {
-          "trackHash": "60566780",
-          "sha256": "415a59dcae2b4b07fccc1e682099a2b7a94317eb0b337f27f0a6c28c5b7e059f"
+          "trackHash": "9f4fb595",
+          "sha256": "70050439298638217f93f0faefa62ce57fb04a39878a47b0edfdaa54a91690a4"
         },
         "orbital_express": {
-          "trackHash": "8df15a70",
-          "sha256": "7f280195e5a20da4b78b3d93c1844f8a8d2ab41e1c3417f76a2bc2f4fbfd68d3"
+          "trackHash": "607876ed",
+          "sha256": "a8723e1a32b64b60c0514ec24e1a86378faf5f69722a75a57a6c6637e740c7c4"
         },
         "proving_ring": {
-          "trackHash": "f1dc8d90",
-          "sha256": "34587da6c38ca199429bebb78513446efc356aedaa465ab1d0046736ba4fde44"
+          "trackHash": "5ed0a3f0",
+          "sha256": "28afbde014a42de2a7762fcc5786757834d171b6a06ae1cf08cd7747d0b18ef1"
         },
         "pumpkin_lane": {
-          "trackHash": "bb5b0dec",
-          "sha256": "feed6b9a20f18b6985ae77faf48328daa6a1bcf03b599549bc84dca348e7491e"
+          "trackHash": "4df442e8",
+          "sha256": "0fcbb581fa65f63aff4b462b67f2f20c93f01fb903b50e6888e78edd812fd4cc"
         },
         "rainline_blvd": {
-          "trackHash": "c6a1469d",
-          "sha256": "1469b65714feeba4bd9b730434305e26391b8efdf5513acb30c2ab1d994a414d"
+          "trackHash": "504d47a8",
+          "sha256": "99c63610d7009d4c4a31c91c4405f12965c5ff2ef8b03f36457f39464e5cc508"
         },
         "sandglass_canyon": {
-          "trackHash": "579046c1",
-          "sha256": "7b667ef58a943f862282e0f1497e1b9f770fe10fb4a679d9e93e0d2aad6a4c9e"
+          "trackHash": "cdde83d5",
+          "sha256": "af33b2a0152778e3f827cf9ad1bea1a52f6ce7bd88b95c597f7a58045be1f287"
         },
         "skyway_interchange": {
-          "trackHash": "dbad722c",
-          "sha256": "773970bf87174658024fcbf907b24dd5da39b0558c2b553f4229295cd2391e27"
+          "trackHash": "602fb061",
+          "sha256": "3612f5da3ec0f8ebd2f5ed1e78d5abd9f0f65f11202163c5bd1815c2490cbcf7"
         },
         "snowglobe_halfpipe": {
-          "trackHash": "a2156ae7",
-          "sha256": "92be0d338eac3ce0351bcbba4323e11337c9f9f0414c769088eeeed857e309cd"
+          "trackHash": "13b1b4b5",
+          "sha256": "ae457b9f16a73e2ae99b9211225abbee19c8b954869813c0f5792add182b1a3c"
         },
         "spark_grand_circuit": {
-          "trackHash": "2e3aafc8",
-          "sha256": "5b4944898c5bf253a53fed2df7969c4c3ff74073ae492f79a67eff66cc144f0a"
+          "trackHash": "f2f0a6ae",
+          "sha256": "04e280dced2ac6f00b94283aef2dd6deb50aa968deebad381bc7accd8f2da4d7"
         },
         "sunset_arena_rally": {
-          "trackHash": "359a6d28",
-          "sha256": "da29a6024510ca07f1dca24389c54a0fa4c4f932fc93607e34d27318d49a551c"
+          "trackHash": "1099632a",
+          "sha256": "6a9d73969977bf518b63f44a2608456aee4055e3c759e5cd72b9af597f2d0d28"
         },
         "sunstone_bazaar": {
-          "trackHash": "2f29aee2",
-          "sha256": "a6183ef48590bc669516b93110858b8534ac68f7ae1cdf300d4dcb3019df7027"
+          "trackHash": "33939cc4",
+          "sha256": "a099c1b82983e42774b6eaebdf3a6090b450f73db7a123058eb012fe25416bc5"
         },
         "token_foundry": {
-          "trackHash": "4284d4cb",
-          "sha256": "c27e994f68c3981463302ea65247c65bbd2f646685a0455326fad2b2f43aa905"
+          "trackHash": "44df5945",
+          "sha256": "a2c1071bb33496e339b98a687dd09b1e5333e9adb566f96d54e5655509ae29ec"
         }
       },
       "sourceStable": true,
-      "sourceTreeSha256": "7de3e5b542d0631a0b03d085cef537911f5a9707f1861d9608e1624495ba151d",
-      "sourceTreeSha256After": "7de3e5b542d0631a0b03d085cef537911f5a9707f1861d9608e1624495ba151d",
+      "sourceTreeSha256": "22da7e5832f66b0b1e9b1c4928f8038b406d22664eb5dbddf11d4a7b6032b430",
+      "sourceTreeSha256After": "22da7e5832f66b0b1e9b1c4928f8038b406d22664eb5dbddf11d4a7b6032b430",
       "sourceFingerprints": {
         "packages/sim/src/kart/dynamics.ts": "4f0eaa892b181acfc4697d717d5fb98d016fb7bd85522aef1e41ed9e5ff02834",
         "packages/sim/src/kart/params.ts": "bbe0d587cfbdca0ee50fc48fb27fb4eb22af3adf3b3f92dc7019720d49d74f3b",
-        "packages/sim/src/ai/driver.ts": "69bc5a79edba68a4c49be8000ca387b5db34e591f4c58797823e6e0c31fa7421",
+        "packages/sim/src/ai/driver.ts": "0179800e528a99b1fb154b49389dd3b2513902d310ad0985f788ed96b22dece2",
         "packages/sim/src/ai/api.ts": "b8881d5c3536302a91b24b32b54c1cee2476fb9d769cfa3d00fcba06aabd0d53",
         "packages/sim/src/ai/predict.ts": "c2ac0b701d9997fe4d0b9dfa06f86e6544b05de62a1fc6dea9014c91faa04ff8",
         "packages/sim/src/ai/plan.ts": "a8df0c1fec8dc006b6eb0fec086a24e22668849276290dd051c9bb6bc1f8a8f9",
-        "packages/sim/src/ai/avoid.ts": "0fc1ca1be1ce999481af66237285e1bd67e1d48caa8298ef4ebcdfe1d8202f54",
+        "packages/sim/src/ai/avoid.ts": "7a7b8fe1098c0a37f4a4dbb77f6306dd74b1e045d781402b5f779870c27830a1",
         "packages/sim/src/ai/items/decide.ts": "513e3e85f5a7a846372b45056f65ff8093874ee0acf2415852e6062e1b401c5f",
         "packages/sim/src/ai/profiles.ts": "9bc9be094f229e10e3781e480058a26b33397ff97696a5f0dca1022ebb8c514e",
-        "packages/sim/src/core/state.ts": "61940377425c6ce8497100c2846d132befd6216ac9a1c1273ed15e21f4a5a124",
+        "packages/sim/src/core/state.ts": "1c6dceb04839eda0aedd2e1bf072d9a00305f5bfb4ed7c4719f57ced0d8fe441",
         "packages/sim/src/items/projectiles.ts": "5a16c67bca7e6e8034d86f0d8075bc68bab8c771c2e754003120366fd33a38f8",
         "packages/content/src/karts/pebble.ts": "2efa10a72264f599052460e6474e984f69ebd0a5265fba37cd4bf7818af54e9f"
       },
       "sourceFingerprintsAfter": {
         "packages/sim/src/kart/dynamics.ts": "4f0eaa892b181acfc4697d717d5fb98d016fb7bd85522aef1e41ed9e5ff02834",
         "packages/sim/src/kart/params.ts": "bbe0d587cfbdca0ee50fc48fb27fb4eb22af3adf3b3f92dc7019720d49d74f3b",
-        "packages/sim/src/ai/driver.ts": "69bc5a79edba68a4c49be8000ca387b5db34e591f4c58797823e6e0c31fa7421",
+        "packages/sim/src/ai/driver.ts": "0179800e528a99b1fb154b49389dd3b2513902d310ad0985f788ed96b22dece2",
         "packages/sim/src/ai/api.ts": "b8881d5c3536302a91b24b32b54c1cee2476fb9d769cfa3d00fcba06aabd0d53",
         "packages/sim/src/ai/predict.ts": "c2ac0b701d9997fe4d0b9dfa06f86e6544b05de62a1fc6dea9014c91faa04ff8",
         "packages/sim/src/ai/plan.ts": "a8df0c1fec8dc006b6eb0fec086a24e22668849276290dd051c9bb6bc1f8a8f9",
-        "packages/sim/src/ai/avoid.ts": "0fc1ca1be1ce999481af66237285e1bd67e1d48caa8298ef4ebcdfe1d8202f54",
+        "packages/sim/src/ai/avoid.ts": "7a7b8fe1098c0a37f4a4dbb77f6306dd74b1e045d781402b5f779870c27830a1",
         "packages/sim/src/ai/items/decide.ts": "513e3e85f5a7a846372b45056f65ff8093874ee0acf2415852e6062e1b401c5f",
         "packages/sim/src/ai/profiles.ts": "9bc9be094f229e10e3781e480058a26b33397ff97696a5f0dca1022ebb8c514e",
-        "packages/sim/src/core/state.ts": "61940377425c6ce8497100c2846d132befd6216ac9a1c1273ed15e21f4a5a124",
+        "packages/sim/src/core/state.ts": "1c6dceb04839eda0aedd2e1bf072d9a00305f5bfb4ed7c4719f57ced0d8fe441",
         "packages/sim/src/items/projectiles.ts": "5a16c67bca7e6e8034d86f0d8075bc68bab8c771c2e754003120366fd33a38f8",
         "packages/content/src/karts/pebble.ts": "2efa10a72264f599052460e6474e984f69ebd0a5265fba37cd4bf7818af54e9f"
       }
     },
     "flags": [
       {
-        "key": "aurora_summit/item/pack/2026",
+        "key": "fernwood_hollow/item/pack/7301",
         "reasons": [
-          "respawns"
+          "respawns",
+          "stall"
         ],
         "beforeRespawns": 0,
         "afterRespawns": 1,
-        "reviewStatus": "attack-associated; retain recovery limitation",
-        "cause": "Opponent stun at3192 and post-stun slow at3246 leave slot3 below jumping speed. At3327 it takes off16.5m/s below vMin20. No self tether. Subsequent traffic coasting delays speed recovery; classify attack-associated under-speed approach, not direct midair knockdown."
+        "reviewStatus": "confirmed attack/contact chain with unresolved subsequent wall recovery",
+        "cause": "Selected-fork grip braking is effective: slot 7 enters at 23.857 m/s at 1170. Its missile makes leader 2 airborne at 1176; enemy 1 traps leader 3 at 1186. Slot 7 contacts the newly trapped 3 at 1193 (within the 8-tick input delay), then airborne 2 at 1224. Repeated contacts displace 7 into the outer wall at 1253 at 14.1 m/s while redaction is active 1144–1323. Wall recovery later fails and manual reset occurs 1466. This is combat-induced queue displacement followed by incomplete recovery, not an unavoidable direct-CC reset."
       },
       {
-        "key": "pumpkin_lane/item/pack/2026",
+        "key": "meadow_loop/item/pack/4242",
         "reasons": [
           "respawns"
         ],
         "beforeRespawns": 0,
         "afterRespawns": 2,
-        "reviewStatus": "confirmed attack/collision chain",
-        "cause": "Slot1 receives airborne1044 and stun1148 just before under-speed takeoff1150 (17m/s<vMin24). Unhit slot7 bumps into slowed1 at1097-1100 and takes off1156 at18.1m/s<vMin24. Both apply full throttle/no brake at takeoff; repeated collisions continue in air. Demonstrated opponent-attack collision chain."
+        "reviewStatus": "confirmed self-damage and opponent-CC jump failures; not all direct enemy hits",
+        "cause": "Slot 2 is hit by its own Token Bomb at tick 1318, stops at s 571.197 (0.192 m before the lip), resumes at 1385 and loses ground at 1394 at 2.266 m/s while applying full throttle/no brake. Token Bomb self damage is explicitly specified. Slot 6 receives slot 7's Bug Report at 1268, resumes 1316 and takes off at 1334 at 5.264 m/s; another enemy airborne hit at 1356 precedes its reset. Jump minimum is 15 m/s. These are self/opponent-CC under-speed departures with insufficient run-up, not synthetic traffic coasting."
       },
       {
-        "key": "sunstone_bazaar/item/pack/4242",
+        "key": "pumpkin_lane/item/pack/7301",
         "reasons": [
           "respawns"
         ],
-        "beforeRespawns": 2,
-        "afterRespawns": 8,
-        "reviewStatus": "confirmed attack-induced braking/collision chain",
-        "cause": "Opponent SPIN hits slot3 at1082 and TRAP_BUG hits slot5 at1083; TRAP_BUG hits slot4 at1148. Unhit2 contacts trapped5 at1101 (impulse22.94,speed33.12→17.28). The subsequent physical pileup connects4→0 at1153,0→7 at1153,7→6 at1154. Follower1 brakes from1110 for the slowed field and contacts3 at1157. All8 take off at11.62–15.46m/s below declared vMin22; each resets once. No self tether."
+        "beforeRespawns": 0,
+        "afterRespawns": 1,
+        "reviewStatus": "confirmed post-attack route/deck recovery gap; attempted guard rejected without benefit",
+        "cause": "Opponent airborne at 588–653 carries slot 0 straight through the branch approach. Location changes to the raised graveyard child around 630 at lateral−6.134 m, outside its 4.5 m halfwidth, while physical support is the lower host road. After control returns, the route still targets the child. At 684 the body reaches its footprint but is 0.510 m below the deck, loses host support, and later resets 744. A bounded incoming-child rejection and stricter height-only diagnostic each retained the reset and were rejected; the final locator is unchanged. This post-attack route/height recovery limitation remains."
       },
       {
         "key": "sunstone_bazaar/item/pack/7301",
@@ -4151,16 +4154,25 @@
           "respawns"
         ],
         "beforeRespawns": 0,
-        "afterRespawns": 2,
-        "reviewStatus": "confirmed opponent slowing/CC before jump",
-        "cause": "Opponent REDACTION hits7 at1120 and6 at1179. TRAP_BUG additionally hits7 at1197. They take off at15.85/18.44m/s, below vMin22, and reset1378/1405."
+        "afterRespawns": 4,
+        "reviewStatus": "confirmed Overclock attack-induced pileup plus following control response",
+        "cause": "Slot 5 activates Overclock at tick 1195 and its contacts spin slots 3/6/7 at 1218/1224/1232. Slot 6 was also trapped by slot 2 at 1179. The attacker collides with the slowed victims at 1221/1225/1233 and repeatedly with slot 6 afterward. All four leave the jump below vMin 22: slot 3 at 1265/12.465 m/s, slot 7 at 1282/8.170 m/s, slot 6 at 1299/12.064 m/s and slot 5 at 1312/8.082 m/s. Slot 5 has no opponent hit and coasts as a follower at takeoff; this is a self-item-initiated attack/collision/control chain, not unavoidable direct enemy damage to every kart."
       }
     ],
+    "remainingCaveat": "All 252 fields and 1134 kart starts finish; there are zero speed-mode resets and zero solo hard contacts. Nine item-mode resets remain: opponent damage, intentional self-Token-Bomb damage, Overclock attack/collision/control chains, and two unresolved post-combat recovery cases (Fernwood wall recovery and Pumpkin route/deck recovery). Four scenarios exceed original per-scenario reset/stall thresholds and remain explicitly flagged. The report does not claim all resets are unavoidable or all acceptance criteria are complete. Item histories also change with trackHash, so baseline/final outcomes are not matched-inventory counterfactuals.",
     "resolvedReviewedCases": [
       {
-        "key": "belltower_piazza/item/pack/2026",
-        "originalCause": "Opponent airborne at1021 forces wide travel on plaza. Later AI does not recover the displaced line before narrowing exit: u13.9 at1200, ground lost1204. No active effect/bump at exit and no self tether/Mirror in this interval. Attack-induced initial deviation with unresolved line recovery, not unavoidable midair damage.",
+        "key": "manor_catacombs/item/pack/4242",
+        "originalCause": "Enemy Bug Report hits slot 0 at tick 2095 during the warp. The existing impact-speed fix preserves entry speed, but the legitimately active trap zeros movement after the exit at tick 2126. The declared 941 m exit has no supporting triangle; first unsupported tick is 2127, before the later stun at 2193. This is a concrete unsupported exit bug, subsequently repaired locally by placing the exit at 942 m. The focused normal 84-tick trap regression stays stationary and grounded there.",
         "currentRespawns": 0
+      }
+    ],
+    "otherReviewedResidualCases": [
+      {
+        "key": "sandglass_canyon/item/pack/7301",
+        "cause": "Slot 4 receives opponent Firewall at 1945 and Throttle at 1958. At 2010 it takes off at 18.964 m/s versus jump minimum 26 m/s while applying full throttle and no brake; the active speed cap persists. It misses the 18 m gap and resets 2088. This one-reset scenario does not exceed the baseline reset count but remains visible in total results.",
+        "reviewStatus": "confirmed opponent speed-loss/cap jump failure; no additional baseline flag",
+        "currentRespawns": 1
       }
     ]
   },

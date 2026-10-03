@@ -46,8 +46,9 @@ S 40                                              @home
 CLOSE solve=[?a,?b,?c] length=1800
 LINE start at=0
 
-# the bat-cave portal: a 48-tick warp back up to the garden terrace (the 125 m span has no ground)
-WARP portal transit=0.8 keep
+# Preserve the sampled 817 m entry; land at 942 m, one metre past the old exit, on supported terrace ground.
+# An active trap must be able to stop there without falling into the warp span.
+WARP portal at=817 to=942 transit=0.8 keep
 
 # chandeliers swing over the giant table and the chandelier bend; the bookcase press slams down on the right half of
 # the last crypt straight (half the road always stays open)

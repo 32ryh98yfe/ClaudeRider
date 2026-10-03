@@ -26,8 +26,9 @@ import { assertFinite } from './finite.ts';
 import { DEFAULT_AO, bakeAo, sceneBvh } from './ao.ts';
 import { buildLod1 } from './lod.ts';
 import { buildPvs } from './pvs.ts';
+import { canonicalF32, canonicalMetadata } from './canonical.ts';
 
-export const COMPILER_VERSION = 'trackc/2.0';
+export const COMPILER_VERSION = 'trackc/2.1';
 
 export interface VisSlotMeta {
   name: string; material: string; variant: string; chunks: { i0: number; n: number; bbox: number[]; chunk: number }[];
@@ -150,7 +151,7 @@ function pathArrays(p: PathModel, k: number, m: TrackModel): [string, TypedArray
     return { ...s, tx: px / pl, ty: 0, tz: pz / pl };
   });
   const ai = bakeAi(aiS, p.closed, p.length / (n - 1));
-  const out: [string, TypedArray][] = [[`p${k}.smp`, smp], [`p${k}.flg`, flg], [`p${k}.ai`, Float32Array.from(ai)]];
+  const out: [string, TypedArray][] = [[`p${k}.smp`, smp], [`p${k}.flg`, flg], [`p${k}.ai`, Float32Array.from(ai, canonicalF32)]];
   if (anyGrav) out.push([`p${k}.grav`, Float32Array.from(S.map((s) => s.grav))]);
   void m;
   return out;
@@ -257,6 +258,10 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   for (let s = 15; s < m.lapLength; s += 30) { const q = sampleAt(main, m.closed ? s : s + m.lineS); gates.push({ s, w: q.w + 2 }); }
   let killY = c.killY ?? minY - 12;
   for (const kp of c.killPlanes) killY = Math.min(killY, kp.y - 20);
+  // Keep route stations and parameterization exact: rounding ds/length/key gates can change projection
+  // or erase a gate just below a simulation grid point. Only measured cross-architecture coordinate
+  // sources (bounds, grid poses, boxes and pads) are canonicalized; terrain still receives raw bounds.
+  const bounds: CtrkMeta['bounds'] = [minX, minY, minZ, maxX, maxY, maxZ];
   const meta: CtrkMeta = {
     id: ast.id as TrackId,
     name: m.name,
@@ -267,11 +272,11 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     laps: m.laps,
     topology: m.closed ? 'circuit' : 'p2p',
     killY,
-    bounds: [minX, minY, minZ, maxX, maxY, maxZ],
+    bounds: canonicalMetadata(bounds),
     paths: m.paths.map((p) => pathMeta(m, p)),
-    grid: c.grid,
-    boxes: c.boxes.map((b) => ({ id: b.id, x: b.x, y: b.y, z: b.z, path: b.path, s: b.s, u: b.u })),
-    pads: c.pads.map((p) => ({ path: p.path, s0: p.s0, s1: p.s1, u0: p.d0, u1: p.d1, kind: p.kind })),
+    grid: canonicalMetadata(c.grid),
+    boxes: canonicalMetadata(c.boxes.map((b) => ({ id: b.id, x: b.x, y: b.y, z: b.z, path: b.path, s: b.s, u: b.u }))),
+    pads: canonicalMetadata(c.pads.map((p) => ({ path: p.path, s0: p.s0, s1: p.s1, u0: p.d0, u1: p.d1, kind: p.kind }))),
     zones: c.zones.map((z) => {
       const o: CtrkMeta['zones'][number] = { kind: z.kind, path: z.path, s0: z.s0, s1: z.s1, u0: z.full ? -1e3 : z.d0, u1: z.full ? 1e3 : z.d1 };
       if (z.speedMul !== undefined) o.speedMul = z.speedMul;
@@ -328,7 +333,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     const [x0, z0, x1, z1] = [Math.min(...a.outer.map((q) => q[0])), Math.min(...a.outer.map((q) => q[1])), Math.max(...a.outer.map((q) => q[0])), Math.max(...a.outer.map((q) => q[1]))];
     for (let x = x0; x <= x1; x += 4) for (let z = z0; z <= z1; z += 4) if (inFootprint(x, z, areaFootprint(a))) areaPts.push({ x, z, y: a.y });
   }
-  const tf: TerrainField | null = wantTerrain ? buildTerrainField(m, c, meta.bounds, nf, amp, areaPts) : null;
+  const tf: TerrainField | null = wantTerrain ? buildTerrainField(m, c, bounds, nf, amp, areaPts) : null;
   const ao = (): number => 1;
   const rb = new RenderBuilder();
   groundToRender(rb, m, c, ground, kerbs, ao);
@@ -345,7 +350,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   jumpFacesToRender(rb, m, c);
   railsToRender(rb, m, tf);
   portalsToRender(rb, m, warps);
-  killPlanesToRender(rb, c, meta.bounds);
+  killPlanesToRender(rb, c, bounds);
   if (tf) terrainToRender(rb, tf, nf, ao);
   const slots = rb.finalise();
   tick('render');
@@ -363,7 +368,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   lod1.forEach((l) => { for (const r of l.ranges) chunkGroups[r.chunk]!.lod1Tris += r.n / 3; });
   const pvs = opts.pvs ? buildPvs(m, chunkGroups.filter((g) => g.groups.length), slots, scene!.bvh) : null;
   tick('pvs');
-  const visMeta: VisMeta = {
+  const visMeta: VisMeta = canonicalMetadata({
     id: ast.id, themeId: m.theme, name: m.name,
     slots: slots.map((s, j) => ({ name: s.name, material: s.material, variant: s.variant, chunks: s.chunks.map((ch) => ({ i0: ch.i0, n: ch.n, bbox: ch.bbox, chunk: ch.chunk })), lod1: lod1[j]!.ranges })),
     props: props.map((p) => ({ kind: p.kind, n: p.xf.length / 6 })),
@@ -383,7 +388,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     hazards: c.hazards.map((h, k) => ({ id: h.id, kind: h.kind, name: h.name ?? `${h.kind}${h.id}`, prop: c.hazardProps[k]!, size: h.size, shape: h.shape, ...(h.group !== undefined ? { group: h.group } : {}) })),
     killPlanes: c.killPlanes.map((k) => ({ id: k.id, y: k.y, surf: k.surf, aabb: k.aabb ?? [meta.bounds[0]! - 120, meta.bounds[2]! - 120, meta.bounds[3]! + 120, meta.bounds[5]! + 120] })),
     materials: [...new Set(slots.map((s) => s.material))],
-  };
+  });
   const visArrays: [string, TypedArray][] = [];
   slots.forEach((s, j) => {
     visArrays.push([`s${j}.pos`, f32(s.pos)], [`s${j}.nrm`, f32(s.nrm)], [`s${j}.uv`, f32(s.uv)], [`s${j}.col`, f32(s.col)], [`s${j}.idx`, Uint32Array.from(s.idx)]);

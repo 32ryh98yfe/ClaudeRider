@@ -40,6 +40,8 @@ export interface LaneResult {
   ttc: number;
   /** Closing speed on that kart (m/s). */
   closing: number;
+  /** Largest signed closing speed among chosen-lane threats inside the horizon, without the spacing floor. */
+  actualClosing: number;
   /** Following a kart for slipstream this re-plan. */
   drafting: boolean;
   /** A kart ahead blocked our current lane and we picked another one. */
@@ -57,7 +59,7 @@ const KART_W = 2.1;
 const MIN_GAP = 5;
 // per-kart predicted relative state, filled once per re-plan
 const oDs = new Float64Array(8), oU = new Float64Array(8), oVU = new Float64Array(8), oClose = new Float64Array(8);
-const oUse = new Uint8Array(8);
+const oUse = new Uint8Array(8), oActualClose = new Float64Array(8);
 
 /** Chooses the lane with the lowest cost; writes `res`. */
 export function planLane(w: Readonly<WorldState>, track: BakedTrack, q: Readonly<LaneQuery>, prof: Readonly<EffectiveProfile>, res: LaneResult): void {
@@ -87,6 +89,7 @@ export function planLane(w: Readonly<WorldState>, track: BakedTrack, q: Readonly
     if (ds < -4 || ds > reach) continue;
     oUse[j] = 1; anyNear = true;
     oDs[j] = ds; oU[j] = o.race.loc.u + ovU * q.la; oVU[j] = ovU; oClose[j] = q.vS - ovS;
+    oActualClose[j] = oClose[j]!;
     const cEff = ds < MIN_GAP ? Math.max(oClose[j]!, 2) : oClose[j]!;
     oClose[j] = cEff;
     if (ds > 1.5 && cEff > 0.3 && Math.abs(oU[j]! - cur) < KART_W && (ds - 1.8) / cEff < horizon) blockedCur = true;
@@ -102,16 +105,16 @@ export function planLane(w: Readonly<WorldState>, track: BakedTrack, q: Readonly
   const nBlk = q.blocks ? q.blocks.n : 0;
   if (!anyNear && !candOk[C_WISH] && nBlk === 0) {
     // clear road: back to the line (the driver's slew keeps it smooth)
-    res.laneOff = 0; res.ttc = Infinity; res.closing = 0; res.drafting = false; res.overtaking = false; res.urgent = false;
+    res.laneOff = 0; res.ttc = Infinity; res.closing = 0; res.actualClosing = 0; res.drafting = false; res.overtaking = false; res.urgent = false;
     return;
   }
 
-  let best = 2, bestCost = 1e18, bestTtc = Infinity, bestClosing = 0;
+  let best = 2, bestCost = 1e18, bestTtc = Infinity, bestClosing = 0, bestActualClosing = 0;
   for (let c = 0; c < N_CAND; c++) {
     if (!candOk[c]) continue;
     const cu = candU[c]!;
     let cost = 1.0 * q.lineWeight * Math.abs(cu - q.lineAbs) + 0.5 * Math.abs(cu - cur);
-    let ttcMin = Infinity, closingAt = 0;
+    let ttcMin = Infinity, closingAt = 0, actualClosingAt = -Infinity;
     for (let j = 0; j < nK; j++) {
       if (!oUse[j]) continue;
       const ds = oDs[j]!, closing = oClose[j]!, ou = oU[j]!;
@@ -130,11 +133,14 @@ export function planLane(w: Readonly<WorldState>, track: BakedTrack, q: Readonly
           const sc = closing > 5 ? 1 : aggrScale;
           cost += 3.0 * sc / Math.max(T, 0.15);
           if (T < ttcMin) { ttcMin = T; closingAt = closing; }
+          if (T < horizon && oActualClose[j]! > actualClosingAt) actualClosingAt = oActualClose[j]!;
         }
         if (c === C_DRAFT && q.draftActive) cost += 4;
       } else {
         // alongside: side-by-side contact
         const dl = Math.abs(cu - ou);
+        // An overlapping footprint can still be a genuine approach even when it has no forward TTC.
+        if (ds > -1.8 && Math.min(dl, Math.abs(q.u - ou)) < KART_W && oActualClose[j]! > 0 && oActualClose[j]! > actualClosingAt) actualClosingAt = oActualClose[j]!;
         if (dl < KART_W - 0.2) cost += bump ? 3.0 * aggrScale : 12;
         else if (bump && dl < KART_W + 0.6) cost -= 0.4 * (aggr - 0.7); // lean on a rival (bump)
       }
@@ -151,11 +157,12 @@ export function planLane(w: Readonly<WorldState>, track: BakedTrack, q: Readonly
       const inside = -cu * q.nextCornerDir / usable;
       if (inside > 0) cost -= 0.8 * inside;
     }
-    if (cost < bestCost) { bestCost = cost; best = c; bestTtc = ttcMin; bestClosing = closingAt; }
+    if (cost < bestCost) { bestCost = cost; best = c; bestTtc = ttcMin; bestClosing = closingAt; bestActualClosing = actualClosingAt; }
   }
   res.laneOff = candU[best]! - q.lineAbs;
   res.ttc = bestTtc;
   res.closing = bestClosing;
+  res.actualClosing = bestActualClosing === -Infinity ? 0 : bestActualClosing;
   res.drafting = best === C_DRAFT;
   res.overtaking = blockedCur && best !== C_CUR && best !== C_DRAFT;
   res.urgent = blockedCur;

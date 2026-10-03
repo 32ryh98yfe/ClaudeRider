@@ -4,7 +4,7 @@
 // Hard CC refreshes (never stacks, never shortens) and drives KartStatus.cc; only `throttle` stacks (≤ 3 pairs).
 // The list stays sorted by id; removals are deferred (DEAD flag) and compacted, so iteration never skips an entry.
 import type { EffectDef } from '@cr/content';
-import { Boost, type EffectInstance, type KartState, type WorldState } from '../core/state.ts';
+import { Attach, Boost, type EffectInstance, type KartState, type WorldState } from '../core/state.ts';
 import { V_REF } from '../core/units.ts';
 import { neutralMods, type KartMods, type StepContext } from '../api.ts';
 import { paramsFor } from '../kart/params.ts';
@@ -191,7 +191,11 @@ function applyHardCC(w: WorldState, ctx: StepContext, e: EffectInstance, k: Kart
     if (old) kill(old);
   }
   e.flags |= EFlag.DRIVER;
-  e.param = Math.round(planarSpeed(k) * 4096);
+  // Warp transit freezes body velocity as a placeholder, while attachS retains
+  // physical entry speed for the exit. A committed hit must not record that
+  // placeholder zero and erase exit motion when its speed curve resumes.
+  const impactSpeed = k.body.attachKind === Attach.WARP ? k.body.attachS : planarSpeed(k);
+  e.param = Math.round(impactSpeed * 4096);
   st.cc = e.code; st.ccStart = S; st.ccEnd = e.end;
   st.mashCredits = 0; st.lastTapDir = 0; st.lastTapTick = 0;
   // hard CC cancels the active boost and the drift; stored boosters and items are kept (§6.3)

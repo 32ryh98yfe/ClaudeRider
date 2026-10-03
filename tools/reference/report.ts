@@ -188,7 +188,7 @@ const flags = mapAfter.rows.flatMap((row) => {
     reviewStatus: reviewed?.reviewStatus ?? 'unreviewed', cause: reviewed?.cause ?? null }];
 });
 const report = {
-  formatVersion: 1, source: REFERENCE_SOURCE, inputs,
+  formatVersion: 1, source: REFERENCE_SOURCE, candidateRuntimeSimVersion: after.simVersion, inputs,
   definitions: {
     speedGate: 'Ordinary mean absolute percentage error over nonzero high-confidence HUD observations; measured at sourceFrame*2 simulation ticks. No temporal shift or denominator floor.',
     fittingError: 'Only the separate calibration score divides by max(20, source HUD km/h), including zero samples.',
@@ -200,7 +200,8 @@ const report = {
     boostCensoring: 'Timer-active intervals seen in simulated samples. Activity in frame 0 is left-censored/seeded; activity at final sample is right-censored and its duration is only a lower bound. This never establishes original-engine booster duration.',
     referenceLimit: 'Only two held-out launches have identified initial motion. Their 90-tick start buff is a fixed model hypothesis. Beginner footage uses a different source kart. Variable key-overlay latency reaches 100 ms. No whole-video 5% fidelity claim.',
     matrixReview: 'Flags retain the original regression rules. Causal review distinguishes direct attack, following collisions/braking, and incomplete recovery. Reviewed does not mean every reset is unavoidable. Cases no longer flagged by the selected geometry are listed separately.',
-    deferredAiContracts: 'The lane planner common-time projection and reported closing-speed contracts remain unchanged. Isolated corrections and a braking-threshold follow-up failed existing traffic gates and were rejected. They require joint planner calibration; this delivery does not claim those contracts were fixed.',
+    itemSeedCaveat: 'Item draws include trackHash and trackId as well as public seed, slot, box, and pickup tick. Canonical rebaking or geometry changes can change battle histories under the same public seed. Matrix deltas are observed outcome comparisons, not identical-inventory controlled experiments.',
+    deferredAiContracts: 'Legacy lane-cost/TTC projection and legacy reported closing speed remain unchanged. Broad corrections and a braking-threshold follow-up failed existing traffic gates and were rejected. A separate actual-closing diagnostic is used only to skip artificial traffic coasting on a grounded, unrestrained, under-speed jump approach without a real closing threat. This narrow exception does not claim to repair the general planner contracts.',
   },
   baselineIdentity: { measuredRuntimeSimVersion: before.simVersion, kind: 'current harness with original parameter overrides', referenceCommit: 'fb71b3f',
     originalProfile: Object.fromEntries(['aStartMax', 'startCapMul', 'g0', 'kCut'].map((key) => [key, before.profile[key]])),
@@ -210,7 +211,9 @@ const report = {
   adoptedProfile: Object.fromEntries(['aStartMax', 'startCapMul', 'g0', 'kCut'].map((key) => [key, after.profile[key]])),
   browserParity: parity.map(({ variant, id, states, frames, allHashesEqual, everyFrameExactlyTwoTicks, allCameraStepsCorrect, camera }) => ({ variant, id, states, frames, allHashesEqual, everyFrameExactlyTwoTicks, allCameraStepsCorrect, camera })),
   clips, actualCombatMatrix: { before: matrix(mapBefore), after: matrix(mapAfter), flags,
-    resolvedReviewedCases: review.cases.filter((c) => !flags.some((f) => f.key === c.key)).map((c) => ({ key: c.key, originalCause: c.cause, currentRespawns: mapAfter.rows.find((row) => row.key === c.key)?.respawns ?? null })) },
+    remainingCaveat: review.remainingCaveat,
+    resolvedReviewedCases: review.cases.filter((c) => mapAfter.rows.find((row) => row.key === c.key)?.respawns === 0).map((c) => ({ key: c.key, originalCause: c.cause, currentRespawns: 0 })),
+    otherReviewedResidualCases: review.cases.filter((c) => !flags.some((f) => f.key === c.key) && (mapAfter.rows.find((row) => row.key === c.key)?.respawns ?? 0) > 0).map((c) => ({ key: c.key, cause: c.cause, reviewStatus: c.reviewStatus, currentRespawns: mapAfter.rows.find((row) => row.key === c.key)!.respawns })) },
   rejectedPostHitRecoveryExperiment: { adopted: false, reason: 'Single scoped recovery experiment was rejected: it repaired Belltower but increased global item-mode respawns 16→18 against its contemporaneous control. No further parameter tuning of that experiment was accepted.', driverSha256: rejected.sourceFingerprints['packages/sim/src/ai/driver.ts'], sourceStable: rejected.sourceStable ?? null, total: total(rejected.rows) },
   rejectedCommonTimeProjectionExperiment: rejectedProjection ? { adopted: false,
     reason: 'The common-time gap correction was rejected after full-matrix navigation regressions and an existing traffic-test failure. The delivered policy must not be described as fixing that projection calculation; joint planner calibration is deferred.',

@@ -2,7 +2,7 @@
 // (step.ts calls useItems there), so the curve value is exactly what the half-steps integrate this tick.
 // Curves use arithmetic only: smoothstep(x) = x·x·(3 − 2x).
 import { Edge, type InputFrame } from '../core/input.ts';
-import type { KartState, WorldState } from '../core/state.ts';
+import { Attach, type KartState, type WorldState } from '../core/state.ts';
 import { smallCos, smallSin } from '../core/math.ts';
 import type { StepContext } from '../api.ts';
 import { evKey } from '../kart/evkey.ts';
@@ -95,7 +95,9 @@ export function creditMash(w: WorldState, inputs: ReadonlyArray<InputFrame>, ctx
 export function applyKinematics(w: WorldState, ctx: StepContext): void {
   const tick = w.tick;
   for (const k of w.karts) {
-    if (!k.active || k.race.respawnPhase !== 0) continue;
+    // Hits and timers still resolve in transit, but physical motion stays frozen.
+    // Resume the same curve from its current age after the warp places the kart.
+    if (!k.active || k.race.respawnPhase !== 0 || k.body.attachKind === Attach.WARP) continue;
     const m = ctx.scratch.mods[k.slot];
     if (!m) continue;
     const kin = m.kinematic;

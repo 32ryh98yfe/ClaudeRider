@@ -206,7 +206,7 @@ class BotDriver implements AiDriverEx {
   // ---- boosters
   private boostReadyAt = -1; private prevBoost = false; private expiryDeadline = -1; private raceDistNow = 0.5;
   // ---- lanes
-  private laneOff = 0.5; private laneTarget = 0.5; private laneTtc = 1e9; private laneClosing = 0.5; private laneDrafting = false;
+  private laneOff = 0.5; private laneTarget = 0.5; private laneTtc = 1e9; private laneClosing = 0.5; private laneActualClosing = 0.5; private laneDrafting = false;
   private startLaneSet = false;
   // ---- recovery
   private readonly rec = new Recovery();
@@ -223,7 +223,7 @@ class BotDriver implements AiDriverEx {
   };
   private readonly blocks = makeBlocks();
   private hazardCap = 99;
-  private readonly lr: LaneResult = { laneOff: 0.5, ttc: 1e9, closing: 0.5, drafting: false, overtaking: false, urgent: false };
+  private readonly lr: LaneResult = { laneOff: 0.5, ttc: 1e9, closing: 0.5, actualClosing: 0.5, drafting: false, overtaking: false, urgent: false };
   private laneUrgent = false;
   private readonly view: { -readonly [K in keyof AiItemView]: AiItemView[K] };
 
@@ -254,7 +254,7 @@ class BotDriver implements AiDriverEx {
     this.dragKey = this.plan.paths.map((pp) => new Int32Array(pp.corners.length).fill(-999));
     this.dragPlan = this.plan.paths.map((pp) => new Uint8Array(pp.corners.length));
     this.startOffset = args.startOffsetTicks ?? NaN;
-    this.laneOff = 0; this.laneTarget = 0; this.noise = 0; this.laneTtc = Infinity; this.laneClosing = 0;
+    this.laneOff = 0; this.laneTarget = 0; this.noise = 0; this.laneTtc = Infinity; this.laneClosing = 0; this.laneActualClosing = 0;
     this.view = {
       w: null as unknown as WorldState, track, slot, profile: this.profile, applyTick: 0, highRate: false, s: 0, u: 0, turnAhead40: 0, straightAhead: 0, busy: false,
     };
@@ -752,6 +752,36 @@ class BotDriver implements AiDriverEx {
       const g = (gt[this.ri]! + (gt[this.rj]! - gt[this.ri]!) * this.rf) * ex.gripSpeedMul;
       if (g < vLim) vLim = g;
     }
+    // A split forbids drift through its first metres. A selected branch whose entry corner overlaps
+    // that window must be approached on its grip budget, even when its corner plan prefers a drift.
+    // Preview the branch from the host with the same braking envelope as gripTable; do not wait until
+    // the current path switches to the branch, when braking for its first corner is already too late.
+    if (!drifting) {
+      const current = this.rp, currentS = this.rs;
+      for (const fork of this.plan.forks) {
+        if (fork.kind === 'rail') continue;
+        const child = this.plan.paths[fork.to]!;
+        const entryX = Math.max(0, Math.min(child.n - 1, fork.toS / child.ds));
+        const entryI = Math.floor(entryX), entryJ = Math.min(child.n - 1, entryI + 1);
+        const entryCorner = child.corners[child.CORNER[entryI]!];
+        if (!entryCorner || !entryCorner.needsDrift || entryCorner.s0 > fork.toS + FORK_GRACE || entryCorner.s1 < fork.toS) continue;
+        const gt = this.grip![fork.to]!;
+        let cap = 99;
+        if (current.index === fork.path && this.forkTake[fork.id] === 1) {
+          let ahead = fork.at - currentS;
+          if (current.closed && ahead < 0) ahead += current.length;
+          if (ahead >= 0 && ahead < 90) {
+            const entryGrip = (gt[entryI]! + (gt[entryJ]! - gt[entryI]!) * (entryX - entryI)) * ex.gripSpeedMul;
+            cap = Math.sqrt(entryGrip * entryGrip + 2 * 0.8 * P.aBrake * ahead);
+          }
+        } else if (current.index === fork.to && currentS >= fork.toS && currentS <= entryCorner.s1) {
+          // The split guard may clear before the entry arc ends. Keep the available steering budget
+          // until that arc is complete, or until the controller actually starts a drift.
+          cap = (gt[this.ri]! + (gt[this.rj]! - gt[this.ri]!) * this.rf) * ex.gripSpeedMul;
+        }
+        if (cap < vLim) vLim = cap;
+      }
+    }
     if (dLip < 150) {
       // arrive at the lip inside [vMin + 2, vMax − 2]; bold personalities aim nearer the top (14-ai §8 risk)
       const lipMax = jvMax - 2 - 2 * (1 - prof.personality.risk);
@@ -785,7 +815,11 @@ class BotDriver implements AiDriverEx {
     // (also mid-drift: a drift brakes at 14 m/s² and keeps its slide)
     // The lane scorer uses a synthetic closing floor for stopped traffic: it must not suppress the throttle
     // needed to steer out of a queue. Moving karts start braking earlier for the more frequent booster arrivals.
-    if (vS > 6 && this.laneTtc < 0.6 && this.laneClosing > 1.5) {
+    // A spacing-cost floor is not an approaching obstacle. Below a committed jump's minimum speed,
+    // keep accelerating behind an equally fast/faster leader; retain real-closing collision avoidance.
+    const jumpNeedsSpeed = !cruising && b.grounded === 1 && k.status.cc === 0
+      && dLip > 0 && dLip < 60 && jvMin > 0 && vFwd < jvMin && this.laneActualClosing <= 0;
+    if (!jumpNeedsSpeed && vS > 6 && this.laneTtc < 0.6 && this.laneClosing > 1.5) {
       if (this.laneTtc < 0.45 && this.laneClosing > 3) wantBrake = true;
       else if (!drifting) wantCoast = true;
     }
@@ -1171,7 +1205,7 @@ class BotDriver implements AiDriverEx {
     if (r.drafting && !this.laneDrafting) this.stats.draftFollows++;
     this.laneDrafting = r.drafting;
     this.laneTarget = r.laneOff;
-    this.laneTtc = r.ttc; this.laneClosing = r.closing; this.laneUrgent = r.urgent;
+    this.laneTtc = r.ttc; this.laneClosing = r.closing; this.laneActualClosing = r.actualClosing; this.laneUrgent = r.urgent;
   }
 
   /** Steer correction (+ = left) away from karts alongside that close in laterally (see the side-contact note). */

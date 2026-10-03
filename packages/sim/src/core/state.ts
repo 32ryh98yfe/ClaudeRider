@@ -209,4 +209,4 @@ export interface RaceConfig {
   countdownTicks: number;                  // 3 beats × 60
 }
 
-export const SIM_VERSION = 6; // 6: video-calibrated launch, gauge and grip recovery (doc 17); wire layout unchanged
+export const SIM_VERSION = 7; // 7: reference driving plus preserved warp/CC impact speed (doc 17); wire layout unchanged

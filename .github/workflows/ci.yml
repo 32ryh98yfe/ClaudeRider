@@ -20,8 +20,10 @@ jobs:
       - run: pnpm check:deps
       - run: pnpm typecheck
       - run: pnpm lint
-      - run: pnpm test
+      # The all-track simulation tests discover cached roster assets at import
+      # time. Bake first so a fresh runner exercises those races as well.
       - run: pnpm bake
+      - run: pnpm test
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm e2e
