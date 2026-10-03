@@ -1,6 +1,6 @@
 // FROZEN (contracts.lock). 6-byte input frame (ADR-007).
 export const Held = { DRIFT: 1, ITEM: 2, LOOK_BACK: 4 } as const;             // ITEM held = speed-mode auto-fire
-export const Edge = { USE_ITEM: 1, SWAP: 2, TAP_L: 4, TAP_R: 8, RESPAWN: 16, EMOTE: 32 } as const; // latched since last tick
+export const Edge = { USE_ITEM: 1, SWAP: 2, TAP_L: 4, TAP_R: 8, RESPAWN: 16, EMOTE: 32, DRIFT: 64 } as const; // latched since last tick
 
 export interface InputFrame {
   steer: number;     // int −127..127, + = right
@@ -27,7 +27,7 @@ export function sanitizeInput(f: InputFrame): InputFrame {
   f.steer = Math.max(-127, Math.min(127, Math.trunc(f.steer) || 0));
   f.throttle = Math.max(0, Math.min(15, Math.trunc(f.throttle) || 0));
   f.brake = Math.max(0, Math.min(15, Math.trunc(f.brake) || 0));
-  f.held = (f.held | 0) & 7; f.edges = (f.edges | 0) & 63;
+  f.held = (f.held | 0) & 7; f.edges = (f.edges | 0) & 127;
   f.aim = f.aim >= 0 && f.aim < 8 ? f.aim | 0 : 255;
   f.emote = (f.emote | 0) & 15;
   return f;
@@ -35,12 +35,12 @@ export function sanitizeInput(f: InputFrame): InputFrame {
 
 /** Packs into a 48-bit integer (exact in a double). */
 export function packInput(f: Readonly<InputFrame>): number {
-  return (f.steer + 128) + f.throttle * 256 + f.brake * 4096 + f.held * 65536 + f.edges * 524288 + f.aim * 33554432 + f.emote * 8589934592;
+  return (f.steer + 128) + f.throttle * 256 + f.brake * 4096 + f.held * 65536 + f.edges * 524288 + f.aim * 67108864 + f.emote * 17179869184;
 }
 export function unpackInput(p: number, out: InputFrame): InputFrame {
   let x = p;
-  const emote = Math.floor(x / 8589934592); x -= emote * 8589934592;
-  const aim = Math.floor(x / 33554432); x -= aim * 33554432;
+  const emote = Math.floor(x / 17179869184); x -= emote * 17179869184;
+  const aim = Math.floor(x / 67108864); x -= aim * 67108864;
   const edges = Math.floor(x / 524288); x -= edges * 524288;
   const held = Math.floor(x / 65536); x -= held * 65536;
   const brake = Math.floor(x / 4096); x -= brake * 4096;

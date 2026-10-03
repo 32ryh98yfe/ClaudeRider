@@ -135,14 +135,14 @@ export const ticks = (sec: number): number => Math.round(sec * TICK_HZ);   // co
 
 // input.ts — 6 bytes on the wire
 export const Held = { DRIFT: 1, ITEM: 2, LOOK_BACK: 4 } as const;           // ITEM held = speed-mode auto-fire
-export const Edge = { USE_ITEM: 1, SWAP: 2, TAP_L: 4, TAP_R: 8, RESPAWN: 16, EMOTE: 32 } as const; // latched since last tick
+export const Edge = { USE_ITEM: 1, SWAP: 2, TAP_L: 4, TAP_R: 8, RESPAWN: 16, EMOTE: 32, DRIFT: 64 } as const; // latched since last tick
 export interface InputFrame { steer: number /*int −127..127, +right*/; throttle: number /*0..15*/; brake: number /*0..15*/;
   held: number; edges: number; aim: number /*slot 0..7, 255 none*/; emote: number /*0..15*/ }
 export const NEUTRAL_INPUT: Readonly<InputFrame>;
 export function packInput(f: InputFrame): number;            // ≤ 2^48, used in ring buffers / ghosts / hashing
 export function unpackInput(p: number, out: InputFrame): InputFrame;
 ```
-Drift and throttle edges are derived inside `step()` from `prevHeld`/`prevThrottle`. One-shot actions arrive as latched `edges`.
+Throttle edges are derived inside `step()` from `prevThrottle`. Drift accepts a held transition or the latched `DRIFT` edge (SIM_VERSION 9), so a short Shift press/release between samples reaches the simulation once. One-shot actions arrive as latched `edges`.
 
 ### B2. World state and quantization — `packages/sim/src/core/{state,quant,hash}.ts`
 ```ts

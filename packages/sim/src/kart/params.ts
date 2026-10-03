@@ -14,7 +14,7 @@ export interface KartParams {
   y0: number; y0T: number; y1: number; y2: number; kYawDrift: number;
   kLatIn: number; kLatNeutral: number; kLatCounter: number; kLatShift: number; etaDrift: number;
   aDrift: number; cBeta: number; sinBetaMax: number; exitSin: number; exitMinTicks: number; reDriftTicks: number;
-  rekickR: number; rekickAngle: number; rekickMinTicks: number; rekickLoss: number;
+  rekickR: number; rekickMinTicks: number; rekickLoss: number;
   g0: number; gSlipRef: number; gTau: number; slots: number;
   instGaugeBonus: number; startGaugeBonus: number; draftGaugePerSec: number; infiniteFillPerSec: number;
   wallE: number; wallGrind: number; wallF15: number; wallF45: number; wallF90: number; wallStunTicks: number; wallGaugeKeep: number;
@@ -44,7 +44,8 @@ export const SHARED: Readonly<Shared> = {
   kLatCounter: 9.0, kLatShift: 0.85, etaDrift: 0.8,
   // exit after ≥ 8 bookkeeping ticks = proto2d dT ≥ 0.12 s (7/60 < 0.12 ≤ 8/60)
   aDrift: 5, sinBetaMax: SIN.d55, exitSin: SIN.d6, exitMinTicks: 8, reDriftTicks: 6,
-  rekickR: 0.8, rekickAngle: 0.05235987755982988, rekickMinTicks: 9, rekickLoss: 0.99,
+  // Full repeat impulse recovers in nine ticks; faster Shift pulses receive proportional yaw with no heading snap.
+  rekickR: 0.8, rekickMinTicks: 9, rekickLoss: 0.99,
   gSlipRef: 0.5, gTau: 1.5, slots: 2,
   instGaugeBonus: 0.03, startGaugeBonus: 0.05, draftGaugePerSec: 0.05, infiniteFillPerSec: 0.45,
   wallE: 0.15, wallGrind: 10, wallF15: 0.95, wallF45: 0.70, wallF90: 0.40, wallStunTicks: 15, wallGaugeKeep: 0.5,

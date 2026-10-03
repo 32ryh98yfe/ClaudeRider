@@ -12,7 +12,7 @@ import { updateProgress } from './race/progress.ts';
 import { startRespawn, updateRespawn, MANUAL_COOLDOWN } from './race/respawn.ts';
 import { updatePhase, updateRanks, updateRaceEnd, updateStartBoost } from './race/rules.ts';
 import { computeMods, startEffects, stepBoxes, stepProjectilesHazards, tickEffects, useItems } from './items/runtime.ts';
-import { stepTrackHazards } from './race/trackhazards.ts';
+import { captureTrackHazardMotion, stepTrackHazards } from './race/trackhazards.ts';
 
 const PARAMS: KartParams[] = [];
 const WEIGHTS: number[] = [];
@@ -80,6 +80,7 @@ export function step(w: WorldState, inputs: ReadonlyArray<InputFrame>, ctx: Step
   if (racing) useItems(w, inputs, ctx);
 
   // (4) move + collide in two half-displacements
+  if (racing && T.hazards.length > 0) captureTrackHazardMotion(w);
   if (w.phase >= Phase.RACING) {
     for (let i = 0; i < K.length; i++) {
       const ms = MS[i]!;

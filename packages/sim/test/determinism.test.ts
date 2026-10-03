@@ -1,6 +1,7 @@
 // Determinism (ADR-003): identical inputs → identical world hashes; snapshots resume bit-exactly.
 import { describe, expect, it } from 'vitest';
-import { hashWorld, cloneWorld, copyWorld, makeContext, step, ArraySink, createAiDriver, AI_TIERS, type InputFrame } from '@cr/sim';
+import { hashWorld, cloneWorld, copyWorld, makeContext, step, ArraySink, createAiDriver, AI_TIERS, Edge, Held, type InputFrame } from '@cr/sim';
+import { determinismScenario } from '../src/testing/scenario.ts';
 import { bakedTrack, makeRig, getContent } from './rig.ts';
 
 const CHARS = ['clay', 'pixel', 'turbo', 'anchor', 'rune', 'nova', 'kage', 'bisque'] as const;
@@ -16,6 +17,28 @@ function hashes(mode: 'speed' | 'item', ticks: number, every: number): number[] 
 }
 
 describe('determinism', () => {
+  it.each(['speed', 'item'] as const)('shared Node/browser/Worker scenario actually exercises compressed drift edges in %s mode', (mode) => {
+    const track = bakedTrack('clayhill_village/meadow_loop'), seen: number[] = [];
+    let previousHeld = 0;
+    const hashes = determinismScenario(track, getContent(), mode, 600, 120, 77, (tick, w, inputs, events) => {
+      const input = inputs[0]!, k = w.karts[0]!;
+      if ((input.edges & Edge.DRIFT) !== 0) {
+        seen.push(tick);
+        expect(Math.hypot(k.body.vx, k.body.vy, k.body.vz)).toBeGreaterThan(10);
+        expect(k.drive.drift).toBe(1);
+        const transitions = events.filter((e) => 'kart' in e && e.kart === 0 && (e.t === 'driftStart' || e.t === 'doubleDrift'));
+        expect(transitions).toHaveLength(1);
+        expect(transitions[0]!.t).toBe(tick === 300 ? 'driftStart' : 'doubleDrift');
+        if (tick === 300 || tick === 312) expect(input.held & Held.DRIFT).toBe(0);
+        if (tick === 309) expect(previousHeld & Held.DRIFT).toBe(Held.DRIFT);
+        if (tick === 312) { expect(input.steer).toBe(-127); expect(input.edges & Edge.TAP_R).toBe(Edge.TAP_R); }
+      }
+      previousHeld = input.held;
+    });
+    expect(seen).toEqual([300, 306, 309, 312]);
+    expect(hashes).toEqual(determinismScenario(track, getContent(), mode, 600));
+  });
+
   it('two runs of an 8-bot speed race produce identical hash streams', () => {
     expect(hashes('speed', 2400, 60)).toEqual(hashes('speed', 2400, 60));
   });

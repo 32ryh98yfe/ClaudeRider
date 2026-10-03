@@ -51,6 +51,12 @@ const SCENARIOS: Scenario[] = [
     ...Array.from({ length: 48 }, (_, t) => ({ steer: 0.8, drift: t % 2 === 0 })),
     ...Array.from({ length: 36 }, (_, t) => ({ steer: 0.8, drift: t % 9 === 0 })),
     ...rep(12, { steer: -1 }), ...rep(30, {})] },
+  { name: 'compressed Shift presses and reversed direction edge before filtered steering changes sign', speed: 34, frames: [
+    ...rep(12, { steer: 1, drift: true }),
+    ...taps(12, 3, { steer: 0.8, drift: true }, Edge.DRIFT),
+    { steer: 0.8, edges: Edge.DRIFT | Edge.TAP_R },
+    ...taps(15, 3, { steer: -1 }, Edge.DRIFT),
+    ...rep(40, { steer: -0.5 })] },
 ];
 
 function apply(rig: Rig, f: Frame): void {

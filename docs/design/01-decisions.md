@@ -199,8 +199,14 @@ with localized changes to existing maps while preserving their themes/routes.
 Launch thrust/target, drift charge and cut recovery now use the measured-reference
 acceptance workflow, raw-input replays and held-out observations described there.
 
+### Amendment (play-test controls and contact, simulation version 9)
+`18-controls-and-track-contact.md` supersedes the prior repeat-lock and cut-yaw
+rules. Short Shift presses are latched as input edges; counter-steer and repeated
+drift impulses preserve player direction control. Track hazards sweep actual
+motion, and render-only scenery leaves the driving corridor clear.
+
 ## ADR-005 Tick order (identical on authority and predictor)
-1. Latch inputs. Derive drift and throttle edges from `prevHeld` and `prevThrottle`.
+1. Latch inputs, including explicit drift press edges. Derive held-drift and throttle rises from `prevHeld` and `prevThrottle`; an explicit drift edge and held rise are one press.
 2. Apply effects whose start tick is now, in effectId order.
 3. Kart dynamics: integrated **once**.
 4. Move and collide in **2 half-displacements**: ground ray, wall sphere, then kart contacts after each half.

@@ -197,6 +197,7 @@ function readPad(consumeEdges = true): typeof padOut {
   o.drift = btn('drift'); o.item = btn('item'); o.look = btn('look');
   o.left = btn('left'); o.right = btn('right');
   if (pressed('item')) o.edges |= Edge.USE_ITEM;
+  if (pressed('drift')) o.edges |= Edge.DRIFT;
   if (pressed('swap')) o.edges |= Edge.SWAP;
   if (pressed('reset')) o.edges |= Edge.RESPAWN;
   if (pressed('left') || (flicks & 1)) o.edges |= Edge.TAP_L;

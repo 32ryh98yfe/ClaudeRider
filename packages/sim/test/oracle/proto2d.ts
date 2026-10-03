@@ -97,19 +97,23 @@ export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): vo
   // §4.2 brake counter (control branch; the flat plane is always grounded)
   k.brakeT = brk ? Math.min(255, k.brakeT + 1) : 0;
   // K2 drift entry / double drift
+  const driftSteer = driftEdge && Boolean(inp.tapL) !== Boolean(inp.tapR) ? (inp.tapL ? 1 : -1) : steer;
+  const hasDriftSteer = Math.abs(driftSteer) >= P.driftMinSteer;
   if (k.drift === 0) {
-    if (inp.drift && (steer >= P.driftMinSteer || steer <= -P.driftMinSteer) && u >= P.driftMinSpeed && k.reDrift <= 0 && !stunned) {
-      k.drift = 1; k.dDir = steer > 0 ? 1 : -1; k.dT = 0; k.dPeak = 0;
+    if (inp.drift && hasDriftSteer && u >= P.driftMinSpeed && (k.reDrift <= 0 || driftEdge) && !stunned) {
+      k.drift = 1; k.dDir = driftSteer > 0 ? 1 : -1; k.dT = 0; k.dPeak = 0; k.reDrift = 0;
       k.r += k.dDir * P.kickR;
       [hx, hy] = rotH(hx, hy, k.dDir * P.kickAngle);
       k.vx *= P.kickLoss; k.vy *= P.kickLoss;
       resetTech(k); k.brakeT = brk ? 1 : 0; k.postT = 0;
     }
-  } else if (driftEdge && k.dT >= P.rekickMinTicks && k.reDrift === 0 && !stunned) {
+  } else if (driftEdge && hasDriftSteer && !stunned) {
+    const strength = Math.max(0, Math.min(1, Math.min(k.dT, P.rekickMinTicks - k.reDrift) / P.rekickMinTicks));
+    const limit = P.kickR + P.y1 + P.y2;
+    k.r = Math.max(-limit, Math.min(limit, k.r + Math.sign(driftSteer) * P.rekickR * strength));
     k.reDrift = P.rekickMinTicks;
-    k.r += k.dDir * P.rekickR;
-    [hx, hy] = rotH(hx, hy, k.dDir * P.rekickAngle);
-    k.vx *= P.rekickLoss; k.vy *= P.rekickLoss;
+    const retain = 1 - (1 - P.rekickLoss) * strength;
+    k.vx *= retain; k.vy *= retain;
   }
   // §4.3 K3 brake turn, spin-out and taps (while drifting)
   let brakeTurn = false, spin = false;
@@ -143,10 +147,13 @@ export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): vo
   } else {
     // §4.4: inside the tap grace of a drag, in-direction steer counts as neutral (clamped to dragNeutral)
     const grace = k.dragT > 0 && k.streak > 0 && k.tapGap <= P.tapGrace;
-    rT = k.dDir * (P.y0 / (1 + (k.dT * DT) / P.y0T) + P.y1 * (grace ? Math.min(sIn, P.dragNeutral) : sIn) + (inp.drift ? P.y2 : 0));
+    const sy = grace ? Math.min(sIn, P.dragNeutral) : sIn;
+    const carry = (P.y0 / (1 + (k.dT * DT) / P.y0T) + (inp.drift ? P.y2 : 0)) * (1 + Math.min(0, sy));
+    rT = k.dDir * (carry + P.y1 * sy);
   }
   if (stunned) rT *= 0.3;
-  k.r += (rT - k.r) * (1 - decayF(k.drift === 0 ? P.kYawGrip : P.kYawDrift));
+  const yawResponse = k.drift === 0 ? P.kYawGrip : P.kYawDrift + (P.kYawGrip - P.kYawDrift) * Math.max(0, -sIn);
+  k.r += (rT - k.r) * (1 - decayF(yawResponse));
   // K5 heading rotation (×brakeTurnMul on brake-turn ticks)
   [hx, hy] = rotH(hx, hy, k.r * DT * (brakeTurn ? P.brakeTurnMul : 1));
   // K6 decomposition (K7 slope gravity is zero on the flat plane)
@@ -168,12 +175,12 @@ export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): vo
         const retention = (afterDamping + P.etaCut * (v - afterDamping)) / afterDamping;
         u *= retention; w = sideways * retention;
       } else w = sideways;
-      k.r *= decayF(response);
+      if (k.r * k.dDir > 0) k.r *= decayF(response);
       v = Math.sqrt(u * u + w * w);
       if (Math.abs(w) <= P.exitSin * v) {
         cut = true;
         if (u > 0) u += P.etaCut * (v - u);
-        w = 0; k.r = 0; v = Math.abs(u);
+        w = 0; v = Math.abs(u);
       }
     }
     const sb7 = v > 0.1 ? -k.dDir * w / v : 0;
@@ -204,7 +211,7 @@ export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): vo
   if (recovering && !cut && Math.abs(w) <= P.exitSin * v) {
     cut = true;
     if (u > 0) u += P.etaCut * (v - u);
-    w = 0; k.r = 0; v = Math.abs(u);
+    w = 0; v = Math.abs(u);
   }
   // K9 slip cap
   if (k.drift === 1) { const sm = SIN55 * v; if (w > sm || w < -sm) { w = w > 0 ? sm : -sm; u = Math.sqrt(v * v - w * w); } }

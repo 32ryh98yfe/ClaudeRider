@@ -40,10 +40,10 @@ Status keys: **[S]** sourced · **[P]** proposed. Ticks at 60 Hz (1 tick = 16.66
 | 0 | i8 | `steer` −127…127 (+ = right) |
 | 1 | u8 | `pedals`: throttle in bits 0–3 (0–15), brake in bits 4–7 (0–15) |
 | 2 | u8 | `held`: bit0 DRIFT, bit1 ITEM (speed-mode auto-fire / hold), bit2 LOOK_BACK; bits 3–7 must be 0 |
-| 3 | u8 | `edges` (latched since the last frame): bit0 USE_ITEM, bit1 SWAP, bit2 TAP_L, bit3 TAP_R, bit4 RESPAWN, bit5 EMOTE; bits 6–7 must be 0 |
+| 3 | u8 | `edges` (latched since the last frame): bit0 USE_ITEM, bit1 SWAP, bit2 TAP_L, bit3 TAP_R, bit4 RESPAWN, bit5 EMOTE, bit6 DRIFT; bit7 must be 0 |
 | 4 | u8 | `aim`: target slot 0–7, 255 = none |
 | 5 | u8 | `emote` 0–15 in bits 0–3; bits 4–7 reserved (0) |
-Edges are latched on the client between ticks, so a tap shorter than a tick is never lost; the sim derives drift and throttle edges itself from `prevHeld`/`prevThrottle` (B1). Brake and throttle presses are kept the same way (§7.3).
+Edges are latched on the client between ticks, so a tap shorter than a tick is never lost. Since SIM_VERSION 9, `DRIFT` explicitly preserves a Shift press that was released before sampling, including a release/repress while `prevHeld` still contains DRIFT. A held rising transition still works; an explicit edge and held transition in the same tick produce one impulse. Throttle edges derive from `prevThrottle` (B1). Brake and throttle presses are kept the same way (§7.3).
 
 ### 3.2 Client → server
 | Id | Name | Layout | Size (incl. type) |
@@ -230,6 +230,8 @@ Fixed-step accumulator at the adjusted rate (59/60/61 Hz, §2), at most 5 steps 
 - the samples queued since the last tick are spread over the ticks the next `update()` advances, oldest first (a tick takes ⌊queued / remaining⌋ of them; the last planned tick takes the rest, so the newest sample is never delayed);
 - the samples one tick takes are merged: brake and throttle keep their strongest value, edges are ORed, everything else is the newest;
 - a tick that gets no sample of its own holds the previous sample (without edges), as the authority does for a frame it lacks.
+
+Opening a pause/menu overlay clears unsent samples and the local held fallback through `NetClient.clearPendingInput()`. Already sent tick history stays intact for rollback. Offline clocks stop; online clocks keep advancing with neutral controls while the menu is open.
 
 So a 1-frame brake tap at 144 Hz, or one whose frame advanced no tick, still reaches a tick, and a frame that advances two ticks does not stretch its sample over both. Measured over 240 phases with ±1 ms vsync jitter at 60 Hz, a 10-frame brake hold becomes 11 ticks (a spin-out) in 37 cases, against 46 with "newest sample per tick" and 64 with a plain max-latch. Late frames on the server (§6.1) are not merged this way: their presses already happened on the authority's timeline, and replaying a brake at N would add a brake tick the player never had.
 

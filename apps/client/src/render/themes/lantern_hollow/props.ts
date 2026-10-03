@@ -511,7 +511,7 @@ function hazardLantern(): THREE.BufferGeometry {
   for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; parts.push(part(box(0.08, 3.4, 0.08), C.pumpkinDeep, Math.cos(a) * 0.8, 0, Math.sin(a) * 0.8)); }
   parts.push(part(cyl(0.55, 0.7, 0.4, 10), C.red, 0, 1.75, 0), part(cyl(0.7, 0.55, 0.4, 10), C.red, 0, -1.75, 0));
   parts.push(part(box(0.06, 0.5, 0.2), C.eye, 0.82, 0.35, -0.25), part(box(0.06, 0.5, 0.2), C.eye, 0.82, 0.35, 0.25));
-  parts.push(part(cyl(0.05, 0.05, 5, 4), C.iron, 0, 4.4, 0), part(cyl(0.04, 0.04, 0.8, 4), C.gold, 0, -2.3, 0));
+  parts.push(part(cyl(0.04, 0.04, 0.8, 4), C.gold, 0, -2.3, 0));
   return merge(parts);
 }
 /** Swinging chandelier (HAZ swinger, capsule 1.2 × 1.0): gold rings, candles and crystal drops, chain up +Y. */
@@ -524,7 +524,6 @@ function hazardChandelier(): THREE.BufferGeometry {
     parts.push(part(cyl(0.07, 0.07, 0.35, 5), C.ivory, Math.cos(a) * 1.6, 0.25, Math.sin(a) * 1.6), part(cone(0.06, 0.2, 5), FLAME(3), Math.cos(a) * 1.6, 0.55, Math.sin(a) * 1.6));
     parts.push(part(ico(0.13, 0), hdr('#e6e0ff', 1.5), Math.cos(a + 0.4) * 1.3, -0.4, Math.sin(a + 0.4) * 1.3));
   }
-  parts.push(part(cyl(0.06, 0.06, 7, 4), C.iron, 0, 4.2, 0));
   return merge(parts);
 }
 /** Bookcase press (HAZ press, box 4 along × 6 across × 3 up): a toppling shelf of giant books, standing on +Y. */
@@ -539,9 +538,9 @@ function hazardBookcase(): THREE.BufferGeometry {
 }
 
 // ------------------------------------------------------------------------------------------------ factory table
-const kind = (build: () => THREE.BufferGeometry, material: () => THREE.Material, castShadow = true): PropFactory => {
+const kind = (build: () => THREE.BufferGeometry, material: () => THREE.Material, castShadow = true, decoration?: () => THREE.BufferGeometry): PropFactory => {
   let cache: THREE.BufferGeometry | null = null;
-  return { build: () => ({ geometry: (cache ??= build()), material: material(), castShadow }) };
+  return { build: () => ({ geometry: (cache ??= build()), material: material(), castShadow, ...(decoration ? { hazardDecoration: decoration() } : {}) }) };
 };
 
 export const LANTERN_PROPS: Record<string, PropFactory> = {
@@ -551,9 +550,9 @@ export const LANTERN_PROPS: Record<string, PropFactory> = {
   lantern_arch: kind(lanternArch, matte),
   lantern_string: kind(lanternString, matte, false),
   bridge_rail: kind(bridgeRail, matte, false),
-  hazard_swinger: kind(hazardLantern, matte),
-  hazard_lantern: kind(hazardLantern, matte),
-  hazard_chandelier: kind(hazardChandelier, matte),
+  hazard_swinger: kind(hazardLantern, matte, true, () => part(cyl(0.05, 0.05, 5, 4), C.iron, 0, 4.4, 0)),
+  hazard_lantern: kind(hazardLantern, matte, true, () => part(cyl(0.05, 0.05, 5, 4), C.iron, 0, 4.4, 0)),
+  hazard_chandelier: kind(hazardChandelier, matte, true, () => part(cyl(0.06, 0.06, 7, 4), C.iron, 0, 4.2, 0)),
   hazard_press: kind(hazardBookcase, matte),
   hazard_bookcase: kind(hazardBookcase, matte),
   creek: kind(creek, () => MaterialLibrary.vertexLit(0.12, 0), false),

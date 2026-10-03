@@ -316,10 +316,10 @@ describe('physics: corners on a 12 m road at 34 m/s (§14.6)', () => {
     // deg, Rc, plan, min km/h, exit km/h, time s — re-searched with the M5 cut          pre-M5: min, exit, t
     [90, 9, { dTrig: 20, tSh: 0.1, sD: 0.7, phiCs: 30, cCs: 1, rek: 0, vBr: 34, inst: true }, 172, 192, 3.27], // 173 189 3.28
     [90, 16, { dTrig: 20, tSh: 0.05, sD: 0.45, phiCs: 20, cCs: 1, rek: 0, vBr: 34, inst: true }, 177, 193, 3.55], // 176 193 3.57
-    // Doc 17: re-press 0.05 s earlier and counter with 40° remaining. The old
-    // 45°/0.50 s input touches one wall under finite recovery; this remains clean.
-    [180, 9, { dTrig: 20, tSh: 0.3, sD: 1, phiCs: 40, cCs: 1, rek: 0.45, vBr: 34, inst: true }, 110, 146, 4.35],
-    [180, 12, { dTrig: 20, tSh: 0.05, sD: 1, phiCs: 45, cCs: 1, rek: 0.5, vBr: 34, inst: true }, 125, 158, 4.37], // 115 144 4.63
+    // Responsive counter-steer and continuous repeat pulses need a later cut in these tight hairpins.
+    // Re-measured using the same 12 m geometry and no-contact acceptance, without the old 3° repeat snap.
+    [180, 9, { dTrig: 20, tSh: 0.5, sD: 1, phiCs: 50, cCs: 1, rek: 0.6, vBr: 34, inst: true }, 108, 148, 4.27],
+    [180, 12, { dTrig: 18, tSh: 0.3, sD: 1, phiCs: 50, cCs: 1, rek: 0.4, vBr: 34, inst: true }, 117, 156, 4.43],
     [180, 16, { dTrig: 15, tSh: 0.18, sD: 1, phiCs: 45, cCs: 1, rek: 0, vBr: 34, inst: true }, 134, 167, 4.70], // 122 159 4.80
   ];
   const CLUMSY: [number, number, Partial<Plan>, number, number, number][] = [
@@ -407,13 +407,14 @@ describe('physics: drift gauge, fatigue and double drift (§6.2, §8)', () => {
     }
     return { k, rig, yaw, spd };
   }
-  it('double drift: a re-press ≥ 9 ticks into the drift kicks +0.8 rad/s, 3° and ×0.99; earlier re-presses do nothing', () => {
+  it('double drift: early re-presses add proportional yaw, recovering to a full impulse after nine ticks', () => {
     const early = doubleDrift(8);
-    expect(early.rig.events.some((e) => e.t === 'doubleDrift')).toBe(false);
+    expect(early.rig.events.some((e) => e.t === 'doubleDrift')).toBe(true);
     const ok = doubleDrift(9);
     const ev = ok.rig.events.find((e) => e.t === 'doubleDrift');
     expect(ev).toBeDefined();
     const none = doubleDrift(99);
+    expect(early.yaw[8]! - none.yaw[8]!).toBeGreaterThan(0.4);
     // the kick adds 0.8 rad/s before the lag; compare to the same drift without a re-press
     const i = 9;
     const kick = ok.yaw[i]! - none.yaw[i]!;

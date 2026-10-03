@@ -45,7 +45,7 @@ describe('small messages', () => {
   it('INPUT is 14 bytes for one frame and round-trips up to 4 frames', () => {
     const one = encodeWith(InputMsg, { firstTick: 1234, ackEventSeq: 77, frames: [frame({ steer: -127, throttle: 15, brake: 3, held: 5, edges: 33, aim: 7, emote: 9 })] });
     expect(one.length).toBe(14);
-    const frames = [frame({ steer: 12 }), frame({ steer: 127, throttle: 1 }), frame({ aim: 255, edges: 63 }), frame({ held: 7, brake: 15 })];
+    const frames = [frame({ steer: 12 }), frame({ steer: 127, throttle: 1, edges: 64 }), frame({ aim: 255, edges: 127 }), frame({ held: 7, brake: 15 })];
     const out = InputMsg.decode(new ByteReader(encodeWith(InputMsg, { firstTick: 99, ackEventSeq: 65535, frames })));
     expect(out).toEqual({ firstTick: 99, ackEventSeq: 65535, frames, valid: true });
   });
@@ -54,6 +54,8 @@ describe('small messages', () => {
     const b = encodeWith(InputMsg, { firstTick: 1, ackEventSeq: 0, frames: [frame({})] });
     const bad = b.slice(); bad[8 + 2] = 0x80; // held bit 7
     expect(InputMsg.decode(new ByteReader(bad)).valid).toBe(false);
+    const edge = b.slice(); edge[8 + 3] = 0x80; // edge bit 7 remains reserved
+    expect(InputMsg.decode(new ByteReader(edge)).valid).toBe(false);
     const aim = b.slice(); aim[8 + 4] = 9;
     expect(InputMsg.decode(new ByteReader(aim)).valid).toBe(false);
     expect(() => InputMsg.decode(new ByteReader(b.subarray(0, 13)))).toThrow(ProtocolError);

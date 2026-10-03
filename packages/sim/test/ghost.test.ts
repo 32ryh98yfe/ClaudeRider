@@ -2,7 +2,7 @@
 // decodes to the same ghost, and replaying its inputs in a fresh world ends on the recorded hashWorld.
 import { describe, expect, it } from 'vitest';
 import {
-  createWorld, makeContext, step, makeInput, hashWorld, ArraySink, AI_TIERS, createAiDriver,
+  createWorld, makeContext, step, makeInput, hashWorld, ArraySink, AI_TIERS, createAiDriver, Edge, SIM_VERSION,
   type BakedTrack, type RaceConfig, type InputFrame, type WorldState,
 } from '@cr/sim';
 import { GhostPlayer, GhostRecorder, decodeGhost, encodeGhost, ghostConfig, type Ghost } from '../src/race/ghost.ts';
@@ -18,7 +18,7 @@ function world(track: BakedTrack, cfg: RaceConfig): { w: WorldState; tick: (inp:
 
 function record(track: BakedTrack): Ghost {
   const cfg: RaceConfig = {
-    simVersion: 1, mode: 'timeAttack', teams: 'solo', trackId: track.id, trackHash: track.hash, laps: 1,
+    simVersion: SIM_VERSION, mode: 'timeAttack', teams: 'solo', trackId: track.id, trackHash: track.hash, laps: 1,
     slots: [{ kind: 'human', team: 0, name: '클로드', characterId: 'clay', kartBodyId: 'arrowhead', vMul: 1 }], seed: 77,
     rules: { retireTicks: 600, friendlyFire: 'off', itemSet: 'standard', rubberBand: false, instantBoostInItem: true },
     introTicks: 0, countdownTicks: 180,
@@ -70,5 +70,23 @@ describe('Time Attack ghost (race/ghost.ts)', () => {
 
   it('a single changed input changes the replay hash (the check has teeth)', () => {
     expect(replay(track, g, 400).hash).not.toBe(g.finalHash);
+  });
+
+  it('records and decodes drift pulses without aliasing target slots or emotes', () => {
+    const recorder = new GhostRecorder();
+    const frames = [
+      { ...makeInput(), steer: 127, edges: Edge.DRIFT, aim: 255, emote: 15 },
+      { ...makeInput(), steer: -127, edges: Edge.DRIFT | Edge.TAP_L, aim: 7, emote: 1 },
+      { ...makeInput(), held: 1, edges: 127, aim: 0, emote: 0 },
+      makeInput(),
+    ];
+    for (const frame of frames) recorder.push(frame);
+    const pulseGhost = recorder.finish(ghostConfig(g), { raceTicks: 4, bestLapTicks: 4, lapTicks: [4], finalHash: 0 });
+    const decoded = decodeGhost(encodeGhost(pulseGhost));
+    expect(decoded.simVersion).toBe(SIM_VERSION);
+    const player = new GhostPlayer(decoded), out = makeInput();
+    for (const frame of frames) { expect(player.next(out)).toBe(true); expect(out).toEqual(frame); }
+    expect(player.next(out)).toBe(false);
+    expect(out).toEqual(makeInput());
   });
 });

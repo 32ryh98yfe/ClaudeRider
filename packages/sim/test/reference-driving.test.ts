@@ -2,7 +2,7 @@
 // event timing rather than duplicating the recovery equation. Doc 17 permits
 // new corner input plans while preserving clean completion and terrain invariants.
 import { describe, expect, it } from 'vitest';
-import { Boost, Held, cloneWorld, copyWorld, hashWorld, type KartState } from '@cr/sim';
+import { Boost, Edge, Held, cloneWorld, copyWorld, hashWorld, type KartState } from '@cr/sim';
 import type { SurfaceId } from '@cr/content';
 import { strip } from './fixtures/kits.ts';
 import { place, racingRig, speedOf, steerLeft } from './util.ts';
@@ -53,7 +53,8 @@ describe('physics: reference-video transient controls (doc 16)', () => {
       if (events.some((e) => e.t === 'cut')) {
         exitAt = t;
         expect(currentSlip).toBeLessThan(0.001);
-        expect(r.k.body.yawRate).toBe(0);
+        // Recovery aligns travel with the nose; it must not erase the driver's requested rotation.
+        expect(r.k.body.yawRate * dir).toBeLessThan(-0.1);
         expect(r.k.drive.drift).toBe(0);
         expect(r.k.drive.instWindow).toBeGreaterThan(0);
       }
@@ -78,6 +79,13 @@ describe('physics: reference-video transient controls (doc 16)', () => {
     expect(interrupted.rig.events.some((e) => e.t === 'cut')).toBe(false);
   });
 
+  it('crossing the neutral steering boundary does not jump the drift response rate', () => {
+    const neutral = setup(), counter = setup();
+    neutral.k.body.yawRate = 1.5; counter.k.body.yawRate = 1.5;
+    neutral.advance(0); counter.advance(-1 / 127);
+    expect(Math.abs(counter.k.body.yawRate - neutral.k.body.yawRate)).toBeLessThan(0.005);
+  });
+
   it('boosted counter-steer with Shift held remains reverse gauge rather than cut recovery', () => {
     const held = setup(1, 'asphalt', true), released = setup(1, 'asphalt', true);
     for (let t = 0; t < 3; t++) { held.advance(-1, true); released.advance(-1, false); }
@@ -97,7 +105,7 @@ describe('physics: reference-video transient controls (doc 16)', () => {
     for (let t = 0; t < 12; t++) { r.advance(); expect(hashWorld(r.rig.w)).toBe(expected[t]); }
   });
 
-  it('Shift mashing cannot add drift kicks more frequently than once per nine ticks', () => {
+  it('rapid Shift pulses remain responsive while bounded yaw prevents runaway rotation', () => {
     const r = setup();
     r.k.drive.prevHeld = 0;
     const fatigue = r.k.drive.fatigueTicks, duration = r.k.drive.driftTicks;
@@ -107,19 +115,111 @@ describe('physics: reference-video transient controls (doc 16)', () => {
         expect(r.k.drive.fatigueTicks).toBe(fatigue + 1);
         expect(r.k.drive.driftTicks).toBe(duration + 1);
       }
+      expect(Math.abs(r.k.body.yawRate)).toBeLessThan(3.2);
     }
     const kicks = r.rig.events.filter((e) => e.t === 'doubleDrift');
-    expect(kicks.length).toBeGreaterThan(3);
-    for (let i = 1; i < kicks.length; i++) expect(kicks[i]!.tick - kicks[i - 1]!.tick).toBeGreaterThanOrEqual(9);
+    expect(kicks).toHaveLength(30);
+    for (let i = 1; i < kicks.length; i++) expect(kicks[i]!.tick - kicks[i - 1]!.tick).toBe(2);
   });
 
-  it('the next intentional drift press is accepted on the ninth tick after the previous kick', () => {
+  it('intentional presses inside and outside the nine-tick impulse recovery both register', () => {
     const r = setup();
     r.k.drive.prevHeld = 0;
     for (let t = 0; t <= 9; t++) r.advance(0.8, t === 0 || t === 2 || t === 9);
     const kicks = r.rig.events.filter((e) => e.t === 'doubleDrift');
-    expect(kicks).toHaveLength(2);
-    expect(kicks[1]!.tick - kicks[0]!.tick).toBe(9);
+    expect(kicks).toHaveLength(3);
+    expect(kicks.map((e) => e.tick - kicks[0]!.tick)).toEqual([0, 2, 9]);
+  });
+
+  it.each([1, -1] as const)('direction %s: two and three Shift pulses progressively tighten the turn without a heading jump', (dir) => {
+    const headings: number[] = [];
+    for (let presses = 1; presses <= 3; presses++) {
+      const rig = racingRig(strip('asphalt').track), k = place(rig, 0, { s: 300, speed: 34 });
+      let previousHeading = 0;
+      for (let t = 0; t < 18; t++) {
+        rig.tick((_w, inputs) => {
+          inputs[0]!.steer = steerLeft(dir);
+          inputs[0]!.held = t % 6 < 2 && t < presses * 6 ? Held.DRIFT : 0;
+          inputs[0]!.throttle = 15;
+        });
+        const heading = Math.atan2(-k.body.fz, k.body.fx);
+        // Only entry has its original small kick; subsequent pulses rotate through actual yaw integration.
+        if (t === 6 || t === 12) expect(Math.abs(heading - previousHeading - k.body.yawRate / 60)).toBeLessThan(0.0001);
+        previousHeading = heading;
+      }
+      expect(rig.events.filter((e) => e.t === 'doubleDrift')).toHaveLength(presses - 1);
+      headings.push(previousHeading * dir);
+    }
+    expect(headings[1]! - headings[0]!).toBeGreaterThan(0.03);
+    expect(headings[2]! - headings[1]!).toBeGreaterThan(0.02);
+  });
+
+  it.each([1, -1] as const)('direction %s: opposite Shift assists counter-steer, then keeps steering through the exit', (dir) => {
+    const held = setup(dir), release = setup(dir);
+    held.k.body.yawRate = dir * 1.5; release.k.body.yawRate = dir * 1.5;
+    held.k.drive.prevHeld = 0;
+    held.advance(-dir, true); release.advance(-dir, false);
+    expect(held.k.body.yawRate * dir).toBeLessThan(release.k.body.yawRate * dir);
+    let reversed = -1, exited = false;
+    for (let t = 0; t < 12; t++) {
+      const before = Math.atan2(-held.k.body.fz, held.k.body.fx);
+      const events = held.advance(-dir, false);
+      if (held.k.body.yawRate * dir < 0 && reversed < 0) reversed = t;
+      if (events.some((e) => e.t === 'driftEnd')) exited = true;
+      if (exited) {
+        expect(held.k.body.yawRate * dir).toBeLessThan(-0.1);
+        expect((Math.atan2(-held.k.body.fz, held.k.body.fx) - before) * dir).toBeLessThan(-0.001);
+      }
+    }
+    expect(reversed).toBeGreaterThanOrEqual(0); expect(reversed).toBeLessThanOrEqual(3);
+    expect(exited).toBe(true);
+  });
+
+  it('a deliberate Shift press immediately after recovery starts the next drift without an input blackout', () => {
+    const r = setup();
+    for (let t = 0; t < 15 && r.k.drive.drift; t++) r.advance();
+    expect(r.k.drive.drift).toBe(0);
+    expect(r.k.drive.reDriftLock).toBeGreaterThan(0);
+    const events = r.advance(-1, true);
+    expect(events.some((e) => e.t === 'driftStart')).toBe(true);
+    expect(r.k.drive.drift).toBe(1); expect(r.k.drive.driftDir).toBe(-1);
+    expect(r.k.body.yawRate).toBeLessThan(-0.1);
+  });
+
+  it('simultaneous direction/Shift uses the fresh key edge while filtered steering still has its old sign', () => {
+    const rig = racingRig(strip('asphalt').track), k = place(rig, 0, { s: 300, speed: 34 });
+    rig.tick((_w, inputs) => {
+      inputs[0]!.steer = steerLeft(0.9); // still fading from the previous left press
+      inputs[0]!.held = Held.DRIFT; inputs[0]!.edges = Edge.TAP_R;
+      inputs[0]!.throttle = 15;
+    });
+    expect(k.drive.driftDir).toBe(-1);
+    expect(k.body.yawRate).toBeLessThan(0);
+  });
+
+  it.each([0, Held.DRIFT])('a compressed Shift press with held=%s produces exactly one impulse and latches actual held state', (held) => {
+    const r = setup();
+    r.rig.tick((_w, inputs) => {
+      inputs[0]!.steer = steerLeft(0.8); inputs[0]!.held = held;
+      inputs[0]!.edges = Edge.DRIFT; inputs[0]!.throttle = 15;
+    });
+    expect(r.rig.events.filter((e) => e.t === 'doubleDrift')).toHaveLength(1);
+    expect(r.k.drive.prevHeld).toBe(held);
+    r.rig.tick((_w, inputs) => { inputs[0]!.edges = 0; });
+    expect(r.rig.events.filter((e) => e.t === 'doubleDrift')).toHaveLength(1);
+  });
+
+  it('restoring during a pulse train reproduces every hash, including presses compressed between ticks', () => {
+    const r = setup();
+    const advance = (t: number) => r.rig.tick((_w, inputs) => {
+      inputs[0]!.steer = steerLeft(t < 6 ? 0.8 : -1); inputs[0]!.held = t < 3 ? Held.DRIFT : 0;
+      inputs[0]!.edges = t % 3 === 0 ? Edge.DRIFT : 0;
+    });
+    advance(0); advance(1);
+    const checkpoint = cloneWorld(r.rig.w), expected: number[] = [];
+    for (let t = 2; t < 15; t++) { advance(t); expected.push(hashWorld(r.rig.w)); }
+    copyWorld(r.rig.w, checkpoint);
+    for (let t = 2; t < 15; t++) { advance(t); expect(hashWorld(r.rig.w)).toBe(expected[t - 2]); }
   });
 
   it('a drift press during wall stun cannot add a fresh yaw kick', () => {

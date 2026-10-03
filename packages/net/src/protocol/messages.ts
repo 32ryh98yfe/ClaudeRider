@@ -14,7 +14,7 @@ export function writeFrame(w: ByteWriter, f: Readonly<InputFrame>): void {
   w.i8(steer);
   w.u8((f.throttle & 15) | ((f.brake & 15) << 4));
   w.u8(f.held & 7);
-  w.u8(f.edges & 63);
+  w.u8(f.edges & 127);
   w.u8(f.aim >= 0 && f.aim < 8 ? f.aim : 255);
   w.u8(f.emote & 15);
 }
@@ -26,10 +26,10 @@ export function readFrame(r: ByteReader, out: InputFrame): boolean {
   out.throttle = pedals & 15;
   out.brake = pedals >>> 4;
   out.held = held & 7;
-  out.edges = edges & 63;
+  out.edges = edges & 127;
   out.aim = aim < 8 ? aim : 255;
   out.emote = emote & 15;
-  return (held & ~7) === 0 && (edges & ~63) === 0 && (emote & ~15) === 0 && (aim < 8 || aim === 255);
+  return (held & ~7) === 0 && (edges & ~127) === 0 && (emote & ~15) === 0 && (aim < 8 || aim === 255);
 }
 
 // ---------------------------------------------------------------- C2S_INPUT

@@ -6,7 +6,7 @@
 // springs (visualOffset); one-shot events pass through the deduper so replays never repeat sounds or effects.
 import type { ContentTables } from '@cr/content';
 import {
-  applyDecision, copyInput, copyWorld, createWorld, cloneWorld, makeContext, makeInput, step, ArraySink, MAX_KARTS,
+  applyDecision, copyInput, copyWorld, createWorld, cloneWorld, makeContext, makeInput, step, ArraySink, MAX_KARTS, NEUTRAL_INPUT,
   type BakedTrack, type Decision, type DecisionLog, type InputFrame, type RaceConfig, type SimEvent, type StepContext, type Tick, type WorldState,
 } from '@cr/sim';
 import { ByteReader, ByteWriter, ProtocolError, hexU32 } from '../protocol/bytes.ts';
@@ -214,6 +214,12 @@ export class NetClient {
   submit(f: Readonly<InputFrame>): void {
     if (this.sampleN === SAMPLE_RING) mergeSample(this.samples[SAMPLE_RING - 1]!, f);
     else copyInput(this.samples[this.sampleN++]!, f);
+  }
+
+  /** Entering a menu releases unsent controls; inputs already sent stay in history for deterministic rollback. */
+  clearPendingInput(): void {
+    this.sampleN = 0;
+    copyInput(this.held, NEUTRAL_INPUT);
   }
 
   /** Processes network input, reconciles, and advances the prediction. Returns ticks advanced. */

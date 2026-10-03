@@ -6,7 +6,7 @@
 // Hot path rule: nothing below allocates per frame (scratch objects only).
 import * as THREE from 'three/webgpu';
 import { uniform, uniformArray } from 'three/tsl';
-import type { ContentTables } from '@cr/content';
+import type { ContentTables, ModeId } from '@cr/content';
 import { CVIS_MAGIC, CVIS_VERSION, readContainer, Phase, type BakedTrack, type WorldState, type SimEvent } from '@cr/sim';
 import { getThemeKit } from './themes/registry.ts';
 import type { ThemeKit } from './themes/kit.ts';
@@ -112,9 +112,11 @@ export class RaceRenderer {
   lookBack = false;
 
   private renderer: THREE.WebGPURenderer; private track: BakedTrack; private vis: ArrayBuffer; private tier: QualityTier;
+  private mode: ModeId;
 
-  constructor(renderer: THREE.WebGPURenderer, track: BakedTrack, vis: ArrayBuffer, content: ContentTables, tier: QualityTier) {
+  constructor(renderer: THREE.WebGPURenderer, track: BakedTrack, vis: ArrayBuffer, content: ContentTables, tier: QualityTier, mode: ModeId) {
     this.renderer = renderer; this.track = track; this.vis = vis; this.tier = tier; this.content = content;
+    this.mode = mode;
     // per-track lighting (L12-track-env): the kit sees the track's THEME attrs (e.g. sky=sunset on one Spark track)
     const trackTheme = (readContainer(vis, CVIS_MAGIC, CVIS_VERSION).meta as VisMeta).theme ?? {};
     this.kit = getThemeKit(track.meta.themeId, content, trackTheme);
@@ -150,7 +152,7 @@ export class RaceRenderer {
     setParticleLight(PARTICLE_LIGHT[L.kind] ?? 1);
     // velocity-based post (TRAA, motion blur) needs every prop instance to keep its slot from frame to frame
     const stable = ts.aa === 'traa' || ts.velocityBlur !== null;
-    this.view = buildTrackView(this.vis, this.track, this.kit, { mergeChunks: this.tier === 'low' ? LOW_MERGE_CHUNKS : this.tier === 'medium' ? 2 : 1, propFar: ts.propFar, foliage: ts.foliage, stableInstances: stable });
+    this.view = buildTrackView(this.vis, this.track, this.kit, { mergeChunks: this.tier === 'low' ? LOW_MERGE_CHUNKS : this.tier === 'medium' ? 2 : 1, propFar: ts.propFar, foliage: ts.foliage, stableInstances: stable, mode: this.mode });
     this.scene.add(this.view.root);
     if (meta.hazards?.length && this.track.hazards.length) {
       this.hazards = new TrackHazards(meta.hazards, this.track, this.kit);

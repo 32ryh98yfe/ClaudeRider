@@ -446,8 +446,7 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
       geometry: merge([
         paint(place(ico(1.5, 1), 0, 0, 0, 0, 0, 0, 1, 1.15, 1), C.net, 0.1, 3),
         paint(place(box(1.0, 1.0, 1.0), 0.2, -0.3, 0.2), C.woodPale), paint(place(cyl(0.4, 0.4, 0.9, 8), -0.4, -0.2, -0.3), C.red),
-        paint(place(cyl(0.05, 0.05, 6, 4), 0, 3.6, 0), C.iron),
-      ]), material: gloss(), castShadow: true,
+      ]), hazardDecoration: paint(place(cyl(0.05, 0.05, 6, 4), 0, 3.6, 0), C.iron), material: gloss(), castShadow: true,
     }),
     maxInstances: 4,
   },

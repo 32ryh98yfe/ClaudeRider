@@ -18,22 +18,24 @@ vi.mock('../src/meta/save.ts', async (importOriginal) => ({
 vi.mock('../src/input/gamepad.ts', () => ({
   installGamepad: () => {},
   onPadButton: () => () => {},
+  onPadStick: () => () => {},
   padState: () => source.pad,
   consumePadPresses: () => { const value = source.presses; source.presses = 0; return value; },
   consumeStickFlicks: () => { const value = source.flicks; source.flicks = 0; return value; },
   releasePad: () => { source.presses = 0; source.flicks = 0; },
 }));
 
-import { heldUi, installKeyboard, sampleInput, setGameKeysActive } from '../src/input/keyboard.ts';
+import { gameKeysActive, heldUi, installKeyboard, onUiAction, sampleInput, setGameKeysActive } from '../src/input/keyboard.ts';
+import { installMenuNav, pushBack } from '../src/input/menuNav.ts';
 
 const windowEvents = new EventTarget();
 const documentEvents = Object.assign(new EventTarget(), { hidden: false, activeElement: null as null | { tagName: string; type: string } });
 let time = 0;
 
-function key(type: 'keydown' | 'keyup', code: string, at = time): void {
+function key(type: 'keydown' | 'keyup', code: string, at = time, repeat = false): void {
   time = at;
   const event = new Event(type, { cancelable: true });
-  Object.assign(event, { code, repeat: false, isComposing: false });
+  Object.assign(event, { code, key: code, repeat, isComposing: false });
   windowEvents.dispatchEvent(event);
 }
 
@@ -47,6 +49,7 @@ beforeAll(() => {
   vi.stubGlobal('document', documentEvents);
   vi.spyOn(performance, 'now').mockImplementation(() => time);
   installKeyboard();
+  installMenuNav();
 });
 afterAll(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 beforeEach(() => {
@@ -150,6 +153,35 @@ describe('driving input timing', () => {
 });
 
 describe('driving input suspension', () => {
+  it('opens pause once per Escape press and leaves the next press for resume', () => {
+    let paused = false;
+    const resume = vi.fn(() => { paused = false; setGameKeysActive(true); });
+    let removeBack: (() => void) | undefined;
+    const off = onUiAction('pause', () => {
+      paused = true;
+      setGameKeysActive(false);
+      // useBack registers during the pause overlay's layout effect, before bubbling ends.
+      removeBack = pushBack(resume);
+    });
+    try {
+      key('keydown', 'ArrowUp');
+      key('keydown', 'ArrowRight');
+      key('keydown', 'Escape', 50);
+      expect(paused).toBe(true);
+      expect(gameKeysActive()).toBe(false);
+      expect(resume).not.toHaveBeenCalled();
+      expect(sample(60)).toMatchObject({ throttle: 0, steer: 0, held: 0, edges: 0 });
+      key('keydown', 'Escape', 450, true);
+      expect(paused).toBe(true);
+      key('keyup', 'Escape', 500);
+      key('keydown', 'Escape', 550);
+      expect(paused).toBe(false);
+      expect(resume).toHaveBeenCalledOnce();
+      expect(gameKeysActive()).toBe(true);
+      expect(sample(560)).toMatchObject({ throttle: 0, steer: 0 });
+    } finally { off(); removeBack?.(); }
+  });
+
   it.each(['deactivate', 'blur', 'composition', 'hidden', 'text'])('neutralizes held controls, edges and filter on %s', (reason) => {
     key('keydown', 'ArrowRight');
     key('keydown', 'ArrowUp');
@@ -174,6 +206,59 @@ describe('driving input suspension', () => {
     windowEvents.dispatchEvent(new Event('focus'));
     setGameKeysActive(true);
     expect(sample(80)).toEqual({ steer: 0, throttle: 0, brake: 0, held: 0, edges: 0, aim: 255, emote: 0 });
+  });
+});
+
+describe('repeated drift key input', () => {
+  it('keeps the new direction edge when opposite steering and Shift arrive before the filtered steering reverses', () => {
+    key('keydown', 'ArrowUp');
+    key('keydown', 'ArrowRight');
+    expect(sample(100).steer).toBe(126);
+    key('keyup', 'ArrowRight', 101);
+    key('keydown', 'ArrowLeft', 101);
+    key('keydown', 'ShiftLeft', 101);
+    const input = sample(102);
+    expect(input.steer).toBeGreaterThan(0);
+    expect(input.edges).toBe(Edge.TAP_L | Edge.DRIFT);
+    expect(input.held).toBe(Held.DRIFT);
+    expect(sample(125).steer).toBeLessThan(0);
+  });
+
+  it.each(['ShiftLeft', 'ShiftRight', 'KeyC'])('keeps held throttle and steering through three %s presses', (driftKey) => {
+    key('keydown', 'ArrowUp');
+    key('keydown', 'ArrowRight');
+    for (let press = 0; press < 3; press++) {
+      const start = 100 + press * 100;
+      key('keydown', driftKey, start);
+      expect(sample(start + 16)).toMatchObject({ throttle: 15, steer: 127, held: Held.DRIFT });
+      key('keyup', driftKey, start + 40);
+      expect(sample(start + 56)).toMatchObject({ throttle: 15, steer: 127, held: 0 });
+    }
+  });
+
+  it('latches a complete 20 ms Shift pulse between 30 Hz samples without extending its held state', () => {
+    key('keydown', 'ArrowUp'); key('keydown', 'ArrowRight'); sample(100);
+    key('keydown', 'ShiftLeft', 105); key('keyup', 'ShiftLeft', 125);
+    expect(sample(133.333)).toMatchObject({ steer: 127, throttle: 15, held: 0, edges: Edge.DRIFT });
+    expect(sample(150)).toMatchObject({ held: 0, edges: 0 });
+  });
+
+  it('latches release/repress once while Shift is still held at both surrounding samples', () => {
+    key('keydown', 'ShiftLeft', 0);
+    expect(sample(1)).toMatchObject({ held: Held.DRIFT, edges: Edge.DRIFT });
+    key('keyup', 'ShiftLeft', 2); key('keydown', 'ShiftLeft', 3);
+    expect(sample(4)).toMatchObject({ held: Held.DRIFT, edges: Edge.DRIFT });
+    key('keydown', 'ShiftLeft', 5, true);
+    expect(sample(6)).toMatchObject({ held: Held.DRIFT, edges: 0 });
+  });
+
+  it('preserves a gamepad drift press already released before sampling, including a rebound button', () => {
+    source.pad.connected = true;
+    source.presses = 1 << 2;
+    expect(sample(16)).toMatchObject({ held: 0, edges: Edge.DRIFT });
+    expect(sample(17).edges).toBe(0);
+    source.settings.pad['drift'] = [11]; source.presses = 1 << 11;
+    expect(sample(32)).toMatchObject({ held: 0, edges: Edge.DRIFT });
   });
 });
 

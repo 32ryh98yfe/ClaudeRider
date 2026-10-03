@@ -3,7 +3,14 @@ import * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../materials/library.ts';
 import { merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../util/geo.ts';
 
-export interface PropFactory { build(pal: readonly string[]): { geometry: THREE.BufferGeometry; material: THREE.Material; castShadow?: boolean }; maxInstances?: number }
+export interface PropFactory {
+  build(pal: readonly string[]): {
+    geometry: THREE.BufferGeometry; material: THREE.Material; castShadow?: boolean;
+    /** Non-contact suspension ropes/stems, separate from the damaging body fitted to a HAZ collider. */
+    hazardDecoration?: THREE.BufferGeometry;
+  };
+  maxInstances?: number;
+}
 
 const lit = (): THREE.Material => MaterialLibrary.vertexLit(0.8, 0);
 /** Trees and bushes sway in the wind (positionNode, masked by height so trunks stay planted). */

@@ -96,8 +96,11 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
   const tau = thrIn ? inp.throttle / 15 : 0;
   const thr = wallStun ? 0 : thrIn;                  // throttle for acceleration (proto: thr = stunned ? 0 : thrIn)
   const thrEdge = inp.throttle > 0 && d.prevThrottle === 0 && !locked;
-  const driftHeld = !locked && (inp.held & Held.DRIFT) !== 0;
-  const driftEdge = driftHeld && (d.prevHeld & Held.DRIFT) === 0;
+  // Explicit presses survive a key down/up between two simulation samples and a release/re-press while the
+  // previous sampled held bit was still high. A simultaneous held transition and edge is still one impulse.
+  const driftPress = !locked && (inp.edges & Edge.DRIFT) !== 0;
+  const driftHeld = !locked && ((inp.held & Held.DRIFT) !== 0 || driftPress);
+  const driftEdge = driftPress || (driftHeld && (d.prevHeld & Held.DRIFT) === 0);
   const useEdge = !locked && (inp.edges & Edge.USE_ITEM) !== 0;
   const autoFire = !locked && (inp.held & Held.ITEM) !== 0;
   let steer = -inp.steer / 127;
@@ -137,10 +140,18 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
     // §4.2 consecutive brake ticks (brake turn, spin-out, reverse engage)
     d.brakeTicks = brk ? (d.brakeTicks < 255 ? d.brakeTicks + 1 : 255) : 0;
 
+    // A direction press and Shift may arrive before keyboard smoothing crosses zero. The tap edge is the
+    // driver's fresh direction intent; use it for this impulse only, leaving continuous steering filtered.
+    const directionEdge = inp.edges & (Edge.TAP_L | Edge.TAP_R);
+    let driftSteer = steer;
+    if (driftEdge && (directionEdge === Edge.TAP_L || directionEdge === Edge.TAP_R)) {
+      driftSteer = (directionEdge === Edge.TAP_L ? 1 : -1) * (mods.steerInvert ? -1 : 1) * mods.steerMul;
+    }
+    const hasDriftSteer = driftSteer >= P.driftMinSteer || driftSteer <= -P.driftMinSteer;
     // -------------------------------------------------------------- K2 drift entry / double drift
     if (d.drift === 0) {
-      if (driftHeld && (steer >= P.driftMinSteer || steer <= -P.driftMinSteer) && u >= P.driftMinSpeed && d.reDriftLock <= 0 && !wallStun) {
-        d.drift = 1; d.driftDir = steer > 0 ? 1 : -1; d.driftTicks = 0; d.driftPeak = 0;
+      if (driftHeld && hasDriftSteer && u >= P.driftMinSpeed && (d.reDriftLock <= 0 || driftEdge) && !wallStun) {
+        d.drift = 1; d.driftDir = driftSteer > 0 ? 1 : -1; d.driftTicks = 0; d.driftPeak = 0; d.reDriftLock = 0;
         resetTech(d); d.brakeTicks = brk ? 1 : 0; d.postTicks = 0;
         k.stats.drifts++;
         b.yawRate += d.driftDir * P.kickR;
@@ -148,12 +159,17 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
         b.vx *= P.kickLoss; b.vy *= P.kickLoss; b.vz *= P.kickLoss;
         ev.push({ t: 'driftStart', kart: k.slot, tick, key: evKey(tick, 2, k.slot) });
       }
-    } else if (driftEdge && d.driftTicks >= P.rekickMinTicks && d.reDriftLock <= 0 && !wallStun) {
-      // Space repeat impulses as well as the first one; Shift mashing must not accumulate yaw every two ticks.
+    } else if (driftEdge && hasDriftSteer && !wallStun) {
+      // Short deliberate pulses add proportional yaw instead of disappearing inside a cooldown. They steer in
+      // the requested direction, including across an existing slide, without teleporting the heading by 3°.
+      const elapsed = Math.min(d.driftTicks, P.rekickMinTicks - d.reDriftLock);
+      const gain = Math.max(0, Math.min(1, elapsed / P.rekickMinTicks));
+      const dir = driftSteer > 0 ? 1 : -1;
+      const yawLimit = P.kickR + P.y1 + P.y2;
+      b.yawRate = Math.max(-yawLimit, Math.min(yawLimit, b.yawRate + dir * P.rekickR * gain));
       d.reDriftLock = P.rekickMinTicks;
-      b.yawRate += d.driftDir * P.rekickR;
-      rotateForward(k, d.driftDir * P.rekickAngle);
-      b.vx *= P.rekickLoss; b.vy *= P.rekickLoss; b.vz *= P.rekickLoss;
+      const loss = 1 - (1 - P.rekickLoss) * gain;
+      b.vx *= loss; b.vy *= loss; b.vz *= loss;
       ev.push({ t: 'doubleDrift', kart: k.slot, tick, key: evKey(tick, 3, k.slot) });
     }
     fx = b.fx; fy = b.fy; fz = b.fz;
@@ -201,10 +217,12 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
       // §4.4: the key of a valid tap, still held inside the grace, steers like neutral (a real keyboard press lasts
       // several frames; its full in-steer would drive β past dragExitHi within a few ticks)
       const sY = d.dragTicks > 0 && inTapGrace(d, P) && sIn > P.dragNeutral ? P.dragNeutral : sIn;
-      rT = d.driftDir * (P.y0 / (1 + (d.driftTicks * DT) / P.y0T) + P.y1 * sY + (driftHeld ? P.y2 : 0));
+      const carry = (P.y0 / (1 + (d.driftTicks * DT) / P.y0T) + (driftHeld ? P.y2 : 0)) * (1 + Math.min(0, sY));
+      rT = d.driftDir * (carry + P.y1 * sY);
     }
     if (wallStun) rT *= 0.3;
-    b.yawRate += (rT - b.yawRate) * (1 - decayF(d.drift === 0 ? P.kYawGrip : P.kYawDrift, DT));
+    const yawResponse = d.drift === 0 ? P.kYawGrip : P.kYawDrift + (P.kYawGrip - P.kYawDrift) * Math.max(0, -sIn);
+    b.yawRate += (rT - b.yawRate) * (1 - decayF(yawResponse, DT));
 
     // -------------------------------------------------------------- K5 heading rotation (×brakeTurnMul in a brake turn)
     rotateForward(k, b.yawRate * DT * turnMul);
@@ -245,12 +263,13 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
           const keep = (raw + P.etaCut * (v - raw)) / raw;
           u *= keep; wl = wr * keep;
         } else wl = wr;
-        b.yawRate *= decayF(recovery, DT);
+        // Catch residual rotation into the old slide, but keep the rotation the driver is asking for.
+        if (b.yawRate * d.driftDir > 0) b.yawRate *= decayF(recovery, DT);
         v = Math.sqrt(u * u + wl * wl);
         cut = Math.abs(wl) <= P.exitSin * v;
         if (cut) {
           if (u > 0) u += P.etaCut * (v - u);
-          wl = 0; b.yawRate = 0;
+          wl = 0;
           v = u < 0 ? -u : u;
           ev.push({ t: 'cut', kart: k.slot, tick, key: evKey(tick, 12, k.slot) });
         }
@@ -291,7 +310,7 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
     if (recovering && !cut && Math.abs(wl) <= P.exitSin * v) {
       cut = true;
       if (u > 0) u += P.etaCut * (v - u);
-      wl = 0; b.yawRate = 0; v = u < 0 ? -u : u;
+      wl = 0; v = u < 0 ? -u : u;
       ev.push({ t: 'cut', kart: k.slot, tick, key: evKey(tick, 12, k.slot) });
     }
 

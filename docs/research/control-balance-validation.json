@@ -1,0 +1,1042 @@
+[
+  {
+    "track": "clayhill_village/meadow_loop",
+    "noJitter": false,
+    "label": "legacy",
+    "seed": 4242,
+    "driverSeed": 99,
+    "runs": [
+      {
+        "kart": "pebble",
+        "ticks": 6310.932159423828,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.003114389504117354
+      },
+      {
+        "kart": "clay_comet",
+        "ticks": 6466.113861083984,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.021398376833621002
+      },
+      {
+        "kart": "arrowhead",
+        "ticks": 6277.3638916015625,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.008416890357548112
+      },
+      {
+        "kart": "tugboat",
+        "ticks": 6463.667678833008,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.021011973712014465
+      },
+      {
+        "kart": "glacier_sled",
+        "ticks": 6256.749893188477,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.011673112714827627
+      },
+      {
+        "kart": "neon_blade",
+        "ticks": 6320.016647338867,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0016793882947154781
+      },
+      {
+        "kart": "jet_kettle",
+        "ticks": 6263.562927246094,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.010596914231895904
+      },
+      {
+        "kart": "crown_cruiser",
+        "ticks": 6286.779052734375,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.006929655442530769
+      }
+    ]
+  },
+  {
+    "track": "clayhill_village/meadow_loop",
+    "noJitter": false,
+    "label": 4242,
+    "seed": 4242,
+    "driverSeed": 33592398,
+    "runs": [
+      {
+        "kart": "pebble",
+        "ticks": 6551.684280395508,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.01576604791552061
+      },
+      {
+        "kart": "clay_comet",
+        "ticks": 6353.5076904296875,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.014959036347362065
+      },
+      {
+        "kart": "arrowhead",
+        "ticks": 6418.316879272461,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.004911089773315558
+      },
+      {
+        "kart": "tugboat",
+        "ticks": 6551.553512573242,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.015745773813727437
+      },
+      {
+        "kart": "glacier_sled",
+        "ticks": 6346.265319824219,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.01608188565642743
+      },
+      {
+        "kart": "neon_blade",
+        "ticks": 6476.361679077148,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.00408811323713465
+      },
+      {
+        "kart": "jet_kettle",
+        "ticks": 6430.910400390625,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0029586038738017573
+      },
+      {
+        "kart": "crown_cruiser",
+        "ticks": 6471.347244262695,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.0033106806845240033
+      }
+    ]
+  },
+  {
+    "track": "clayhill_village/meadow_loop",
+    "noJitter": false,
+    "label": 2026,
+    "seed": 2026,
+    "driverSeed": 16043894,
+    "runs": [
+      {
+        "kart": "pebble",
+        "ticks": 6459.950958251953,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.01229080200095578
+      },
+      {
+        "kart": "clay_comet",
+        "ticks": 6398.213180541992,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.002616334668980258
+      },
+      {
+        "kart": "arrowhead",
+        "ticks": 6300.199295043945,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.01274269133590078
+      },
+      {
+        "kart": "tugboat",
+        "ticks": 6387.370758056641,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.0009172993939043916
+      },
+      {
+        "kart": "glacier_sled",
+        "ticks": 6303.775253295898,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.012182329551394089
+      },
+      {
+        "kart": "neon_blade",
+        "ticks": 6372.844161987305,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.001359055284390398
+      },
+      {
+        "kart": "jet_kettle",
+        "ticks": 6243.485748291016,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.021629848854257117
+      },
+      {
+        "kart": "crown_cruiser",
+        "ticks": 6586.296615600586,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.03208948896210173
+      }
+    ]
+  },
+  {
+    "track": "clayhill_village/meadow_loop",
+    "noJitter": false,
+    "label": 7301,
+    "seed": 7301,
+    "driverSeed": 57816619,
+    "runs": [
+      {
+        "kart": "pebble",
+        "ticks": 6361.765350341797,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.008421204761643875
+      },
+      {
+        "kart": "clay_comet",
+        "ticks": 6361.811218261719,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.008428475413816638
+      },
+      {
+        "kart": "arrowhead",
+        "ticks": 6283.40495300293,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.003999920812535973
+      },
+      {
+        "kart": "tugboat",
+        "ticks": 6363.712921142578,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.008729919652106899
+      },
+      {
+        "kart": "glacier_sled",
+        "ticks": 6252.061553955078,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.00896825059028572
+      },
+      {
+        "kart": "neon_blade",
+        "ticks": 6276.450378417969,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.005102309865787413
+      },
+      {
+        "kart": "jet_kettle",
+        "ticks": 6231.975830078125,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.01215209481513102
+      },
+      {
+        "kart": "crown_cruiser",
+        "ticks": 6337.929870605469,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.004642976256172826
+      }
+    ]
+  },
+  {
+    "track": "clayhill_village/meadow_loop",
+    "noJitter": true,
+    "label": "legacy",
+    "seed": 4242,
+    "driverSeed": 99,
+    "runs": [
+      {
+        "kart": "pebble",
+        "ticks": 6309.43896484375,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0006956498523866816
+      },
+      {
+        "kart": "clay_comet",
+        "ticks": 6295.690200805664,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.002873212673576875
+      },
+      {
+        "kart": "arrowhead",
+        "ticks": 6517.628387451172,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.03227789927385771
+      },
+      {
+        "kart": "tugboat",
+        "ticks": 6304.452621459961,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.001485399093565598
+      },
+      {
+        "kart": "glacier_sled",
+        "ticks": 6299.472076416016,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.002274229979521314
+      },
+      {
+        "kart": "neon_blade",
+        "ticks": 6227.321502685547,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.013701614030028342
+      },
+      {
+        "kart": "jet_kettle",
+        "ticks": 6223.625457763672,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.014287002650054781
+      },
+      {
+        "kart": "crown_cruiser",
+        "ticks": 6333.020233154297,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.003039209005275767
+      }
+    ]
+  },
+  {
+    "track": "clayhill_village/meadow_loop",
+    "noJitter": true,
+    "label": 4242,
+    "seed": 4242,
+    "driverSeed": 33592398,
+    "runs": [
+      {
+        "kart": "pebble",
+        "ticks": 6440.405212402344,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.017911240144871332
+      },
+      {
+        "kart": "clay_comet",
+        "ticks": 6313.133972167969,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0022040820606742395
+      },
+      {
+        "kart": "arrowhead",
+        "ticks": 6431.148681640625,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.016448237989517
+      },
+      {
+        "kart": "tugboat",
+        "ticks": 6315.42463684082,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0018420406609485074
+      },
+      {
+        "kart": "glacier_sled",
+        "ticks": 6247.741653442383,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.012539390795864969
+      },
+      {
+        "kart": "neon_blade",
+        "ticks": 6304.614532470703,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.003550586378583187
+      },
+      {
+        "kart": "jet_kettle",
+        "ticks": 6260.771087646484,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.010480078207342869
+      },
+      {
+        "kart": "crown_cruiser",
+        "ticks": 6303.395217895508,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0037433000309746722
+      }
+    ]
+  },
+  {
+    "track": "clayhill_village/meadow_loop",
+    "noJitter": true,
+    "label": 2026,
+    "seed": 2026,
+    "driverSeed": 16043894,
+    "runs": [
+      {
+        "kart": "pebble",
+        "ticks": 6450.924560546875,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.00989234153284757
+      },
+      {
+        "kart": "clay_comet",
+        "ticks": 6414.68684387207,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.004219326416791125
+      },
+      {
+        "kart": "arrowhead",
+        "ticks": 6338.609222412109,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.007690626420719049
+      },
+      {
+        "kart": "tugboat",
+        "ticks": 6496.222549438477,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.01698374240711087
+      },
+      {
+        "kart": "glacier_sled",
+        "ticks": 6258.87663269043,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.020172764597154114
+      },
+      {
+        "kart": "neon_blade",
+        "ticks": 6512.903762817383,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.01959518662424875
+      },
+      {
+        "kart": "jet_kettle",
+        "ticks": 6257.221221923828,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.02043191917873244
+      },
+      {
+        "kart": "crown_cruiser",
+        "ticks": 6372.4344482421875,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.002395286784392714
+      }
+    ]
+  },
+  {
+    "track": "clayhill_village/meadow_loop",
+    "noJitter": true,
+    "label": 7301,
+    "seed": 7301,
+    "driverSeed": 57816619,
+    "runs": [
+      {
+        "kart": "pebble",
+        "ticks": 6317.7271728515625,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.0009870042452053696
+      },
+      {
+        "kart": "clay_comet",
+        "ticks": 6320.618179321289,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.001445058198187077
+      },
+      {
+        "kart": "arrowhead",
+        "ticks": 6357.434783935547,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.00727831781054733
+      },
+      {
+        "kart": "tugboat",
+        "ticks": 6330.749298095703,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.0030502427771019747
+      },
+      {
+        "kart": "glacier_sled",
+        "ticks": 6284.097442626953,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.004341323805388875
+      },
+      {
+        "kart": "neon_blade",
+        "ticks": 6306.545150756836,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0007846865055606278
+      },
+      {
+        "kart": "jet_kettle",
+        "ticks": 6269.7012939453125,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.006622263983278698
+      },
+      {
+        "kart": "crown_cruiser",
+        "ticks": 6305.108261108398,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.001012348736813773
+      }
+    ]
+  },
+  {
+    "track": "spark_circuit/proving_ring",
+    "noJitter": false,
+    "label": "legacy",
+    "seed": 4242,
+    "driverSeed": 99,
+    "runs": [
+      {
+        "kart": "pebble",
+        "ticks": 5350.565048217773,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.004176183284358648
+      },
+      {
+        "kart": "clay_comet",
+        "ticks": 5350.565368652344,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.004176123646474794
+      },
+      {
+        "kart": "arrowhead",
+        "ticks": 5385.490539550781,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.0023239967464381284
+      },
+      {
+        "kart": "tugboat",
+        "ticks": 5353.61116027832,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.003609254200992451
+      },
+      {
+        "kart": "glacier_sled",
+        "ticks": 5437.480941772461,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.012000223519948783
+      },
+      {
+        "kart": "neon_blade",
+        "ticks": 5348.590484619141,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.00454368044426956
+      },
+      {
+        "kart": "jet_kettle",
+        "ticks": 5375.4200439453125,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.00044972005235410784
+      },
+      {
+        "kart": "crown_cruiser",
+        "ticks": 5382.30598449707,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.001731301257354545
+      }
+    ]
+  },
+  {
+    "track": "spark_circuit/proving_ring",
+    "noJitter": false,
+    "label": 4242,
+    "seed": 4242,
+    "driverSeed": 33592398,
+    "runs": [
+      {
+        "kart": "pebble",
+        "ticks": 5356.06559753418,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.004951762321177333
+      },
+      {
+        "kart": "clay_comet",
+        "ticks": 5356.47119140625,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0048764112149842775
+      },
+      {
+        "kart": "arrowhead",
+        "ticks": 5378.504318237305,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0007831036136195513
+      },
+      {
+        "kart": "tugboat",
+        "ticks": 5356.412414550781,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.004887330761316422
+      },
+      {
+        "kart": "glacier_sled",
+        "ticks": 5437.937850952148,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.010258440017615778
+      },
+      {
+        "kart": "neon_blade",
+        "ticks": 5350.725112915039,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.005943915929429111
+      },
+      {
+        "kart": "jet_kettle",
+        "ticks": 5446.637634277344,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.011874683117757856
+      },
+      {
+        "kart": "crown_cruiser",
+        "ticks": 5379.002243041992,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0006905992948469386
+      }
+    ]
+  },
+  {
+    "track": "spark_circuit/proving_ring",
+    "noJitter": false,
+    "label": 2026,
+    "seed": 2026,
+    "driverSeed": 16043894,
+    "runs": [
+      {
+        "kart": "pebble",
+        "ticks": 5355.012008666992,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0031533999268197332
+      },
+      {
+        "kart": "clay_comet",
+        "ticks": 5354.956024169922,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0031638215571486716
+      },
+      {
+        "kart": "arrowhead",
+        "ticks": 5370.268493652344,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.00031337358101490853
+      },
+      {
+        "kart": "tugboat",
+        "ticks": 5355.085403442383,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.003139737337045312
+      },
+      {
+        "kart": "glacier_sled",
+        "ticks": 5427.698867797852,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.010377409766477719
+      },
+      {
+        "kart": "neon_blade",
+        "ticks": 5361.308792114258,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0019812406187462717
+      },
+      {
+        "kart": "jet_kettle",
+        "ticks": 5380.778259277344,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.0016430411037497983
+      },
+      {
+        "kart": "crown_cruiser",
+        "ticks": 5370.507522583008,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.000268877849452398
+      }
+    ]
+  },
+  {
+    "track": "spark_circuit/proving_ring",
+    "noJitter": false,
+    "label": 7301,
+    "seed": 7301,
+    "driverSeed": 57816619,
+    "runs": [
+      {
+        "kart": "pebble",
+        "ticks": 5348.657272338867,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0035413870210327936
+      },
+      {
+        "kart": "clay_comet",
+        "ticks": 5348.673828125,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0035383026664281836
+      },
+      {
+        "kart": "arrowhead",
+        "ticks": 5372.028839111328,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.0008127523121550517
+      },
+      {
+        "kart": "tugboat",
+        "ticks": 5348.204254150391,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0036257846282750084
+      },
+      {
+        "kart": "glacier_sled",
+        "ticks": 5430.359802246094,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.011679851783940487
+      },
+      {
+        "kart": "neon_blade",
+        "ticks": 5358.064758300781,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.001788765767525402
+      },
+      {
+        "kart": "jet_kettle",
+        "ticks": 5367.210250854492,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.00008495407029640578
+      },
+      {
+        "kart": "crown_cruiser",
+        "ticks": 5368.131042480469,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.00008659005746225468
+      }
+    ]
+  },
+  {
+    "track": "spark_circuit/proving_ring",
+    "noJitter": true,
+    "label": "legacy",
+    "seed": 4242,
+    "driverSeed": 99,
+    "runs": [
+      {
+        "kart": "pebble",
+        "ticks": 5356.939788818359,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.003198948301035398
+      },
+      {
+        "kart": "clay_comet",
+        "ticks": 5357.546539306641,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0030860462433904834
+      },
+      {
+        "kart": "arrowhead",
+        "ticks": 5377.381286621094,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.0006047357632505967
+      },
+      {
+        "kart": "tugboat",
+        "ticks": 5358.414367675781,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0029245637057560003
+      },
+      {
+        "kart": "glacier_sled",
+        "ticks": 5427.653762817383,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.009959266357111307
+      },
+      {
+        "kart": "neon_blade",
+        "ticks": 5359.916198730469,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0026451081147278455
+      },
+      {
+        "kart": "jet_kettle",
+        "ticks": 5378.788803100586,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.0008666416203910732
+      },
+      {
+        "kart": "crown_cruiser",
+        "ticks": 5376.410110473633,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.0004240226241567502
+      }
+    ]
+  },
+  {
+    "track": "spark_circuit/proving_ring",
+    "noJitter": true,
+    "label": 4242,
+    "seed": 4242,
+    "driverSeed": 33592398,
+    "runs": [
+      {
+        "kart": "pebble",
+        "ticks": 5355.881011962891,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.004331560151970337
+      },
+      {
+        "kart": "clay_comet",
+        "ticks": 5356.0162353515625,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.004306421867507182
+      },
+      {
+        "kart": "arrowhead",
+        "ticks": 5359.862533569336,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0035913877326697596
+      },
+      {
+        "kart": "tugboat",
+        "ticks": 5357.145156860352,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.004096553217539767
+      },
+      {
+        "kart": "glacier_sled",
+        "ticks": 5430.981979370117,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.009629852150209617
+      },
+      {
+        "kart": "neon_blade",
+        "ticks": 5359.228729248047,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.00370921315827899
+      },
+      {
+        "kart": "jet_kettle",
+        "ticks": 5441.574111938477,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.011598949687187332
+      },
+      {
+        "kart": "crown_cruiser",
+        "ticks": 5372.760314941406,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0011936657094309133
+      }
+    ]
+  },
+  {
+    "track": "spark_circuit/proving_ring",
+    "noJitter": true,
+    "label": 2026,
+    "seed": 2026,
+    "driverSeed": 16043894,
+    "runs": [
+      {
+        "kart": "pebble",
+        "ticks": 5352.011688232422,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.003946786603157393
+      },
+      {
+        "kart": "clay_comet",
+        "ticks": 5351.998565673828,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.003949228818798334
+      },
+      {
+        "kart": "arrowhead",
+        "ticks": 5371.808380126953,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0002624600872922489
+      },
+      {
+        "kart": "tugboat",
+        "ticks": 5355.640060424805,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0032715168182335663
+      },
+      {
+        "kart": "glacier_sled",
+        "ticks": 5430.999420166016,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.010753477296559177
+      },
+      {
+        "kart": "neon_blade",
+        "ticks": 5365.8951416015625,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0013629622120815421
+      },
+      {
+        "kart": "jet_kettle",
+        "ticks": 5385.275360107422,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.002243855194826949
+      },
+      {
+        "kart": "crown_cruiser",
+        "ticks": 5372.120468139648,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.00020437795182315366
+      }
+    ]
+  },
+  {
+    "track": "spark_circuit/proving_ring",
+    "noJitter": true,
+    "label": 7301,
+    "seed": 7301,
+    "driverSeed": 57816619,
+    "runs": [
+      {
+        "kart": "pebble",
+        "ticks": 5355.214004516602,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0030673719973296487
+      },
+      {
+        "kart": "clay_comet",
+        "ticks": 5353.973556518555,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0032982951838821384
+      },
+      {
+        "kart": "arrowhead",
+        "ticks": 5365.4097900390625,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0011693131621671737
+      },
+      {
+        "kart": "tugboat",
+        "ticks": 5353.712142944336,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.003346960227206597
+      },
+      {
+        "kart": "glacier_sled",
+        "ticks": 5428.343994140625,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.010546588654886557
+      },
+      {
+        "kart": "neon_blade",
+        "ticks": 5365.605163574219,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": -0.0011329422063693917
+      },
+      {
+        "kart": "jet_kettle",
+        "ticks": 5378.589920043945,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.0012843145793390853
+      },
+      {
+        "kart": "crown_cruiser",
+        "ticks": 5372.679260253906,
+        "respawns": 0,
+        "hardHits": 0,
+        "dev": 0.0001839795427291957
+      }
+    ]
+  }
+]

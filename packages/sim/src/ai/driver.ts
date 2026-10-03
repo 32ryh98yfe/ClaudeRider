@@ -680,9 +680,8 @@ class BotDriver implements AiDriverEx {
       } else if (dragCorner && eh > AI_TUNING.dragEhLo && eh < AI_TUNING.dragEhHi && (pr.dragT > 0 || pr.sb >= P.dragEnterLo)) {
         // a boosted entry often slides into the window during the entry tap: the drag takes over from it
         this.tapLeft = 0;
-        // The wheel sets the yaw target inside the neutral band (|sIn| < dragNeutral keeps the drag: ±0.34 rad/s):
-        // sIn = (wanted − centred yaw − tap yaw)/y1, minus a damping term on the yaw excess (the yaw lags its target at
-        // kYawDrift). A tapping drag (톡톡이) budgets the taps' mean yaw (tapYaw/kYawDrift per tap gap) into that target.
+        // Invert the player's yaw law inside the neutral band. Counter-steer also removes the old slide's carry,
+        // so its gain is y1 + centred yaw. A tapping drag budgets the taps' mean yaw into that target.
         this.dragging = true;
         const tr = AI_TUNING.dragTrim * P.dragNeutral;
         const tapping = this.cTap && pr.dragT > 1;
@@ -692,12 +691,12 @@ class BotDriver implements AiDriverEx {
         // tapping drag never re-presses (the taps are its yaw source)
         const held = this.lastHeld;
         const yc = held ? yaw0 : yaw0 - P.y2;
-        const raw = (want - yc) / P.y1 - AI_TUNING.dragKd * (yawNow - wantYaw);
-        if (held && (want < yc - P.y1 * tr - AI_TUNING.dragHeldSwap || (raw < -tr && yawNow > wantYaw + AI_TUNING.dragYawRelease))) drift = false;
+        const raw = (want - yc) / (want < yc ? P.y1 + yc : P.y1) - AI_TUNING.dragKd * (yawNow - wantYaw);
+        if (held && (want < yc - (P.y1 + yc) * tr - AI_TUNING.dragHeldSwap || (raw < -tr && yawNow > wantYaw + AI_TUNING.dragYawRelease))) drift = false;
         else if (!held && !tapping && want > yc + P.y1 * tr + AI_TUNING.dragHeldSwap) drift = true;
         else drift = held;
         const yt = drift ? yaw0 : yaw0 - P.y2;
-        sIn = (want - yt) / P.y1 - AI_TUNING.dragKd * (yawNow - wantYaw);
+        sIn = (want - yt) / (want < yt ? P.y1 + yt : P.y1) - AI_TUNING.dragKd * (yawNow - wantYaw);
         if (sIn > tr) sIn = tr; else if (sIn < -tr) sIn = -tr;
         thr = 1; keepThrottle = true;
         if (tapping && eh > AI_TUNING.tapEhMin && yawNow < wantYaw + AI_TUNING.tapYawMargin && (pr.gap >= 255 || pr.gap + 1 >= this.tapNext)) {
@@ -717,6 +716,13 @@ class BotDriver implements AiDriverEx {
         if (rep > 0) sIn = sIn + rep > 1 ? 1 : sIn + rep;
         else if (rep < 0 && sIn > AI_TUNING.sideDriftMin) sIn = sIn + rep < AI_TUNING.sideDriftMin ? AI_TUNING.sideDriftMin : sIn + rep;
       }
+      const prepareInstant = sIn < -0.3;
+      if (!this.dragging && sIn < 0 && sIn > -P.cutSteer) {
+        // The heading controller's partial trim expresses a yaw correction. Human counter-steer now removes
+        // slide carry as well, so invert that stronger gain; keep deliberate full cuts at their actual threshold.
+        const carry = yaw0 - (drift ? 0 : P.y2);
+        sIn *= P.y1 / (P.y1 + carry);
+      }
       // (the band test has a wire-step margin: 0.3 is sent as 38/127 = 0.299, inside the band)
       if (!this.dragging && AI_TUNING.dragAvoid && pr.boost > 0 && pr.sb >= P.dragExitLo && sIn > -P.dragNeutral - 0.012 && sIn < P.dragNeutral + 0.012) {
         // no unplanned drag: a boosted drift sliding in the drag window with the wheel near centre would enter the drag
@@ -726,7 +732,7 @@ class BotDriver implements AiDriverEx {
       }
       steer = sIn * dd;
       // throttle off during the counter-steer sets up the instant-boost edge (only when this drift plans one)
-      if (sIn < -0.3 && this.instOk) thr = 0;
+      if (prepareInstant && this.instOk) thr = 0;
       if (!this.instOk) keepThrottle = true;
     }
 
@@ -924,7 +930,11 @@ class BotDriver implements AiDriverEx {
       this.stats.forksSeen++;
       if (take) this.stats.forksTaken++;
     }
-    // the nearest split within 70 m ahead (or just passed): approach lane and no drifting through the split
+    // Allow about three seconds to settle on the branch side at speed. A fixed 70 m setup began too late after
+    // a corner now that drift exit retains the driver's yaw; keep the final alignment/abandonment margin intact.
+    const b = k.body;
+    const approach = Math.max(70, 3 * Math.sqrt(b.vx * b.vx + b.vy * b.vy + b.vz * b.vz));
+    // the nearest split in that approach horizon (or just passed)
     this.forkNear = 0; this.forkNoDrift = false; this.forkNearRailVMin = 0; this.forkSoon = false;
     for (let q = 0; q < pp.forks.length; q++) {
       let d = pp.forks[q]!.at - s;
@@ -935,7 +945,7 @@ class BotDriver implements AiDriverEx {
       const f = pp.forks[q]!;
       let d = f.at - s;
       if (pp.closed) { if (d < -pp.length / 2) d += pp.length; else if (d > pp.length / 2) d -= pp.length; }
-      if (d < -8 || d > 70) continue;
+      if (d < -8 || d > approach) continue;
       this.forkNear = f.side; this.forkTakeNear = this.forkTake[f.id] === 1;
       this.forkNearRailVMin = f.kind === 'rail' && this.forkTakeNear ? f.vMin : 0;
       // not lined up on the branch side 30 m out (traffic, a late drift): keep to the host road this time

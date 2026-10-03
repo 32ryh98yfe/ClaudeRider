@@ -27,6 +27,8 @@ describe('tick-addressed reference replay', () => {
     expect(replay.frameAt(0)).toMatchObject({ steer: 76, throttle: 15, edges: Edge.TAP_R });
     expect(replay.frameAt(1)).toMatchObject({ steer: 107, edges: 0 });
     expect(replay.frameAt(10).held & Held.DRIFT).toBe(Held.DRIFT);
+    expect(replay.frameAt(10).edges).toBe(Edge.DRIFT);
+    expect(replay.frameAt(11).edges).toBe(0);
     expect(replay.frameAt(14).edges).toBe(Edge.TAP_L | Edge.USE_ITEM);
     const before = replay.frameAt(15);
     replay.frameAt(80); replay.frameAt(1);

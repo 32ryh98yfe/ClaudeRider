@@ -209,4 +209,4 @@ export interface RaceConfig {
   countdownTicks: number;                  // 3 beats × 60
 }
 
-export const SIM_VERSION = 8; // 8: preserve grounded contact across bank/deck seams (doc 17); wire layout unchanged
+export const SIM_VERSION = 9; // 9: latched drift press, continuous steering and swept hazards (doc 18); old packed ghosts incompatible

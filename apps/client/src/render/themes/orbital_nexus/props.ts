@@ -404,7 +404,6 @@ function stationArch(): THREE.BufferGeometry {
 function press(): THREE.BufferGeometry {
   const parts = [paint(place(rbox(7, 3, 5, 0.2, 2), 0, 1.5, 0), PANEL, 0.03, 4), paint(place(box(7.1, 0.35, 5.1), 0, 0.18, 0), ORANGE)];
   for (let i = -3; i <= 3; i++) parts.push(paint(place(box(0.5, 1.2, 0.06), i * 0.9, 2.1, 2.53, 0, 0, 0.6), i % 2 ? NAVY : AMBER));
-  parts.push(paint(place(cyl(0.6, 0.6, 5, 8), 0, 5.5, 0), GREY));
   return merge(parts);
 }
 
@@ -506,7 +505,7 @@ export const ORBITAL_PROPS: Record<string, PropFactory> = {
   gantry: F(stationArch, station, true),
   chevron: F(() => litChevron(ORANGE, 0.9, { panel: WHITE, scale: 1.5 }), station, true, 256),
   // hazards and compiler props
-  hazard_press: F(press, hull, true),
+  hazard_press: { build: () => ({ geometry: press(), material: hull(), castShadow: true, hazardDecoration: paint(place(cyl(0.6, 0.6, 5, 8), 0, 5.5, 0), GREY) }) },
   hazard_laser: F(laserGate, hull, false),
   hazard_train: F(maglev, hull, true),
   pillar: F(truss, station, true),

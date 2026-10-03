@@ -819,7 +819,7 @@ describe('physics: cut and reverse gauge (doc 15 §4.5, §4.7, §5 item 7)', () 
     expect(has(r.ev[end]!, 'driftEnd')).toBe(true);
     expect(r.s[end]!.drift).toBe(0);
     expect(Math.abs(r.s[end]!.wl)).toBeLessThan(1e-3);
-    expect(Math.abs(r.s[end]!.yaw)).toBeLessThan(1e-9);
+    expect(r.s[end]!.yaw).toBeLessThan(-0.1); // the new steering input survives the exit
     expect(r.s[end]!.iw).toBeGreaterThan(0);
     expect(r.s[end]!.counter).toBe(0);
     // u += etaCut·(v − u): most of the sideways speed is turned forward

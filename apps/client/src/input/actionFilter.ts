@@ -8,6 +8,7 @@ export interface DriveActions {
 
 export function actionPressEdge(action: string): number {
   switch (action) {
+    case 'drift': return Edge.DRIFT;
     case 'boost': case 'item': return Edge.USE_ITEM;
     case 'swap': return Edge.SWAP;
     case 'reset': return Edge.RESPAWN;

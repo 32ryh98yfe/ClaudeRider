@@ -82,7 +82,7 @@ PROP kind=bunting at=(30.0,-0.3,0.0) yaw=-90 scale=1
 PROP kind=bunting at=(185.0,-0.3,0.0) yaw=-90 scale=1
 PROP kind=signboard at=(172.0,-0.3,14.0) yaw=90 scale=1
 PROP kind=windmill at=(256.5,-0.3,-101.2) yaw=-160 scale=1.1
-PROP kind=creek at=(112.6,4.2,-309.4) yaw=30 scale=1
+PROP kind=creek at=(112.6,-1.0,-309.4) yaw=30 scale=1
 PROP kind=canal_boat at=(133.4,0.1,-321.4) yaw=30 scale=1
 PROP kind=bandstand at=(41.1,0.2,-395.7) yaw=77 scale=1
 PROP kind=weathervane at=(50.8,0.2,-405.8) yaw=47 scale=1

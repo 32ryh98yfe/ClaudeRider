@@ -162,7 +162,7 @@ export class Session {
       slot: i, characterId: s.characterId, kartBodyId: s.kartBodyId,
       livery: i === this.localSlot ? lv : { primary: KART_COLORS[i % KART_COLORS.length]!, secondary: '#faf9f5', pattern: i % 3, number: i + 1 },
     }));
-    this.renderer = new RaceRenderer(this.three, track, vis, this.content, this.tier);
+    this.renderer = new RaceRenderer(this.three, track, vis, this.content, this.tier, this.config.mode);
     this.renderer.localSlot = this.localSlot;
     await this.renderer.init(visuals);
     progress(0.9, t('common.loading'));
@@ -449,6 +449,8 @@ export class Session {
 
   /** Offline races pause (L10-session-hooks §1). Online races never pause. */
   setPaused(p: boolean): void {
+    // Keyboard release alone cannot remove a pre-menu sample waiting for the next simulation tick.
+    if (p) this.net?.clearPendingInput();
     if (this.isOnline || p === this.paused) return;
     const now = performance.now();
     if (p) this.pauseAt = now;

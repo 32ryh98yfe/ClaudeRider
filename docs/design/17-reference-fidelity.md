@@ -1,6 +1,8 @@
 # 17 — Reference fidelity and executable calibration
 
-This is the current driving specification for simulation version 8. The user
+This records the reference calibration through simulation version 8. Document
+`18-controls-and-track-contact.md` supersedes its repeat-input and cut-yaw rules
+for version 9; the measured source observations remain historical evidence. The user
 explicitly prioritized the supplied video over the previous immutable map and
 corner-number requirement. Preserve track themes, routes and feature order;
 adjust local geometry where the calibrated driving requires clearance. Camera
