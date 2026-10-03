@@ -807,28 +807,32 @@ describe('physics: cut and reverse gauge (doc 15 §4.5, §4.7, §5 item 7)', () 
     return { rig, k, ev, s };
   }
 
-  it('a full counter-steer with DRIFT released cuts on its 2nd tick: β → 0, the drift ends with the instant window open', () => {
+  it('a full counter-steer with DRIFT released qualifies on tick 2, then aligns and opens the instant window (doc 16)', () => {
     const r = cutRun(34, 0, () => ({ steer: -1 }));
     expect(r.s[29]!.drift).toBe(1);
     expect(has(r.ev[30]!, 'cut')).toBe(false);
     expect(r.s[30]!.counter).toBe(1);
     expect(r.s[30]!.drift).toBe(1);
-    expect(has(r.ev[31]!, 'cut')).toBe(true);
-    expect(has(r.ev[31]!, 'driftEnd')).toBe(true);
-    expect(r.s[31]!.drift).toBe(0);
-    expect(Math.abs(r.s[31]!.wl)).toBeLessThan(1e-3);
-    expect(Math.abs(r.s[31]!.yaw)).toBeLessThan(1e-9);
-    expect(r.s[31]!.iw).toBeGreaterThan(0);
-    expect(r.s[31]!.counter).toBe(0);
+    const end = r.ev.findIndex((events) => has(events, 'cut'));
+    expect(end).toBeGreaterThanOrEqual(31);
+    expect(end).toBeLessThan(40);
+    expect(has(r.ev[end]!, 'driftEnd')).toBe(true);
+    expect(r.s[end]!.drift).toBe(0);
+    expect(Math.abs(r.s[end]!.wl)).toBeLessThan(1e-3);
+    expect(Math.abs(r.s[end]!.yaw)).toBeLessThan(1e-9);
+    expect(r.s[end]!.iw).toBeGreaterThan(0);
+    expect(r.s[end]!.counter).toBe(0);
     // u += etaCut·(v − u): most of the sideways speed is turned forward
-    expect(r.s[31]!.v).toBeGreaterThan(r.s[30]!.u + 0.6 * (r.s[30]!.v - r.s[30]!.u));
+    expect(r.s[end]!.v).toBeGreaterThan(r.s[30]!.u + 0.6 * (r.s[30]!.v - r.s[30]!.u));
     expect(r.ev.flat().filter((e) => e.t === 'cut').length).toBe(1);
   });
 
-  it('a cut with DRIFT still held (no boost) also cuts on the 2nd tick', () => {
+  it('a cut with DRIFT still held (no boost) also recovers after the two-tick qualification', () => {
     const r = cutRun(34, 0, () => ({ steer: -1, drift: true }));
-    expect(has(r.ev[31]!, 'cut')).toBe(true);
-    expect(r.s[31]!.drift).toBe(0);
+    const end = r.ev.findIndex((events) => has(events, 'cut'));
+    expect(end).toBeGreaterThanOrEqual(31);
+    expect(end).toBeLessThan(40);
+    expect(r.s[end]!.drift).toBe(0);
   });
 
   it('a half counter-steer (0.6) never cuts', () => {
@@ -837,7 +841,7 @@ describe('physics: cut and reverse gauge (doc 15 §4.5, §4.7, §5 item 7)', () 
     for (let t = 30; t < 60; t++) expect(r.s[t]!.counter).toBe(0);
   });
 
-  it('boosting with DRIFT held: counter-steer is the reverse gauge (×3 gain, no cut); releasing DRIFT cuts at once', () => {
+  it('boosting with DRIFT held: counter-steer is the reverse gauge (×3 gain, no cut); releasing DRIFT permits recovery', () => {
     const r = cutRun(40, 300, (t) => ({ steer: -1, drift: t < 40 }));
     // in-steer: ×1 against the formula on the state
     for (let t = 20; t < 30; t++) {
@@ -854,8 +858,10 @@ describe('physics: cut and reverse gauge (doc 15 §4.5, §4.7, §5 item 7)', () 
       expect(dg / r.s[t]!.formula, `counter tick ${t}`).toBeLessThan(3.15);
     }
     expect(r.s[39]!.gauge).toBeLessThan(1);
-    expect(has(r.ev[40]!, 'cut')).toBe(true);
-    expect(r.s[40]!.drift).toBe(0);
+    const end = r.ev.findIndex((events) => has(events, 'cut'));
+    expect(end).toBeGreaterThanOrEqual(40);
+    expect(end).toBeLessThan(50);
+    expect(r.s[end]!.drift).toBe(0);
   });
 });
 
@@ -1015,15 +1021,18 @@ describe('physics: technique threshold edges (doc 15 §2)', () => {
     return { ev, counter, ratio };
   }
 
-  it('cut at sIn ≤ −0.7: raw +88 (−0.6929) never counts, raw +89 (−0.7008) cuts on its 2nd tick', () => {
+  it('cut at sIn ≤ −0.7: raw +88 (−0.6929) never counts, raw +89 (−0.7008) qualifies on its 2nd tick', () => {
     const no = counterRun(34, 0, { raw: 88 });
     expect(no.ev.flat().some((e) => e.t === 'cut')).toBe(false);
     expect(Math.max(...no.counter)).toBe(0);
     const yes = counterRun(34, 0, { raw: 89 });
     expect(yes.counter[0]).toBe(1);
     expect(has(yes.ev[0]!, 'cut')).toBe(false);
-    expect(has(yes.ev[1]!, 'cut')).toBe(true);
-    expect(has(yes.ev[1]!, 'driftEnd')).toBe(true);
+    expect(yes.counter[1]).toBe(2);
+    const end = yes.ev.findIndex((events) => has(events, 'cut'));
+    expect(end).toBeGreaterThanOrEqual(1);
+    expect(end).toBeLessThan(10);
+    expect(has(yes.ev[end]!, 'driftEnd')).toBe(true);
   });
 
   it('reverse gauge at sIn ≤ −0.3 while boosting: raw +38 charges ×1, raw +39 charges ×3', () => {

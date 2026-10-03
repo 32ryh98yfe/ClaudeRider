@@ -2,6 +2,10 @@
 
 This document is canonical for the M5 driving techniques. It sits on top of `10-sim-spec.md`, ADR-004, and the constants in `kart/params.ts`. Where this document and older text disagree, this document wins. Implementation (`packages/sim/src/kart/**`) and tests (`packages/sim/test/techniques.test.ts`, the oracle) are written against it independently.
 
+For simulation version 5, `16-reference-driving.md` supersedes the instantaneous
+cut in §4.5 and the frame-based keyboard smoothing description in §4.4. Other
+M5 behavior and speed targets remain in effect.
+
 ## 0. User spec (verbatim summary, Korean)
 - **Model.** Heading θh and velocity heading θv are controlled separately. The slip angle is β = θv − θh.
 - **Longitudinal.** dv/dt = a_engine − a_drag − a_friction + a_inject.

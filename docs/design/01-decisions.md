@@ -185,6 +185,13 @@ Kart bodies:
 - **Brake turn (고속턴) and spin-out.** Brake ticks 1–8 in a drift rotate the heading ×2; brake held ≥ 11 ticks in a drift spins out: drift ended without an instant window, active boost cancelled (stored boosters kept), 15 ticks of stun, planar speed 3.317 m/s (20 km/h).
 - Everything else in this ADR is unchanged.
 
+### Amendment (reference driving, simulation version 5)
+`16-reference-driving.md` supersedes the instantaneous cut and repeated-kick
+rules above: counter-steering recovers grip over finite ticks, with a faster
+catch at low speed; successful re-kicks have a nine-tick cooldown. Client
+keyboard smoothing uses elapsed time. Track geometry, terrain, kart statistics,
+speed limits, grip yaw, gravity and all other map calibration remain unchanged.
+
 ## ADR-005 Tick order (identical on authority and predictor)
 1. Latch inputs. Derive drift and throttle edges from `prevHeld` and `prevThrottle`.
 2. Apply effects whose start tick is now, in effectId order.

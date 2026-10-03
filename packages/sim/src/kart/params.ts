@@ -27,7 +27,7 @@ export interface KartParams {
   aDrag: number; etaDrag: number; dragCapMul: number; tapCapStep: number; tapStreakMax: number; tapYaw: number;
   tapAccelMul: number; tapTicks: number; tapGrace: number; tapMinGap: number; tapMaxGap: number;
   dragNeutral: number; dragEnterLo: number; dragEnterHi: number; dragExitLo: number; dragExitHi: number;
-  cutSteer: number; cutTicks: number; etaCut: number; revGaugeMul: number;
+  cutSteer: number; cutTicks: number; etaCut: number; kCut: number; revGaugeMul: number;
   brakeTurnTicks: number; brakeTurnMul: number; spinTicks: number; spinSpeed: number; spinStunTicks: number;
 }
 
@@ -58,8 +58,8 @@ export const SHARED: Readonly<Shared> = {
   aDrag: 5, etaDrag: 1.0, dragCapMul: 1.0662, tapCapStep: 0.01839, tapStreakMax: 3, tapYaw: 0.7,
   tapAccelMul: 2, tapTicks: 8, tapGrace: 8, tapMinGap: 6, tapMaxGap: 12,
   dragNeutral: 0.3, dragEnterLo: SIN.d20, dragEnterHi: SIN.d35, dragExitLo: SIN.d18, dragExitHi: SIN.d37,
-  // cut and reverse gauge
-  cutSteer: 0.7, cutTicks: 2, etaCut: 0.8, revGaugeMul: 3,
+  // cut and reverse gauge; doc 16 adds finite grip recovery, faster below vGrip for tight hairpins
+  cutSteer: 0.7, cutTicks: 2, etaCut: 0.8, kCut: 36, revGaugeMul: 3,
   // brake drift turn (고속턴) and spin-out (20 km/h, 15 ticks of stun)
   brakeTurnTicks: 8, brakeTurnMul: 2, spinTicks: 11, spinSpeed: 20 / KMH_PER_MPS, spinStunTicks: 15,
 };

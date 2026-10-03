@@ -9,6 +9,8 @@
 //      written independently of the sim (flat ground only: no slope gravity, always grounded): stun, the brake
 //      counter, the brake turn and spin-out, taps, cut, drag (K7b) with etaDrag, the drag law with its planar cap,
 //      K16 skipped while dragging, the post-boost bleed, the reverse gauge, the gear machine and the zero-lock.
+//   5. docs/design/16-reference-driving.md: finite counter-steer recovery and a nine-tick cooldown between
+//      repeated drift impulses, using the existing reDrift timer. The equations below are read from that amendment.
 // Mapping (§1.1): proto (x, y) ↔ world (x, −z); heading (hx, hy) ↔ (fx, −fz). Values are kept in world
 // coordinates where rounding matters (q(−y) ≠ −q(y) at exact halves).
 import type { KartParams } from '@cr/sim';
@@ -103,7 +105,8 @@ export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): vo
       k.vx *= P.kickLoss; k.vy *= P.kickLoss;
       resetTech(k); k.brakeT = brk ? 1 : 0; k.postT = 0;
     }
-  } else if (driftEdge && k.dT >= P.rekickMinTicks) {
+  } else if (driftEdge && k.dT >= P.rekickMinTicks && k.reDrift === 0 && !stunned) {
+    k.reDrift = P.rekickMinTicks;
     k.r += k.dDir * P.rekickR;
     [hx, hy] = rotH(hx, hy, k.dDir * P.rekickAngle);
     k.vx *= P.rekickLoss; k.vy *= P.rekickLoss;
@@ -151,13 +154,29 @@ export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): vo
   let w = -k.vx * hy + k.vy * hx;
   let v = Math.sqrt(u * u + w * w);
   // §4.5 K7b cut, reverse gauge and drag
-  let cut = false;
+  let cut = false, recovering = false;
   if (k.drift === 1) {
     const boosting = k.boostT > 0 || k.startT > 0;
     k.counterT = sIn <= -P.cutSteer ? Math.min(255, k.counterT + 1) : 0;
-    cut = k.counterT >= P.cutTicks && !(boosting && inp.drift);
+    if (k.counterT >= P.cutTicks && !(boosting && inp.drift)) {
+      recovering = true;
+      const speedRatio = P.vGrip / Math.max(v, 1);
+      const response = P.kCut * Math.min(4, Math.max(1, speedRatio * speedRatio * speedRatio));
+      const sideways = w * decayF(response);
+      const afterDamping = Math.sqrt(u * u + sideways * sideways);
+      if (afterDamping > 1e-6) {
+        const retention = (afterDamping + P.etaCut * (v - afterDamping)) / afterDamping;
+        u *= retention; w = sideways * retention;
+      } else w = sideways;
+      k.r *= decayF(response);
+      v = Math.sqrt(u * u + w * w);
+      if (Math.abs(w) <= P.exitSin * v) {
+        cut = true;
+        if (u > 0) u += P.etaCut * (v - u);
+        w = 0; k.r = 0; v = Math.abs(u);
+      }
+    }
     const sb7 = v > 0.1 ? -k.dDir * w / v : 0;
-    if (cut) { if (u > 0) u += P.etaCut * (v - u); w = 0; k.r = 0; }
     const steerOk = sIn > -P.dragNeutral && (sIn < P.dragNeutral || (k.streak > 0 && k.tapGap <= P.tapGrace));
     const ok = !cut && boosting && thr === 1 && !brk && steerOk;
     if (k.dragT > 0) {
@@ -181,6 +200,12 @@ export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): vo
   const vRaw = Math.sqrt(u * u + w2 * w2);
   if (vRaw > 1e-6) { const f = (vRaw + eta * (v - vRaw)) / vRaw; u *= f; w = w2 * f; } else w = w2;
   v = Math.sqrt(u * u + w * w);
+  // Ordinary tyre damping can finish an already-qualified recovery in this tick too.
+  if (recovering && !cut && Math.abs(w) <= P.exitSin * v) {
+    cut = true;
+    if (u > 0) u += P.etaCut * (v - u);
+    w = 0; k.r = 0; v = Math.abs(u);
+  }
   // K9 slip cap
   if (k.drift === 1) { const sm = SIN55 * v; if (w > sm || w < -sm) { w = w > 0 ? sm : -sm; u = Math.sqrt(v * v - w * w); } }
   // K10 fatigue, K11 bookkeeping (reverse gauge ×revGaugeMul; a cut is an exit)

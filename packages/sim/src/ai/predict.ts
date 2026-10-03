@@ -5,6 +5,7 @@
 // slopes, zones or item effects): the gap-2 yaw law, lateral damping, slip cap, drift entry/exit, the
 // longitudinal laws, and the M5 driving techniques of 15-driving-techniques §4 (tap edges, brake turn ×2,
 // spin-out, cut, drag with η = 1 and the planar cap, no K16 while dragging, the post-boost bleed, STOP/R gears).
+// Doc 16 adds finite, speed-conditioned cut recovery and the repeat-drift cooldown, matching the authority.
 // Every constant comes from KartParams. ~0.4 µs per frame; no allocation.
 import type { KartState } from '../core/state.ts';
 import { Edge } from '../core/input.ts';
@@ -131,7 +132,8 @@ export class SelfPredictor {
           const nx = hx * kickC - hy * kickS * dir, ny = hy * kickC + hx * kickS * dir; hx = nx; hy = ny;
           vx *= P.kickLoss; vy *= P.kickLoss;
         }
-      } else if (driftEdge && dT >= P.rekickMinTicks) {
+      } else if (driftEdge && dT >= P.rekickMinTicks && lock <= 0 && !wallStun) {
+        lock = P.rekickMinTicks;
         yaw += dir * P.rekickR;
         const nx = hx * reC - hy * reS * dir, ny = hy * reC + hx * reS * dir; hx = nx; hy = ny;
         vx *= P.rekickLoss; vy *= P.rekickLoss;
@@ -180,11 +182,21 @@ export class SelfPredictor {
       let v = Math.sqrt(u * u + w * w);
       // ---- K7b cut and drag
       const boosting = boostT > 0 || startT > 0;
-      let cut = false;
+      let cut = false, recovering = false;
       if (drift === 1) {
         counter = sIn <= -P.cutSteer ? (counter < 255 ? counter + 1 : 255) : 0;
-        cut = counter >= P.cutTicks && !(boosting && held);
-        if (cut) { if (u > 0) u += P.etaCut * (v - u); w = 0; yaw = 0; v = u < 0 ? -u : u; }
+        if (counter >= P.cutTicks && !(boosting && held)) {
+          recovering = true;
+          const ratio = P.vGrip / Math.max(v, 1);
+          const recovery = P.kCut * Math.min(4, Math.max(1, ratio * ratio * ratio));
+          const wr = w * decayF(recovery * grip, DT);
+          const raw = Math.sqrt(u * u + wr * wr);
+          if (raw > 1e-6) { const keep = (raw + P.etaCut * (v - raw)) / raw; u *= keep; w = wr * keep; } else w = wr;
+          yaw *= decayF(recovery, DT);
+          v = Math.sqrt(u * u + w * w);
+          cut = Math.abs(w) <= P.exitSin * v;
+          if (cut) { if (u > 0) u += P.etaCut * (v - u); w = 0; yaw = 0; v = u < 0 ? -u : u; }
+        }
         const steerOk = sIn > -P.dragNeutral && (sIn < P.dragNeutral || (streak > 0 && gap <= P.tapGrace));
         const ok = !cut && boosting && thr && !brk && steerOk;
         const sb7 = v > 0.1 ? (-dir * w) / v : 0;
@@ -209,6 +221,11 @@ export class SelfPredictor {
       const vRaw = Math.sqrt(u * u + w2 * w2);
       if (vRaw > 1e-6) { const f = (vRaw + eta * (v - vRaw)) / vRaw; u *= f; w = w2 * f; } else w = w2;
       v = Math.sqrt(u * u + w * w);
+      if (recovering && !cut && Math.abs(w) <= P.exitSin * v) {
+        cut = true;
+        if (u > 0) u += P.etaCut * (v - u);
+        w = 0; yaw = 0; v = u < 0 ? -u : u;
+      }
       // ---- K9 slip cap, K11 drift bookkeeping and exit (the instant window opens on a qualifying exit)
       let sb = 0;
       if (drift === 1) {

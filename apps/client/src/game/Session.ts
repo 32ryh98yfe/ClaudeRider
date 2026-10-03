@@ -255,7 +255,7 @@ export class Session {
 
   /** Input → network → prediction; returns the sampled input (for audio). */
   private simulate(now: number): InputFrame {
-    const inp = sampleInput();
+    const inp = sampleInput(now);
     this.renderer.lookBack = (inp.held & Held.LOOK_BACK) !== 0;
     if (!this.autopilot) { this.net.submit(inp); copyInputInto(this.lastInput, inp); }
     inp.edges = 0;

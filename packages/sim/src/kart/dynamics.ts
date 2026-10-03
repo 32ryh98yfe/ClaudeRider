@@ -9,7 +9,7 @@
 //
 // Driving techniques (M5) follow docs/design/15-driving-techniques.md §4, which supersedes 10-sim-spec for them:
 // post-boost bleed, brake turn / spin-out, tap boost, cut, reverse gauge, drag and gears. Their steps are marked
-// "§4.n" below. With no boost, no technique input and no full counter-steer, the gap-2 path is unchanged.
+// "§4.n" below. Doc 16 refines counter-steer recovery and repeat-kick timing without changing the track envelope.
 import type { InputFrame } from '../core/input.ts';
 import { Held, Edge } from '../core/input.ts';
 import { Attach, Boost, Gear, type GearState, type KartState, type WorldState } from '../core/state.ts';
@@ -148,7 +148,9 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
         b.vx *= P.kickLoss; b.vy *= P.kickLoss; b.vz *= P.kickLoss;
         ev.push({ t: 'driftStart', kart: k.slot, tick, key: evKey(tick, 2, k.slot) });
       }
-    } else if (driftEdge && d.driftTicks >= P.rekickMinTicks) {
+    } else if (driftEdge && d.driftTicks >= P.rekickMinTicks && d.reDriftLock <= 0 && !wallStun) {
+      // Space repeat impulses as well as the first one; Shift mashing must not accumulate yaw every two ticks.
+      d.reDriftLock = P.rekickMinTicks;
       b.yawRate += d.driftDir * P.rekickR;
       rotateForward(k, d.driftDir * P.rekickAngle);
       b.vx *= P.rekickLoss; b.vy *= P.rekickLoss; b.vz *= P.rekickLoss;
@@ -227,17 +229,31 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
 
     // -------------------------------------------------------------- K7b cut and drag (§4.5)
     const boosting = d.boostTicks > 0 || d.startTicks > 0;
-    let cut = false;
+    let cut = false, recovering = false;
     if (d.drift === 1) {
-      // cut: a full counter-steer for cutTicks ticks snaps the velocity onto the heading (β → 0) and ends the drift
-      // in K11. While boosting with DRIFT held the counter-steer charges the reverse gauge instead.
+      // Doc 16: full counter-steer starts finite grip recovery after the debounce. Only a nearly aligned kart
+      // finishes the cut; deeper slip keeps momentum across several ticks. Boost + DRIFT keeps reverse gauge.
       d.counterTicks = sIn <= -P.cutSteer ? (d.counterTicks < 255 ? d.counterTicks + 1 : 255) : 0;
-      cut = d.counterTicks >= P.cutTicks && !(boosting && driftHeld);
-      if (cut) {
-        if (u > 0) u += P.etaCut * (v - u);
-        wl = 0; b.yawRate = 0;
-        v = u < 0 ? -u : u;
-        ev.push({ t: 'cut', kart: k.slot, tick, key: evKey(tick, 12, k.slot) });
+      if (d.counterTicks >= P.cutTicks && !(boosting && driftHeld)) {
+        recovering = true;
+        // Tight, slow hairpins need a quicker catch than fast sweepers to retain the authored corner envelope.
+        const ratio = P.vGrip / Math.max(v, 1);
+        const recovery = P.kCut * Math.min(4, Math.max(1, ratio * ratio * ratio));
+        const wr = wl * decayF(recovery * surf.grip, DT);
+        const raw = Math.sqrt(u * u + wr * wr);
+        if (raw > 1e-6) {
+          const keep = (raw + P.etaCut * (v - raw)) / raw;
+          u *= keep; wl = wr * keep;
+        } else wl = wr;
+        b.yawRate *= decayF(recovery, DT);
+        v = Math.sqrt(u * u + wl * wl);
+        cut = Math.abs(wl) <= P.exitSin * v;
+        if (cut) {
+          if (u > 0) u += P.etaCut * (v - u);
+          wl = 0; b.yawRate = 0;
+          v = u < 0 ? -u : u;
+          ev.push({ t: 'cut', kart: k.slot, tick, key: evKey(tick, 12, k.slot) });
+        }
       }
       // drag: boosting, ↑, no brake, on the ground, steering neutral (or the key of a valid tap still held)
       const steerOk = sIn > -P.dragNeutral && (sIn < P.dragNeutral || inTapGrace(d, P));
@@ -269,6 +285,15 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
     const vRaw = Math.sqrt(u * u + w2 * w2);
     if (vRaw > 1e-6) { const f = (vRaw + eta * (v - vRaw)) / vRaw; u *= f; wl = w2 * f; } else wl = w2;
     v = Math.sqrt(u * u + wl * wl);
+
+    // Ordinary tyre damping can finish the last few degrees this tick too. Complete the same cut transition
+    // here so K11 cannot bypass its yaw alignment/event with a natural drift exit.
+    if (recovering && !cut && Math.abs(wl) <= P.exitSin * v) {
+      cut = true;
+      if (u > 0) u += P.etaCut * (v - u);
+      wl = 0; b.yawRate = 0; v = u < 0 ? -u : u;
+      ev.push({ t: 'cut', kart: k.slot, tick, key: evKey(tick, 12, k.slot) });
+    }
 
     // -------------------------------------------------------------- K9 slip cap
     if (d.drift === 1) { const sm = P.sinBetaMax * v; if (wl > sm || wl < -sm) { wl = wl > 0 ? sm : -sm; u = Math.sqrt(v * v - wl * wl); } }

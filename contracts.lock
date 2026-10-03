@@ -13,7 +13,7 @@
     "packages/sim/src/core/hash.ts": "5dd0dcc270d8af1de3ceea2af0b499ccfb5902c9b66b434cb0e7820fa3452873",
     "packages/sim/src/core/input.ts": "08e7a4ee15e1443a374a78e694b118bcb0867f57157ea671ef77e6823a220437",
     "packages/sim/src/core/quant.ts": "19b53690a3f807b9a72fc69183fd5e27e7e484c0287ed2ff847e39b871a06dc8",
-    "packages/sim/src/core/state.ts": "586b9422bfbcd5e8734db74b1c29243ccf0f5865ad3e314762596737368250e1",
+    "packages/sim/src/core/state.ts": "d3d937333fd6f68fe46b673898ebff2c43ddb358698e6a969e896de6cf7b37e6",
     "packages/sim/src/core/units.ts": "e13a713019939a559c03e1af571d95e9f8ba00e9b04e26beb47845b782d2eb76",
     "packages/sim/src/core/world.ts": "adf8572c98b87695ba5130c32ce70f30c8cb92908847179ce9012b35a6b465ca",
     "packages/sim/src/step.ts": "917ce29f5900a16954a76d7e1094de326a28315f772f05a616fddc08a383fbda",

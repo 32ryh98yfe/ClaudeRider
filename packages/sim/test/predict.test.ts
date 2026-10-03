@@ -44,6 +44,13 @@ const SCENARIOS: Scenario[] = [
   { name: 'brake to a stop, STOP, reverse after 6 ticks, ↑ back to D', speed: 12, frames: [...rep(80, { brk: 1, thr: 0 }), ...rep(40, { brk: 1, thr: 0, steer: 0.5 }), ...rep(40, {})] },
   { name: 'coasting in N to rest, then a start in D', speed: 14, frames: [...rep(400, { thr: 0 }), ...rep(40, { steer: 0.3 })] },
   { name: 'neon_blade (speed body): drag with taps', kart: 'neon_blade', speed: 46, setup: boosted(300), frames: [...rep(20, { steer: 1, drift: true }), ...rep(4, { drift: true }), ...taps(80, 9, { drift: true }, Edge.TAP_L)] },
+  { name: 'reference recovery: full counter-steer interrupted by neutral, then resumed', speed: 34, frames: [
+    ...rep(24, { steer: 1, drift: true }), ...rep(2, { steer: -1 }), ...rep(3, {}), ...rep(25, { steer: -1 }), ...rep(40, {})] },
+  { name: 'reference repeated kicks: two-tick Shift mashing and intentional nine-tick presses', speed: 34, frames: [
+    ...rep(12, { steer: 1, drift: true }),
+    ...Array.from({ length: 48 }, (_, t) => ({ steer: 0.8, drift: t % 2 === 0 })),
+    ...Array.from({ length: 36 }, (_, t) => ({ steer: 0.8, drift: t % 9 === 0 })),
+    ...rep(12, { steer: -1 }), ...rep(30, {})] },
 ];
 
 function apply(rig: Rig, f: Frame): void {

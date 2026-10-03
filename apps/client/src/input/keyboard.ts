@@ -16,8 +16,10 @@ let edges = 0;
 let emote = 0;
 let anyKeyCbs: (() => void)[] = [];
 let lastSteer = 0;
+let steerAt = 0;
 let gameActive = false;
 let composing = false;
+let focused = true;
 let captureCb: ((code: string) => void) | null = null;
 const uiListeners = new Map<string, Set<() => void>>();
 
@@ -33,7 +35,7 @@ function fire(action: string): void { for (const f of uiListeners.get(action) ??
 /** True while the race owns the keyboard (not paused, not in a menu). */
 export function setGameKeysActive(on: boolean): void {
   gameActive = on;
-  if (!on) { down.clear(); edges = 0; }
+  clearInput();
 }
 export function gameKeysActive(): boolean { return gameActive; }
 
@@ -78,6 +80,9 @@ function onDown(e: KeyboardEvent): void {
   // system hotkeys work everywhere (menus and race)
   for (const a of acts) if (SYSTEM_ACTIONS.has(a)) { e.preventDefault(); if (!e.repeat) fire(a); }
   if (!gameActive) return;
+  // Integrate the old direction up to the event before changing the held keys. A short
+  // counter-steer then has the same duration even when it falls between rendered frames.
+  advanceSteering(readPad(false), performance.now());
   if (acts.length || BROWSER_DEFAULTS.has(e.code)) e.preventDefault();
   if (!e.repeat) {
     for (const a of acts) {
@@ -95,22 +100,26 @@ function onDown(e: KeyboardEvent): void {
       }
     }
   }
-  down.add(e.code);
+  if (gameActive) down.add(e.code);
 }
 
 function onUp(e: KeyboardEvent): void {
   if (e.code === 'AltLeft' || e.code === 'AltRight') e.preventDefault();
-  if (isTextTarget(e.target)) return;
-  const acts = actionsOf(e.code);
-  if (gameActive && acts.length) e.preventDefault();
+  if (gameActive) advanceSteering(readPad(false), performance.now());
   down.delete(e.code);
+  const acts = actionsOf(e.code);
+  if (gameActive && acts.length && !isTextTarget(e.target)) e.preventDefault();
   if (acts.includes('standings')) heldUi.value = { ...heldUi.value, standings: false };
   if (acts.includes('look')) heldUi.value = { ...heldUi.value, look: false };
 }
 
-function releaseAll(): void {
-  down.clear(); edges = 0; lastSteer = 0; releasePad();
+function clearInput(now = performance.now()): void {
+  down.clear(); edges = 0; emote = 0; lastSteer = 0; steerAt = now; releasePad();
   if (heldUi.value.look || heldUi.value.standings) heldUi.value = { look: false, standings: false };
+}
+
+function releaseAll(): void {
+  clearInput();
   for (const f of uiListeners.get('blur') ?? []) f();
 }
 
@@ -120,10 +129,12 @@ export function installKeyboard(): void {
   installed = true;
   window.addEventListener('keydown', onDown, { capture: true });
   window.addEventListener('keyup', onUp, { capture: true });
-  window.addEventListener('blur', releaseAll);
+  window.addEventListener('blur', () => { focused = false; releaseAll(); });
+  window.addEventListener('focus', () => { focused = true; clearInput(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
-  window.addEventListener('compositionstart', () => { composing = true; }, { capture: true });
+  window.addEventListener('compositionstart', () => { composing = true; clearInput(); }, { capture: true });
   window.addEventListener('compositionend', () => { composing = false; }, { capture: true });
+  window.addEventListener('focusin', (e) => { if (isTextTarget(e.target)) clearInput(); }, { capture: true });
   // no context menu / text selection on the game surface
   window.addEventListener('contextmenu', (e) => { if (!isTextTarget(e.target)) e.preventDefault(); });
   installGamepad();
@@ -140,17 +151,31 @@ export function onAnyKey(cb: () => void): () => void { anyKeyCbs.push(cb); retur
 
 const held = (a: string): boolean => (save.get().settings.keys[a] ?? []).some((c) => down.has(c));
 
-const frame = makeInput();
-/** Samples the current input state; consumes latched edges. Called by game/Session once per rendered frame. */
-export function sampleInput(): InputFrame {
-  const gp = readPad();
+function advanceSteering(gp: typeof padOut, now: number): number {
+  const elapsedMs = Math.max(0, now - steerAt);
+  steerAt = Math.max(steerAt, now);
   const l = held('left') || gp.left, r = held('right') || gp.right;
-  let steer = gp.steer !== 0 ? gp.steer : (r ? 1 : 0) - (l ? 1 : 0);
-  // light digital smoothing keeps keyboard steering from feeling twitchy
-  if (gp.steer === 0) { lastSteer += (steer - lastSteer) * 0.6; if (Math.abs(lastSteer - steer) < 0.02) lastSteer = steer; steer = lastSteer; } else lastSteer = steer;
+  const target = (r ? 1 : 0) - (l ? 1 : 0);
+  // Retain the original 0.6 response at 60 Hz, measured in elapsed time. Do not
+  // snap the filter on a sample boundary: that makes its tail depend on frame rate.
+  if (gp.steer === 0) lastSteer += (target - lastSteer) * (1 - Math.pow(0.4, elapsedMs * 60 / 1000));
+  else lastSteer = gp.steer;
+  return lastSteer;
+}
+
+const frame = makeInput();
+/** Samples and consumes latched edges using the monotonic render/fallback-pump time in milliseconds. */
+export function sampleInput(now = performance.now()): InputFrame {
+  const gp = readPad();
+  if (!gameActive || composing || !focused || document.hidden || isTextTarget(document.activeElement)) {
+    clearInput(now);
+    frame.steer = 0; frame.throttle = 0; frame.brake = 0; frame.held = 0; frame.edges = 0; frame.aim = 255; frame.emote = 0;
+    return frame;
+  }
+  const steer = advanceSteering(gp, now);
   frame.steer = Math.round(Math.max(-1, Math.min(1, steer)) * 127);
-  frame.throttle = held('accel') || gp.accel > 0.1 ? Math.max(1, Math.round((gp.accel > 0.1 ? gp.accel : 1) * 15)) : 0;
-  frame.brake = held('brake') || gp.brake > 0.1 ? Math.max(1, Math.round((gp.brake > 0.1 ? gp.brake : 1) * 15)) : 0;
+  frame.throttle = held('accel') ? 15 : gp.accel > 0.1 ? Math.max(1, Math.round(gp.accel * 15)) : 0;
+  frame.brake = held('brake') ? 15 : gp.brake > 0.1 ? Math.max(1, Math.round(gp.brake * 15)) : 0;
   const look = held('look') || gp.look;
   frame.held = (held('drift') || gp.drift ? Held.DRIFT : 0) | (look ? Held.LOOK_BACK : 0) | (save.get().settings.autoBoost && (held('item') || gp.item) ? Held.ITEM : 0);
   frame.edges = edges | gp.edges;
@@ -163,19 +188,23 @@ export function sampleInput(): InputFrame {
 
 // ------------------------------------------------------------------ gamepad (standard mapping, rebindable)
 const padOut = { steer: 0, accel: 0, brake: 0, drift: false, item: false, look: false, left: false, right: false, edges: 0 };
-function readPad(): typeof padOut {
+function digitalPedal(bindings: readonly number[] | undefined, buttons: readonly boolean[], trigger: number): boolean {
+  if (bindings) for (const button of bindings) if (button !== trigger && buttons[button]) return true;
+  return false;
+}
+function readPad(consumeEdges = true): typeof padOut {
   const o = padOut;
   o.steer = 0; o.accel = 0; o.brake = 0; o.drift = false; o.item = false; o.look = false; o.left = false; o.right = false; o.edges = 0;
   const p = padState();
-  const presses = consumePadPresses(), flicks = consumeStickFlicks();
+  const presses = consumeEdges ? consumePadPresses() : 0, flicks = consumeEdges ? consumeStickFlicks() : 0;
   if (!p.connected) return o;
   const map = save.get().settings.pad ?? {};
   const btn = (a: string): boolean => (map[a] ?? []).some((b) => p.buttons[b]);
   const pressed = (a: string): boolean => (map[a] ?? []).some((b) => (presses & (1 << b)) !== 0);
   o.steer = p.steer;
   // triggers are analog when bound to their default buttons, digital otherwise
-  o.accel = (map['accel'] ?? []).includes(7) ? Math.max(p.throttle, btn('accel') ? 1 : 0) : btn('accel') ? 1 : 0;
-  o.brake = (map['brake'] ?? []).includes(6) ? Math.max(p.brake, btn('brake') ? 1 : 0) : btn('brake') ? 1 : 0;
+  o.accel = digitalPedal(map['accel'], p.buttons, 7) ? 1 : map['accel']?.includes(7) ? p.throttle : 0;
+  o.brake = digitalPedal(map['brake'], p.buttons, 6) ? 1 : map['brake']?.includes(6) ? p.brake : 0;
   o.drift = btn('drift'); o.item = btn('item'); o.look = btn('look');
   o.left = btn('left'); o.right = btn('right');
   if (pressed('item')) o.edges |= Edge.USE_ITEM;
