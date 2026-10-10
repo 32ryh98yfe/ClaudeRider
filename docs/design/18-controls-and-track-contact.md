@@ -1,5 +1,7 @@
 # 18 — Responsive controls and visible track contact
 
+> Historical evidence. [19 — Continuous handling](19-continuous-handling.md) is the current simulation-10 control/speed contract. The user explicitly authorized slower speeds, stronger traction, longer short-press drift, and local geometry changes. Earlier numerical speed, duration and data-preservation requirements below do not override that contract.
+
 Simulation version 9 addresses the seven play-test findings after the reference
 calibration: lost Shift presses, Escape immediately resuming, scenery obstructing
 roads without contact, item boxes in speed races, frozen heading after drift,

@@ -5,7 +5,7 @@
 // Glowing parts use HDR vertex colours (see canopy_forest/shapes.ts `hdr`).
 import * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../../materials/library.ts';
-import { merge, box, cyl, cone, ico, rbox, torus } from '../../util/geo.ts';
+import { cosmetic, merge, box, cyl, cone, ico, rbox, torus } from '../../util/geo.ts';
 import type { PropFactory } from '../../props/defaults.ts';
 import { CANOPY_PROPS } from '../canopy_forest/props.ts';
 import { around, blob, facet, hdr, inward, lathe, part, prng, tube } from '../canopy_forest/shapes.ts';
@@ -69,10 +69,10 @@ function pumpkinPatch(): THREE.BufferGeometry {
 // ------------------------------------------------------------------------------------------------ lanterns
 /** Paper lantern (glowing body, dark caps) hanging from point (x, y, z). */
 export function paperLantern(parts: THREE.BufferGeometry[], x: number, y: number, z: number, r: number, k = 2.2): void {
-  parts.push(part(cyl(0.015, 0.015, 0.5, 3), C.iron, x, y - 0.25, z));
-  parts.push(part(new THREE.SphereGeometry(r, 8, 6), GLOW(k), x, y - 0.5 - r * 0.9, z, 0, 0, 0, 1, 1.25, 1));
-  parts.push(part(cyl(r * 0.5, r * 0.55, r * 0.25, 8), C.red, x, y - 0.5 - r * 0.02, z), part(cyl(r * 0.55, r * 0.5, r * 0.25, 8), C.red, x, y - 0.5 - r * 1.8, z));
-  parts.push(part(cyl(0.02, 0.02, r * 0.6, 3), C.gold, x, y - 0.5 - r * 2.2, z));
+  parts.push(cosmetic(part(cyl(0.015, 0.015, 0.5, 3), C.iron, x, y - 0.25, z)));
+  parts.push(cosmetic(part(new THREE.SphereGeometry(r, 8, 6), GLOW(k), x, y - 0.5 - r * 0.9, z, 0, 0, 0, 1, 1.25, 1)));
+  parts.push(cosmetic(part(cyl(r * 0.5, r * 0.55, r * 0.25, 8), C.red, x, y - 0.5 - r * 0.02, z)), cosmetic(part(cyl(r * 0.55, r * 0.5, r * 0.25, 8), C.red, x, y - 0.5 - r * 1.8, z)));
+  parts.push(cosmetic(part(cyl(0.02, 0.02, r * 0.6, 3), C.gold, x, y - 0.5 - r * 2.2, z)));
 }
 function lanternPost(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
@@ -108,7 +108,7 @@ function lanternArch(): THREE.BufferGeometry {
   }
   for (let i = 0; i < 14; i++) {
     const t = (i + 0.5) / 14, xx = -X + t * 2 * X, yy = H + Math.sin(t * Math.PI) * 2.2 - 0.45;
-    parts.push(part(cone(0.35, 0.8, 3), [C.pumpkin, C.purple, C.wisp][i % 3]!, xx, yy - 0.3, 0.25, Math.PI, 0, 0, 1, 1, 0.2));
+    parts.push(cosmetic(part(cone(0.35, 0.8, 3), [C.pumpkin, C.purple, C.wisp][i % 3]!, xx, yy - 0.3, 0.25, Math.PI, 0, 0, 1, 1, 0.2)));
   }
   return merge(parts);
 }
@@ -118,7 +118,7 @@ function lanternString(): THREE.BufferGeometry {
   for (const z of [-5, 5]) parts.push(part(facet(cyl(0.12, 0.16, 8, 5)), C.woodDark, 0, 2.5, z));
   const pts: [number, number, number][] = [];
   for (let i = 0; i <= 10; i++) { const t = i / 10; pts.push([0, 6.4 - Math.sin(t * Math.PI) * 1.0, -5 + t * 10]); }
-  parts.push(part(tube(pts, 0.03, 10, 3), C.iron));
+  parts.push(cosmetic(part(tube(pts, 0.03, 10, 3), C.iron)));
   // review round: three lanterns per span (was five), so the strings stay accents and the road furniture reads first
   for (const t of [0.2, 0.5, 0.8]) paperLantern(parts, 0, 6.4 - Math.sin(t * Math.PI) * 1.0, -5 + t * 10, 0.28, 2.1);
   return merge(parts);
@@ -138,10 +138,10 @@ function bridgeRail(): THREE.BufferGeometry {
 function creek(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
   const rnd = prng(221);
-  parts.push(part(new THREE.PlaneGeometry(80, 9), '#27406e', 0, 0, 0, -Math.PI / 2, 0, 0));
-  parts.push(part(new THREE.PlaneGeometry(80, 1.2), '#5d7fb8', 0, 0.02, 4.2, -Math.PI / 2, 0, 0), part(new THREE.PlaneGeometry(80, 1.2), '#5d7fb8', 0, 0.02, -4.2, -Math.PI / 2, 0, 0));
+  parts.push(cosmetic(part(new THREE.PlaneGeometry(80, 9), '#27406e', 0, 0, 0, -Math.PI / 2, 0, 0)));
+  parts.push(cosmetic(part(new THREE.PlaneGeometry(80, 1.2), '#5d7fb8', 0, 0.02, 4.2, -Math.PI / 2, 0, 0)), cosmetic(part(new THREE.PlaneGeometry(80, 1.2), '#5d7fb8', 0, 0.02, -4.2, -Math.PI / 2, 0, 0)));
   for (let i = 0; i < 14; i++) parts.push(part(blob(0.6 + rnd() * 0.7, 0, 0.3, 223 + i, 1.2, 0.5, 1), i % 2 ? C.stone : C.stoneDark, (rnd() - 0.5) * 70, 0.1, (rnd() > 0.5 ? 1 : -1) * (4.5 + rnd())));
-  for (let i = 0; i < 16; i++) { const x = (rnd() - 0.5) * 70, z = (rnd() > 0.5 ? 1 : -1) * (5 + rnd() * 1.5); parts.push(part(cyl(0.04, 0.05, 1.8, 4), C.leaf, x, 0.8, z), part(cyl(0.1, 0.1, 0.4, 5), C.woodDark, x, 1.7, z)); }
+  for (let i = 0; i < 16; i++) { const x = (rnd() - 0.5) * 70, z = (rnd() > 0.5 ? 1 : -1) * (5 + rnd() * 1.5); parts.push(cosmetic(part(cyl(0.04, 0.05, 1.8, 4), C.leaf, x, 0.8, z)), cosmetic(part(cyl(0.1, 0.1, 0.4, 5), C.woodDark, x, 1.7, z))); }
   return merge(parts);
 }
 
@@ -203,7 +203,7 @@ function crookedTree(): THREE.BufferGeometry {
     [[0.8, 9, 0.3], [2.0, 11, -1.5], [1.4, 12.2, -2.6]], [[0, 8, 0], [-1.2, 10.4, 2.2], [-0.4, 11.4, 3.2]],
   ];
   for (const b of br) parts.push(part(tube(b, 0.22, 8, 5), C.woodDark));
-  for (const [x, y, z] of [[4.4, 8.2, 2.8], [-4.8, 8.5, -0.4], [1.4, 12.5, -2.6], [-0.4, 11.8, 3.2], [1.3, 10.4, 0.2]] as const) parts.push(part(blob(1.2, 0, 0.3, 37 + x, 1.2, 0.8, 1.2), x > 0 ? C.plum : '#7a4a8c', x, y + 0.4, z));
+  for (const [x, y, z] of [[4.4, 8.2, 2.8], [-4.8, 8.5, -0.4], [1.4, 12.5, -2.6], [-0.4, 11.8, 3.2], [1.3, 10.4, 0.2]] as const) parts.push(cosmetic(part(blob(1.2, 0, 0.3, 37 + x, 1.2, 0.8, 1.2), x > 0 ? C.plum : '#7a4a8c', x, y + 0.4, z)));
   paperLantern(parts, 3.8, 7.2, 2.4, 0.3, 2.3);
   paperLantern(parts, -4.2, 7.6, -1.0, 0.3, 2.3);
   paperLantern(parts, 2.0, 10.9, -1.5, 0.26, 2.3);
@@ -321,7 +321,7 @@ function mill(): THREE.BufferGeometry {
   wheel.push(part(torus(4.2, 0.3, 4, 16), C.wood, 0, 0, 0), part(torus(2.0, 0.2, 4, 12), C.wood, 0, 0, 0));
   for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; wheel.push(part(box(0.3, 4.2, 0.3), C.woodDark, Math.cos(a) * 2.1, Math.sin(a) * 2.1, 0, 0, 0, a + Math.PI / 2)); wheel.push(part(box(1.4, 0.2, 1.0), C.woodDark, Math.cos(a) * 4.3, Math.sin(a) * 4.3, 0, 0, 0, a)); }
   for (const g of wheel) parts.push(g.translate(4.8, 3.2, -7.5));
-  parts.push(part(new THREE.PlaneGeometry(10, 2.5), '#2f4f7a', 5, -0.4, -7.5, -Math.PI / 2, 0, 0));
+  parts.push(cosmetic(part(new THREE.PlaneGeometry(10, 2.5), '#2f4f7a', 5, -0.4, -7.5, -Math.PI / 2, 0, 0)));
   return merge(parts);
 }
 
@@ -345,10 +345,10 @@ function roseBush(): THREE.BufferGeometry {
 }
 function fountain(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
-  parts.push(part(cyl(6, 6.4, 1.1, 16), C.stone, 0, 0.3, 0), part(new THREE.CircleGeometry(5.5, 16), '#3a5d9a', 0, 0.87, 0, -Math.PI / 2, 0, 0));
+  parts.push(part(cyl(6, 6.4, 1.1, 16), C.stone, 0, 0.3, 0), cosmetic(part(new THREE.CircleGeometry(5.5, 16), '#3a5d9a', 0, 0.87, 0, -Math.PI / 2, 0, 0)));
   parts.push(part(cyl(0.8, 1.2, 3.5, 8), C.stone, 0, 2, 0), part(cyl(2.4, 1.8, 0.5, 12), C.stone, 0, 3.8, 0));
-  parts.push(part(blob(0.9, 1, 0.1, 101, 1, 1.2, 1), hdr('#bfefff', 1.4), 0, 4.8, 0));
-  for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.28; parts.push(part(sphere(0.25), hdr('#d8f7ff', 1.3), Math.cos(a) * 2.6, 3.2, Math.sin(a) * 2.6)); }
+  parts.push(cosmetic(part(blob(0.9, 1, 0.1, 101, 1, 1.2, 1), hdr('#bfefff', 1.4), 0, 4.8, 0)));
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.28; parts.push(cosmetic(part(sphere(0.25), hdr('#d8f7ff', 1.3), Math.cos(a) * 2.6, 3.2, Math.sin(a) * 2.6))); }
   return merge(parts);
 }
 function gazebo(): THREE.BufferGeometry {
@@ -476,8 +476,8 @@ function ballroom(): THREE.BufferGeometry {
 function giantTable(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
   parts.push(part(box(24, 1.2, 60), C.woodPale, 0, -0.95, 0));
-  parts.push(part(box(24.4, 3.0, 0.3), C.red, 0, -1.9, 30.1), part(box(24.4, 3.0, 0.3), C.red, 0, -1.9, -30.1));
-  parts.push(part(box(0.3, 3.0, 60), C.red, 12.1, -1.9, 0), part(box(0.3, 3.0, 60), C.red, -12.1, -1.9, 0));
+  parts.push(cosmetic(part(box(24.4, 3.0, 0.3), C.red, 0, -1.9, 30.1)), cosmetic(part(box(24.4, 3.0, 0.3), C.red, 0, -1.9, -30.1)));
+  parts.push(cosmetic(part(box(0.3, 3.0, 60), C.red, 12.1, -1.9, 0)), cosmetic(part(box(0.3, 3.0, 60), C.red, -12.1, -1.9, 0)));
   for (const x of [-10.5, 10.5]) for (const z of [-27, 27]) parts.push(part(cyl(1.0, 0.8, 14, 8), C.woodDark, x, -8.5, z));
   // table setting: plates and goblets along the edges
   for (let k = 0; k < 6; k++) for (const x of [-10.8, 10.8]) {
@@ -540,7 +540,7 @@ function hazardBookcase(): THREE.BufferGeometry {
 // ------------------------------------------------------------------------------------------------ factory table
 const kind = (build: () => THREE.BufferGeometry, material: () => THREE.Material, castShadow = true, decoration?: () => THREE.BufferGeometry): PropFactory => {
   let cache: THREE.BufferGeometry | null = null;
-  return { build: () => ({ geometry: (cache ??= build()), material: material(), castShadow, ...(decoration ? { hazardDecoration: decoration() } : {}) }) };
+  return { build: () => ({ geometry: (cache ??= build()), material: material(), castShadow, ...(decoration ? { hazardDecoration: decoration(), hazardDecorationRole: 'flexible-suspension' as const } : {}) }) };
 };
 
 export const LANTERN_PROPS: Record<string, PropFactory> = {

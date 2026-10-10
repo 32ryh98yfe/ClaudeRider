@@ -16,6 +16,7 @@ export function quantizeKart(k: KartState): void {
   const d = k.drive;
   d.gauge = q(d.gauge, Q.GAUGE);
   d.driftPeak = q(d.driftPeak, Q.SLIP);
+  d.driftEngagement = q(d.driftEngagement, Q.SLIP); d.driftTightness = q(d.driftTightness, Q.SLIP); d.driftTarget = q(d.driftTarget, Q.SLIP);
   const r = k.race;
   r.loc.s = q(r.loc.s, Q.POS); r.loc.u = q(r.loc.u, Q.POS); r.loc.h = q(r.loc.h, Q.POS); r.loc.sMain = q(r.loc.sMain, Q.POS);
   r.lastValid.s = q(r.lastValid.s, Q.POS); r.lastValid.u = q(r.lastValid.u, Q.POS); r.lastValid.h = q(r.lastValid.h, Q.POS); r.lastValid.sMain = q(r.lastValid.sMain, Q.POS);

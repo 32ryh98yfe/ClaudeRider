@@ -6,7 +6,7 @@
 // springs (visualOffset); one-shot events pass through the deduper so replays never repeat sounds or effects.
 import type { ContentTables } from '@cr/content';
 import {
-  applyDecision, copyInput, copyWorld, createWorld, cloneWorld, makeContext, makeInput, step, ArraySink, MAX_KARTS, NEUTRAL_INPUT,
+  appendDriftRequest, driftRequestAt, driftRequestCount, applyDecision, copyInput, copyWorld, createWorld, cloneWorld, makeContext, makeInput, step, ArraySink, MAX_KARTS, NEUTRAL_INPUT,
   type BakedTrack, type Decision, type DecisionLog, type InputFrame, type RaceConfig, type SimEvent, type StepContext, type Tick, type WorldState,
 } from '@cr/sim';
 import { ByteReader, ByteWriter, ProtocolError, hexU32 } from '../protocol/bytes.ts';
@@ -51,7 +51,7 @@ export interface NetClientOptions {
   /** 128-bit race resume token (hex) for C2S_RESUME. */
   resumeToken?: string;
   /** Per-tick input source (autopilot, scripted tests); otherwise frames passed to submit() are used. */
-  inputProvider?: (w: Readonly<WorldState>, out: InputFrame) => void;
+  inputProvider?: (w: Readonly<WorldState>, out: InputFrame, boundaryMs: number) => void;
   /** Called once per newly predicted tick with the local frame used for it (Time Attack ghost recording). */
   onOwnInput?: (tick: Tick, f: Readonly<InputFrame>) => void;
   /** Steps per update() call (default 5). */
@@ -120,6 +120,8 @@ export class NetClient {
   private sampleN = 0;
   /** The newest consumed sample without its edges: what a tick that gets no sample of its own holds. */
   private readonly held = makeInput();
+  private readonly pendingDrift: number[] = [];
+  private driftHead = 0;
   private readonly frame = makeInput();
   private readonly queue: Uint8Array[] = [];
   private readonly hashTick = new Int32Array(HASH_RING).fill(-1);
@@ -212,13 +214,16 @@ export class NetClient {
    * a tick with no sample of its own holds the previous one, as the authority does for a frame it lacks.
    */
   submit(f: Readonly<InputFrame>): void {
+    if (f.driftRequests) {
+      for (let i = 0; i < driftRequestCount(f.driftRequests); i++) this.pendingDrift.push(driftRequestAt(f.driftRequests, i));
+    } else if (f.edges & 64) this.pendingDrift.push(f.steerIntent || Math.sign(f.steer));
     if (this.sampleN === SAMPLE_RING) mergeSample(this.samples[SAMPLE_RING - 1]!, f);
     else copyInput(this.samples[this.sampleN++]!, f);
   }
 
   /** Entering a menu releases unsent controls; inputs already sent stay in history for deterministic rollback. */
   clearPendingInput(): void {
-    this.sampleN = 0;
+    this.sampleN = 0; this.pendingDrift.length = 0; this.driftHead = 0;
     copyInput(this.held, NEUTRAL_INPUT);
   }
 
@@ -290,11 +295,11 @@ export class NetClient {
     }
 
     let steps = 0;
-    const planned = Math.min(budget, Math.floor(this.acc));
-    while (this.acc >= 1 && steps < budget) {
+    const planned = Math.min(budget, Math.floor(this.acc + 1e-9));
+    while (this.acc >= 1 - 1e-9 && steps < budget) {
       if (this.mode === 'free' && this.pred.tick - this.dec.world.tick >= 40) { this.acc = Math.min(this.acc, 1); break; }
       this.advance(planned - steps);
-      this.acc -= 1;
+      this.acc = Math.max(0, this.acc - 1);
       steps++;
     }
     if (this.mode === 'free' && steps === budget && this.acc > 1) this.acc = 0; // slow down like a local game would
@@ -547,7 +552,7 @@ export class NetClient {
   private advance(remaining: number): void {
     const T = this.pred.tick + 1;
     const f = this.frame;
-    if (this.inputProvider) this.inputProvider(this.pred, f);
+    if (this.inputProvider) this.inputProvider(this.pred, f, this.lastNow - (this.acc - 1) * 1000 / this.rateV);
     else this.takeSamples(f, remaining);
     this.own.set(T, f);
     this.onOwnInput?.(T, f);
@@ -566,13 +571,32 @@ export class NetClient {
   private takeSamples(f: InputFrame, remaining: number): void {
     const q = this.samples, n = this.sampleN;
     const c = remaining <= 1 ? n : Math.floor(n / remaining);
-    if (c === 0) { copyInput(f, this.held); return; }
+    if (c === 0) { copyInput(f, this.held); this.takeDriftRequests(f); return; }
     copyInput(f, q[0]!);
     for (let i = 1; i < c; i++) mergeSample(f, q[i]!);
     copyInput(this.held, q[c - 1]!);
-    this.held.edges = 0;
+    this.held.edges = 0; this.held.driftRequests = 0;
     for (let i = 0; i < n - c; i++) { const x = q[i]!; q[i] = q[i + c]!; q[i + c] = x; }
     this.sampleN = n - c;
+    this.takeDriftRequests(f);
+  }
+
+  private takeDriftRequests(f: InputFrame): void {
+    f.driftRequests = 0; f.edges &= ~64;
+    while (this.driftHead < this.pendingDrift.length && driftRequestCount(f.driftRequests) < 4) {
+      f.driftRequests = appendDriftRequest(f.driftRequests, this.pendingDrift[this.driftHead++]!);
+    }
+    if (f.driftRequests) f.edges |= 64;
+    if (this.driftHead === this.pendingDrift.length) { this.pendingDrift.length = 0; this.driftHead = 0; }
+  }
+
+  /** Development evidence: exact submitted tick frames, also used unchanged during rollback. */
+  inputHistory(from: number, count = 120): { tick: number; input: InputFrame }[] {
+    const out: { tick: number; input: InputFrame }[] = [];
+    for (let tick = from; tick < from + Math.min(4096, count); tick++) {
+      const input = this.own.get(tick); if (input) out.push({ tick, input: { ...input } });
+    }
+    return out;
   }
 
   private flushInputs(): void {

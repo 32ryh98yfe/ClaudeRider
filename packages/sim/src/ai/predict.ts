@@ -5,17 +5,20 @@
 // slopes, zones or item effects): the gap-2 yaw law, lateral damping, slip cap, drift entry/exit, the
 // longitudinal laws, and the M5 driving techniques of 15-driving-techniques §4 (tap edges, brake turn ×2,
 // spin-out, cut, drag with η = 1 and the planar cap, no K16 while dragging, the post-boost bleed, STOP/R gears).
-// Doc 16 adds finite, speed-conditioned cut recovery and the repeat-drift cooldown, matching the authority.
+// Version 10 shares its continuous steering targets with the authority; the force integration remains planar.
 // Every constant comes from KartParams. ~0.4 µs per frame; no allocation.
 import type { KartState } from '../core/state.ts';
 import { Edge } from '../core/input.ts';
 import { Boost, Gear } from '../core/state.ts';
 import { DT } from '../core/units.ts';
 import { decayF, smallCos, smallSin } from '../core/math.ts';
+import { advanceDriftHandling, requestDrift, resetDriftHandling, steeringYaw, type DriftControl } from '../kart/handling.ts';
 import { DECAY_POST_HOLD, DECAY_POST_REL, type KartParams } from '../kart/params.ts';
 
 export class SelfPredictor {
   readonly n: number;
+  private readonly control: DriftControl = { drift: 0, driftIntentTicks: 0, driftArmed: 0, driftDir: 1, driftEngagement: 0, driftTightness: 0, driftTarget: 0, driftRecovering: 0, pendingDriftDir: 0 };
+  engagement = 0; tightness = 0; recovering = 0;
   private readonly qSteer: Float64Array;   // σ, + = left
   private readonly qHeld: Uint8Array;      // DRIFT held
   private readonly qThr: Uint8Array;
@@ -65,7 +68,9 @@ export class SelfPredictor {
    * are the grip and speed multipliers of the surface under the kart now (held for the whole pipe).
    */
   run(k: Readonly<KartState>, P: KartParams, vMul: number, grip = 1, vSurf = 1): void {
-    const b = k.body, d = k.drive;
+    const b = k.body, d = k.drive, c = this.control;
+    c.driftIntentTicks = d.driftIntentTicks; c.driftArmed = d.driftArmed; c.drift = d.drift; c.driftDir = d.driftDir; c.driftEngagement = d.driftEngagement;
+    c.driftTightness = d.driftTightness; c.driftTarget = d.driftTarget; c.driftRecovering = d.driftRecovering; c.pendingDriftDir = d.pendingDriftDir;
     let hx = b.fx, hy = -b.fz;
     const hl = Math.sqrt(hx * hx + hy * hy) || 1; hx /= hl; hy /= hl;
     let px = b.px, py = -b.pz, vx = b.vx, vy = -b.vz, yaw = b.yawRate;
@@ -80,8 +85,7 @@ export class SelfPredictor {
     if (drift === 1) { const v0 = Math.sqrt(vx * vx + vy * vy); if (v0 > 0.1) sbOut = (-dir * (-vx * hy + vy * hx)) / v0; }
     this.exited = false; this.spun = false;
     const grounded = b.grounded === 1 || b.coyote > 0;
-    const decGrip = decayF(P.kYawGrip, DT), decAir = decayF(P.airYawDamp, DT);
-    const kickS = smallSin(P.kickAngle), kickC = smallCos(P.kickAngle);
+    const decAir = decayF(P.airYawDamp, DT);
     const steps = this.count;
     // the oldest pending frame is applied first
     let idx = (this.head - steps + this.n) % (this.n || 1);
@@ -91,6 +95,7 @@ export class SelfPredictor {
       const driftPress = (edges & Edge.DRIFT) !== 0, held = rawHeld || driftPress;
       idx = (idx + 1) % this.n;
       // ---- timers (phase-3 decrement); the bleed arms on a natural boost expiry (§4.1)
+      if (c.driftIntentTicks > 0) c.driftIntentTicks--;
       const wasBoost = boostT > 0 || startT > 0;
       if (boostT > 0) { boostT--; if (boostT === 0) team = false; }
       if (startT > 0) startT--;
@@ -124,89 +129,42 @@ export class SelfPredictor {
       }
       let u = vx * hx + vy * hy;
       brakeT = brk ? (brakeT < 255 ? brakeT + 1 : 255) : 0;
-      // ---- K2 drift entry / double drift
+      // ---- K2: shared continuous targets; a held Shift never creates a new entry by itself.
       const directionEdge = edges & (Edge.TAP_L | Edge.TAP_R);
-      const driftSteer = driftEdge && (directionEdge === Edge.TAP_L || directionEdge === Edge.TAP_R)
-        ? (directionEdge === Edge.TAP_L ? 1 : -1) : sig;
-      const hasDriftSteer = driftSteer >= P.driftMinSteer || driftSteer <= -P.driftMinSteer;
-      if (drift === 0) {
-        if (held && hasDriftSteer && u >= P.driftMinSpeed && (lock <= 0 || driftEdge) && !wallStun) {
-          drift = 1; dir = driftSteer > 0 ? 1 : -1; dT = 0; peak = 0; lock = 0;
-          dragT = 0; streak = 0; gap = 255; counter = 0; brakeT = brk ? 1 : 0; post = 0;
-          yaw += dir * P.kickR;
-          const nx = hx * kickC - hy * kickS * dir, ny = hy * kickC + hx * kickS * dir; hx = nx; hy = ny;
-          vx *= P.kickLoss; vy *= P.kickLoss;
-        }
-      } else if (driftEdge && hasDriftSteer && !wallStun) {
-        const elapsed = Math.min(dT, P.rekickMinTicks - lock);
-        const gain = Math.max(0, Math.min(1, elapsed / P.rekickMinTicks));
-        const yawLimit = P.kickR + P.y1 + P.y2;
-        yaw = Math.max(-yawLimit, Math.min(yawLimit, yaw + (driftSteer > 0 ? 1 : -1) * P.rekickR * gain));
-        lock = P.rekickMinTicks;
-        const loss = 1 - (1 - P.rekickLoss) * gain;
-        vx *= loss; vy *= loss;
-      }
-      // ---- K3 brake turn, spin-out, taps
-      let turnMul = 1, spun = false;
-      if (drift === 1) {
-        if (brakeT >= P.spinTicks) {
-          drift = 0; lock = P.reDriftTicks; dir = 1; dT = 0; peak = 0; this.exited = true;
-          dragT = 0; streak = 0; gap = 255; counter = 0; brakeT = 0;
-          boostT = 0; team = false; startT = 0; inst = 0; win = 0; post = 0; stun = P.spinStunTicks + 1;
-          spun = true; this.spun = true;
-        } else {
-          if (brakeT >= 1 && brakeT <= P.brakeTurnTicks) turnMul = P.brakeTurnMul;
-          if (dragT > 0) {
-            if (gap < 255) gap++;
-            if ((edges & (dir > 0 ? Edge.TAP_L : Edge.TAP_R)) !== 0) {
-              if (gap > P.tapMaxGap) streak = 1;
-              else if (gap >= P.tapMinGap) streak = streak < P.tapStreakMax ? streak + 1 : P.tapStreakMax;
-              else streak = 0;
-              gap = 0;
-              if (streak > 0) yaw += dir * P.tapYaw;
-            }
-          }
+      const driftSteer = directionEdge === Edge.TAP_L ? 1 : directionEdge === Edge.TAP_R ? -1 : sig;
+      let entered = false;
+      if (c.drift === 0 && c.driftArmed && held && sig !== 0 && u >= P.driftMinSpeed && !wallStun && !brk) entered = requestDrift(c, sig, true) === 1;
+      if (!held) c.driftArmed = 0;
+      if (c.drift === 0 && c.pendingDriftDir !== 0 && u >= P.driftMinSpeed && !wallStun && !brk) entered = requestDrift(c, c.pendingDriftDir, true) === 1;
+      if (driftEdge) entered = requestDrift(c, driftSteer, u >= P.driftMinSpeed && !wallStun && !brk) === 1 || entered;
+      if (entered) { dT = 0; peak = 0; lock = 0; dragT = 0; streak = 0; gap = 255; counter = 0; brakeT = brk ? 1 : 0; post = 0; }
+      advanceDriftHandling(c, sig, held, sig, brk);
+      drift = c.drift; dir = c.driftDir;
+      // ---- K3 directional tap targets; ordinary brake inputs recover instead of forcing a spin.
+      if (drift === 1 && dragT > 0) {
+        if (gap < 255) gap++;
+        if ((edges & (dir > 0 ? Edge.TAP_L : Edge.TAP_R)) !== 0) {
+          if (gap > P.tapMaxGap) streak = 1;
+          else if (gap >= P.tapMinGap) streak = Math.min(P.tapStreakMax, streak + 1);
+          else streak = 0;
+          gap = 0;
+          if (streak > 0) c.driftTarget = Math.min(1, c.driftTarget + 0.08);
         }
       }
       // ---- K4 yaw target and lag, K5 heading rotation
       u = vx * hx + vy * hy;
       const sIn = sig * dir;
-      let rT: number;
-      if (drift === 0) {
-        const uu = u > 0 ? u : 0, qq = uu / P.gripV1;
-        rT = sig * (P.yGrip * uu) / (uu + P.gripV0) / (1 + qq * qq);
-        if (u < -0.5) rT = -sig * P.yGrip * 0.5 * (-u) / (-u + P.gripV0);
-      } else {
-        // a valid tap's key still held inside the grace of a drag steers like neutral (§4.4)
-        const sY = dragT > 0 && streak > 0 && gap <= P.tapGrace && sIn > P.dragNeutral ? P.dragNeutral : sIn;
-        const carry = (P.y0 / (1 + (dT * DT) / P.y0T) + (held ? P.y2 : 0)) * (1 + Math.min(0, sY));
-        rT = dir * (carry + P.y1 * sY);
-      }
-      if (wallStun) rT *= 0.3;
-      const yawDecay = drift === 0 ? decGrip : decayF(P.kYawDrift + (P.kYawGrip - P.kYawDrift) * Math.max(0, -sIn), DT);
-      yaw += (rT - yaw) * (1 - yawDecay);
-      { const a = yaw * DT * turnMul, s = smallSin(a), c = smallCos(a), nx = hx * c - hy * s, ny = hy * c + hx * s, nl = Math.sqrt(nx * nx + ny * ny) || 1; hx = nx / nl; hy = ny / nl; }
+      yaw = steeringYaw(c, u, sig, yaw, P);
+      { const a = yaw * DT, s = smallSin(a), co = smallCos(a), nx = hx * co - hy * s, ny = hy * co + hx * s, nl = Math.sqrt(nx * nx + ny * ny) || 1; hx = nx / nl; hy = ny / nl; }
       // ---- K6 decomposition
       u = vx * hx + vy * hy;
       let w = -vx * hy + vy * hx;
       let v = Math.sqrt(u * u + w * w);
       // ---- K7b cut and drag
       const boosting = boostT > 0 || startT > 0;
-      let cut = false, recovering = false;
+      let cut = false;
       if (drift === 1) {
-        counter = sIn <= -P.cutSteer ? (counter < 255 ? counter + 1 : 255) : 0;
-        if (counter >= P.cutTicks && !(boosting && held)) {
-          recovering = true;
-          const ratio = P.vGrip / Math.max(v, 1);
-          const recovery = P.kCut * Math.min(4, Math.max(1, ratio * ratio * ratio));
-          const wr = w * decayF(recovery * grip, DT);
-          const raw = Math.sqrt(u * u + wr * wr);
-          if (raw > 1e-6) { const keep = (raw + P.etaCut * (v - raw)) / raw; u *= keep; w = wr * keep; } else w = wr;
-          if (yaw * dir > 0) yaw *= decayF(recovery, DT);
-          v = Math.sqrt(u * u + w * w);
-          cut = Math.abs(w) <= P.exitSin * v;
-          if (cut) { if (u > 0) u += P.etaCut * (v - u); w = 0; v = u < 0 ? -u : u; }
-        }
+        counter = c.driftRecovering === 2 ? Math.min(255, counter + 1) : 0;
         const steerOk = sIn > -P.dragNeutral && (sIn < P.dragNeutral || (streak > 0 && gap <= P.tapGrace));
         const ok = !cut && boosting && thr && !brk && steerOk;
         const sb7 = v > 0.1 ? (-dir * w) / v : 0;
@@ -224,27 +182,25 @@ export class SelfPredictor {
         if (sL >= 0.3) kL = P.kLatNeutral + (P.kLatIn - P.kLatNeutral) * ((sL - 0.3) / 0.7);
         else if (sL > -0.3) kL = P.kLatNeutral;
         else kL = P.kLatNeutral + (P.kLatCounter - P.kLatNeutral) * ((-sL - 0.3) / 0.7);
-        if (held) kL *= P.kLatShift;
+        kL = P.kLatGrip + (kL - P.kLatGrip) * c.driftEngagement;
+        eta = P.etaGrip + (eta - P.etaGrip) * c.driftEngagement;
       }
       kL *= grip;
       const w2 = w * decayF(kL, DT);
       const vRaw = Math.sqrt(u * u + w2 * w2);
       if (vRaw > 1e-6) { const f = (vRaw + eta * (v - vRaw)) / vRaw; u *= f; w = w2 * f; } else w = w2;
       v = Math.sqrt(u * u + w * w);
-      if (recovering && !cut && Math.abs(w) <= P.exitSin * v) {
-        cut = true;
-        if (u > 0) u += P.etaCut * (v - u);
-        w = 0; v = u < 0 ? -u : u;
-      }
+      cut = c.driftRecovering === 2 && c.driftEngagement === 0 && Math.abs(w) <= P.exitSin * v;
       // ---- K9 slip cap, K11 drift bookkeeping and exit (the instant window opens on a qualifying exit)
       let sb = 0;
       if (drift === 1) {
         const sm = P.sinBetaMax * v; if (w > sm || w < -sm) { w = w > 0 ? sm : -sm; u = Math.sqrt(Math.max(0, v * v - w * w)); }
         sb = v > 0.1 ? (-dir * w) / v : 0;
         dT++; if (sb > peak) peak = sb;
-        if ((dT >= P.exitMinTicks && sb < P.exitSin) || u < 5 || cut) {
+        if ((dT >= P.exitMinTicks && c.driftEngagement === 0 && Math.abs(sb) < P.exitSin) || u < 5 || cut) {
           if (dT >= P.instMinDriftTicks && peak >= P.instMinSlip) win = P.instWindowTicks;
           drift = 0; lock = P.reDriftTicks; dir = 1; dT = 0; peak = 0; this.exited = true;
+          c.drift = 0; c.driftDir = 1; { const pending = c.pendingDriftDir; resetDriftHandling(c); c.pendingDriftDir = pending; }
           dragT = 0; streak = 0; gap = 255; counter = 0; brakeT = 0;
         }
       }
@@ -300,6 +256,7 @@ export class SelfPredictor {
         if (brk) {
           if (reverse) { const r = u < 0 ? -u / P.vReverse : 0; a = -P.aReverse * (1 - r * r); }
           else if (u > 0) a = -(drift === 1 ? P.aBrakeDrift : P.aBrake);
+          else if (thr) a = u < 0 ? P.aBrake : 0;
         }
         let uN: number;
         if (dragT > 0 && thrA && boostLaw) {
@@ -323,16 +280,19 @@ export class SelfPredictor {
           }
           if (brk) { const ub = u + a * DT; if (ub < uN) uN = ub; }
         } else uN = u + a * DT;
+        if (thrA && !brk && uN > u) {
+          const motorCap = instOn ? Math.max(vT, P.vInst * vMul) : vT;
+          uN = Math.max(u, Math.min(uN, Math.sqrt(Math.max(0, motorCap * motorCap - w * w))));
+        }
         if (!reverse) {
           if ((thrA === 0 || brk) && u >= 0 && uN < 0) uN = 0;
-          else if (thrA === 0 && u < 0 && uN > 0) uN = 0;
+          else if ((thrA === 0 || brk) && u < 0 && uN > 0) uN = 0;
         }
         u = uN;
         if (u === 0 && !thr && !brk && w * w <= 0.25) { gear = Gear.STOP; w = 0; } // at rest: planar speed too
       }
       // ---- K16 drift drag (not while dragging), spin-out speed
       if (drift === 1 && sb > 0 && dragT === 0) { let f = 1 - P.cBeta * sb * sb * DT; if (f < 0) f = 0; u *= f; w *= f; }
-      if (spun) { const vp = Math.sqrt(u * u + w * w); if (vp > 1e-9) { const s = P.spinSpeed / vp; u *= s; w *= s; } else u = P.spinSpeed; }
       vx = u * hx - w * hy; vy = u * hy + w * hx;
       px += vx * DT; py += vy * DT;
     }
@@ -340,6 +300,7 @@ export class SelfPredictor {
     this.drift = drift; this.dir = dir; this.dTicks = dT; this.peak = peak; this.lock = lock; this.win = win;
     this.boost = boostT + startT; this.post = post; this.inst = inst; this.stun = stun;
     this.dragT = dragT; this.streak = streak; this.gap = gap; this.counter = counter; this.brakeT = brakeT; this.gear = gear;
+    this.engagement = c.driftEngagement; this.tightness = c.driftTightness; this.recovering = c.driftRecovering;
     this.sb = sbOut; this.boosters = boosters + teamBoosters;
   }
 }

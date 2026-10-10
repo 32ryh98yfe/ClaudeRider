@@ -16,17 +16,20 @@ import type { RoadStyle, WallStyle } from '../materials/library.ts';
 import { PLACEHOLDER_PROP } from '../props/defaults.ts';
 import { MaterialLibrary } from '../materials/library.ts';
 import { merge, paint, place, rbox, box } from '../util/geo.ts';
+import type { HudMapData } from '../../ui/hud/minimap.ts';
 
 export interface VisMeta {
   id: string; themeId: string; name: string;
   slots: { name: string; material: string; variant?: string; chunks: { i0: number; n: number; bbox: number[]; chunk?: number }[] }[];
-  props: { kind: string; n: number }[];
+  props: { kind: string; n: number; contact?: 'solid' | 'cosmetic'; fingerprint?: string }[];
+  propContactVersion?: 2;
   bounds: number[];
   line: { x: number; y: number; z: number; fx: number; fy: number; fz: number; w: number };
   theme: Record<string, string>;
   /** F5 track hazards (L4-vis-v2 §8), same index as CtrkMeta.hazards. */
   hazards?: HazardVisMeta[];
   lapLength: number;
+  minimapPaths?: { id: string; kind: string; array: string }[];
 }
 
 export interface TrackViewOptions {
@@ -41,7 +44,7 @@ export interface TrackViewOptions {
 }
 
 export interface TrackView {
-  root: THREE.Group; meta: VisMeta; minimap: Float32Array; boxes: THREE.InstancedMesh | null;
+  root: THREE.Group; meta: VisMeta; minimap: Float32Array; map: HudMapData; boxes: THREE.InstancedMesh | null;
   /** The baked terrain meshes (the clipmap system hides them on Ultra). */
   terrainMeshes: THREE.Mesh[];
   update(t: number, boxAvail: (i: number) => boolean, camera?: THREE.Camera): void;
@@ -193,33 +196,36 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
   // props: one InstancedMesh per kind; instances are culled per frame into a compact list
   interface PropSet { im: THREE.InstancedMesh; mats: Float32Array; cx: Float32Array; cy: Float32Array; cz: Float32Array; r: Float32Array; n: number; far: number }
   const props: PropSet[] = [];
-  const clearance = new PropRoadClearance(track);
+  const clearance = meta.propContactVersion === 2 ? null : new PropRoadClearance(track);
   let rejectedProps = 0;
   meta.props.forEach((p, j) => {
     const xf = c.arrays.get(`p${j}.xf`) as Float32Array;
+    const bakedMatrices = c.arrays.get(`p${j}.mat`) as Float32Array | undefined;
+    if (meta.propContactVersion === 2 && (!bakedMatrices || bakedMatrices.length !== p.n * 16)) throw new Error(`Missing authoritative prop matrices: ${meta.id}/${p.kind}`);
     const f = kit.props[p.kind] ?? PLACEHOLDER_PROP;
     if (!kit.props[p.kind] && import.meta.env.DEV) console.warn(`[props] no factory for ${p.kind}`);
     const built = f.build(kit.data.palette);
     const isLandmark = LANDMARK.test(p.kind), isScatter = SCATTER.test(p.kind);
     // foliage density per tier: thin out scatter deterministically (keep every k-th instance)
-    const keep = isScatter || /tree|bush/.test(p.kind) ? opts.foliage : 1;
+    const keep = p.contact === 'solid' ? 1 : isScatter || /tree|bush/.test(p.kind) ? opts.foliage : 1;
     const n0 = p.n;
     const list: number[] = [];
     const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), v = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
     const transform = (i: number): void => {
+      if (bakedMatrices) { m4.fromArray(bakedMatrices, i * 16); m4.decompose(v, q, s); return; }
       const o = i * 6, sc = xf[o + 4]!;
       v.set(xf[o]!, xf[o + 1]!, xf[o + 2]!); q.setFromAxisAngle(up, xf[o + 3]!);
       s.set(p.kind === 'chevron' && xf[o + 5] === 1 ? -sc : sc, p.kind === 'pillar' ? sc * (1 + (xf[o + 5] ?? 0)) : sc, sc);
-      if (p.kind === 'pillar') clearance.fitPillar(built.geometry, v, s);
+      if (p.kind === 'pillar') clearance?.fitPillar(built.geometry, v, s);
       m4.compose(v, q, s);
       // Theme gantries have different post spacing. Widen only across the road until their actual opening clears.
-      if (p.kind === 'gantry') for (let pass = 0; pass < 8 && clearance.conflict(built.geometry, m4); pass++) { s.x *= 1.1; m4.compose(v, q, s); }
+      if (clearance && p.kind === 'gantry') for (let pass = 0; pass < 8 && clearance.conflict(built.geometry, m4); pass++) { s.x *= 1.1; m4.compose(v, q, s); }
     };
     for (let i = 0; i < n0; i++) {
       if (keep < 1 && ((i * 0.618034) % 1) >= keep) continue;
       transform(i);
       // Gore cushions correspond to baked solid split walls. Other props are scenery and cannot block the road.
-      if (p.kind !== 'gore_cushion' && clearance.conflict(built.geometry, m4)) { rejectedProps++; continue; }
+      if (clearance && p.kind !== 'gore_cushion' && clearance.conflict(built.geometry, m4)) { rejectedProps++; continue; }
       list.push(i);
     }
     const n = list.length;
@@ -277,6 +283,15 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
     meshes += 2;
   }
   const minimap = (c.arrays.get('minimap') as Float32Array) ?? new Float32Array(0);
+  const map: HudMapData = { paths: [] };
+  const mapPaths = [];
+  for (let i = 0; i < track.nPaths; i++) {
+    const path = track.path(i), descriptor = meta.minimapPaths?.find((p) => p.id === path.id);
+    const points = c.arrays.get(descriptor?.array ?? `minimap.${path.id}`) as Float32Array | undefined;
+    if (points?.length) mapPaths.push({ id: path.id, points, closed: path.closed });
+    else if (i === 0 && minimap.length) mapPaths.push({ id: path.id, points: minimap, closed: path.closed });
+  }
+  map.paths = mapPaths;
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), s = new THREE.Vector3();
   const frustum = new THREE.Frustum(), pv = new THREE.Matrix4(), sph = new THREE.Sphere(), camPos = new THREE.Vector3();
   let frameNo = 0;
@@ -305,7 +320,7 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
     }
   };
   return {
-    root, meta, minimap, boxes, terrainMeshes, stats: { meshes, tris, rejectedProps },
+    root, meta, minimap, map, boxes, terrainMeshes, stats: { meshes, tris, rejectedProps },
     update(t: number, boxAvail: (i: number) => boolean, camera?: THREE.Camera): void {
       if (camera && !opts.stableInstances) {
         // every 3rd frame while the chase camera drifts; at once after a cut, a fly-by step or a fast turn

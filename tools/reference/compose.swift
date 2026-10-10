@@ -73,8 +73,8 @@ for id in ids {
             NSGraphicsContext.saveGraphicsState()
             NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: false)
             text("REFERENCE FOOTAGE", 22, 796, 25, white)
-            text("BEFORE  /  fb71b3f", 662, 796, 25, amber)
-            text("AFTER  /  video-calibrated", 1302, 796, 25, cyan)
+            text("BEFORE  /  5db2299", 662, 796, 25, amber)
+            text("AFTER  /  v10 controlled grip", 1302, 796, 25, cyan)
             text(id + (eligible ? "  |  launch comparison" : "  |  unknown initial slip: diagnostic only"), 22, 762, 18, muted)
             text(String(format: "source %.3fs  |  frame %d", Double(start + frame) / 30, start + frame), 1302, 764, 18, muted)
             let sourceImage = try generator.copyCGImage(at: CMTime(value: Int64(start + frame), timescale: 30), actualTime: nil)
@@ -101,7 +101,7 @@ for id in ids {
             let held = keys.last { ($0["frame"] as! Int) <= frame }?["keys"] as? [String] ?? []
             text("RAW KEYS: " + (held.isEmpty ? "released" : held.joined(separator: " + ")), 320, 230, 19, white)
             text(String(format: "t = %.2f s", time), 1660, 230, 20, white)
-            text("Actual game-rendered replay  |  30 fps  |  identical raw inputs / fixed start conditions  |  no time warping", 85, 14, 17, muted)
+            text("Deterministic game rendering  |  30 fps  |  same raw keys / starting state  |  v10 intentionally slower  |  no retiming", 85, 14, 17, muted)
             NSGraphicsContext.restoreGraphicsState()
             if outputFrame == 0, let cg = context.makeImage() {
                 let rep = NSBitmapImageRep(cgImage: cg)

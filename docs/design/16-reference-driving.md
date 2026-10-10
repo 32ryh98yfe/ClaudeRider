@@ -1,5 +1,7 @@
 # 16 — Reference-video driving refinement
 
+> Historical evidence. [19 — Continuous handling](19-continuous-handling.md) is the current simulation-10 control/speed contract. The user explicitly authorized slower speeds, stronger traction, longer short-press drift, and local geometry changes. Earlier numerical speed, duration and data-preservation requirements below do not override that contract.
+
 **Historical first pass (simulation version 5).** The user subsequently prioritized
 reference fidelity and authorized localized map, kart, physical and camera changes.
 `17-reference-fidelity.md` supersedes this document's preservation requirements,

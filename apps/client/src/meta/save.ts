@@ -27,6 +27,7 @@ export interface SettingsV1 {
   cameraDistance?: 'near' | 'normal' | 'far';
   racingLine?: boolean;
   minimapInSpeed?: boolean;
+  raceMap?: 'track' | 'progress';           // version-10 migration: old false meant the legacy default, not map geometry
   nameTags?: boolean;
   itemFeed?: boolean;
   colorBlind?: boolean;
@@ -85,7 +86,7 @@ function defaults(): SaveV1 {
       units: 'kmh', keys: { ...DEFAULT_KEYS, ...DEFAULT_KEYS_EXTRA }, autoBoost: false, driftAssist: false, cameraShake: true,
       renderScale: 1, fpsCap: 60, shadows: 'tier', particles: 'tier', bloom: 'tier', motionBlur: false, velocityBlur: 'tier', dof: 'tier', muteUnfocused: true,
       pad: { ...DEFAULT_PAD }, deadzone: 0.15, instantHint: true, cameraDistance: 'normal', racingLine: false,
-      minimapInSpeed: false, nameTags: true, itemFeed: true, colorBlind: false, highContrast: false, textScale: 1, ghost: true, proGhost: false,
+      minimapInSpeed: true, raceMap: 'track', nameTags: true, itemFeed: true, colorBlind: false, highContrast: false, textScale: 1, ghost: true, proGhost: false,
       firstRunTipSeen: false,
     },
     progress: { level: 1, xp: 0, sparks: 0, unlocks: [], stats: {}, recent: [], fresh: [] },
@@ -171,7 +172,7 @@ export function migrateSave(raw: unknown): SaveV1 {
       muteUnfocused: bool(s['muteUnfocused'], true),
       pad, deadzone: num(s['deadzone'], 0.15, 0.05, 0.3), instantHint: bool(s['instantHint'], true),
       cameraDistance: oneOf(s['cameraDistance'], ['near', 'normal', 'far'] as const, 'normal'), racingLine: bool(s['racingLine'], false),
-      minimapInSpeed: bool(s['minimapInSpeed'], false), nameTags: bool(s['nameTags'], true), itemFeed: bool(s['itemFeed'], true),
+      minimapInSpeed: true, raceMap: oneOf(s['raceMap'], ['track', 'progress'] as const, 'track'), nameTags: bool(s['nameTags'], true), itemFeed: bool(s['itemFeed'], true),
       colorBlind: bool(s['colorBlind'], false), highContrast: bool(s['highContrast'], false), textScale: num(s['textScale'], 1, 0.9, 1.3),
       ghost: bool(s['ghost'], true), proGhost: bool(s['proGhost'], false), firstRunTipSeen: bool(s['firstRunTipSeen'], false),
     },

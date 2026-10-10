@@ -1,0 +1,1323 @@
+{
+  "ad_board_a": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "ad_board_b": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "ad_board_b_l": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "ad_board_b_l_tall": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "ad_board_b_tall": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "ad_board_c": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "antenna_mast": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "avalanche_net": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "awning_stall": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "bamboo": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "bandstand": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "banner": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "barrel_spice": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "basalt_column": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "basilica": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "bat": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "bazaar_house_a": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "bazaar_house_b": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "bazaar_house_c": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "beach": {
+    "policy": "solid",
+    "reason": "Physical structure; marked foliage, light ribbons or fabric remain cosmetic.",
+    "groundSurface": true
+  },
+  "beach_hut": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "beach_umbrella": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "bell_tower": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "billboard": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "boat": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "bookcase": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "bridge_deck": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": true
+  },
+  "bridge_rail": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "bridge_span": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": true
+  },
+  "building_row_a": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "building_row_b": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "building_row_c": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "building_row_d": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "bunting": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "bunting_line": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "buoy": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "bus_shelter": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "bush": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "bush_cactus": {
+    "policy": "solid",
+    "reason": "Physical structure; marked foliage, light ribbons or fabric remain cosmetic.",
+    "groundSurface": false
+  },
+  "bush_round": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "butte": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "cafe_table": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "camel_statue": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "camera_tower": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "canal_boat": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "candelabra": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "candles": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "cannon": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "canyon_pillar": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "canyon_wall": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "cargo": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "cargo_crate": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "cave_roof": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "chandelier": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "chapel": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "chevron": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "chevron_tall": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "city_tower": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "clay_pots": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "cliff": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "coffin": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "container_stack": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "control_tower": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "conveyor_rig": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "coolant_pipe": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "coral": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "cottage": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "crate_barrels": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "crate_stack": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "creek": {
+    "policy": "solid",
+    "reason": "Physical rocks or banks; explicit water/foam parts are cosmetic.",
+    "groundSurface": true
+  },
+  "crooked_tree": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "crypt_vault": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "crystal_arch": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "crystal_spire": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "cypress": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "docking_ring": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "dome_house": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "dune": {
+    "policy": "solid",
+    "reason": "Physical structure; marked foliage, light ribbons or fabric remain cosmetic.",
+    "groundSurface": true
+  },
+  "fairy_lights": {
+    "policy": "solid",
+    "reason": "Physical structure; marked foliage, light ribbons or fabric remain cosmetic.",
+    "groundSurface": false
+  },
+  "falls_curtain": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "firefly": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "flag_pole": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "floodlight": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "flower_box": {
+    "policy": "solid",
+    "reason": "Physical structure; marked foliage, light ribbons or fabric remain cosmetic.",
+    "groundSurface": false
+  },
+  "flower_patch": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "footbridge": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": true
+  },
+  "forest_wall": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "foundry_building": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "fountain": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "fuel_tank": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "galleon": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "galleon_deck": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": true
+  },
+  "gantry": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "gazebo": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "geode_cyan": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "geode_violet": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "geyser_vent": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "ghost": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "giant_cutlery": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "giant_table": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": true
+  },
+  "giant_trunk": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "gondola_pylon": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "gore_cushion": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "grandstand": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "grass_fern": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "grass_patch": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "grass_tuft": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "gravestone": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "habitat_house": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "harbor_crane": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "hay_bale": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "hazard_lamp": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "headframe": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "hedge": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "helix_pillar": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "hollow_log": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "holo_panel": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "hot_air_balloon": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "ice_spire": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "igloo": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "iron_fence": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "islet": {
+    "policy": "solid",
+    "reason": "Physical structure; marked foliage, light ribbons or fabric remain cosmetic.",
+    "groundSurface": true
+  },
+  "jack_o_lantern": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "karst_pillar": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "kraken_tentacle": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "lamp_glow": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "lamp_post": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "lantern": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "lantern_arch": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "lantern_post": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "lantern_string": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "launch_ring": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "lava_crack": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "lava_lake": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "lava_pit": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "lava_pool": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "lava_rim": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "lava_seam": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "lifeguard_tower": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "light_strip": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "lighthouse": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "log_gantry": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "log_rail": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "manor": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "market_stall": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "marshal_post": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "mesa": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "mill": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "mine_cart": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "mossy_log": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "mushroom_giant": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "mushroom_patch": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "mushroom_red": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "neon_sign": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "net_shed": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "noodle_stall": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "oasis_pond": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "obelisk": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "obsidian": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "old_oak": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "orchard_tree": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "ore_pile": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "palm": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "palm_planter": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "panda": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "penguin": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "pier_post": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "pillar": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "pine": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "pipe_rack": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "pipe_run": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "pit_garage": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "pit_wall": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "planter_bush": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "pond": {
+    "policy": "solid",
+    "reason": "Physical rocks or banks; explicit water/foam parts are cosmetic.",
+    "groundSurface": true
+  },
+  "portrait": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "pumpkin_patch": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "pyramid": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "quay": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": true
+  },
+  "radiator_fin": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "reeds": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "rink_boards": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "robot_arm": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "rock": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "rock_cluster": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "rock_moss": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "rock_pebbles": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "rope_post": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "rope_rail": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "rose_bush": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "rug_rack": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "sailboat": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "sandfall": {
+    "policy": "solid",
+    "reason": "Rock lip and sand banks; explicit flowing sand and mist are cosmetic.",
+    "groundSurface": true
+  },
+  "sandstone_arch": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "scaffold": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "scarecrow": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "sea": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "sea_stack": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "seagull": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "serac": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "server_rack": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "sheep": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "shophouse": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "shrub": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "signboard": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "silo_tank": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "ski_lodge": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "sky_lantern": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "sled": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "snow_cabin": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "snowbank": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "snowglobe_frame": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "snowman": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "solar_array": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "spectators": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "spectators_roof": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "stadium": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "stalagmite": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "station_canopy": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "station_pylon": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "stone_arch": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "street_bench": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "street_bunting": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "street_lamp": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "street_tree": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "strobe_bar": {
+    "policy": "solid",
+    "reason": "Physical structure; marked foliage, light ribbons or fabric remain cosmetic.",
+    "groundSurface": false
+  },
+  "stump": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "surf_rack": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "timber_arch": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "timber_crib": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "token_monolith": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "token_stack": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "toll_booth": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "topiary": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "tower_a": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "tower_b": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "townhouse": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "traffic_signal": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "tree_birch": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "tree_clump": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "tree_palm": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "tree_pine_snow": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "tree_round": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "tree_round_big": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "tree_saguaro": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "treehouse": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "tunnel": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "tunnel_lamp": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "tyre_wall": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "vending_machine": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "warehouse_building": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "waterfall": {
+    "policy": "solid",
+    "reason": "Physical rocks or banks; explicit water/foam parts are cosmetic.",
+    "groundSurface": true
+  },
+  "weathervane": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "windmill": {
+    "policy": "solid",
+    "reason": "Physical body; explicitly marked foliage, cloth and suspension parts are excluded.",
+    "groundSurface": false
+  },
+  "wisp": {
+    "policy": "cosmetic",
+    "reason": "Nonblocking foliage, fabric, ambient/water or background character.",
+    "groundSurface": false
+  },
+  "frostbyte_glacier/tree_clump": {
+    "policy": "cosmetic",
+    "reason": "This specific model contains only pine foliage clusters, without a structural trunk.",
+    "groundSurface": false
+  },
+  "lamp": {
+    "policy": "solid",
+    "reason": "Physical structure; explicit foliage parts are cosmetic.",
+    "groundSurface": false
+  },
+  "tree": {
+    "policy": "solid",
+    "reason": "Physical structure; explicit foliage parts are cosmetic.",
+    "groundSurface": false
+  },
+  "tree_pine": {
+    "policy": "solid",
+    "reason": "Physical structure; explicit foliage parts are cosmetic.",
+    "groundSurface": false
+  },
+  "house": {
+    "policy": "solid",
+    "reason": "Physical structure; explicit foliage parts are cosmetic.",
+    "groundSurface": false
+  },
+  "fence": {
+    "policy": "solid",
+    "reason": "Physical structure; explicit foliage parts are cosmetic.",
+    "groundSurface": false
+  },
+  "windmill_small": {
+    "policy": "solid",
+    "reason": "Physical structure; explicit foliage parts are cosmetic.",
+    "groundSurface": false
+  },
+  "dock_crane": {
+    "policy": "solid",
+    "reason": "Dock crane structural body; suspension ropes are explicitly cosmetic.",
+    "groundSurface": false
+  },
+  "cone": {
+    "policy": "solid",
+    "reason": "Legacy test kind uses the same visible placeholder as the renderer.",
+    "groundSurface": false,
+    "placeholder": true
+  }
+}

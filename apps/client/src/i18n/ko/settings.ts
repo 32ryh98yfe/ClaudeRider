@@ -27,6 +27,7 @@ export default {
   racingLine: '레이싱 라인 표시 (타임어택)', driftAssist: '드리프트 보조', autoBoostDesc: '아이템 키를 누르고 있으면 부스터를 자동으로 사용해요. HUD에 AUTO가 표시됩니다.',
   instantHintDesc: '순간 부스터를 쓸 수 있는 순간 슬롯 옆에 알려 줘요.',
   minimapSpeed: '스피드전 미니맵', minimapSpeedDesc: '끄면 오른쪽 진행 막대만 보여요.', nameTags: '이름표', itemFeed: '아이템 로그',
+  raceMap: '코스 표시', raceMapDesc: '모든 경기에서 실제 코스 지도 또는 순위별 진행률을 표시해요.', trackMap: '코스 지도', progressRail: '진행률 막대',
   highContrast: '고대비 HUD', highContrastDesc: '반투명 패널 대신 진한 패널과 두꺼운 외곽선을 써요.', textScale: '글자 크기',
   colorBlindDesc: '게이지를 노랑 → 파랑으로 바꾸고 팀 색상에 무늬를 더해요.', reducedMotionDesc: '화면 흔들림, 번짐, HUD 튀는 효과를 끄고 부드러운 페이드만 사용해요.',
   hudScaleDesc: 'HUD 요소를 각 위치를 기준으로 키우거나 줄여요.',

@@ -16,6 +16,7 @@ import { applyRace } from '../../../meta/rewards.ts';
 import { currentRace, setCurrentRace } from '../../../meta/raceStats.ts';
 import { onUiAction, setGameKeysActive } from '../../../input/keyboard.ts';
 import { Hud } from '../../hud/Hud.tsx';
+import type { HudMapData } from '../../hud/minimap.ts';
 import { hudX } from '../../store/hudExtra.ts';
 import { setLastResult } from '../results/lastResult.ts';
 import { trackInfo, loadTrackIndex } from '../../store/tracks.ts';
@@ -89,7 +90,7 @@ export function RaceScreen() {
   const [progress, setProgress] = useState({ p: 0, label: '' });
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [minimap, setMinimap] = useState<Float32Array | null>(null);
+  const [minimap, setMinimap] = useState<HudMapData | null>(null);
   const [slots, setSlots] = useState<SlotConfig[] | null>(null);
   const [meSlot, setMeSlot] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -160,7 +161,7 @@ export function RaceScreen() {
       window.__cr = { ...window.__cr, race: 'running', session: s };
       s.onEnd((r) => {
         if (endedRef.current) return;
-        const col = currentRace;
+        const col = s.isDevelopmentRun ? null : currentRace;
         const info = trackInfo(opts.trackId);
         let summary, report;
         try {

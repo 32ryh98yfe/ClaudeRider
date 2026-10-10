@@ -351,6 +351,7 @@ export class RaceRenderer {
       const k = curr.karts[me.slot]!;
       const d = k.drive;
       const boosting = d.boostTicks > 0 || d.startTicks > 0;
+      const cameraKart = this.content.karts.byCode[k.spec];
       // Establish the close launch view during the ordinary countdown too. A
       // tick-zero reference replay starts here directly; normal play must not
       // first zoom inward after GO because its chase rig was already running.
@@ -359,7 +360,7 @@ export class RaceRenderer {
       const slip = -Math.atan2(me.pose.lat, Math.max(1, Math.abs(u)));
       this.director.update({
         phase: curr.phase, tick: curr.tick, goTick: curr.goTick, countdownTicks: this.countdownTicks, finished: k.race.finishTick >= 0, dt,
-        target: { pos: me.pose.pos, fwd: me.pose.fwd, up: me.pose.up, speed: me.pose.speed, boosting, starting, drift: d.drift ? d.driftDir : 0, lookBack: this.lookBack, airborne: k.body.grounded === 0, slip },
+        target: { pos: me.pose.pos, fwd: me.pose.fwd, up: me.pose.up, speed: me.pose.speed, gripSpeed: cameraKart?.vGrip, boostSpeed: cameraKart?.vBoost, boosting, starting, drift: d.drift ? d.driftDir : 0, lookBack: this.lookBack, airborne: k.body.grounded === 0, slip },
       });
       if (this.localTeleport) { this.director.bumpCut(); this.localTeleport = false; }
       // cascades re-split when the projection changes (boost FOV kick, resize)
@@ -469,7 +470,7 @@ export class RaceRenderer {
     out.x = (p.x * 0.5 + 0.5); out.y = (-p.y * 0.5 + 0.5);
   }
 
-  minimap(): Float32Array { return this.view.minimap; }
+  minimap(): import('../ui/hud/minimap.ts').HudMapData { return this.view.map; }
 
   // ---- Time Attack ghost (orchestrator, L10-session-hooks §3): a translucent, shadowless kart posed from a replay world
   private ghost: { root: THREE.Group; kart: KartModel; mascot: MascotInstance; mat: THREE.Material } | null = null;

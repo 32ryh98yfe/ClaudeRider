@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three/webgpu';
+import { V_REF, V_BOOST } from '@cr/sim';
 import { ChaseCamera, LEGACY_CHASE_CAMERA, REFERENCE_CHASE_CAMERA, type CamTarget } from '../src/render/camera/ChaseCamera.ts';
 
 function target(): CamTarget {
-  return { pos: new THREE.Vector3(), fwd: new THREE.Vector3(0, 0, 1), up: new THREE.Vector3(0, 1, 0), speed: 34, boosting: false, drift: 0, slip: 0, lookBack: false, airborne: false };
+  return { pos: new THREE.Vector3(), fwd: new THREE.Vector3(0, 0, 1), up: new THREE.Vector3(0, 1, 0), speed: V_REF, gripSpeed: V_REF, boostSpeed: V_BOOST, boosting: false, drift: 0, slip: 0, lookBack: false, airborne: false };
 }
 function settle(c: ChaseCamera, t: CamTarget, seconds = 3, fps = 60): void {
   for (let i = 0; i < seconds * fps; i++) c.update(t, 1 / fps);
@@ -44,7 +45,7 @@ describe('reference chase camera', () => {
     expect(initialDistance).toBeLessThan(4);
     expect(screenY(c)).toBeGreaterThan(0.55);
     expect(screenY(c)).toBeLessThan(0.8);
-    t.speed = 45; settle(c, t, 1.5);
+    t.speed = V_BOOST; settle(c, t, 1.5);
     expect(c.camera.position.distanceTo(t.pos)).toBeGreaterThan(initialDistance + 2);
     expect(screenY(c)).toBeLessThan(0.55);
   });
@@ -58,7 +59,7 @@ describe('reference chase camera', () => {
     t.boosting = true; t.speed = 2; c.update(t, 1 / 60);
     expect(c.camera.position.distanceTo(t.pos)).toBeGreaterThanOrEqual(gridDistance);
     expect(c.camera.position.distanceTo(t.pos) - gridDistance).toBeLessThan(0.02);
-    t.speed = 45; settle(c, t, 1.5);
+    t.speed = V_BOOST; settle(c, t, 1.5);
     expect(c.camera.position.distanceTo(t.pos)).toBeGreaterThan(gridDistance + 2);
   });
 
@@ -66,7 +67,7 @@ describe('reference chase camera', () => {
     const cameras = [30, 120].map((fps) => {
       const c = new ChaseCamera(4 / 3), t = target(); settle(c, t, 3, fps);
       const oldFov = c.camera.fov, oldDistance = c.camera.position.distanceTo(t.pos);
-      t.speed = 45; t.boosting = true; c.update(t, 1 / fps);
+      t.speed = V_BOOST; t.boosting = true; c.update(t, 1 / fps);
       expect(c.camera.fov).toBeGreaterThan(oldFov);
       expect(c.camera.fov).toBeLessThan(REFERENCE_CHASE_CAMERA.baseFov + REFERENCE_CHASE_CAMERA.boostFov);
       settle(c, t, 1 - 1 / fps, fps);
@@ -75,6 +76,19 @@ describe('reference chase camera', () => {
     });
     expect(Math.abs(cameras[0]!.camera.fov - cameras[1]!.camera.fov)).toBeLessThan(0.01);
     expect(cameras[0]!.camera.position.distanceTo(cameras[1]!.camera.position)).toBeLessThan(0.02);
+  });
+
+  it('normalizes speed cues to the current kart and does not fake an instant boost-speed jump', () => {
+    const c = new ChaseCamera(4 / 3), t = target(); settle(c, t);
+    const cruisingFov = c.camera.fov;
+    expect(Math.abs(cruisingFov - (REFERENCE_CHASE_CAMERA.baseFov + REFERENCE_CHASE_CAMERA.speedFov))).toBeLessThanOrEqual(0.001);
+    t.boosting = true; c.update(t, 1 / 60);
+    expect(c.camera.fov).toBeCloseTo(cruisingFov, 3);
+    t.speed = V_REF + (V_BOOST - V_REF) / 2; settle(c, t);
+    expect(Math.abs(c.camera.fov - (REFERENCE_CHASE_CAMERA.baseFov + (REFERENCE_CHASE_CAMERA.speedFov + REFERENCE_CHASE_CAMERA.boostFov) / 2))).toBeLessThanOrEqual(0.001);
+    t.gripSpeed = 22; t.boostSpeed = 25; t.speed = 25; t.starting = true; settle(c, t);
+    expect(Math.abs(c.camera.fov - (REFERENCE_CHASE_CAMERA.baseFov + REFERENCE_CHASE_CAMERA.boostFov))).toBeLessThanOrEqual(0.001);
+    expect(c.camera.position.distanceTo(t.pos)).toBeGreaterThan(6); // fully opened at this kart's own cap
   });
 
   it('reduced motion suppresses FOV kick and shake, and reset follows teleports without a long world-space trail', () => {

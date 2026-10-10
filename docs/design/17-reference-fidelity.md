@@ -1,5 +1,7 @@
 # 17 — Reference fidelity and executable calibration
 
+> Historical evidence. [19 — Continuous handling](19-continuous-handling.md) is the current simulation-10 control/speed contract. The user explicitly authorized slower speeds, stronger traction, longer short-press drift, and local geometry changes. Earlier numerical speed, duration and data-preservation requirements below do not override that contract.
+
 This records the reference calibration through simulation version 8. Document
 `18-controls-and-track-contact.md` supersedes its repeat-input and cut-yaw rules
 for version 9; the measured source observations remain historical evidence. The user

@@ -9,21 +9,22 @@
 //
 // Driving techniques (M5) follow docs/design/15-driving-techniques.md §4, which supersedes 10-sim-spec for them:
 // post-boost bleed, brake turn / spin-out, tap boost, cut, reverse gauge, drag and gears. Their steps are marked
-// "§4.n" below. Doc 16 refines counter-steer recovery and repeat-kick timing without changing the track envelope.
+// "§4.n" below. Version 10 replaces impulse steering with continuous grip/drift engagement and curvature targets.
 import type { InputFrame } from '../core/input.ts';
-import { Held, Edge } from '../core/input.ts';
+import { Held, Edge, driftRequestAt, driftRequestCount } from '../core/input.ts';
 import { Attach, Boost, Gear, type GearState, type KartState, type WorldState } from '../core/state.ts';
 import { DT } from '../core/units.ts';
 import { decayF, smallCos, smallSin } from '../core/math.ts';
 import type { KartMods, StepContext } from '../api.ts';
 import type { SurfaceDef } from '@cr/content';
-import { DECAY_POST_HOLD, DECAY_POST_REL, gripGain, type KartParams } from './params.ts';
+import { DECAY_POST_HOLD, DECAY_POST_REL, type KartParams } from './params.ts';
 import { evKey } from './evkey.ts';
-import { clearDriftTech, endDrag, resetTech, setGear, spinOut } from './tech.ts';
+import { clearDriftTech, endDrag, resetTech, setGear } from './tech.ts';
 import { addGauge, GaugeSrc } from './gauge.ts';
 import { conveyorMul, effectiveSurface, gravityFor } from './zones.ts';
 import { railDynamics } from './rail.ts';
 import { hasZones } from './trackinfo.ts';
+import { advanceDriftHandling, requestDrift, steeringYaw } from './handling.ts';
 
 const SURF_DEFAULT: SurfaceDef = { id: 'asphalt', code: 1, grip: 1, vMul: 1, dragMul: 1 };
 
@@ -53,7 +54,9 @@ export function endDrift(w: WorldState, k: KartState, P: KartParams, ctx: StepCo
   d.drift = 0; d.reDriftLock = P.reDriftTicks;
   d.driftDir = 1; d.driftTicks = 0; d.driftPeak = 0;
   ctx.events.push({ t: 'driftEnd', kart: k.slot, tick: w.tick, key: evKey(w.tick, 4, k.slot) });
+  const pending = d.pendingDriftDir;
   clearDriftTech(w, k, ctx);
+  d.pendingDriftDir = pending;
 }
 
 /** A valid tap's key may stay down this long: in-direction steer is tolerated by the drag and steers like neutral (§4.4–§4.6). */
@@ -73,6 +76,7 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
   if (zoned) gravityFor(T, k.race.loc, ctx.scratch.grav);
 
   // ---------------------------------------------------------------- timers (phase-3 decrement, see header)
+  if (d.driftIntentTicks > 0) d.driftIntentTicks--;
   const wasBoost = d.boostTicks > 0 || d.startTicks > 0;
   if (d.boostTicks > 0) { d.boostTicks--; if (d.boostTicks === 0) { ev.push({ t: 'boostEnd', kart: k.slot, kind: d.boostKind, tick, key: evKey(tick, 1, k.slot) }); d.boostKind = Boost.NONE; } }
   if (d.startTicks > 0) d.startTicks--;
@@ -140,92 +144,63 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
     // §4.2 consecutive brake ticks (brake turn, spin-out, reverse engage)
     d.brakeTicks = brk ? (d.brakeTicks < 255 ? d.brakeTicks + 1 : 255) : 0;
 
-    // A direction press and Shift may arrive before keyboard smoothing crosses zero. The tap edge is the
-    // driver's fresh direction intent; use it for this impulse only, leaving continuous steering filtered.
+    // K2: consume ordered physical presses. Held Shift sustains an existing drift but never re-enters one.
     const directionEdge = inp.edges & (Edge.TAP_L | Edge.TAP_R);
-    let driftSteer = steer;
-    if (driftEdge && (directionEdge === Edge.TAP_L || directionEdge === Edge.TAP_R)) {
-      driftSteer = (directionEdge === Edge.TAP_L ? 1 : -1) * (mods.steerInvert ? -1 : 1) * mods.steerMul;
+    const intent = inp.steerIntent !== 0 ? -inp.steerIntent : -inp.steer / 127;
+    const pressIntent = driftEdge && (directionEdge === Edge.TAP_L || directionEdge === Edge.TAP_R) ? (directionEdge === Edge.TAP_L ? 1 : -1) : intent;
+    const inv = mods.steerInvert ? -1 : 1;
+    const canEnter = u >= P.driftMinSpeed && !wallStun && !brk;
+    let entered = false, repeated = 0;
+    if (d.drift === 0 && d.driftArmed && driftHeld && intent !== 0 && canEnter) entered = requestDrift(d, intent * inv, true) === 1;
+    if (!driftHeld) d.driftArmed = 0;
+    if (d.drift === 0 && d.pendingDriftDir !== 0 && canEnter) {
+      entered = requestDrift(d, d.pendingDriftDir, true) === 1;
     }
-    const hasDriftSteer = driftSteer >= P.driftMinSteer || driftSteer <= -P.driftMinSteer;
-    // -------------------------------------------------------------- K2 drift entry / double drift
-    if (d.drift === 0) {
-      if (driftHeld && hasDriftSteer && u >= P.driftMinSpeed && (d.reDriftLock <= 0 || driftEdge) && !wallStun) {
-        d.drift = 1; d.driftDir = driftSteer > 0 ? 1 : -1; d.driftTicks = 0; d.driftPeak = 0; d.reDriftLock = 0;
-        resetTech(d); d.brakeTicks = brk ? 1 : 0; d.postTicks = 0;
-        k.stats.drifts++;
-        b.yawRate += d.driftDir * P.kickR;
-        rotateForward(k, d.driftDir * P.kickAngle);
-        b.vx *= P.kickLoss; b.vy *= P.kickLoss; b.vz *= P.kickLoss;
-        ev.push({ t: 'driftStart', kart: k.slot, tick, key: evKey(tick, 2, k.slot) });
-      }
-    } else if (driftEdge && hasDriftSteer && !wallStun) {
-      // Short deliberate pulses add proportional yaw instead of disappearing inside a cooldown. They steer in
-      // the requested direction, including across an existing slide, without teleporting the heading by 3°.
-      const elapsed = Math.min(d.driftTicks, P.rekickMinTicks - d.reDriftLock);
-      const gain = Math.max(0, Math.min(1, elapsed / P.rekickMinTicks));
-      const dir = driftSteer > 0 ? 1 : -1;
-      const yawLimit = P.kickR + P.y1 + P.y2;
-      b.yawRate = Math.max(-yawLimit, Math.min(yawLimit, b.yawRate + dir * P.rekickR * gain));
-      d.reDriftLock = P.rekickMinTicks;
-      const loss = 1 - (1 - P.rekickLoss) * gain;
-      b.vx *= loss; b.vy *= loss; b.vz *= loss;
-      ev.push({ t: 'doubleDrift', kart: k.slot, tick, key: evKey(tick, 3, k.slot) });
+    const requests = driftRequestCount(inp.driftRequests || 0);
+    const count = locked ? 0 : requests || (driftEdge ? 1 : 0);
+    for (let i = 0; i < count; i++) {
+      const requested = requests > 0 ? -driftRequestAt(inp.driftRequests, i) : 0;
+      const action = requestDrift(d, (requested || pressIntent) * inv, canEnter);
+      entered ||= action === 1;
+      if (action === 2) repeated++;
     }
+    if (entered) {
+      d.driftTicks = 0; d.driftPeak = 0; d.reDriftLock = 0;
+      resetTech(d); d.brakeTicks = brk ? 1 : 0; d.postTicks = 0; k.stats.drifts++;
+      ev.push({ t: 'driftStart', kart: k.slot, tick, key: evKey(tick, 2, k.slot) });
+    }
+    if (repeated > 0) ev.push({ t: 'doubleDrift', kart: k.slot, tick, key: evKey(tick, 3, k.slot) });
+    advanceDriftHandling(d, steer, driftHeld, intent * inv, brk);
     fx = b.fx; fy = b.fy; fz = b.fz;
     u = b.vx * fx + b.vy * fy + b.vz * fz;
 
-    // -------------------------------------------------------------- K3 brake turn, spin-out, taps (§4.3)
-    let turnMul = 1, spun = false;
+    // K3: directional tap bonuses affect the smooth target. Ordinary braking never injects yaw or stun.
     if (d.drift === 1) {
-      if (d.brakeTicks >= P.spinTicks) {
-        endDrift(w, k, P, ctx); // no instant window: the K11 exit path is not taken
-        spinOut(w, k, P, ctx);
-        spun = true;
-      } else {
-        if (d.brakeTicks >= 1 && d.brakeTicks <= P.brakeTurnTicks) {
-          turnMul = P.brakeTurnMul;
-          if (d.brakeTicks === 1) ev.push({ t: 'brakeTurn', kart: k.slot, tick, key: evKey(tick, 13, k.slot) });
-        }
-        if (d.dragTicks > 0) {
-          if (d.tapGap < 255) d.tapGap++;
-          // the corner-direction key; Mirror Mode swaps the keys, so it swaps the edge bits too
-          const inv = mods.steerInvert;
-          const tapIn = d.driftDir > 0 ? (inv ? Edge.TAP_R : Edge.TAP_L) : (inv ? Edge.TAP_L : Edge.TAP_R);
-          if (!locked && (inp.edges & tapIn) !== 0) {
-            const gap = d.tapGap;
-            if (gap > P.tapMaxGap) d.tapStreak = 1;
-            else if (gap >= P.tapMinGap) d.tapStreak = d.tapStreak < P.tapStreakMax ? d.tapStreak + 1 : P.tapStreakMax;
-            else d.tapStreak = 0; // mashing faster than tapMinGap is not a tap
-            d.tapGap = 0;
-            if (d.tapStreak > 0) {
-              b.yawRate += d.driftDir * P.tapYaw;
-              ev.push({ t: 'tapBoost', kart: k.slot, streak: d.tapStreak, tick, key: evKey(tick, 11, k.slot, d.tapStreak) });
-            }
-          }
+    if (d.dragTicks > 0) {
+      if (d.tapGap < 255) d.tapGap++;
+      // the corner-direction key; Mirror Mode swaps the keys, so it swaps the edge bits too
+      const inv = mods.steerInvert;
+      const tapIn = d.driftDir > 0 ? (inv ? Edge.TAP_R : Edge.TAP_L) : (inv ? Edge.TAP_L : Edge.TAP_R);
+      if (!locked && (inp.edges & tapIn) !== 0) {
+        const gap = d.tapGap;
+        if (gap > P.tapMaxGap) d.tapStreak = 1;
+        else if (gap >= P.tapMinGap) d.tapStreak = d.tapStreak < P.tapStreakMax ? d.tapStreak + 1 : P.tapStreakMax;
+        else d.tapStreak = 0; // mashing faster than tapMinGap is not a tap
+        d.tapGap = 0;
+        if (d.tapStreak > 0) {
+          d.driftTarget = Math.min(1, d.driftTarget + 0.08);
+          ev.push({ t: 'tapBoost', kart: k.slot, streak: d.tapStreak, tick, key: evKey(tick, 11, k.slot, d.tapStreak) });
         }
       }
+    }
     }
 
     // -------------------------------------------------------------- K4 yaw target and lag
     const sIn = steer * d.driftDir;
-    let rT: number;
-    if (d.drift === 0) {
-      rT = steer * gripGain(u, P);
-      if (u < -0.5) rT = -steer * P.yGrip * 0.5 * (-u) / (-u + P.gripV0);
-    } else {
-      // §4.4: the key of a valid tap, still held inside the grace, steers like neutral (a real keyboard press lasts
-      // several frames; its full in-steer would drive β past dragExitHi within a few ticks)
-      const sY = d.dragTicks > 0 && inTapGrace(d, P) && sIn > P.dragNeutral ? P.dragNeutral : sIn;
-      const carry = (P.y0 / (1 + (d.driftTicks * DT) / P.y0T) + (driftHeld ? P.y2 : 0)) * (1 + Math.min(0, sY));
-      rT = d.driftDir * (carry + P.y1 * sY);
-    }
-    if (wallStun) rT *= 0.3;
-    const yawResponse = d.drift === 0 ? P.kYawGrip : P.kYawDrift + (P.kYawGrip - P.kYawDrift) * Math.max(0, -sIn);
-    b.yawRate += (rT - b.yawRate) * (1 - decayF(yawResponse, DT));
+    b.yawRate = steeringYaw(d, u, steer, b.yawRate, P);
 
-    // -------------------------------------------------------------- K5 heading rotation (×brakeTurnMul in a brake turn)
-    rotateForward(k, b.yawRate * DT * turnMul);
+    // K5: all heading changes are the integral of the bounded yaw rate.
+    rotateForward(k, b.yawRate * DT);
     fx = b.fx; fy = b.fy; fz = b.fz;
     const lx = ny * fz - nz * fy, ly = nz * fx - nx * fz, lz = nx * fy - ny * fx;
 
@@ -247,33 +222,9 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
 
     // -------------------------------------------------------------- K7b cut and drag (§4.5)
     const boosting = d.boostTicks > 0 || d.startTicks > 0;
-    let cut = false, recovering = false;
+    let cut = false;
     if (d.drift === 1) {
-      // Doc 16: full counter-steer starts finite grip recovery after the debounce. Only a nearly aligned kart
-      // finishes the cut; deeper slip keeps momentum across several ticks. Boost + DRIFT keeps reverse gauge.
-      d.counterTicks = sIn <= -P.cutSteer ? (d.counterTicks < 255 ? d.counterTicks + 1 : 255) : 0;
-      if (d.counterTicks >= P.cutTicks && !(boosting && driftHeld)) {
-        recovering = true;
-        // Tight, slow hairpins need a quicker catch than fast sweepers to retain the authored corner envelope.
-        const ratio = P.vGrip / Math.max(v, 1);
-        const recovery = P.kCut * Math.min(4, Math.max(1, ratio * ratio * ratio));
-        const wr = wl * decayF(recovery * surf.grip, DT);
-        const raw = Math.sqrt(u * u + wr * wr);
-        if (raw > 1e-6) {
-          const keep = (raw + P.etaCut * (v - raw)) / raw;
-          u *= keep; wl = wr * keep;
-        } else wl = wr;
-        // Catch residual rotation into the old slide, but keep the rotation the driver is asking for.
-        if (b.yawRate * d.driftDir > 0) b.yawRate *= decayF(recovery, DT);
-        v = Math.sqrt(u * u + wl * wl);
-        cut = Math.abs(wl) <= P.exitSin * v;
-        if (cut) {
-          if (u > 0) u += P.etaCut * (v - u);
-          wl = 0;
-          v = u < 0 ? -u : u;
-          ev.push({ t: 'cut', kart: k.slot, tick, key: evKey(tick, 12, k.slot) });
-        }
-      }
+      d.counterTicks = d.driftRecovering === 2 ? Math.min(255, d.counterTicks + 1) : 0;
       // drag: boosting, ↑, no brake, on the ground, steering neutral (or the key of a valid tap still held)
       const steerOk = sIn > -P.dragNeutral && (sIn < P.dragNeutral || inTapGrace(d, P));
       const ok = !cut && boosting && thrIn === 1 && !brk && b.grounded === 1 && steerOk;
@@ -297,7 +248,8 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
       if (sL >= 0.3) kL = P.kLatNeutral + (P.kLatIn - P.kLatNeutral) * ((sL - 0.3) / 0.7);
       else if (sL > -0.3) kL = P.kLatNeutral;
       else kL = P.kLatNeutral + (P.kLatCounter - P.kLatNeutral) * ((-sL - 0.3) / 0.7);
-      if (driftHeld) kL *= P.kLatShift;
+      kL = P.kLatGrip + (kL - P.kLatGrip) * d.driftEngagement;
+      eta = P.etaGrip + (eta - P.etaGrip) * d.driftEngagement;
     }
     kL *= surf.grip;
     const w2 = wl * decayF(kL, DT);
@@ -305,14 +257,9 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
     if (vRaw > 1e-6) { const f = (vRaw + eta * (v - vRaw)) / vRaw; u *= f; wl = w2 * f; } else wl = w2;
     v = Math.sqrt(u * u + wl * wl);
 
-    // Ordinary tyre damping can finish the last few degrees this tick too. Complete the same cut transition
-    // here so K11 cannot bypass its yaw alignment/event with a natural drift exit.
-    if (recovering && !cut && Math.abs(wl) <= P.exitSin * v) {
-      cut = true;
-      if (u > 0) u += P.etaCut * (v - u);
-      wl = 0; v = u < 0 ? -u : u;
-      ev.push({ t: 'cut', kart: k.slot, tick, key: evKey(tick, 12, k.slot) });
-    }
+    // Recovery finishes with the observed velocity intact; no sideways velocity is deleted at the transition.
+    cut = d.driftRecovering === 2 && d.driftEngagement === 0 && Math.abs(wl) <= P.exitSin * v;
+    if (cut) ev.push({ t: 'cut', kart: k.slot, tick, key: evKey(tick, 12, k.slot) });
 
     // -------------------------------------------------------------- K9 slip cap
     if (d.drift === 1) { const sm = P.sinBetaMax * v; if (wl > sm || wl < -sm) { wl = wl > 0 ? sm : -sm; u = Math.sqrt(v * v - wl * wl); } }
@@ -331,7 +278,7 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
         // §4.7 reverse gauge: counter-steering a boosted drift charges ×revGaugeMul
         addGauge(w, k, boosting && sIn <= -0.3 ? dg * P.revGaugeMul : dg, GaugeSrc.DRIFT, opt.teamSize, ctx);
       }
-      if ((d.driftTicks >= P.exitMinTicks && sb < P.exitSin) || u < 5 || cut) {
+      if ((d.driftTicks >= P.exitMinTicks && d.driftEngagement === 0 && Math.abs(sb) < P.exitSin) || u < 5 || cut) {
         const allowInst = !opt.itemMode || opt.instantAllowed;
         if (allowInst && d.driftTicks >= P.instMinDriftTicks && d.driftPeak >= P.instMinSlip) d.instWindow = P.instWindowTicks;
         endDrift(w, k, P, ctx);
@@ -347,7 +294,7 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
     let vT: number, boostLaw = true, cap = P.aBoostMax;
     if (d.boostTicks > 0) vT = d.boostKind === Boost.TEAM ? P.vTeam : P.vBoost;
     else if (d.startTicks > 0) { vT = P.vBoost * P.startCapMul; cap = P.aStartMax; }
-    else if (mods.vTarget > 0) vT = mods.vTarget;
+    else if (mods.vTarget > 0) vT = Math.min(mods.vTarget, P.vBoost);
     else { vT = d.draftTicks > 0 ? P.vDraft : P.vGrip; boostLaw = false; }
     const capMul = mods.vCapMul;
     vT *= surf.vMul * conv * capMul;
@@ -410,6 +357,7 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
       if (brk) {
         if (reverse) { const r = u < 0 ? -u / P.vReverse : 0; a = -P.aReverse * (1 - r * r); }
         else if (u > 0) a = -(d.drift === 1 ? P.aBrakeDrift : P.aBrake);
+        else if (thrIn) a = u < 0 ? P.aBrake : 0; // brake wins when both pedals are held
       }
       let uN: number;
       if (d.dragTicks > 0 && thr && boostLaw) {
@@ -435,9 +383,16 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
         }
         if (brk) { const ub = u + a * DT; if (ub < uN) uN = ub; }
       } else uN = u + a * DT;
+      // Positive motor work is capped on actual planar speed, including a slide. Momentum already above
+      // the target (for example after gravity on a downhill) is retained and decays by the usual force laws.
+      if (thr && !brk && uN > u) {
+        const motorCap = instOn ? Math.max(vT, vInst) : vT;
+        const room = Math.sqrt(Math.max(0, motorCap * motorCap - wl * wl));
+        uN = Math.max(u, Math.min(uN, room));
+      }
       if (!reverse) {
         if ((thr === 0 || brk) && u >= 0 && uN < 0) uN = 0;
-        else if (thr === 0 && u < 0 && uN > 0) uN = 0;
+        else if ((thr === 0 || brk) && u < 0 && uN > 0) uN = 0;
       }
       u = uN;
       // N or R rolling to rest on a gentle grade stops (zero-lock from this tick). At rest means planar speed too,
@@ -447,12 +402,6 @@ export function kartDynamics(w: WorldState, k: KartState, inp: Readonly<InputFra
 
     // -------------------------------------------------------------- K16 drift drag (not while dragging)
     if (d.drift === 1 && sb > 0 && d.dragTicks === 0) { let f = 1 - P.cBeta * sb * sb * DT; if (f < 0) f = 0; u *= f; wl *= f; }
-
-    // §4.9 spin-out: the planar speed drops to spinSpeed
-    if (spun) {
-      const vp = Math.sqrt(u * u + wl * wl);
-      if (vp > 1e-9) { const s = P.spinSpeed / vp; u *= s; wl *= s; } else u = P.spinSpeed;
-    }
 
     // -------------------------------------------------------------- K17 recompose (coyote: full gravity, the kart is falling)
     b.vx = u * fx + wl * lx + vn * nx;

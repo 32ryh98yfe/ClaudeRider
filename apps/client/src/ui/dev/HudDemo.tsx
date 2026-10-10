@@ -66,7 +66,7 @@ export function HudDemo() {
     if (v === 'reverse') { hud.kmh.value = 42; hud.boosting.value = false; hud.draft.value = 0; hudX.drag.value = { on: false, streak: 0 }; }
     mission.value = null;
   }, []);
-  return <Hud minimap={map} />;
+  return <Hud minimap={{ paths: [{ id: 'demo', points: map, closed: true }] }} />;
 }
 
 function demoMap(): Float32Array {

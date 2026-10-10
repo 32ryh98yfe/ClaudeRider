@@ -1,7 +1,8 @@
 // Pure, tick-addressable reference input. Importable from Node benchmarks without a DOM.
 import type { ReferenceClip, ReferenceKey } from '@cr/content/reference-driving.ts';
-import { makeInput, Phase, Gear, Boost, StartTier, KMH_PER_MPS, quantizeWorld, type InputFrame, type WorldState } from '@cr/sim';
-import { InputActionFilter, actionPressEdge, type DriveActions } from '../../input/actionFilter.ts';
+import { makeInput, copyInput, Phase, Gear, Boost, StartTier, KMH_PER_MPS, quantizeWorld, type InputFrame, type WorldState } from '@cr/sim';
+import type { DriveActions } from '../../input/actionFilter.ts';
+import { InputTimeline } from '../../input/timeline.ts';
 
 const KEYS: readonly ReferenceKey[] = ['up', 'down', 'left', 'right', 'drift', 'boost'];
 
@@ -18,23 +19,24 @@ export class ReferenceReplay {
       if (!Number.isInteger(entry.frame) || entry.frame < 0 || entry.frame <= prior || entry.frame * 2 >= this.durationTicks) throw new Error('Reference key frames must be strictly ordered inside the clip');
       prior = entry.frame;
     }
-    const filter = new InputActionFilter();
+    const timeline = new InputTimeline();
     const raw: DriveActions = { up: false, down: false, left: false, right: false, drift: false, boost: false };
     const frames: InputFrame[] = [];
     let change = 0;
     for (let tick = 0; tick < this.durationTicks; tick++) {
-      let edges = 0;
+
       while (change < clip.keys.length && clip.keys[change]!.frame * 2 === tick) {
         const event = clip.keys[change++]!;
-        filter.advance(raw, tick * 1000 / 60);
+        const presses: string[] = [];
         for (const key of KEYS) {
           const held = event.keys.includes(key);
-          if (held && !raw[key]) edges |= actionPressEdge(key);
+          if (held && !raw[key]) presses.push(key);
           raw[key] = held;
         }
+        timeline.enqueue(raw, tick * 1000 / 60, presses);
       }
       const frame = makeInput();
-      filter.sample(raw, (tick + 1) * 1000 / 60, edges, frame);
+      timeline.sample((tick + 1) * 1000 / 60, frame);
       frames.push(frame);
     }
     this.frames = frames;
@@ -43,8 +45,7 @@ export class ReferenceReplay {
   /** worldTick is the state BEFORE this input is stepped. Calls may repeat or seek backwards. */
   frameAt(worldTick: number, out: InputFrame = makeInput()): InputFrame {
     const frame = this.frames[worldTick] ?? this.neutral;
-    out.steer = frame.steer; out.throttle = frame.throttle; out.brake = frame.brake;
-    out.held = frame.held; out.edges = frame.edges; out.aim = frame.aim; out.emote = frame.emote;
+    copyInput(out, frame);
     return out;
   }
 }

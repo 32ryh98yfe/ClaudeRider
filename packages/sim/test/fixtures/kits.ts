@@ -166,10 +166,10 @@ export interface CornerKit extends Fixture { arcStart: number; arcEnd: number; w
  * Corner kit (gap-2 corner harness): 200 m approach, one arc of radius `rc` turning `deg` (left), 260 m exit,
  * on a `width` m road with walls at the road edges.
  */
-export function cornerKit(rc: number, deg: number, width = 12): CornerKit {
-  const key = `corner${rc}_${deg}_${width}`;
+export function cornerKit(rc: number, deg: number, width = 12, dir: 'L' | 'R' = 'L'): CornerKit {
+  const key = `corner${rc}_${deg}_${width}${dir}`;
   const f = memo(key, () => {
-    const segs: Seg[] = [{ len: 200 }, { r: rc, deg, dir: 'L' }, { len: 260 }];
+    const segs: Seg[] = [{ len: 200 }, { r: rc, deg, dir }, { len: 260 }];
     const F = turtle(segs, { ds: 0.5 });
     const ground = newMesh(), walls = newMesh();
     sweep(ground, F, () => flatProfile(-width / 2 - 1.5, width / 2 + 1.5, 6), { every: 1 });

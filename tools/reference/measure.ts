@@ -35,7 +35,7 @@ function sample(k: KartState, tick: number, hash: number): ReferenceSample {
 export function measureClip(clip: ReferenceClip, overrides: Partial<KartParams> = {}, detail = true) {
   Object.assign(params, original, overrides);
   // Derived targets follow the candidate kart; the display scale is a fixed source-independent unit convention.
-  params.vInst = 1.05 * params.vGrip; params.vDraft = 1.05 * params.vGrip; params.vTeam = 1.02 * params.vBoost;
+  params.vInst = 1.05 * params.vGrip; params.vDraft = 1.05 * params.vGrip; params.vTeam = params.vBoost;
   const cfg: RaceConfig = {
     simVersion: SIM_VERSION, mode: 'speed', teams: 'solo', trackId: track.id, trackHash: track.hash, laps: 1,
     slots: [{ kind: 'human', name: 'reference', team: 0, characterId: 'clay', kartBodyId: 'pebble', vMul: 1 }], seed: 4242,

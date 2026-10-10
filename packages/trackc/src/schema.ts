@@ -79,7 +79,7 @@ export function toDef(ast: TrackAst, opts: { strict: boolean } = { strict: false
     keyGates: c.keyGates, props: c.props.map((p) => ({ kind: p.kind, mode: p.mode })),
     env: { themeId: m.theme as ThemeId, terrain: c.theme.terrain ?? 'default', song: { id: c.theme.song?.split(':')[0] ?? m.theme, variant: (c.theme.song?.split(':')[1] ?? 'a') as 'a' | 'b' }, ...(c.theme.sky ? { sky: c.theme.sky } : {}), ...(c.theme.time ? { time: c.theme.time } : {}) },
     profiles: [...m.profiles.values()].map((p) => (p.kind === 'flat' ? { id: p.id, kind: 'flat', crown: p.crown } : p.kind === 'halfpipe' ? { id: p.id, kind: 'halfpipe', floorHalf: Number(p.src.floorHalf), filletR: Number(p.src.filletR), wallDeg: Number(p.src.wallDeg), wallH: Number(p.src.wallH), lip: Number(p.src.lip), sides: p.src.sides as 'both' | 'L' | 'R' } : { id: p.id, kind: 'custom', pts: p.pts.map((q) => [q.d, q.h, ...(q.surf ? [q.surf] : [])] as [number, number, SurfaceId?]) })),
-    targets: { refLapSec: { speed: m.lapLength / [0, 37, 36, 35, 34, 33][m.difficulty]!, item: (m.lapLength / [0, 37, 36, 35, 34, 33][m.difficulty]!) * 1.12 }, straightRatio: [0, 1] },
+    targets: { refLapSec: { speed: m.lapLength / ([0, 37, 36, 35, 34, 33][m.difficulty]! * 0.85), item: (m.lapLength / ([0, 37, 36, 35, 34, 33][m.difficulty]! * 0.85)) * 1.12 }, straightRatio: [0, 1] },
     meta: { signature: ast.signature, fallbacks: ast.fallbacks.map((f) => ({ feature: f.feature, substitute: f.substitute, when: f.when as `F${1 | 2 | 3 | 4 | 5 | 6}` })), taken: [] },
     source: { dsl: ast.file, compiler: 'trackc/2.0', seed: 0 },
     ...(opts.strict ? {} : {}),

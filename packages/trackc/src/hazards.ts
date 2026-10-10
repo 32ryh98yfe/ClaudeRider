@@ -71,13 +71,15 @@ export function parseHazard(st: Stmt, m: TrackModel, pathOf: (id: string | undef
 
   const effect = (a.effect ?? DEFAULT_EFFECT[kind]) as HazardDefBaked['effect'];
   if (!['spin', 'launch', 'squash', 'block'].includes(effect)) fail(`HAZ ${name}: effect=${effect} (spin | launch | squash | block)`);
+  const contact = (a.contact ?? (kind === 'geyser' && effect !== 'block' ? 'trigger' : 'solid')) as 'solid' | 'trigger';
+  if (contact !== 'solid' && contact !== 'trigger') fail(`HAZ ${name}: contact=${contact} (solid | trigger)`);
   const mtype = (a.motion ?? DEFAULT_MOTION[kind]) as HazardMotion['type'];
   if (!['static', 'piston', 'pendulum', 'rotate', 'lane', 'cross'].includes(mtype)) fail(`HAZ ${name}: motion=${mtype}`);
   const plane = (a.plane ?? 'across') as NonNullable<HazardMotion['plane']>;
   if (!['across', 'along', 'flat'].includes(plane)) fail(`HAZ ${name}: plane=${plane} (across | along | flat)`);
 
   const base = (): HazardDefBaked => ({
-    id: 0, kind, path, s, u, shape, size: [size[0], size[1], size[2]], periodTicks, activeFrom, activeTo, telegraphTicks, offsetTicks, effect,
+    id: 0, kind, path, s, u, shape, size: [size[0], size[1], size[2]], periodTicks, activeFrom, activeTo, telegraphTicks, offsetTicks, effect, contact,
     name, h: num(a.h, 0),
   });
   const prop = a.prop ?? DEFAULT_PROP[kind];

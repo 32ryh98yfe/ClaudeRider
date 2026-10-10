@@ -1,11 +1,13 @@
-// Every committed .ctd: compiler invariants (compiles, closes, ≤ 1.5 MB, reproducible, round-trips, matches its golden
+// Every committed .ctd: compiler invariants (compiles, closes, ≤ 5 MiB, reproducible, round-trips, matches its golden
 // hash) are hard failures. Validator findings are hard failures for the tracks L4 answers for (the M1 tracks, the F
 // fixtures); for the world lanes' roster tracks they are reported, not failed — `pnpm bake --validate` is their gate.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { gzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { loadCtrk, toArrayBuffer } from '@cr/sim';
 import { buildTrack } from '../src/build.ts';
+import { CTRK_MAX_BYTES, CVIS_GZIP_MAX_BYTES } from '../src/budgets.ts';
 import { TrackDslError } from '../src/dsl.ts';
 import { TRACKS_DIR, allTrackIds, entryOf, externalFingerprint, readGolden, srcHash } from '../src/golden.ts';
 
@@ -20,7 +22,7 @@ if (externalStale) soft.push('golden: AI bake / content inputs changed since tra
 describe('trackc build', () => {
   for (const id of allTrackIds()) {
     const file = join(TRACKS_DIR, id + '.ctd');
-    it(`${id}: compiles, closes < 0.05 m, ≤ 1.5 MB (roster), reproducible, golden${OWNED(id) ? ', 0 validator errors' : ''}`, () => {
+    it(`${id}: compiles, closes < 0.05 m, ≤ 5 MiB (v3 roster), reproducible, golden${OWNED(id) ? ', 0 validator errors' : ''}`, () => {
       const src = readFileSync(file, 'utf8');
       let a;
       try { a = buildTrack(src, file); } catch (e) {
@@ -31,7 +33,10 @@ describe('trackc build', () => {
       if (OWNED(id)) expect(errors, errors.map((e) => `${e.rule}: ${e.msg}`).join('\n')).toEqual([]);
       else if (errors.length) soft.push(`${id}: ${errors.map((e) => `${e.rule} ${e.msg}`).join(' | ')}`);
       if (a.geometry.closed) expect(Math.hypot(a.geometry.closure.dx, a.geometry.closure.dz)).toBeLessThan(0.05);
-      if (!id.startsWith('_')) expect(a.ctrk.byteLength).toBeLessThanOrEqual(1.5 * 1024 * 1024);
+      if (!id.startsWith('_')) {
+        expect(a.ctrk.byteLength).toBeLessThanOrEqual(CTRK_MAX_BYTES);
+        expect(gzipSync(a.vis, { level: 9 }).byteLength).toBeLessThanOrEqual(CVIS_GZIP_MAX_BYTES);
+      }
       const b = buildTrack(src, 'elsewhere/' + id + '.ctd'); // the path must not leak into the bytes
       expect(b.meta.hash).toBe(a.meta.hash);
       expect(Buffer.compare(Buffer.from(a.ctrk), Buffer.from(b.ctrk))).toBe(0);

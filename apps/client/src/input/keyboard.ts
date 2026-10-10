@@ -4,7 +4,8 @@
 import { signal } from '@preact/signals';
 import { Edge, makeInput, type InputFrame } from '@cr/sim';
 import { save } from '../meta/save.ts';
-import { InputActionFilter, actionPressEdge, type DriveActions } from './actionFilter.ts';
+import type { DriveActions } from './actionFilter.ts';
+import { InputTimeline, type InputTrace } from './timeline.ts';
 import { installGamepad, padState, consumePadPresses, consumeStickFlicks, releasePad, onPadButton } from './gamepad.ts';
 
 /** Where the last input came from; HUD and menus switch their key hints to pad glyphs on 'pad' (31-ui-spec §7.2). */
@@ -13,10 +14,13 @@ export const inputDevice = signal<'kb' | 'pad'>('kb');
 export const heldUi = signal<{ look: boolean; standings: boolean }>({ look: false, standings: false });
 
 const down = new Set<string>();
-let edges = 0;
 let emote = 0;
 let anyKeyCbs: (() => void)[] = [];
-const actionFilter = new InputActionFilter();
+const timeline = new InputTimeline();
+const trace: InputTrace[] = [];
+let traceEnabled = false;
+export function inputTrace(enable = true): readonly InputTrace[] { traceEnabled = enable; if (enable) trace.length = 0; return trace; }
+timeline.trace = (entry) => { if (traceEnabled) { if (trace.length >= 20000) trace.shift(); trace.push(entry); } };
 let gameActive = false;
 let composing = false;
 let focused = true;
@@ -80,13 +84,10 @@ function onDown(e: KeyboardEvent): void {
   // system hotkeys work everywhere (menus and race)
   for (const a of acts) if (SYSTEM_ACTIONS.has(a)) { e.preventDefault(); if (!e.repeat) fire(a); }
   if (!gameActive) return;
-  // Integrate the old direction up to the event before changing the held keys. A short
-  // counter-steer then has the same duration even when it falls between rendered frames.
-  advanceSteering(readPad(false), performance.now());
+  const fresh = !e.repeat && !down.has(e.code);
   if (acts.length || BROWSER_DEFAULTS.has(e.code)) e.preventDefault();
-  if (!e.repeat) {
+  if (fresh) {
     for (const a of acts) {
-      edges |= actionPressEdge(a);
       switch (a) {
         case 'emote1': case 'emote2': case 'emote3': case 'emote4': emote = Number(a.slice(5)); fire(a); break;
         case 'pause': case 'restart': fire(a); break;
@@ -96,21 +97,23 @@ function onDown(e: KeyboardEvent): void {
       }
     }
   }
-  if (gameActive) down.add(e.code);
+  if (gameActive) { down.add(e.code); timeline.enqueue(readActions(readPad(false)), eventTime(e), fresh ? acts : [], emote); }
 }
 
 function onUp(e: KeyboardEvent): void {
   if (e.code === 'AltLeft' || e.code === 'AltRight') e.preventDefault();
-  if (gameActive) advanceSteering(readPad(false), performance.now());
   down.delete(e.code);
+  if (gameActive) timeline.enqueue(readActions(readPad(false)), eventTime(e));
   const acts = actionsOf(e.code);
   if (gameActive && acts.length && !isTextTarget(e.target)) e.preventDefault();
   if (acts.includes('standings')) heldUi.value = { ...heldUi.value, standings: false };
   if (acts.includes('look')) heldUi.value = { ...heldUi.value, look: false };
 }
 
+/** Clear held driving controls without disabling pause/menu hotkeys. */
+export function clearDrivingInput(now = performance.now()): void { clearInput(now); }
 function clearInput(now = performance.now()): void {
-  down.clear(); edges = 0; emote = 0; actionFilter.reset(now); releasePad();
+  down.clear(); emote = 0; padSnapshot = ''; timeline.reset(now); releasePad();
   if (heldUi.value.look || heldUi.value.standings) heldUi.value = { look: false, standings: false };
 }
 
@@ -156,23 +159,49 @@ function readActions(gp: typeof padOut): DriveActions {
   actions.analogSteer = gp.steer; actions.analogThrottle = gp.accel; actions.analogBrake = gp.brake;
   return actions;
 }
-function advanceSteering(gp: typeof padOut, now: number): number {
-  return actionFilter.advance(readActions(gp), now);
+/** DOM timestamps share performance.timeOrigin in modern browsers; normalize legacy epoch stamps. */
+function eventTime(e: Event): number {
+  const now = performance.now();
+  const stamp = e.timeStamp > 1e12 ? e.timeStamp - performance.timeOrigin : e.timeStamp;
+  return Number.isFinite(stamp) && stamp >= 0 && stamp <= now + 1000 ? stamp : now;
 }
 
 const frame = makeInput();
-/** Samples and consumes latched edges using the monotonic render/fallback-pump time in milliseconds. */
-export function sampleInput(now = performance.now()): InputFrame {
+let padSnapshot = '';
+/** Poll once per presentation/pump. Raw keyboard transitions have already been queued by DOM handlers. */
+export function pumpInput(now = performance.now()): void {
   const gp = readPad();
-  if (!gameActive || composing || !focused || document.hidden || isTextTarget(document.activeElement)) {
-    clearInput(now);
-    frame.steer = 0; frame.throttle = 0; frame.brake = 0; frame.held = 0; frame.edges = 0; frame.aim = 255; frame.emote = 0;
-    return frame;
+  if (!gameActive || composing || !focused || document.hidden || isTextTarget(document.activeElement)) { clearInput(now); return; }
+  const snapshot = `${gp.steer},${gp.accel},${gp.brake},${gp.drift},${gp.item},${gp.look},${gp.left},${gp.right}`;
+  if (snapshot !== padSnapshot || gp.edges) {
+    padSnapshot = snapshot;
+    const presses: string[] = [];
+    if (gp.edges & Edge.DRIFT) presses.push('drift');
+    if (gp.edges & Edge.USE_ITEM) presses.push('item');
+    if (gp.edges & Edge.SWAP) presses.push('swap');
+    if (gp.edges & Edge.RESPAWN) presses.push('reset');
+    if (gp.edges & Edge.TAP_L) presses.push('left');
+    if (gp.edges & Edge.TAP_R) presses.push('right');
+    if (gp.edges & Edge.EMOTE) presses.push('emote1');
+    timeline.enqueue(readActions(gp), now, presses, gp.edges & Edge.EMOTE ? 1 : 0);
   }
-  actionFilter.sample(readActions(gp), now, edges | gp.edges, frame, save.get().settings.autoBoost, gp.edges & Edge.EMOTE ? 1 : emote);
   if (gp.look !== heldUi.value.look && !held('look')) heldUi.value = { ...heldUi.value, look: gp.look };
-  edges = 0; emote = 0;
-  return frame;
+}
+
+/** Called once per NEW physics tick; rollback reuses the stored frame, never consumes raw events again. */
+export function sampleInputTick(until: number, out: InputFrame = frame): InputFrame {
+  if (!gameActive || composing || !focused || document.hidden || isTextTarget(document.activeElement)) {
+    out.steer = 0; out.steerIntent = 0; out.driftRequests = 0; out.throttle = 0; out.brake = 0; out.held = 0; out.edges = 0; out.aim = 255; out.emote = 0;
+    return out;
+  }
+  timeline.sample(until, out, save.get().settings.autoBoost);
+  return out;
+}
+
+/** Compatibility/manual sampler. The live Session instead polls once and samples each physics boundary. */
+export function sampleInput(now = performance.now()): InputFrame {
+  pumpInput(now);
+  return sampleInputTick(now + 1e-6);
 }
 
 // ------------------------------------------------------------------ gamepad (standard mapping, rebindable)

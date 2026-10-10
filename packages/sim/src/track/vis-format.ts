@@ -20,7 +20,9 @@ export interface VisPose { x: number; y: number; z: number; fx: number; fy: numb
 export interface VisMeta {
   id: string; themeId: string; name: string;
   slots: VisSlot[];
-  props: { kind: string; n: number }[];            // `p{j}.xf`: Float32 stride 6 (x, y, z, yaw, scale, variant)
+  props: { kind: string; n: number; contact?: 'solid' | 'cosmetic'; fingerprint?: string }[];
+  /** v3 bake semantics: p{n}.mat is authoritative for both rendering and collision. */
+  propContactVersion?: 2;            // `p{j}.xf`: Float32 stride 6 (x, y, z, yaw, scale, variant)
   bounds: number[];
   line: { x: number; y: number; z: number; fx: number; fy: number; fz: number; w: number };
   theme: Record<string, string>;

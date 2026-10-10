@@ -3,7 +3,7 @@ import { Edge, Held, type InputFrame } from '@cr/sim';
 
 export interface DriveActions {
   up: boolean; down: boolean; left: boolean; right: boolean; drift: boolean; boost: boolean;
-  look?: boolean; analogSteer?: number; analogThrottle?: number; analogBrake?: number;
+  digitalSteer?: number; look?: boolean; analogSteer?: number; analogThrottle?: number; analogBrake?: number;
 }
 
 export function actionPressEdge(action: string): number {
@@ -29,15 +29,17 @@ export class InputActionFilter {
   advance(actions: Readonly<DriveActions>, now: number): number {
     const elapsedMs = Math.max(0, now - this.at);
     this.at = Math.max(this.at, now);
-    const target = Number(actions.right) - Number(actions.left);
+    const target = actions.digitalSteer ?? (Number(actions.right) - Number(actions.left));
     const analog = actions.analogSteer ?? 0;
-    if (analog === 0) this.steer += (target - this.steer) * (1 - Math.pow(0.4, elapsedMs * 60 / 1000));
+    if (actions.left || actions.right || analog === 0) this.steer += (target - this.steer) * (1 - Math.pow(0.4, elapsedMs * 60 / 1000));
     else this.steer = analog;
     return this.steer;
   }
 
   sample(actions: Readonly<DriveActions>, now: number, edges: number, out: InputFrame, autoBoost = false, emote = 0): void {
-    out.steer = Math.round(Math.max(-1, Math.min(1, this.advance(actions, now))) * 127);
+    out.steerIntent = actions.left || actions.right ? (actions.digitalSteer ?? Math.sign(Number(actions.right) - Number(actions.left))) : 0; // analog magnitude is already present in steer; only digital keys need an immediate intent sign
+    out.driftRequests = 0;
+    out.steer = Math.round(Math.max(-1, Math.min(1, this.advance(actions, now))) * 127) || 0;
     out.throttle = actions.up ? 15 : pedal(actions.analogThrottle ?? 0);
     out.brake = actions.down ? 15 : pedal(actions.analogBrake ?? 0);
     out.held = (actions.drift ? Held.DRIFT : 0) | (actions.look ? Held.LOOK_BACK : 0) | (autoBoost && actions.boost ? Held.ITEM : 0);

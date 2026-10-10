@@ -81,7 +81,7 @@ export function makeItemRace(o: ItemRaceOptions = {}): ItemRace {
       drive?.(w, inputs);
       step(w, inputs, ctx);
       sink.drain(events);
-      for (const inp of inputs) inp.edges = 0;
+      for (const inp of inputs) { inp.edges = 0; inp.driftRequests = 0; }
     },
     run(n, drive) { for (let i = 0; i < n; i++) race.tick(drive); },
   };

@@ -3,6 +3,7 @@ import { AI_TIERS, Edge, createAiDriver, makeInput, paramsFor } from '@cr/sim';
 import { InputDelayLine } from '../src/ai/lookahead.ts';
 import { planFor, gripTable } from '../src/ai/plan.ts';
 import { IT } from '../src/items/codes.ts';
+import { runRace, type BotSetup } from '../src/ai/balance.ts';
 import { bakedTrack, getContent } from './rig.ts';
 import { place, racingRig } from './util.ts';
 
@@ -54,5 +55,16 @@ describe('grip budget at a selected fork', () => {
     expect(r.entrySpeed).toBe(0);
     expect(r.hostBrakeTicks).toBe(0);
     expect(r.passedHost).toBe(true);
+  });
+
+  it('does not abandon a committed narrow fork two metres before its solid gore cushion', () => {
+    const chars = ['clay', 'pixel', 'turbo', 'anchor', 'rune', 'nova', 'kage', 'bisque'] as const;
+    const karts = ['pebble', 'clay_comet', 'arrowhead', 'tugboat', 'glacier_sled', 'neon_blade', 'jet_kettle', 'crown_cruiser'] as const;
+    const bots: BotSetup[] = chars.map((character, i) => ({ tier: 'pro', character, kart: karts[i]! }));
+    const r = runRace({ track: bakedTrack('ember_mine/magma_switchback'), content: getContent(), bots, seed: 7301, laps: 1, mode: 'item', itemCombat: true, lookahead: 8 });
+    expect(r.karts.every((k) => k.finished)).toBe(true);
+    const k = r.karts[6]!;
+    expect(k.ai.forksTaken).toBeGreaterThan(0); expect(k.ai.recoveries).toBe(0);
+    expect(k.hardHits).toBe(0); expect(k.respawns).toBe(0);
   });
 });

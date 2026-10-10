@@ -4,7 +4,7 @@
 // Terrain can sit up to ~1.5 m below that near the road, so every grounded prop extends a skirt down to y ≈ −2.
 import * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../../materials/library.ts';
-import { merge, paint, place, box, cyl, cone, ico, rbox, torus, sparkleGeometry } from '../../util/geo.ts';
+import { cosmetic, merge, paint, place, box, cyl, cone, ico, rbox, torus, sparkleGeometry } from '../../util/geo.ts';
 import type { PropFactory } from '../../props/defaults.ts';
 import { around, blob, dome, facet, hdr, inward, lathe, part, prng, tube } from './shapes.ts';
 
@@ -32,7 +32,7 @@ function canopy(parts: THREE.BufferGeometry[], cx: number, cy: number, cz: numbe
   for (let i = 0; i < n; i++) {
     const a = rnd() * Math.PI * 2, d = i === 0 ? 0 : r * (0.45 + rnd() * 0.35);
     const rr = r * (i === 0 ? 0.75 : 0.45 + rnd() * 0.2);
-    parts.push(part(blob(rr, 1, 0.18, seed + i * 7, 1, 0.62, 1), greens[i % 3]!, cx + Math.cos(a) * d, cy + (rnd() - 0.3) * r * 0.35, cz + Math.sin(a) * d, 0, 0, 0, 1, 1, 1, 0.08, seed + i));
+    parts.push(cosmetic(part(blob(rr, 1, 0.18, seed + i * 7, 1, 0.62, 1), greens[i % 3]!, cx + Math.cos(a) * d, cy + (rnd() - 0.3) * r * 0.35, cz + Math.sin(a) * d, 0, 0, 0, 1, 1, 1, 0.08, seed + i)));
   }
 }
 
@@ -41,8 +41,8 @@ function giantTrunk(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
   parts.push(part(facet(lathe([[3.9, -24], [3.6, -3], [3.8, 0], [3.0, 2.5], [2.5, 7], [2.3, 14], [2.1, 22], [1.7, 29], [1.2, 33]], 9)), C.bark, 0, 0, 0, 0, 0.2, 0, 1, 1, 1, 0.1, 3));
   parts.push(...around(6, (i, a) => part(facet(new THREE.BoxGeometry(3.6, 3.2, 1.3)), i % 2 ? C.barkDark : C.bark, Math.cos(a) * 3.6, -0.3, Math.sin(a) * 3.6, 0, -a, -0.35)));
-  parts.push(part(blob(3.15, 1, 0.12, 11, 1, 0.35, 1), C.moss, 0, 1.4, 0, 0, 0, 0, 1, 1, 1, 0.12, 5));
-  parts.push(part(blob(2.45, 1, 0.1, 12, 1, 0.3, 1), C.mossDeep, 0, 12, 0));
+  parts.push(cosmetic(part(blob(3.15, 1, 0.12, 11, 1, 0.35, 1), C.moss, 0, 1.4, 0, 0, 0, 0, 1, 1, 1, 0.12, 5)));
+  parts.push(cosmetic(part(blob(2.45, 1, 0.1, 12, 1, 0.3, 1), C.mossDeep, 0, 12, 0)));
   // shelf fungus facing the road, pale wood rather than mushroom red: a red bracket at eye height on every trunk (every
   // ~22 m) competed with the red/cream kerbs that mark the corners
   parts.push(part(dome(1.1, 8, 3, Math.PI / 2), C.woodPale, 2.2, 8.5, 0.6, 0, 0, -Math.PI / 2, 1, 0.35, 1));
@@ -61,9 +61,9 @@ function forestWall(): THREE.BufferGeometry {
   for (let i = 0; i < 3; i++) {
     const x = (rnd() - 0.5) * 6, z = -7 + i * 7 + (rnd() - 0.5) * 2, h = 24 + rnd() * 8, r = 1.6 + rnd() * 0.8;
     parts.push(part(facet(lathe([[r * 1.3, -22], [r * 1.25, -3], [r * 1.3, 0], [r, 3], [r * 0.8, h * 0.6], [r * 0.55, h]], 7)), i === 1 ? C.barkDark : C.bark, x, 0, z, 0, rnd() * 3, 0));
-    parts.push(part(blob(6 + rnd() * 2, 0, 0.2, 181 + i, 1.2, 0.6, 1.2), [C.leaf, C.leafDeep, C.leafLight][i]!, x + (rnd() - 0.5) * 3, h + 1, z));
+    parts.push(cosmetic(part(blob(6 + rnd() * 2, 0, 0.2, 181 + i, 1.2, 0.6, 1.2), [C.leaf, C.leafDeep, C.leafLight][i]!, x + (rnd() - 0.5) * 3, h + 1, z)));
   }
-  parts.push(part(blob(3.5, 0, 0.3, 191, 1.8, 0.6, 3), C.leafDeep, 0, 0.8, 0));
+  parts.push(cosmetic(part(blob(3.5, 0, 0.3, 191, 1.8, 0.6, 3), C.leafDeep, 0, 0.8, 0)));
   return merge(parts);
 }
 
@@ -84,8 +84,8 @@ function oldOak(): THREE.BufferGeometry {
   ];
   for (const l of limbs) parts.push(part(tube(l, 1.2, 8, 6), C.bark));
   // rope swing on the road-side limb
-  parts.push(part(cyl(0.05, 0.05, 11, 4), C.rope, 11, 12.8, 3.4));
-  parts.push(part(cyl(0.05, 0.05, 11, 4), C.rope, 11, 12.8, 5.0));
+  parts.push(cosmetic(part(cyl(0.05, 0.05, 11, 4), C.rope, 11, 12.8, 3.4)));
+  parts.push(cosmetic(part(cyl(0.05, 0.05, 11, 4), C.rope, 11, 12.8, 5.0)));
   parts.push(part(rbox(0.6, 0.15, 2.0, 0.05, 1), C.wood, 11, 7.3, 4.2));
   canopy(parts, 0, 23, 0, 17, 8, 33);
   return merge(parts);
@@ -111,7 +111,7 @@ function fern(): THREE.BufferGeometry {
       x += dx; y += dy; pitch -= 1.0;
     }
   }
-  parts.push(part(cone(0.25, 0.5, 5), C.mossDeep, 0, 0.1, 0));
+  parts.push(cosmetic(part(cone(0.25, 0.5, 5), C.mossDeep, 0, 0.1, 0)));
   return merge(parts);
 }
 
@@ -152,7 +152,7 @@ function mossyLog(): THREE.BufferGeometry {
   parts.push(part(new THREE.CircleGeometry(1.0, 9), C.rings, 0, 0.6, 4.5, 0, 0, 0));
   parts.push(part(new THREE.CircleGeometry(1.1, 9), C.rings, 0, 0.6, -4.5, 0, Math.PI, 0));
   parts.push(part(torus(0.55, 0.06, 4, 12), C.barkLight, 0, 0.6, 4.52, 0, 0, 0));
-  parts.push(part(blob(1.0, 1, 0.15, 23, 1.05, 0.4, 4.2), C.moss, 0, 1.45, 0));
+  parts.push(cosmetic(part(blob(1.0, 1, 0.15, 23, 1.05, 0.4, 4.2), C.moss, 0, 1.45, 0)));
   toadstool(parts, 0.9, 2.2, 0.5, 0.3, 29);
   toadstool(parts, 0.95, 1.4, 0.35, 0.22, 31, C.gold);
   return merge(parts);
@@ -163,19 +163,19 @@ function stump(): THREE.BufferGeometry {
   parts.push(part(new THREE.CylinderGeometry(1.05, 1.05, 0.05, 12), C.rings, 0, 1.62, 0));
   parts.push(part(torus(0.6, 0.05, 4, 14), C.barkLight, 0, 1.66, 0, Math.PI / 2, 0, 0));
   parts.push(part(torus(0.3, 0.04, 4, 10), C.barkLight, 0, 1.66, 0, Math.PI / 2, 0, 0));
-  parts.push(part(blob(0.9, 1, 0.2, 37, 1, 0.4, 1), C.moss, -0.7, 0.3, 0.5));
+  parts.push(cosmetic(part(blob(0.9, 1, 0.2, 37, 1, 0.4, 1), C.moss, -0.7, 0.3, 0.5)));
   toadstool(parts, 1.2, 0.4, 0.45, 0.28, 39);
   return merge(parts);
 }
 function rockMoss(): THREE.BufferGeometry {
   return merge([
     part(blob(2.2, 1, 0.25, 43, 1.2, 0.8, 1), C.stone, 0, 0.6, 0, 0, 0, 0, 1, 1, 1, 0.08, 7),
-    part(blob(1.9, 1, 0.2, 47, 1.25, 0.35, 1.05), C.moss, 0, 1.9, 0),
+    cosmetic(part(blob(1.9, 1, 0.2, 47, 1.25, 0.35, 1.05), C.moss, 0, 1.9, 0)),
     part(blob(1.1, 1, 0.25, 49, 1, 0.8, 1), C.stoneDark, 2.2, 0.1, 1.2),
   ]);
 }
 function shrub(): THREE.BufferGeometry {
-  const parts: THREE.BufferGeometry[] = [part(blob(1.3, 1, 0.2, 53, 1.3, 0.85, 1.1), C.leafDeep, 0, 0.7, 0, 0, 0, 0, 1, 1, 1, 0.1, 9)];
+  const parts: THREE.BufferGeometry[] = [cosmetic(part(blob(1.3, 1, 0.2, 53, 1.3, 0.85, 1.1), C.leafDeep, 0, 0.7, 0, 0, 0, 0, 1, 1, 1, 0.1, 9))];
   const rnd = prng(57);
   for (let i = 0; i < 7; i++) { const a = rnd() * 6.28, e = rnd() * 0.9; parts.push(part(ico(0.13, 0), C.cap, Math.cos(a) * 1.55 * Math.cos(e), 0.7 + Math.sin(e) * 1.0, Math.sin(a) * 1.3 * Math.cos(e))); }
   return merge(parts);
@@ -205,12 +205,12 @@ function hollowLog(): THREE.BufferGeometry {
     parts.push(part(new THREE.RingGeometry(R, R + T, 22, 1, Math.PI * 0.88, Math.PI * 1.24), C.rings, 0, cy, z, 0, face, 0));
     parts.push(part(new THREE.RingGeometry(R + T * 0.45, R + T * 0.55, 22, 1, Math.PI * 0.88, Math.PI * 1.24), C.barkLight, 0, cy, z + (z > 0 ? 0.02 : -0.02), 0, face, 0));
   }
-  for (let k = 0; k < 6; k++) parts.push(part(blob(3.2 + rnd() * 1.5, 1, 0.2, 61 + k, 1.3, 0.35, 2.2), k % 2 ? C.moss : C.mossDeep, (rnd() - 0.5) * 4, cy + R + T - 0.1, -30 + k * 12));
+  for (let k = 0; k < 6; k++) parts.push(cosmetic(part(blob(3.2 + rnd() * 1.5, 1, 0.2, 61 + k, 1.3, 0.35, 2.2), k % 2 ? C.moss : C.mossDeep, (rnd() - 0.5) * 4, cy + R + T - 0.1, -30 + k * 12)));
   toadstool(parts, -2.2, 12, 1.4, 1.0, 67, C.cap, cy + R + T - 0.3);
   toadstool(parts, -3.2, 9.5, 0.8, 0.6, 69, C.gold, cy + R + T - 0.6);
   toadstool(parts, 2.6, -18, 1.1, 0.8, 71, C.cap, cy + R + T - 0.4);
   // a fern tuft sprouting from a knot on each flank
-  parts.push(part(blob(1.4, 1, 0.25, 73, 1, 0.8, 1), C.leafLight, R + T - 0.2, cy + 5, -8), part(blob(1.4, 1, 0.25, 75, 1, 0.8, 1), C.leaf, -(R + T - 0.2), cy + 6, 14));
+  parts.push(cosmetic(part(blob(1.4, 1, 0.25, 73, 1, 0.8, 1), C.leafLight, R + T - 0.2, cy + 5, -8)), cosmetic(part(blob(1.4, 1, 0.25, 75, 1, 0.8, 1), C.leaf, -(R + T - 0.2), cy + 6, 14)));
   return merge(parts);
 }
 
@@ -219,7 +219,7 @@ function forestGantry(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
   for (const x of [-10.5, 10.5]) {
     parts.push(part(facet(lathe([[1.0, -2], [1.05, 0], [0.85, 4], [0.8, 8.4]], 8)), C.bark, x, 0, 0, 0, 0, 0, 1, 1, 1, 0.1, 8));
-    parts.push(part(blob(1.4, 1, 0.2, 167 + x, 1, 0.8, 1), C.leaf, x, 8.8, 0), part(blob(1.0, 1, 0.2, 171 + x, 1, 0.8, 1), C.leafLight, x * 0.93, 9.6, 0.4));
+    parts.push(cosmetic(part(blob(1.4, 1, 0.2, 167 + x, 1, 0.8, 1), C.leaf, x, 8.8, 0)), cosmetic(part(blob(1.0, 1, 0.2, 171 + x, 1, 0.8, 1), C.leafLight, x * 0.93, 9.6, 0.4)));
     toadstool(parts, x * 1.06, 0.8, 0.9, 0.55, 173, C.cap, 0);
   }
   parts.push(part(rbox(22, 1.9, 0.6, 0.25, 2), C.woodPale, 0, 7.2, 0));
@@ -233,7 +233,7 @@ function forestGantry(): THREE.BufferGeometry {
     parts.push(part(rbox(0.9, 0.6, 0.45, 0.08, 1), '#2b2a26', x, 5.7, -0.15));
     for (const dx of [-0.2, 0.2]) parts.push(part(cyl(0.14, 0.14, 0.06, 10), '#e5484d', x + dx, 5.7, -0.4, Math.PI / 2, 0, 0));
   }
-  for (let i = 0; i < 9; i++) parts.push(part(ico(0.45, 0), i % 2 ? C.leaf : C.moss, -9 + i * 2.25, 5.75 - Math.sin((i / 8) * Math.PI) * 0.6, 0.45, 0, 0, 0, 1.3, 0.7, 0.6));
+  for (let i = 0; i < 9; i++) parts.push(cosmetic(part(ico(0.45, 0), i % 2 ? C.leaf : C.moss, -9 + i * 2.25, 5.75 - Math.sin((i / 8) * Math.PI) * 0.6, 0.45, 0, 0, 0, 1.3, 0.7, 0.6)));
   return merge(parts);
 }
 
@@ -243,7 +243,7 @@ function logRail(): THREE.BufferGeometry {
   // 9.8 m long so neighbouring sections (every 8 m, random scale ≥ 0.85) always overlap
   for (const z of [-4.6, 0, 4.6]) parts.push(part(facet(new THREE.CylinderGeometry(0.28, 0.32, 3.6, 6)), C.bark, 0.1, 0.0, z));
   parts.push(part(facet(new THREE.CylinderGeometry(0.22, 0.22, 9.8, 6)), C.barkLight, 0.1, 1.2, 0, Math.PI / 2, 0, 0));
-  parts.push(part(cyl(0.05, 0.05, 9.6, 4), C.rope, 0.1, 0.55, 0, Math.PI / 2, 0, 0));
+  parts.push(cosmetic(part(cyl(0.05, 0.05, 9.6, 4), C.rope, 0.1, 0.55, 0, Math.PI / 2, 0, 0)));
   return merge(parts);
 }
 
@@ -268,19 +268,19 @@ function bridgeDeck(): THREE.BufferGeometry {
 function pond(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
   const rnd = prng(71);
-  parts.push(part(new THREE.CircleGeometry(11, 24), C.waterDeep, 0, -0.25, 0, -Math.PI / 2, 0, 0));
-  parts.push(part(new THREE.RingGeometry(11, 13, 24, 1), C.water, 0, -0.22, 0, -Math.PI / 2, 0, 0));
-  parts.push(part(new THREE.RingGeometry(13, 14, 24, 1), C.foam, 0, -0.2, 0, -Math.PI / 2, 0, 0));
+  parts.push(cosmetic(part(new THREE.CircleGeometry(11, 24), C.waterDeep, 0, -0.25, 0, -Math.PI / 2, 0, 0)));
+  parts.push(cosmetic(part(new THREE.RingGeometry(11, 13, 24, 1), C.water, 0, -0.22, 0, -Math.PI / 2, 0, 0)));
+  parts.push(cosmetic(part(new THREE.RingGeometry(13, 14, 24, 1), C.foam, 0, -0.2, 0, -Math.PI / 2, 0, 0)));
   for (let i = 0; i < 12; i++) {
     const a = rnd() * 6.28, d = 3 + rnd() * 8, r = 0.8 + rnd() * 0.7;
-    parts.push(part(new THREE.CircleGeometry(r, 8, 0.4, Math.PI * 1.8), C.lily, Math.cos(a) * d, -0.15, Math.sin(a) * d, -Math.PI / 2, 0, rnd() * 6));
-    if (i % 3 === 0) parts.push(part(ico(0.3, 0), C.pink, Math.cos(a) * d, 0.05, Math.sin(a) * d, 0, 0, 0, 1, 0.6, 1));
+    parts.push(cosmetic(part(new THREE.CircleGeometry(r, 8, 0.4, Math.PI * 1.8), C.lily, Math.cos(a) * d, -0.15, Math.sin(a) * d, -Math.PI / 2, 0, rnd() * 6)));
+    if (i % 3 === 0) parts.push(cosmetic(part(ico(0.3, 0), C.pink, Math.cos(a) * d, 0.05, Math.sin(a) * d, 0, 0, 0, 1, 0.6, 1)));
   }
   for (let i = 0; i < 18; i++) {
     const a = rnd() * 6.28, d = 13.5 + rnd() * 1.5;
     const x = Math.cos(a) * d, z = Math.sin(a) * d, h = 1.6 + rnd() * 1.2;
-    parts.push(part(cyl(0.04, 0.05, h, 4), C.leafDeep, x, h / 2 - 0.3, z));
-    parts.push(part(cyl(0.12, 0.12, 0.5, 5), C.barkDark, x, h - 0.1, z));
+    parts.push(cosmetic(part(cyl(0.04, 0.05, h, 4), C.leafDeep, x, h / 2 - 0.3, z)));
+    parts.push(cosmetic(part(cyl(0.12, 0.12, 0.5, 5), C.barkDark, x, h - 0.1, z)));
   }
   parts.push(part(blob(1.6, 1, 0.2, 73, 1.2, 0.5, 1), C.stone, 5, 0, -3));
   parts.push(part(blob(1.2, 1, 0.2, 79, 1.1, 0.5, 1), C.stoneDark, 6.5, 0, -1));
@@ -299,11 +299,11 @@ function fireflies(): THREE.BufferGeometry {
 function karstPillar(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
   parts.push(part(facet(lathe([[5.2, -3], [5.5, 0], [4.4, 6], [4.8, 12], [3.8, 20], [4.2, 26], [3.0, 32], [2.2, 34]], 7)), C.stone, 0, 0, 0, 0, 0.3, 0, 1, 1, 1, 0.12, 13));
-  parts.push(part(blob(3.4, 1, 0.2, 89, 1.2, 0.35, 1.1), C.moss, 0, 34, 0));
-  parts.push(part(blob(2.0, 1, 0.2, 97, 1, 0.3, 1), C.mossDeep, 2.8, 20.5, 1));
-  parts.push(part(blob(1.6, 1, 0.2, 101, 1, 0.3, 1), C.moss, -3.2, 12.2, -1));
+  parts.push(cosmetic(part(blob(3.4, 1, 0.2, 89, 1.2, 0.35, 1.1), C.moss, 0, 34, 0)));
+  parts.push(cosmetic(part(blob(2.0, 1, 0.2, 97, 1, 0.3, 1), C.mossDeep, 2.8, 20.5, 1)));
+  parts.push(cosmetic(part(blob(1.6, 1, 0.2, 101, 1, 0.3, 1), C.moss, -3.2, 12.2, -1)));
   canopy(parts, 0, 38, 0, 5, 4, 103);
-  parts.push(part(cone(1.2, 4, 6), C.leafDeep, 1.5, 36, 1.5), part(cone(1.0, 3.4, 6), C.leaf, -1.2, 36, -1.0));
+  parts.push(cosmetic(part(cone(1.2, 4, 6), C.leafDeep, 1.5, 36, 1.5)), cosmetic(part(cone(1.0, 3.4, 6), C.leaf, -1.2, 36, -1.0)));
   return merge(parts);
 }
 
@@ -315,10 +315,10 @@ function waterfall(): THREE.BufferGeometry {
   parts.push(part(facet(new THREE.BoxGeometry(6, H + 6, Wd + 10)), C.stoneDark, -3.4, H / 2 - 3, 0, 0, 0, 0, 1, 1, 1, 0.08, 17));
   for (let i = 0; i < 9; i++) {
     const z = -Wd / 2 + (i + 0.5) * (Wd / 9);
-    parts.push(part(new THREE.PlaneGeometry(Wd / 9 + 0.1, H), i % 2 ? hdr('#e6fbff', 1.25) : hdr('#bfeaf2', 1.15), -0.3 + rnd() * 0.3, H / 2, z, 0, Math.PI / 2, 0));
+    parts.push(cosmetic(part(new THREE.PlaneGeometry(Wd / 9 + 0.1, H), i % 2 ? hdr('#e6fbff', 1.25) : hdr('#bfeaf2', 1.15), -0.3 + rnd() * 0.3, H / 2, z, 0, Math.PI / 2, 0)));
   }
-  for (let i = 0; i < 10; i++) parts.push(part(blob(1.4 + rnd(), 1, 0.3, 109 + i, 1, 0.55, 1), hdr('#f4ffff', 1.2), 0.8 + rnd() * 2, 0.2, -Wd / 2 + rnd() * Wd));
-  parts.push(part(blob(2.5, 1, 0.2, 131, 1, 0.4, 3.6), C.moss, -1.8, H + 0.4, 0));
+  for (let i = 0; i < 10; i++) parts.push(cosmetic(part(blob(1.4 + rnd(), 1, 0.3, 109 + i, 1, 0.55, 1), hdr('#f4ffff', 1.2), 0.8 + rnd() * 2, 0.2, -Wd / 2 + rnd() * Wd)));
+  parts.push(cosmetic(part(blob(2.5, 1, 0.2, 131, 1, 0.4, 3.6), C.moss, -1.8, H + 0.4, 0)));
   return merge(parts);
 }
 
@@ -331,8 +331,8 @@ function treehouse(): THREE.BufferGeometry {
   parts.push(part(cone(4.4, 2.6, 4), C.coral, 0, 14.3, 0, 0, Math.PI / 4, 0, 1, 1, 0.9));
   parts.push(part(box(0.2, 1.4, 1.0), C.barkDark, 2.32, 11.0, 0));
   parts.push(part(box(0.2, 0.9, 0.9), hdr('#ffe6a8', 1.3), 2.32, 11.8, 1.4));
-  for (let k = 0; k < 7; k++) parts.push(part(box(0.1, 0.08, 1.0), C.rope, 3.3, 2.5 + k * 1.0, -1.5));
-  parts.push(part(cyl(0.04, 0.04, 7.5, 4), C.rope, 3.3, 5.6, -2.0), part(cyl(0.04, 0.04, 7.5, 4), C.rope, 3.3, 5.6, -1.0));
+  for (let k = 0; k < 7; k++) parts.push(cosmetic(part(box(0.1, 0.08, 1.0), C.rope, 3.3, 2.5 + k * 1.0, -1.5)));
+  parts.push(cosmetic(part(cyl(0.04, 0.04, 7.5, 4), C.rope, 3.3, 5.6, -2.0)), cosmetic(part(cyl(0.04, 0.04, 7.5, 4), C.rope, 3.3, 5.6, -1.0)));
   canopy(parts, 0, 17, 0, 6, 4, 137);
   return merge(parts);
 }
@@ -341,9 +341,9 @@ function treehouse(): THREE.BufferGeometry {
 function ropeRail(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
   for (const z of [-3, 3]) parts.push(part(facet(cyl(0.18, 0.2, 2.2, 6)), C.bark, 0, 0.5, z));
-  parts.push(part(tube([[0, 1.3, -3], [0, 0.95, 0], [0, 1.3, 3]], 0.06, 8, 4), C.rope));
-  parts.push(part(tube([[0, 0.7, -3], [0, 0.45, 0], [0, 0.7, 3]], 0.05, 8, 4), C.rope));
-  for (const z of [-1.5, 0, 1.5]) parts.push(part(ico(0.22, 0), C.leafLight, 0, 0.9, z, 0, 0, 0, 1, 0.5, 1.3));
+  parts.push(cosmetic(part(tube([[0, 1.3, -3], [0, 0.95, 0], [0, 1.3, 3]], 0.06, 8, 4), C.rope)));
+  parts.push(cosmetic(part(tube([[0, 0.7, -3], [0, 0.45, 0], [0, 0.7, 3]], 0.05, 8, 4), C.rope)));
+  for (const z of [-1.5, 0, 1.5]) parts.push(cosmetic(part(ico(0.22, 0), C.leafLight, 0, 0.9, z, 0, 0, 0, 1, 0.5, 1.3)));
   // trestle legs down to the forest floor
   parts.push(part(cyl(0.22, 0.26, 24, 5), C.barkDark, 0.4, -11.5, 0));
   return merge(parts);
@@ -352,7 +352,7 @@ function ropeRail(): THREE.BufferGeometry {
 /** A sleepy panda on a mossy rock munching bamboo (cosmetic spectator). */
 function panda(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
-  parts.push(part(blob(1.6, 1, 0.15, 139, 1.3, 0.6, 1.1), C.stone, 0, 0, 0), part(blob(1.2, 1, 0.15, 149, 1.25, 0.35, 1.05), C.moss, 0, 0.9, 0));
+  parts.push(part(blob(1.6, 1, 0.15, 139, 1.3, 0.6, 1.1), C.stone, 0, 0, 0), cosmetic(part(blob(1.2, 1, 0.15, 149, 1.25, 0.35, 1.05), C.moss, 0, 0.9, 0)));
   parts.push(part(rbox(1.1, 1.0, 1.0, 0.35, 3), C.panda, 0, 1.9, 0));
   parts.push(part(rbox(0.9, 0.8, 0.85, 0.32, 3), C.panda, 0.15, 2.75, 0));
   for (const z of [-0.36, 0.36]) {
@@ -361,7 +361,7 @@ function panda(): THREE.BufferGeometry {
     parts.push(part(rbox(0.35, 0.45, 0.35, 0.15, 2), C.eye, 0.3, 1.5, z * 1.35));
   }
   parts.push(part(cyl(0.06, 0.06, 1.8, 5), '#8fc25a', 0.55, 2.2, 0.4, 0.3, 0, 0.5));
-  for (let k = 0; k < 3; k++) parts.push(part(ico(0.14, 0), C.leafLight, 0.9 + k * 0.15, 2.9 + k * 0.2, 0.6));
+  for (let k = 0; k < 3; k++) parts.push(cosmetic(part(ico(0.14, 0), C.leafLight, 0.9 + k * 0.15, 2.9 + k * 0.2, 0.6)));
   return merge(parts);
 }
 
@@ -373,7 +373,7 @@ function bamboo(): THREE.BufferGeometry {
     const x = (rnd() - 0.5) * 3, z = (rnd() - 0.5) * 3, h = 8 + rnd() * 5, tilt = (rnd() - 0.5) * 0.15;
     parts.push(part(cyl(0.14, 0.17, h, 6), i % 2 ? '#8fc25a' : '#79ad49', x, h / 2 - 1, z, tilt, 0, tilt));
     for (let k = 1; k < 5; k++) parts.push(part(cyl(0.18, 0.18, 0.12, 6), '#5f8f36', x, (k * h) / 5 - 1, z, tilt, 0, tilt));
-    parts.push(part(blob(1.0, 0, 0.3, 157 + i, 1.4, 0.35, 0.8), C.leafLight, x, h - 1.4, z));
+    parts.push(cosmetic(part(blob(1.0, 0, 0.3, 157 + i, 1.4, 0.35, 0.8), C.leafLight, x, h - 1.4, z)));
   }
   return merge(parts);
 }
@@ -385,7 +385,7 @@ function goreCushion(): THREE.BufferGeometry {
     parts.push(part(facet(new THREE.CylinderGeometry(r, r, 3.2, 8)), C.bark, 0, y, z, 0, 0, Math.PI / 2));
     parts.push(part(new THREE.CircleGeometry(r * 0.9, 8), C.rings, 1.61, y, z, 0, Math.PI / 2, 0), part(new THREE.CircleGeometry(r * 0.9, 8), C.rings, -1.61, y, z, 0, -Math.PI / 2, 0));
   }
-  parts.push(part(blob(1.0, 1, 0.2, 193, 1.6, 0.35, 1), C.moss, 0, 1.95, -0.3));
+  parts.push(cosmetic(part(blob(1.0, 1, 0.2, 193, 1.6, 0.35, 1), C.moss, 0, 1.95, -0.3)));
   // chevron board facing −Z (oncoming karts), arrows pointing both ways
   parts.push(part(box(2.4, 1.0, 0.12), '#1c1f26', 0, 2.9, -1.2), part(box(0.12, 1.4, 0.12), C.barkDark, 0, 2.0, -1.1));
   for (const sx of [-1, 1]) for (const dy of [-0.16, 0.16]) parts.push(part(box(0.5, 0.14, 0.05), '#ffd23f', sx * 0.55, 2.9 + dy, -1.28, 0, 0, sx * (dy > 0 ? -0.7 : 0.7)));
@@ -396,7 +396,7 @@ function goreCushion(): THREE.BufferGeometry {
 function trunkPillar(): THREE.BufferGeometry {
   return merge([
     part(facet(lathe([[1.6, -2], [1.7, 0], [1.2, 1.2], [1.0, 3.8], [1.4, 4.0]], 8)), C.bark, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0.1, 3),
-    part(blob(1.3, 1, 0.2, 197, 1, 0.35, 1), C.moss, 0, 0.4, 0),
+    cosmetic(part(blob(1.3, 1, 0.2, 197, 1, 0.35, 1), C.moss, 0, 0.4, 0)),
   ]);
 }
 
@@ -437,7 +437,7 @@ function fallsCurtain(): THREE.BufferGeometry {
   const L = 52, H = 16, half = 8.5;
   parts.push(part(facet(new THREE.BoxGeometry(8, H + 20, L + 8)), C.stoneDark, -(half + 4), H / 2 - 10, 0, 0, 0, 0, 1, 1, 1, 0.08, 19));
   parts.push(part(facet(new THREE.BoxGeometry(2 * half + 12, 3, L + 4)), C.stone, -3, H - 1.5, 0, 0, 0, 0.04, 1, 1, 1, 0.08, 23));
-  parts.push(part(blob(6, 1, 0.2, 231, 2.2, 0.4, 5), C.moss, -4, H + 0.2, 0));
+  parts.push(cosmetic(part(blob(6, 1, 0.2, 231, 2.2, 0.4, 5), C.moss, -4, H + 0.2, 0)));
   for (let i = 0; i < 14; i++) {
     const z = -L / 2 + (i + 0.5) * (L / 14);
     parts.push(part(new THREE.PlaneGeometry(L / 14 + 0.1, H + 12), i % 2 ? hdr('#e6fbff', 1.25) : hdr('#bfeaf2', 1.15), half + 1.2 + rnd() * 0.3, (H - 12) / 2 - 0.5, z, 0, -Math.PI / 2, 0));
@@ -455,13 +455,13 @@ function logArch(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
   for (const x of [-10, 10]) {
     parts.push(part(facet(lathe([[1.0, -2], [1.05, 0], [0.8, 5], [0.75, 9.6]], 8)), C.bark, x, 0, 0, 0, 0, 0, 1, 1, 1, 0.1, 4));
-    parts.push(part(blob(1.6, 1, 0.2, 239 + x, 1, 0.7, 1), C.leaf, x, 10, 0));
+    parts.push(cosmetic(part(blob(1.6, 1, 0.2, 239 + x, 1, 0.7, 1), C.leaf, x, 10, 0)));
   }
   parts.push(part(facet(new THREE.CylinderGeometry(0.55, 0.55, 22, 7)), C.barkDark, 0, 9, 0, 0, 0, Math.PI / 2));
-  for (const x of [-3, 3]) parts.push(part(cyl(0.05, 0.05, 5.2, 4), C.rope, x, 6.4, 0));
+  for (const x of [-3, 3]) parts.push(cosmetic(part(cyl(0.05, 0.05, 5.2, 4), C.rope, x, 6.4, 0)));
   parts.push(part(facet(new THREE.CylinderGeometry(0.7, 0.75, 8, 8)), C.bark, 0, 3.8, 0, 0, 0, Math.PI / 2));
   parts.push(part(new THREE.CircleGeometry(0.68, 8), C.rings, 4.01, 3.8, 0, 0, Math.PI / 2, 0), part(new THREE.CircleGeometry(0.68, 8), C.rings, -4.01, 3.8, 0, 0, -Math.PI / 2, 0));
-  parts.push(part(blob(0.9, 1, 0.2, 243, 3.4, 0.35, 0.9), C.moss, 0, 4.45, 0));
+  parts.push(cosmetic(part(blob(0.9, 1, 0.2, 243, 3.4, 0.35, 0.9), C.moss, 0, 4.45, 0)));
   return merge(parts);
 }
 
@@ -470,8 +470,8 @@ function hazardLog(): THREE.BufferGeometry {
   return merge([
     part(facet(new THREE.CapsuleGeometry(0.8, 2.4, 3, 8)), C.bark, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0.1, 7),
     part(new THREE.CircleGeometry(0.6, 8), C.rings, 0, 2.02, 0, -Math.PI / 2, 0, 0),
-    part(blob(0.7, 1, 0.2, 247, 1, 0.5, 1), C.moss, 0.45, 0.6, 0),
-    part(torus(0.84, 0.08, 4, 12), C.rope, 0, 1.0, 0, Math.PI / 2, 0, 0),
+    cosmetic(part(blob(0.7, 1, 0.2, 247, 1, 0.5, 1), C.moss, 0.45, 0.6, 0)),
+    cosmetic(part(torus(0.84, 0.08, 4, 12), C.rope, 0, 1.0, 0, Math.PI / 2, 0, 0)),
   ]);
 }
 /** Pendulum-run gantry the swinging logs hang from (posts at ±10 m, beam 8 m up); no log of its own. */
@@ -479,17 +479,17 @@ function logGantry(): THREE.BufferGeometry {
   const parts: THREE.BufferGeometry[] = [];
   for (const x of [-10, 10]) {
     parts.push(part(facet(lathe([[1.0, -2], [1.05, 0], [0.8, 5], [0.75, 8.8]], 8)), C.bark, x, 0, 0, 0, 0, 0, 1, 1, 1, 0.1, 4));
-    parts.push(part(blob(1.6, 1, 0.2, 251 + x, 1, 0.7, 1), C.leaf, x, 9.2, 0));
+    parts.push(cosmetic(part(blob(1.6, 1, 0.2, 251 + x, 1, 0.7, 1), C.leaf, x, 9.2, 0)));
   }
   parts.push(part(facet(new THREE.CylinderGeometry(0.5, 0.5, 22, 7)), C.barkDark, 0, 8.2, 0, 0, 0, Math.PI / 2));
-  parts.push(part(blob(0.9, 1, 0.2, 253, 5, 0.3, 0.9), C.moss, 0, 8.75, 0));
+  parts.push(cosmetic(part(blob(0.9, 1, 0.2, 253, 5, 0.3, 0.9), C.moss, 0, 8.75, 0)));
   return merge(parts);
 }
 
 // ------------------------------------------------------------------------------------------------ factory table
 const kind = (build: () => THREE.BufferGeometry, material: () => THREE.Material, castShadow = true, decoration?: () => THREE.BufferGeometry): PropFactory => {
   let cache: THREE.BufferGeometry | null = null;
-  return { build: () => ({ geometry: (cache ??= build()), material: material(), castShadow, ...(decoration ? { hazardDecoration: decoration() } : {}) }) };
+  return { build: () => ({ geometry: (cache ??= build()), material: material(), castShadow, ...(decoration ? { hazardDecoration: decoration(), hazardDecorationRole: 'flexible-suspension' as const } : {}) }) };
 };
 
 export const CANOPY_PROPS: Record<string, PropFactory> = {
@@ -514,8 +514,8 @@ export const CANOPY_PROPS: Record<string, PropFactory> = {
   falls_curtain: kind(fallsCurtain, matte),
   log_arch: kind(logArch, matte),
   log_gantry: kind(logGantry, matte),
-  hazard_log: kind(hazardLog, matte, true, () => part(cyl(0.06, 0.06, 5.2, 4), C.rope, 0, 4.6, 0)),
-  hazard_swinger: kind(hazardLog, matte, true, () => part(cyl(0.06, 0.06, 5.2, 4), C.rope, 0, 4.6, 0)),
+  hazard_log: kind(hazardLog, matte, true, () => cosmetic(part(cyl(0.06, 0.06, 5.2, 4), C.rope, 0, 4.6, 0))),
+  hazard_swinger: kind(hazardLog, matte, true, () => cosmetic(part(cyl(0.06, 0.06, 5.2, 4), C.rope, 0, 4.6, 0))),
   pillar: kind(trunkPillar, matte, false),
   log_rail: kind(logRail, matte),
   bridge_deck: kind(bridgeDeck, matte, false),

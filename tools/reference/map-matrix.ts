@@ -1,16 +1,16 @@
 // Repeatable map acceptance after a driving-model change. Uses cached .ctrk files; never bakes or edits goldens.
 // node tools/reference/map-matrix.ts /tmp/matrix.json [--baseline /tmp/before.json] [--tracks id,id]
-// Optional subsets: --seeds 4242,2026,7301 --fields solo,pack --modes speed,item --max-ticks 28800
+// Optional subsets: --seeds 4242,2026,7301 --fields solo,pack --modes speed,item,infinite,timeAttack --max-ticks 28800
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { loadContent, type TrackId } from '@cr/content';
+import { loadContent, type TrackId, type ModeId } from '@cr/content';
 import { loadCtrk, toArrayBuffer, SIM_VERSION, Phase, type BakedTrack, type KartState, type WorldState } from '@cr/sim';
 import { runRace, type BotSetup } from '@cr/sim/ai/balance.ts';
 
 const args = process.argv.slice(2);
 const output = args.shift();
-if (!output || output.startsWith('--')) throw new Error('Usage: node tools/reference/map-matrix.ts <output.json> [--baseline <before.json>] [--tracks id,id] [--seeds 4242,2026,7301] [--fields solo,pack] [--modes speed,item] [--max-ticks 28800]');
+if (!output || output.startsWith('--')) throw new Error('Usage: node tools/reference/map-matrix.ts <output.json> [--baseline <before.json>] [--tracks id,id] [--seeds 4242,2026,7301] [--fields solo,pack] [--modes speed,item,infinite,timeAttack] [--max-ticks 28800]');
 const options = new Map<string, string>();
 for (let i = 0; i < args.length; i += 2) {
   const key = args[i]!, value = args[i + 1];
@@ -21,8 +21,8 @@ const seeds = (options.get('--seeds') ?? '4242,2026,7301').split(',').map(Number
 if (seeds.some((s) => !Number.isInteger(s) || s < 0)) throw new Error('Seeds must be nonnegative integers');
 const fields = (options.get('--fields') ?? 'solo,pack').split(',') as ('solo' | 'pack')[];
 if (fields.some((f) => f !== 'solo' && f !== 'pack')) throw new Error('Fields must be solo or pack');
-const modes = (options.get('--modes') ?? 'speed,item').split(',') as ('speed' | 'item')[];
-if (modes.some((m) => m !== 'speed' && m !== 'item')) throw new Error('Modes must be speed or item');
+const modes = (options.get('--modes') ?? 'speed,item,infinite,timeAttack').split(',') as ModeId[];
+if (modes.some((m) => !['speed', 'item', 'infinite', 'timeAttack'].includes(m))) throw new Error('Unknown supported mode');
 const maxTicks = Number(options.get('--max-ticks') ?? 60 * 60 * 8);
 if (!Number.isInteger(maxTicks) || maxTicks < 1) throw new Error('max-ticks must be a positive integer');
 const content = loadContent();
@@ -135,7 +135,7 @@ function observe(track: BakedTrack, n: number) {
 const tracks = ids.map((id) => {
   const bytes = readFileSync(new URL(`${id}.ctrk`, directory));
   const definition = content.tracks.get(id as TrackId);
-  return { id, modes: modes.filter((mode) => definition.modes.includes(mode)), track: loadCtrk(toArrayBuffer(bytes)), sha256: createHash('sha256').update(bytes).digest('hex') };
+  return { id, modes: modes.filter((mode) => definition.modes.includes(mode === 'infinite' || mode === 'timeAttack' ? 'speed' : mode)), track: loadCtrk(toArrayBuffer(bytes)), sha256: createHash('sha256').update(bytes).digest('hex') };
 });
 const sourceDirectory = new URL('../../', import.meta.url).pathname;
 let revision = 'unversioned-snapshot', dirty: string[] = [];
@@ -167,14 +167,15 @@ const rows: ReturnType<typeof scenario>[] = [];
 const before = options.has('--baseline') ? JSON.parse(readFileSync(options.get('--baseline')!, 'utf8')) as { itemCombat?: boolean; rows: { key: string; completionRatio: number; hardHits: number; respawns: number; maxStuckTicks: number; winnerSeconds: number | null }[] } : null;
 if (before && modes.includes('item') && before.itemCombat !== true) throw new Error('The baseline must enable the same item-combat harness; pickup-only item races are not comparable');
 const baseline = new Map(before?.rows.map((r) => [r.key, r]));
-const total = tracks.reduce((sum, tr) => sum + tr.modes.length * seeds.length * fields.length, 0);
+const total = tracks.reduce((sum, tr) => sum + tr.modes.reduce((count, mode) => count + seeds.length * fields.filter(field => mode !== 'timeAttack' || field === 'solo').length, 0), 0);
 if (before) for (const tr of tracks) for (const mode of tr.modes) for (const field of fields) for (const seed of seeds) {
+  if (mode === 'timeAttack' && field !== 'solo') continue;
   const key = `${tr.id}/${mode}/${field}/${seed}`;
   if (!baseline.has(key)) throw new Error(`Baseline is missing scenario ${key}`);
 }
 console.log(`matrix started: revision=${revision.slice(0, 8)} sim=${SIM_VERSION} ${tracks.length} cached maps, ${total} races, sequential`);
 
-function scenario(tr: typeof tracks[number], mode: 'speed' | 'item', field: 'solo' | 'pack', seed: number) {
+function scenario(tr: typeof tracks[number], mode: ModeId, field: 'solo' | 'pack', seed: number) {
   const bots = field === 'solo' ? solo : pack;
   const observer = observe(tr.track, bots.length);
   const started = performance.now();
@@ -203,7 +204,14 @@ function save(complete: boolean) {
   });
   const summary = { races: rows.length, expectedRaces: total, completeRaces: rows.filter((r) => r.completionRatio === 1).length, finishedKarts: rows.reduce((s, r) => s + r.finished, 0), totalKarts: rows.reduce((s, r) => s + r.kartCount, 0), hardHits: rows.reduce((s, r) => s + r.hardHits, 0), respawns: rows.reduce((s, r) => s + r.respawns, 0), maxStuckTicks: rows.length ? Math.max(...rows.map((r) => r.maxStuckTicks)) : 0,
     itemsUsed: rows.reduce((s, r) => s + r.itemsUsed, 0), effectHits: rows.reduce((s, r) => s + r.effectHits, 0), combatEffectHits: rows.reduce((s, r) => s + r.combatEffectHits, 0) };
-  writeFileSync(output!, JSON.stringify({ version: 2, complete, revision, dirty, sourceDirectory, sourceFingerprints, sourceFingerprintsAfter,
+  const acceptance = {
+    allFieldsFinish: rows.every(r => r.completionRatio === 1),
+    maximumStallTicks: 300,
+    noLongStalls: rows.every(r => r.maxStuckTicks <= 300),
+    soloWithoutHardContactsOrResets: rows.filter(r => r.field === 'solo').every(r => r.hardHits === 0 && r.respawns === 0),
+    nonItemWithoutResets: rows.filter(r => r.mode !== 'item').every(r => r.respawns === 0),
+  };
+  writeFileSync(output!, JSON.stringify({ version: 2, complete, acceptance, revision, dirty, sourceDirectory, sourceFingerprints, sourceFingerprintsAfter,
     sourceTreeSha256, sourceTreeSha256After, sourceStable: complete && sourceTreeSha256After === sourceTreeSha256,
     simVersion: SIM_VERSION, seeds, fields, modes, itemCombat: true,
     itemAuthority: 'decisions.ts local authority hooks; HalfSipHash key [0x6c32a11e, seed, 0x1ee7c0de, 0x0badf00d]; item brain receives the race cfg',
@@ -214,7 +222,7 @@ function save(complete: boolean) {
 save(false);
 for (const tr of tracks) {
   const first = rows.length;
-  for (const mode of tr.modes) for (const field of fields) for (const seed of seeds) { rows.push(scenario(tr, mode, field, seed)); save(false); }
+  for (const mode of tr.modes) for (const field of fields) for (const seed of seeds) { if (mode === 'timeAttack' && field !== 'solo') continue; rows.push(scenario(tr, mode, field, seed)); save(false); }
   const group = rows.slice(first);
   console.log(`${tr.id}: ${group.filter((r) => r.completionRatio === 1).length}/${group.length} full fields, hard=${group.reduce((s, r) => s + r.hardHits, 0)} respawn=${group.reduce((s, r) => s + r.respawns, 0)} (${rows.length}/${total})`);
 }
@@ -231,4 +239,4 @@ console.log(`matrix saved: ${summary.finishedKarts}/${summary.totalKarts} karts 
 if (before) {
   const regressed = rows.filter((r) => { const b = baseline.get(r.key); return b && (r.completionRatio < b.completionRatio || r.respawns > b.respawns || r.field === 'solo' && r.hardHits > b.hardHits || r.maxStuckTicks > Math.max(300, b.maxStuckTicks + 120)); });
   if (regressed.length) { console.log(`map regressions requiring review: ${regressed.map((r) => r.key).join(', ')}`); process.exitCode = 1; }
-} else if (rows.some((r) => r.field === 'solo' && r.completionRatio < 1)) process.exitCode = 1;
+} else if (rows.some(r => r.completionRatio < 1 || r.maxStuckTicks > 300 || r.field === 'solo' && r.hardHits > 0 || (r.field === 'solo' || r.mode !== 'item') && r.respawns > 0)) process.exitCode = 1;

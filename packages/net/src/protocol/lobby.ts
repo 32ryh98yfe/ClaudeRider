@@ -5,7 +5,7 @@ import type { RaceConfig, Tick } from '@cr/sim';
 
 // 2 (M5): the snapshot layout gained the driving-technique fields (SIM_VERSION 2); a v1 client is refused at hello
 // (`error: version`) instead of failing to decode every race snapshot.
-export const LOBBY_PROTOCOL_VERSION = 2;
+export const LOBBY_PROTOCOL_VERSION = 3;
 
 export interface LiveryWire { primary: string; secondary: string; pattern: number; number: number }
 export interface Loadout { characterId: CharacterId; kartBodyId: KartBodyId; livery: LiveryWire }

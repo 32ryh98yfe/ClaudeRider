@@ -1,6 +1,7 @@
 // Rubber-band cap (14-ai-spec §7, ADR-009): ±4% keyed to the distance from the reference human; off for humans,
 // Legend, Time Attack and the final 15%; never lifts a bot above 1.00.
 import { describe, expect, it } from 'vitest';
+import { V_REF } from '@cr/sim';
 import type { KartState, StepContext, WorldState } from '@cr/sim';
 import { referenceDist, rubberBandMul } from '../src/race/rubberband.ts';
 
@@ -57,7 +58,7 @@ describe('rubber-band capMul (§7)', () => {
     expect(referenceDist(s.w, s.ctx)).toBe(500);
     // human finished 60 ticks ago on a 3-lap race: 3000 + 60 · 34/60 = 3034
     const f = scene([H, bot('pro')], [3000, 2000], { finish: [940, -1], tick: 1000 });
-    expect(referenceDist(f.w, f.ctx)).toBeCloseTo(3034, 9);
+    expect(referenceDist(f.w, f.ctx)).toBeCloseTo(3000 + V_REF, 9);
   });
 
   it('is pure: repeated calls give the same value and change nothing', () => {

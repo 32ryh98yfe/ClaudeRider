@@ -8,7 +8,7 @@
 import * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../materials/library.ts';
 import type { PropFactory } from './defaults.ts';
-import { merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../util/geo.ts';
+import { cosmetic, merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../util/geo.ts';
 import { lathe, part, seeded } from '../themes/clayhill_village/toyshapes.ts';
 
 const TERRACOTTA = '#d97757', CREAM = '#f4efe6', SAGE = '#8fb573', SKY = '#9fd3f5';
@@ -124,10 +124,10 @@ export const TRACKSIDE_PROPS: Record<string, PropFactory> = {
       geometry: merge([
         part(cyl(0.3, 0.45, 3.6, 7), WOOD_DK, 0, 1.5, 0),
         part(cyl(0.14, 0.2, 2.0, 6), WOOD_DK, 0.55, 3.6, 0, 0, 0, -0.5), part(cyl(0.14, 0.2, 2.0, 6), WOOD_DK, -0.5, 3.7, 0.2, 0.2, 0, 0.5),
-        part(ico(2.3, 1), '#4f8a3c', 0, 5.2, 0, 0, 0, 0, 1.15, 0.9, 1.1, 0.08, 3),
-        part(ico(1.7, 1), '#62a046', 1.4, 5.9, 0.6, 0, 0, 0, 1, 0.9, 1, 0.08, 5),
-        part(ico(1.6, 1), '#447f37', -1.3, 5.6, -0.7, 0, 0, 0, 1, 0.9, 1, 0.08, 7),
-        part(ico(1.4, 1), '#6aa84a', 0.2, 6.6, -0.9, 0, 0, 0, 1, 0.9, 1, 0.08, 9),
+        cosmetic(part(ico(2.3, 1), '#4f8a3c', 0, 5.2, 0, 0, 0, 0, 1.15, 0.9, 1.1, 0.08, 3)),
+        cosmetic(part(ico(1.7, 1), '#62a046', 1.4, 5.9, 0.6, 0, 0, 0, 1, 0.9, 1, 0.08, 5)),
+        cosmetic(part(ico(1.6, 1), '#447f37', -1.3, 5.6, -0.7, 0, 0, 0, 1, 0.9, 1, 0.08, 7)),
+        cosmetic(part(ico(1.4, 1), '#6aa84a', 0.2, 6.6, -0.9, 0, 0, 0, 1, 0.9, 1, 0.08, 9)),
       ]), material: leafy(), castShadow: true,
     }),
   },
@@ -139,11 +139,11 @@ export const TRACKSIDE_PROPS: Record<string, PropFactory> = {
       for (let i = 0; i < 7; i++) {
         const x = (r() - 0.5) * 14, z = (r() - 0.5) * 14, k = 0.8 + r() * 0.6;
         if (i % 3 === 2) {
-          p.push(part(lathe([[0, 0], [1.0, 0.8], [1.2, 3], [0.9, 6], [0.4, 8], [0, 9]], 6), '#47803f', x, 0, z, 0, 0, 0, k, k, k, 0.1, 19 + i));
+          p.push(cosmetic(part(lathe([[0, 0], [1.0, 0.8], [1.2, 3], [0.9, 6], [0.4, 8], [0, 9]], 6), '#47803f', x, 0, z, 0, 0, 0, k, k, k, 0.1, 19 + i)));
         } else {
           p.push(part(cyl(0.25, 0.35, 3, 5), WOOD_DK, x, 1.2 * k, z, 0, 0, 0, k, k, k));
-          p.push(part(ico(2.2, 0), LEAF[i % 4]!, x, 4.0 * k, z, 0, r() * 3, 0, k * 1.1, k * 0.9, k * 1.1, 0.1, 23 + i));
-          p.push(part(ico(1.5, 0), LEAF[(i + 1) % 4]!, x + 1.1 * k, 4.8 * k, z + 0.5 * k, 0, r() * 3, 0, k, k, k, 0.1, 29 + i));
+          p.push(cosmetic(part(ico(2.2, 0), LEAF[i % 4]!, x, 4.0 * k, z, 0, r() * 3, 0, k * 1.1, k * 0.9, k * 1.1, 0.1, 23 + i)));
+          p.push(cosmetic(part(ico(1.5, 0), LEAF[(i + 1) % 4]!, x + 1.1 * k, 4.8 * k, z + 0.5 * k, 0, r() * 3, 0, k, k, k, 0.1, 29 + i)));
         }
       }
       return { geometry: merge(p), material: leafy(), castShadow: true };
@@ -165,7 +165,7 @@ export const TRACKSIDE_PROPS: Record<string, PropFactory> = {
     build: () => ({
       geometry: merge([
         part(cyl(0.05, 0.06, 6.2, 6), IVORY, 0, 3.1, 0), part(sph(0.09, 6, 4), GOLD, 0, 6.25, 0),
-        part(box(0.03, 0.95, 1.5), '#d8423a', 0, 5.6, 0.78), part(box(0.035, 0.24, 1.5), IVORY, 0, 5.6, 0.78),
+        cosmetic(part(box(0.03, 0.95, 1.5), '#d8423a', 0, 5.6, 0.78)), cosmetic(part(box(0.035, 0.24, 1.5), IVORY, 0, 5.6, 0.78)),
       ]), material: lit(), castShadow: true,
     }),
   },

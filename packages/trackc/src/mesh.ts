@@ -5,7 +5,7 @@ import { TFLAG } from '@cr/sim';
 import { SURF, exactAt, sampleAt, type PathModel, type Sample, type TrackModel } from './paths.ts';
 import { inS, profileHeight, surfAt, type Content } from './content.ts';
 import { PROFILE_VERTS } from './profiles.ts';
-import { TriSoup, VS, type WallQuad } from './soup.ts';
+import { TriSoup, VS, WALL_THICKNESS, type WallQuad } from './soup.ts';
 import type { WallDef } from './turtle.ts';
 
 export const ROLE = { ROAD: 0, SHOULDER: 1, SLOPE: 2, AREA: 3, KILL: 4, KERB: 5, CLIFF: 6, LANDING: 7, GORE: 8, OBSTACLE: 9 } as const;
@@ -223,6 +223,16 @@ export function wallTriangles(walls: WallQuad[], out: TriSoup): void {
     const V = (p: [number, number, number], s: number, h: number): number[] => [p[0], p[1], p[2], n[0]!, n[1]!, n[2]!, s, h];
     out.push(V(w.a0, w.sa, 0), V(w.b0, w.sb, 0), V(w.a1, w.sa, 1), 0, w.flg, w.path, ROLE.CLIFF);
     out.push(V(w.a1, w.sa, 1), V(w.b0, w.sb, 0), V(w.b1, w.sb, 1), 0, w.flg, w.path, ROLE.CLIFF);
+    if (w.render) {
+      const offset = (p: [number, number, number]): [number, number, number] => [p[0] + w.out[0] * WALL_THICKNESS, p[1] + w.out[1] * WALL_THICKNESS, p[2] + w.out[2] * WALL_THICKNESS];
+      const a0 = offset(w.a0), a1 = offset(w.a1), b0 = offset(w.b0), b1 = offset(w.b1);
+      // Same top and external skin as wallsToRender. A car approaching from above/outside must meet the
+      // visible wall, while inside-facing geometry and soft/gore response stay exactly on their authored edge.
+      out.push(V(w.a1, w.sa, 1), V(w.b1, w.sb, 1), V(a1, w.sa, 1), 0, w.flg, w.path, ROLE.CLIFF);
+      out.push(V(a1, w.sa, 1), V(w.b1, w.sb, 1), V(b1, w.sb, 1), 0, w.flg, w.path, ROLE.CLIFF);
+      out.push(V(a1, w.sa, 1), V(b1, w.sb, 1), V(a0, w.sa, 0), 0, w.flg, w.path, ROLE.CLIFF);
+      out.push(V(a0, w.sa, 0), V(b1, w.sb, 1), V(b0, w.sb, 0), 0, w.flg, w.path, ROLE.CLIFF);
+    }
   }
 }
 

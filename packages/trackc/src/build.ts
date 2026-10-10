@@ -2,7 +2,7 @@
 // clipping) → TriHash → .ctrk + .vis (+ report, SVG preview). Deterministic: the same source gives the same bytes.
 import { createNoise2D } from 'simplex-noise';
 import {
-  CTRK_MAGIC, CTRK_VERSION, CVIS_MAGIC, CVIS_VERSION, SFLAG, SMP, buildTriHash, writeContainer, loadCtrk, toArrayBuffer,
+  CTRK_MAGIC, CTRK_VERSION, CVIS_MAGIC, CVIS_VERSION, SFLAG, SMP, TFLAG, buildTriHash, writeContainer, loadCtrk, toArrayBuffer,
   type CtrkMeta, type CtrkPathMeta, type BakedTrack, type TypedArray, type PathLink,
 } from '@cr/sim';
 import type { TrackId } from '@cr/content';
@@ -12,7 +12,7 @@ import { resolveContent, zoneFlags, inS, type Content } from './content.ts';
 import { DEFAULT_MESH, buildRibbon, wallTriangles, type MeshOptions } from './mesh.ts';
 import { TriSoup, weld, type WallQuad } from './soup.ts';
 import { clipJunctions, findJunctions, inFootprint, type Junction } from './clip.ts';
-import { RenderBuilder, groundToRender, startLineToRender, undersideToRender, wallsToRender, type RenderSlot, type ChunkInfo } from './render.ts';
+import { RenderBuilder, groundToRender, startLineToRender, undersideFromGround, undersideToRender, wallsToRender, type RenderSlot, type ChunkInfo } from './render.ts';
 import { buildTerrainField, terrainToRender, type TerrainField } from './terrain.ts';
 import { DROPS, GroundIndex, exclusions, placeProps, type PropSet } from './props.ts';
 import { bakeAi } from './aibake.ts';
@@ -26,9 +26,12 @@ import { assertFinite } from './finite.ts';
 import { DEFAULT_AO, bakeAo, sceneBvh } from './ao.ts';
 import { buildLod1 } from './lod.ts';
 import { buildPvs } from './pvs.ts';
+import { preparePropContacts, type PreparedPropSet } from './propcontacts.ts';
+import { ROLE } from './mesh.ts';
+import { DrivingClearance, addRouteClearance } from './clearance.ts';
 import { canonicalF32, canonicalMetadata } from './canonical.ts';
 
-export const COMPILER_VERSION = 'trackc/2.1';
+export const COMPILER_VERSION = 'trackc/3.0';
 
 export interface VisSlotMeta {
   name: string; material: string; variant: string; chunks: { i0: number; n: number; bbox: number[]; chunk: number }[];
@@ -38,7 +41,8 @@ export interface VisSlotMeta {
 export interface VisMeta {
   id: string; themeId: string; name: string;
   slots: VisSlotMeta[];
-  props: { kind: string; n: number }[];
+  props: { kind: string; n: number; contact?: 'solid' | 'cosmetic'; fingerprint?: string }[];
+  propContactVersion?: 2;
   bounds: number[];
   line: { x: number; y: number; z: number; fx: number; fy: number; fz: number; w: number };
   theme: Record<string, string>;
@@ -233,6 +237,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   const ar = buildAreas(m, areas, ground, kerbs, walls);
   walls = ar.walls;
   const feat = buildFeatures(m, c, rows, ground, walls);
+  ground.orientGround();
   const wallSoup = new TriSoup();
   wallTriangles(walls, wallSoup);
   tick('mesh');
@@ -318,8 +323,8 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   const pre = writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays);
   meta.hash = fnv(pre);
   assertFinite('.ctrk', meta, arrays);
-  const ctrk = writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays);
-  const track = loadCtrk(toArrayBuffer(ctrk));
+  let ctrk = writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays);
+  let track = loadCtrk(toArrayBuffer(ctrk));
   tick('ctrk');
 
   // ---- render (.vis)
@@ -334,6 +339,9 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     for (let x = x0; x <= x1; x += 4) for (let z = z0; z <= z1; z += 4) if (inFootprint(x, z, areaFootprint(a))) areaPts.push({ x, z, y: a.y });
   }
   const tf: TerrainField | null = wantTerrain ? buildTerrainField(m, c, bounds, nf, amp, areaPts) : null;
+  const clearance = new DrivingClearance(ground, 2.25, 0.6, 0.85);
+  addRouteClearance(clearance, m, c);
+  const terrainAdjusted = tf ? clearance.lowerTerrain(tf) : 0;
   const ao = (): number => 1;
   const rb = new RenderBuilder();
   groundToRender(rb, m, c, ground, kerbs, ao);
@@ -345,6 +353,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     const d = tf ? y - tf.height(x, z) : 0.6;
     return d > 3 && gi.heightAt(x, z, y - 1 - d / 2, d / 2) !== null ? 1.5 : d;
   };
+  undersideFromGround(rb, ground);
   for (const p of m.paths) undersideToRender(rb, m, p, rows.get(p.index)!, skirt);
   startLineToRender(rb, m);
   jumpFacesToRender(rb, m, c);
@@ -352,6 +361,8 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   portalsToRender(rb, m, warps);
   killPlanesToRender(rb, c, bounds);
   if (tf) terrainToRender(rb, tf, nf, ao);
+  const underside = rb.slots.get('underside');
+  const undersideClipped = underside ? clearance.clipSlot(rb, underside) : 0;
   const slots = rb.finalise();
   tick('render');
   const scene = opts.ao || opts.pvs ? sceneBvh(slots) : null;
@@ -359,7 +370,33 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   tick('ao');
   const lod1 = slots.map((sl) => buildLod1(sl));
   tick('lod');
-  const props: PropSet[] = opts.props === false ? [] : placeProps(m, c, seed, gi, tf, exclusions(m, c, junctions, c.hazards.filter((h) => h.motion?.type !== 'lane')), junctions);
+  const placedProps: PropSet[] = opts.props === false ? [] : placeProps(m, c, seed, gi, tf, exclusions(m, c, junctions, c.hazards.filter((h) => h.motion?.type !== 'lane')), junctions);
+  // Corrected deck undersides and skirts are physical externally; the entire legitimate driving/flight volume
+  // has already been cut out, so erroneous road-wide faces never become barriers.
+  const structuralFirst = wallSoup.count;
+  for (const slot of slots) if (slot.name === 'underside') for (let i = 0; i < slot.idx.length; i += 3) {
+    const v = [0, 1, 2].map(k => { const n = slot.idx[i + k]! * 3; return [slot.pos[n]!, slot.pos[n + 1]!, slot.pos[n + 2]!, 0, 0, 0, 0, 0]; });
+    wallSoup.push(v[0]!, v[1]!, v[2]!, 0, TFLAG.PROP | TFLAG.ORIENTED, 0, ROLE.OBSTACLE);
+  }
+  const structuralCount = wallSoup.count - structuralFirst;
+  const prepared = preparePropContacts(m.theme, placedProps, track, clearance, new DrivingClearance(ground, 0.02), new DrivingClearance(ground, 0.15, -0.15), tf, wallSoup);
+  const props: PreparedPropSet[] = prepared.sets;
+  meta.propContacts = { version: 2, geometries: prepared.geometries.map(g => ({ prefix: g.prefix })), sets: props.map(p => ({ kind: p.kind, n: p.matrices.length / 16, policy: p.policy, fingerprint: p.fingerprint })), structuralFirst, structuralCount };
+  props.forEach((p, j) => arrays.push([`prop${j}.mat`, f32(p.matrices)], [`prop${j}.geo`, Uint32Array.from(p.geometry)], [`prop${j}.flags`, Uint8Array.from(p.flags)], [`prop${j}.contacts`, Uint32Array.from(p.contacts)], [`prop${j}.support`, Uint32Array.from(p.support)]));
+  prepared.geometries.forEach(g => arrays.push([`${g.prefix}.pos`, f32(g.pos)], [`${g.prefix}.idx`, Uint32Array.from(g.idx)]));
+  const finalWalls = weld(wallSoup), finalPos = Float64Array.from(f32(finalWalls.pos) as ArrayLike<number>), finalHash = buildTriHash(finalPos, finalWalls.idx);
+  const replaceArray = (name: string, data: TypedArray): void => { const i = arrays.findIndex(a => a[0] === name); if (i < 0) arrays.push([name, data]); else arrays[i] = [name, data]; };
+  replaceArray('w.pos', f32(finalPos)); replaceArray('w.idx', narrow(finalWalls.idx, finalPos.length / 3)); replaceArray('w.flg', finalWalls.triFlg);
+  replaceArray('w.hd', Float64Array.from([finalHash.ox, finalHash.oy, finalHash.oz, finalHash.nx, finalHash.ny, finalHash.nz]));
+  replaceArray('w.hk', finalHash.keys); replaceArray('w.hs', finalHash.starts); replaceArray('w.ht', narrow(finalHash.tris, finalWalls.idx.length / 3));
+  // Respawn validity must see the final prop/structure collision mesh, just like authority and prediction.
+  meta.hash = '';
+  const contactsTrack = loadCtrk(toArrayBuffer(writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays)));
+  tables.clear();
+  m.paths.forEach((p, k) => { const t = respawnTables(contactsTrack, p, rc, p.map ? tables.get(p.map.host) : undefined); tables.set(p.index, { p, to: t.to }); replaceArray(`p${k}.rok`, t.ok); replaceArray(`p${k}.rto`, t.to); });
+  meta.hash = fnv(writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays));
+  assertFinite('.ctrk', meta, arrays);
+  ctrk = writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays); track = loadCtrk(toArrayBuffer(ctrk));
   tick('props');
 
   const lineSample = sampleAt(main, m.lineS);
@@ -371,7 +408,8 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   const visMeta: VisMeta = canonicalMetadata({
     id: ast.id, themeId: m.theme, name: m.name,
     slots: slots.map((s, j) => ({ name: s.name, material: s.material, variant: s.variant, chunks: s.chunks.map((ch) => ({ i0: ch.i0, n: ch.n, bbox: ch.bbox, chunk: ch.chunk })), lod1: lod1[j]!.ranges })),
-    props: props.map((p) => ({ kind: p.kind, n: p.xf.length / 6 })),
+    props: props.map((p) => ({ kind: p.kind, n: p.matrices.length / 16, contact: p.policy, fingerprint: p.fingerprint })),
+    propContactVersion: 2,
     bounds: meta.bounds,
     line: { x: lineSample.x, y: lineSample.y, z: lineSample.z, fx: lineSample.tx, fy: lineSample.ty, fz: lineSample.tz, w: lineSample.w },
     theme: c.theme,
@@ -395,7 +433,7 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
     visArrays.push([`s${j}.idx1`, Uint32Array.from(lod1[j]!.idx1)]);
   });
   if (pvs) visArrays.push(['pvs', pvs.bits]);
-  props.forEach((p, j) => visArrays.push([`p${j}.xf`, f32(p.xf)]));
+  props.forEach((p, j) => visArrays.push([`p${j}.xf`, f32(p.xf)], [`p${j}.mat`, f32(p.matrices)], [`p${j}.contacts`, Uint32Array.from(p.contacts)], [`p${j}.support`, Uint32Array.from(p.support)], [`p${j}.geo`, Uint32Array.from(p.geometry)], [`p${j}.flags`, Uint8Array.from(p.flags)]));
   const mm: number[] = [];
   for (let i = 0; i < main.samples.length; i += 4) mm.push(main.samples[i]!.x, main.samples[i]!.z);
   visArrays.push(['minimap', f32(mm)]);
@@ -410,7 +448,9 @@ export function buildTrack(src: string, file: string, opts: BuildOptions = {}): 
   tick('vis');
 
   const stats: Record<string, number> = {
-    length: main.length, lapLength: m.lapLength, samples: main.samples.length, paths: m.paths.length, groundTris: gIdx.length / 3, wallTris: wIdx.length / 3,
+    length: main.length, lapLength: m.lapLength, samples: main.samples.length, paths: m.paths.length, groundTris: gIdx.length / 3, wallTris: finalWalls.idx.length / 3,
+    propContactTriangles: prepared.collisionTriangles, propContactUniqueTriangles: prepared.geometries.reduce((n, g) => n + g.idx.length / 3, 0), propContactGeometries: prepared.geometries.length, propsMovedForClearance: prepared.moved, propsFittedForClearance: prepared.fitted, structuralContactTriangles: structuralCount,
+    terrainClearanceVertices: terrainAdjusted, undersideClearanceTriangles: undersideClipped,
     boxes: c.boxes.length, ctrkBytes: ctrk.length, visBytes: vis.length, renderTris: slots.reduce((a, s) => a + s.idx.length / 3, 0),
     props: props.reduce((a, p) => a + p.xf.length / 6, 0), minR: minRadius(m, 0), minW: Math.min(...main.samples.map((s) => s.w)),
     slots: slots.length, chunks: visMeta.chunks!.length, clippedTris: jr.touched, killTris: feat.kills, jumpFaces: feat.faces,

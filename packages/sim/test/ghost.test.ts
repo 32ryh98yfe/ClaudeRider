@@ -75,8 +75,8 @@ describe('Time Attack ghost (race/ghost.ts)', () => {
   it('records and decodes drift pulses without aliasing target slots or emotes', () => {
     const recorder = new GhostRecorder();
     const frames = [
-      { ...makeInput(), steer: 127, edges: Edge.DRIFT, aim: 255, emote: 15 },
-      { ...makeInput(), steer: -127, edges: Edge.DRIFT | Edge.TAP_L, aim: 7, emote: 1 },
+      { ...makeInput(), steer: 127, steerIntent: 1, driftRequests: 341, edges: Edge.DRIFT, aim: 255, emote: 15 },
+      { ...makeInput(), steer: -127, steerIntent: -1, driftRequests: 106, edges: Edge.DRIFT | Edge.TAP_L, aim: 7, emote: 1 },
       { ...makeInput(), held: 1, edges: 127, aim: 0, emote: 0 },
       makeInput(),
     ];

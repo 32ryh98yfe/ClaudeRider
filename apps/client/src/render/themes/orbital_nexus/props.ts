@@ -9,7 +9,7 @@
 import * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
-import { box, cone, cyl, merge, paint, place, rbox, sparkleGeometry, sph, torus } from '../../util/geo.ts';
+import { cosmetic, box, cone, cyl, merge, paint, place, rbox, sparkleGeometry, sph, torus } from '../../util/geo.ts';
 import { beam, glow, rng } from '../ember_mine/shapes.ts';
 import { part, prism } from '../clayhill_village/toyshapes.ts';
 import { GlowParts, glowLit } from '../neon_harbor/glowlit.ts';
@@ -368,8 +368,8 @@ function impactPads(): THREE.BufferGeometry {
 /** Holo banner mast (start straight): white mast, orange banner with our sparkle, a cyan tip light. */
 function bannerMast(): THREE.BufferGeometry {
   return new GlowParts()
-    .add(part(cyl(0.07, 0.09, 6.4, 6), WHITE, 0, 3.2, 0), part(box(0.04, 2.4, 0.9), ORANGE, 0, 4.2, 0.5), part(box(0.045, 0.28, 0.9), WHITE, 0, 3.1, 0.5))
-    .add(paint(place(sparkleGeometry(0.22, 0.03, 9), 0.03, 4.6, 0.5, 0, Math.PI / 2, 0), WHITE))
+    .add(part(cyl(0.07, 0.09, 6.4, 6), WHITE, 0, 3.2, 0), cosmetic(part(box(0.04, 2.4, 0.9), ORANGE, 0, 4.2, 0.5)), cosmetic(part(box(0.045, 0.28, 0.9), WHITE, 0, 3.1, 0.5)))
+    .add(cosmetic(paint(place(sparkleGeometry(0.22, 0.03, 9), 0.03, 4.6, 0.5, 0, Math.PI / 2, 0), WHITE)))
     .light(1.8, part(sph(0.12, 8, 6), CYAN, 0, 6.5, 0))
     .build();
 }
@@ -505,7 +505,7 @@ export const ORBITAL_PROPS: Record<string, PropFactory> = {
   gantry: F(stationArch, station, true),
   chevron: F(() => litChevron(ORANGE, 0.9, { panel: WHITE, scale: 1.5 }), station, true, 256),
   // hazards and compiler props
-  hazard_press: { build: () => ({ geometry: press(), material: hull(), castShadow: true, hazardDecoration: paint(place(cyl(0.6, 0.6, 5, 8), 0, 5.5, 0), GREY) }) },
+  hazard_press: { build: () => ({ geometry: press(), material: hull(), castShadow: true, hazardDecorationRole: 'flexible-suspension', hazardDecoration: paint(place(cyl(0.035, 0.035, 5, 6), 0, 5.5, 0), GREY) }) },
   hazard_laser: F(laserGate, hull, false),
   hazard_train: F(maglev, hull, true),
   pillar: F(truss, station, true),

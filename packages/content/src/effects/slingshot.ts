@@ -7,7 +7,7 @@ export default defineEffect({
   durTicks: 36,
   stacking: 'refresh',
   immunityAfterTicks: 0,
-  mods: { vTarget: 42.5 },
+  mods: { vTarget: 30.70625 },
   nameKey: 'items.effect.slingshot.name',
   presentation: { iconKey: 'effects/slingshot', vfxKey: 'effect.slingshot', descKey: 'items.effect.slingshot.desc' },
 });

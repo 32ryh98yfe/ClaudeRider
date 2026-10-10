@@ -63,9 +63,9 @@ export class InputRing {
  * ×0.85 per tick (integer steps). `missCount` is the number of consecutive ticks without a frame, including this one.
  */
 export function stepMissing(cur: InputFrame, missCount: number): void {
-  cur.edges = 0;
+  cur.edges = 0; cur.driftRequests = 0;
   if (missCount > NET.MISSING_BRAKE_HOLD) cur.brake = 0;
-  if (missCount > NET.MISSING_HOLD && cur.steer !== 0) cur.steer = Math.trunc(cur.steer * NET.MISSING_DECAY);
+  if (missCount > NET.MISSING_HOLD) { cur.steer = Math.trunc(cur.steer * NET.MISSING_DECAY); cur.steerIntent = 0; }
 }
 
 /** Running per-slot input as a predictor walks forward tick by tick through a ring of known frames. */
@@ -102,4 +102,4 @@ const NEUTRAL: InputFrame = makeInput();
 
 /** Packs frames for equality tests (6 fields → one number). */
 export const sameFrame = (a: Readonly<InputFrame>, b: Readonly<InputFrame>): boolean =>
-  a.steer === b.steer && a.throttle === b.throttle && a.brake === b.brake && a.held === b.held && a.edges === b.edges && a.aim === b.aim && a.emote === b.emote;
+  a.steer === b.steer && a.throttle === b.throttle && a.brake === b.brake && a.held === b.held && a.edges === b.edges && a.aim === b.aim && a.emote === b.emote && a.steerIntent === b.steerIntent && a.driftRequests === b.driftRequests;

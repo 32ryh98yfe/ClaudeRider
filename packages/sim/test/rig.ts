@@ -59,7 +59,7 @@ export function makeRig(track: BakedTrack, o: RigOptions = {}): Rig {
       for (let i = 0; i < bots.length; i++) bots[i]?.decide(w, inputs[i]!);
       step(w, inputs, ctx);
       sink.drain(events);
-      for (const inp of inputs) inp.edges = 0;
+      for (const inp of inputs) { inp.edges = 0; inp.driftRequests = 0; }
     },
     run(n, drive) { for (let i = 0; i < n; i++) rig.tick(drive); },
   };

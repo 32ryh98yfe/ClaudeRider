@@ -1,0 +1,785 @@
+{
+  "simVersion": 10,
+  "passed": true,
+  "capturedAt": "2026-10-03T11:17:34.447Z",
+  "rows": [
+    {
+      "course": "flat",
+      "initial": {
+        "tick": 0,
+        "version": 10,
+        "authority": "main",
+        "autopilot": false,
+        "reference": false
+      },
+      "renderedFps": 60.00146345032806,
+      "receivedDirections": [
+        1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1
+      ],
+      "generatedDirections": [
+        1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1
+      ],
+      "appliedDirections": [
+        1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1
+      ],
+      "orderedInputMatches": true,
+      "requestBatches": [
+        {
+          "tick": 25,
+          "directions": [
+            1
+          ]
+        },
+        {
+          "tick": 85,
+          "directions": [
+            -1
+          ]
+        },
+        {
+          "tick": 170,
+          "directions": [
+            -1,
+            -1,
+            -1,
+            -1
+          ]
+        },
+        {
+          "tick": 171,
+          "directions": [
+            -1,
+            -1,
+            -1
+          ]
+        }
+      ],
+      "firstTick": 1,
+      "lastTick": 248,
+      "peakSlipDeg": 8.86113693148249,
+      "minimumSpeedMps": 26.318930001097392,
+      "wallContactTicks": 0,
+      "respawns": 0,
+      "finalS": 406.6005859375,
+      "finalU": 7.68359375,
+      "finalVelocityHeadingDeg": 13.466126288274616,
+      "actions": [
+        {
+          "name": "throttle",
+          "down": [
+            "ArrowUp"
+          ],
+          "up": [],
+          "tick": 3
+        },
+        {
+          "name": "short-right",
+          "down": [
+            "ArrowRight",
+            "ShiftLeft"
+          ],
+          "up": [],
+          "tick": 23
+        },
+        {
+          "name": "release-shift",
+          "down": [],
+          "up": [
+            "ShiftLeft"
+          ],
+          "tick": 25
+        },
+        {
+          "name": "counter-left",
+          "down": [
+            "ArrowLeft"
+          ],
+          "up": [
+            "ArrowRight"
+          ],
+          "tick": 69
+        },
+        {
+          "name": "new-left",
+          "down": [
+            "ShiftLeft"
+          ],
+          "up": [],
+          "tick": 83
+        },
+        {
+          "name": "release-again",
+          "down": [],
+          "up": [
+            "ShiftLeft"
+          ],
+          "tick": 85
+        },
+        {
+          "name": "boost",
+          "down": [
+            "ControlLeft"
+          ],
+          "up": [],
+          "tick": 108
+        },
+        {
+          "name": "counter-under-boost",
+          "down": [
+            "ArrowRight"
+          ],
+          "up": [
+            "ArrowLeft"
+          ],
+          "tick": 133
+        },
+        {
+          "name": "rapid-sequence",
+          "down": [],
+          "up": [
+            "ArrowRight",
+            "ControlLeft"
+          ],
+          "tick": 168
+        },
+        {
+          "name": "press-0",
+          "down": [
+            "ArrowLeft",
+            "ShiftLeft"
+          ],
+          "up": [],
+          "tick": 168
+        },
+        {
+          "name": "release-0",
+          "down": [],
+          "up": [
+            "ShiftLeft"
+          ],
+          "tick": 168
+        },
+        {
+          "name": "press-1",
+          "down": [
+            "ArrowLeft",
+            "ShiftLeft"
+          ],
+          "up": [],
+          "tick": 168
+        },
+        {
+          "name": "release-1",
+          "down": [],
+          "up": [
+            "ShiftLeft"
+          ],
+          "tick": 168
+        },
+        {
+          "name": "press-2",
+          "down": [
+            "ArrowLeft",
+            "ShiftLeft"
+          ],
+          "up": [],
+          "tick": 168
+        },
+        {
+          "name": "release-2",
+          "down": [],
+          "up": [
+            "ShiftLeft"
+          ],
+          "tick": 168
+        },
+        {
+          "name": "press-3",
+          "down": [
+            "ArrowLeft",
+            "ShiftLeft"
+          ],
+          "up": [],
+          "tick": 168
+        },
+        {
+          "name": "release-3",
+          "down": [],
+          "up": [
+            "ShiftLeft"
+          ],
+          "tick": 168
+        },
+        {
+          "name": "press-4",
+          "down": [
+            "ArrowLeft",
+            "ShiftLeft"
+          ],
+          "up": [],
+          "tick": 168
+        },
+        {
+          "name": "release-4",
+          "down": [],
+          "up": [
+            "ShiftLeft"
+          ],
+          "tick": 168
+        },
+        {
+          "name": "press-5",
+          "down": [
+            "ArrowLeft",
+            "ShiftLeft"
+          ],
+          "up": [],
+          "tick": 168
+        },
+        {
+          "name": "release-5",
+          "down": [],
+          "up": [
+            "ShiftLeft"
+          ],
+          "tick": 168
+        },
+        {
+          "name": "press-6",
+          "down": [
+            "ArrowLeft",
+            "ShiftLeft"
+          ],
+          "up": [],
+          "tick": 168
+        },
+        {
+          "name": "release-6",
+          "down": [],
+          "up": [
+            "ShiftLeft"
+          ],
+          "tick": 168
+        },
+        {
+          "name": "restore",
+          "down": [
+            "ArrowRight"
+          ],
+          "up": [
+            "ArrowLeft"
+          ],
+          "tick": 203
+        }
+      ],
+      "errors": [],
+      "warnings": [],
+      "overlay": 0,
+      "note": "Native wall-clock keyboard operation; the starting state is initialized once. No autopilot, reference input injection, time warping or running-world correction."
+    },
+    {
+      "course": "R9L",
+      "initial": {
+        "tick": 0,
+        "version": 10,
+        "authority": "main",
+        "autopilot": false,
+        "reference": false
+      },
+      "renderedFps": 60.002201915666646,
+      "receivedDirections": [
+        -1
+      ],
+      "generatedDirections": [
+        -1
+      ],
+      "appliedDirections": [
+        -1
+      ],
+      "orderedInputMatches": true,
+      "requestBatches": [
+        {
+          "tick": 72,
+          "directions": [
+            -1
+          ]
+        }
+      ],
+      "firstTick": 1,
+      "lastTick": 329,
+      "peakSlipDeg": 8.208543102019947,
+      "minimumSpeedMps": 21.214573526391106,
+      "wallContactTicks": 0,
+      "respawns": 0,
+      "finalS": 295.93359375,
+      "finalU": 2.179931640625,
+      "finalVelocityHeadingDeg": -178.7708748340839,
+      "actions": [
+        {
+          "name": "throttle",
+          "down": [
+            "ArrowUp"
+          ],
+          "up": [],
+          "tick": 3
+        },
+        {
+          "name": "turn-once",
+          "down": [
+            "ArrowLeft",
+            "ShiftLeft"
+          ],
+          "up": [],
+          "tick": 71
+        },
+        {
+          "name": "counter-held-shift",
+          "down": [
+            "ArrowRight"
+          ],
+          "up": [
+            "ArrowLeft"
+          ],
+          "tick": 188
+        },
+        {
+          "name": "exit",
+          "down": [],
+          "up": [
+            "ArrowRight",
+            "ShiftLeft"
+          ],
+          "tick": 204
+        }
+      ],
+      "errors": [],
+      "warnings": [],
+      "overlay": 0,
+      "note": "Native wall-clock keyboard operation; the starting state is initialized once. No autopilot, reference input injection, time warping or running-world correction."
+    },
+    {
+      "course": "R9R",
+      "initial": {
+        "tick": 0,
+        "version": 10,
+        "authority": "main",
+        "autopilot": false,
+        "reference": false
+      },
+      "renderedFps": 60.000731716240445,
+      "receivedDirections": [
+        1
+      ],
+      "generatedDirections": [
+        1
+      ],
+      "appliedDirections": [
+        1
+      ],
+      "orderedInputMatches": true,
+      "requestBatches": [
+        {
+          "tick": 72,
+          "directions": [
+            1
+          ]
+        }
+      ],
+      "firstTick": 1,
+      "lastTick": 329,
+      "peakSlipDeg": 8.208543102019947,
+      "minimumSpeedMps": 21.160022733061844,
+      "wallContactTicks": 0,
+      "respawns": 0,
+      "finalS": 295.66455078125,
+      "finalU": -0.365234375,
+      "finalVelocityHeadingDeg": 177.04264064054902,
+      "actions": [
+        {
+          "name": "throttle",
+          "down": [
+            "ArrowUp"
+          ],
+          "up": [],
+          "tick": 1
+        },
+        {
+          "name": "turn-once",
+          "down": [
+            "ArrowRight",
+            "ShiftLeft"
+          ],
+          "up": [],
+          "tick": 71
+        },
+        {
+          "name": "counter-held-shift",
+          "down": [
+            "ArrowLeft"
+          ],
+          "up": [
+            "ArrowRight"
+          ],
+          "tick": 188
+        },
+        {
+          "name": "exit",
+          "down": [],
+          "up": [
+            "ArrowLeft",
+            "ShiftLeft"
+          ],
+          "tick": 204
+        }
+      ],
+      "errors": [],
+      "warnings": [],
+      "overlay": 0,
+      "note": "Native wall-clock keyboard operation; the starting state is initialized once. No autopilot, reference input injection, time warping or running-world correction."
+    },
+    {
+      "course": "R12L",
+      "initial": {
+        "tick": 0,
+        "version": 10,
+        "authority": "main",
+        "autopilot": false,
+        "reference": false
+      },
+      "renderedFps": 60.0035823034211,
+      "receivedDirections": [
+        -1
+      ],
+      "generatedDirections": [
+        -1
+      ],
+      "appliedDirections": [
+        -1
+      ],
+      "orderedInputMatches": true,
+      "requestBatches": [
+        {
+          "tick": 80,
+          "directions": [
+            -1
+          ]
+        }
+      ],
+      "firstTick": 1,
+      "lastTick": 337,
+      "peakSlipDeg": 8.20851820249473,
+      "minimumSpeedMps": 21.2346095338154,
+      "wallContactTicks": 0,
+      "respawns": 0,
+      "finalS": 301.105712890625,
+      "finalU": -0.1494140625,
+      "finalVelocityHeadingDeg": -179.91488366499854,
+      "actions": [
+        {
+          "name": "throttle",
+          "down": [
+            "ArrowUp"
+          ],
+          "up": [],
+          "tick": 2
+        },
+        {
+          "name": "turn-once",
+          "down": [
+            "ArrowLeft",
+            "ShiftLeft"
+          ],
+          "up": [],
+          "tick": 79
+        },
+        {
+          "name": "counter-held-shift",
+          "down": [
+            "ArrowRight"
+          ],
+          "up": [
+            "ArrowLeft"
+          ],
+          "tick": 196
+        },
+        {
+          "name": "exit",
+          "down": [],
+          "up": [
+            "ArrowRight",
+            "ShiftLeft"
+          ],
+          "tick": 212
+        }
+      ],
+      "errors": [],
+      "warnings": [],
+      "overlay": 0,
+      "note": "Native wall-clock keyboard operation; the starting state is initialized once. No autopilot, reference input injection, time warping or running-world correction."
+    },
+    {
+      "course": "R12R",
+      "initial": {
+        "tick": 0,
+        "version": 10,
+        "authority": "main",
+        "autopilot": false,
+        "reference": false
+      },
+      "renderedFps": 60.002507567480436,
+      "receivedDirections": [
+        1
+      ],
+      "generatedDirections": [
+        1
+      ],
+      "appliedDirections": [
+        1
+      ],
+      "orderedInputMatches": true,
+      "requestBatches": [
+        {
+          "tick": 81,
+          "directions": [
+            1
+          ]
+        }
+      ],
+      "firstTick": 1,
+      "lastTick": 337,
+      "peakSlipDeg": 8.208612212348813,
+      "minimumSpeedMps": 21.21548686407489,
+      "wallContactTicks": 0,
+      "respawns": 0,
+      "finalS": 300.59765625,
+      "finalU": 1.28369140625,
+      "finalVelocityHeadingDeg": 178.80464337194132,
+      "actions": [
+        {
+          "name": "throttle",
+          "down": [
+            "ArrowUp"
+          ],
+          "up": [],
+          "tick": 2
+        },
+        {
+          "name": "turn-once",
+          "down": [
+            "ArrowRight",
+            "ShiftLeft"
+          ],
+          "up": [],
+          "tick": 79
+        },
+        {
+          "name": "counter-held-shift",
+          "down": [
+            "ArrowLeft"
+          ],
+          "up": [
+            "ArrowRight"
+          ],
+          "tick": 196
+        },
+        {
+          "name": "exit",
+          "down": [],
+          "up": [
+            "ArrowLeft",
+            "ShiftLeft"
+          ],
+          "tick": 212
+        }
+      ],
+      "errors": [],
+      "warnings": [],
+      "overlay": 0,
+      "note": "Native wall-clock keyboard operation; the starting state is initialized once. No autopilot, reference input injection, time warping or running-world correction."
+    },
+    {
+      "course": "R16L",
+      "initial": {
+        "tick": 0,
+        "version": 10,
+        "authority": "main",
+        "autopilot": false,
+        "reference": false
+      },
+      "renderedFps": 59.823395604592434,
+      "receivedDirections": [
+        -1
+      ],
+      "generatedDirections": [
+        -1
+      ],
+      "appliedDirections": [
+        -1
+      ],
+      "orderedInputMatches": true,
+      "requestBatches": [
+        {
+          "tick": 93,
+          "directions": [
+            -1
+          ]
+        }
+      ],
+      "firstTick": 1,
+      "lastTick": 336,
+      "peakSlipDeg": 8.20840690573379,
+      "minimumSpeedMps": 21.494293082015894,
+      "wallContactTicks": 0,
+      "respawns": 0,
+      "finalS": 302.299560546875,
+      "finalU": -3.12060546875,
+      "finalVelocityHeadingDeg": 179.94957105926187,
+      "actions": [
+        {
+          "name": "throttle",
+          "down": [
+            "ArrowUp"
+          ],
+          "up": [],
+          "tick": 1
+        },
+        {
+          "name": "turn-once",
+          "down": [
+            "ArrowLeft",
+            "ShiftLeft"
+          ],
+          "up": [],
+          "tick": 91
+        },
+        {
+          "name": "counter-held-shift",
+          "down": [
+            "ArrowRight"
+          ],
+          "up": [
+            "ArrowLeft"
+          ],
+          "tick": 203
+        },
+        {
+          "name": "exit",
+          "down": [],
+          "up": [
+            "ArrowRight",
+            "ShiftLeft"
+          ],
+          "tick": 211
+        }
+      ],
+      "errors": [],
+      "warnings": [],
+      "overlay": 0,
+      "note": "Native wall-clock keyboard operation; the starting state is initialized once. No autopilot, reference input injection, time warping or running-world correction."
+    },
+    {
+      "course": "R16R",
+      "initial": {
+        "tick": 0,
+        "version": 10,
+        "authority": "main",
+        "autopilot": false,
+        "reference": false
+      },
+      "renderedFps": 60.00179646097189,
+      "receivedDirections": [
+        1
+      ],
+      "generatedDirections": [
+        1
+      ],
+      "appliedDirections": [
+        1
+      ],
+      "orderedInputMatches": true,
+      "requestBatches": [
+        {
+          "tick": 93,
+          "directions": [
+            1
+          ]
+        }
+      ],
+      "firstTick": 1,
+      "lastTick": 335,
+      "peakSlipDeg": 8.206885817146754,
+      "minimumSpeedMps": 21.506133791712937,
+      "wallContactTicks": 0,
+      "respawns": 0,
+      "finalS": 301.65234375,
+      "finalU": 2.67626953125,
+      "finalVelocityHeadingDeg": -179.46797234810956,
+      "actions": [
+        {
+          "name": "throttle",
+          "down": [
+            "ArrowUp"
+          ],
+          "up": [],
+          "tick": 1
+        },
+        {
+          "name": "turn-once",
+          "down": [
+            "ArrowRight",
+            "ShiftLeft"
+          ],
+          "up": [],
+          "tick": 91
+        },
+        {
+          "name": "counter-held-shift",
+          "down": [
+            "ArrowLeft"
+          ],
+          "up": [
+            "ArrowRight"
+          ],
+          "tick": 203
+        },
+        {
+          "name": "exit",
+          "down": [],
+          "up": [
+            "ArrowLeft",
+            "ShiftLeft"
+          ],
+          "tick": 211
+        }
+      ],
+      "errors": [],
+      "warnings": [],
+      "overlay": 0,
+      "note": "Native wall-clock keyboard operation; the starting state is initialized once. No autopilot, reference input injection, time warping or running-world correction."
+    }
+  ]
+}

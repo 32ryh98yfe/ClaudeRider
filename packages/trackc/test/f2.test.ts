@@ -5,6 +5,7 @@ import { SFLAG, TFLAG } from '@cr/sim';
 import { bake, bakeSrc, contacts, frame, hit, reload, surfaceAt, surfCode, sweep } from './helpers.ts';
 import { place, simRig } from './simrig.ts';
 import { landingDistance } from '../src/validate.ts';
+import { WALL_THICKNESS } from '../src/soup.ts';
 
 const r = bake('_test/f2_jumps.ctd');
 const t = reload(r);
@@ -21,8 +22,15 @@ describe('F2 jump fixture', () => {
 
   it('the road is continuous except across the gap; samples in the gap carry NO_GROUND|JUMP', () => {
     expect(sweep(t, 0, [0, -0.5, 0.5], 0, J.lipS - 0.5)).toBeNull();
-    expect(sweep(t, 0, [0, -0.5, 0.5], J.landS0 + 1)).toBeNull(); // the landing face is a wall at landS0
+    // The visible landing wall now has its real 0.45m thickness. Verify ground right after the gap separately;
+    // begin the full-sphere sweep once its entire radius clears that authored wall's top/outer edge.
+    expect(sweep(t, 0, [0, -0.5, 0.5], J.landS0 + WALL_THICKNESS + 0.85)).toBeNull();
     const h = hit(), f = frame();
+    for (let s = J.landS0 + 0.05; s < J.landS0 + WALL_THICKNESS + 0.85; s += 0.25) {
+      t.frameAt(0, s, f);
+      expect(t.groundRay(f.px, f.py + 1, f.pz, 0, -1, 0, 2, h)).toBe(true);
+      expect(h.flags & TFLAG.KILL).toBe(0);
+    }
     for (let s = J.lipS + 0.5; s < J.landS0 - 0.5; s += 1) {
       t.frameAt(0, s, f);
       expect(f.flags & SFLAG.NO_GROUND).toBeTruthy();

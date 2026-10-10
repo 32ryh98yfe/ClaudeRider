@@ -67,7 +67,7 @@ describe('terrain next to roads', () => {
 
 describe('props on elevated decks (L6 §1)', () => {
   it('deck-edge rows stand on the deck edge where the ground is far below; farther rows stand on the ground', () => {
-    const src = readFileSync(TRACKS + '_test/f6_helix.ctd', 'utf8') + 'PROPS kind=lamp along=main side=both every=20 offset=0.5\nPROPS kind=billboard along=main side=R every=60 offset=6\n';
+    const src = readFileSync(TRACKS + '_test/f6_helix.ctd', 'utf8') + 'PROPS kind=lamp along=main side=both every=20 offset=0.5\nPROPS kind=obsidian along=main side=R every=60 offset=6\n';
     const r = buildTrack(src, 'f6p.ctd');
     expect(r.stats.propsDroppedFloating).toBeLessThanOrEqual(2); // only far-out rows over a lower road or a chasm
     const tf = buildTerrainField(r.model, r.content, r.meta.bounds, () => 0, 0);

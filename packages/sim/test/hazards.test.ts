@@ -218,6 +218,68 @@ describe('continuous track hazard contacts', () => {
     expect((b.px - beforeX) * fx + (b.pz - beforeZ) * fz).toBeCloseTo(-1, 4);
   });
 
+  it('solid physical bodies keep colliding while effect immunity is active', async () => {
+    const { captureTrackHazardMotion, stepTrackHazards } = await import('../src/race/trackhazards.ts');
+    const r = single('box', 'spin'), h = r.track.hazards[0]!, k = place(r, 0, { s: 98, speed: 40 });
+    h.contact = 'solid'; h.kind = 'traffic'; k.status.immuneUntil = r.w.tick + 60;
+    const b = k.body, x = b.px, z = b.pz, fx = b.fx, fz = b.fz;
+    captureTrackHazardMotion(r.w); b.px += fx * 4; b.pz += fz * 4;
+    stepTrackHazards(r.w, r.ctx);
+    expect((b.px - x) * fx + (b.pz - z) * fz).toBeLessThan(1.2);
+    expect(b.wallContact).toBe(1); expect(k.status.cc).toBe(0);
+  });
+
+  it('trigger volumes apply their effect without turning a plume into a solid road barrier', async () => {
+    const { captureTrackHazardMotion, stepTrackHazards } = await import('../src/race/trackhazards.ts');
+    const r = single('cyl', 'spin'), h = r.track.hazards[0]!, k = place(r, 0, { s: 98, speed: 40 });
+    h.contact = 'trigger'; h.kind = 'geyser'; h.effect = 'launch';
+    const b = k.body, x = b.px, z = b.pz, fx = b.fx, fz = b.fz;
+    captureTrackHazardMotion(r.w); b.px += fx * 4; b.pz += fz * 4;
+    stepTrackHazards(r.w, r.ctx);
+    expect((b.px - x) * fx + (b.pz - z) * fz).toBeCloseTo(4, 5);
+    expect(k.status.cc).toBe(EF.airborne);
+  });
+
+  it('solid low swingers eject sideways instead of pushing an immune kart below its road', async () => {
+    const { stepTrackHazards } = await import('../src/race/trackhazards.ts');
+    const r = single('cyl', 'spin'), h = r.track.hazards[0]!, k = place(r, 0, { s: 100, speed: 0 });
+    h.contact = 'solid'; h.kind = 'swinger'; h.size = [1.75, 1, 0]; h.h = 1.5;
+    k.status.immuneUntil = r.w.tick + 60;
+    const beforeY = k.body.py;
+    stepTrackHazards(r.w, r.ctx);
+    expect(k.body.py).toBeGreaterThanOrEqual(beforeY - 0.001);
+    expect(k.body.wallContact).toBe(1); expect(k.status.cc).toBe(0);
+  });
+
+  it('an immune kart squeezed by a crossing train exits along the road instead of through the guardrail', async () => {
+    const { captureTrackHazardMotion, stepTrackHazards } = await import('../src/race/trackhazards.ts');
+    const r = single('box', 'spin'), h = r.track.hazards[0]!;
+    h.kind = 'train'; h.contact = 'solid'; h.size = [12, 4, 3]; h.periodTicks = 100; h.activeTo = 100;
+    h.motion = { type: 'cross', halfSpan: 25 };
+    r.w.tick = 53;
+    const k = place(r, 0, { s: 100, u: 6.9, speed: 0 }), b = k.body;
+    k.status.immuneUntil = r.w.tick + 60;
+    captureTrackHazardMotion(r.w); stepTrackHazards(r.w, r.ctx);
+    expect(r.track.locateGlobal(b.px, b.py, b.pz, k.race.loc)).toBe(true);
+    expect(k.race.loc.u).toBeLessThan(7.16);
+    expect(Math.abs(k.race.loc.s - 100)).toBeGreaterThan(2.8);
+    expect(r.track.sphereWalls(b.px + b.nx * 0.6, b.py + b.ny * 0.6, b.pz + b.nz * 0.6, 0.8, r.ctx.scratch.contacts, 1)).toBe(0);
+    expect(b.py).toBeGreaterThan(-0.01); expect(k.status.cc).toBe(0);
+  });
+
+  it('a raised visible press remains solid without applying its inactive crushing effect', async () => {
+    const { stepTrackHazards } = await import('../src/race/trackhazards.ts');
+    const r = single('box', 'spin'), h = r.track.hazards[0]!;
+    h.contact = 'solid'; h.kind = 'press'; h.effect = 'squash'; h.activeFrom = 30; h.activeTo = 40;
+    h.motion = { type: 'piston', rise: 4, rampTicks: 6 };
+    const k = place(r, 0, { s: 100, h: 4, speed: 0 });
+    stepTrackHazards(r.w, r.ctx);
+    expect(k.body.wallContact).toBe(1); expect(k.status.cc).toBe(0);
+    const ground = single('box', 'spin'); Object.assign(ground.track.hazards[0]!, h);
+    const g = place(ground, 0, { s: 100, speed: 0 }); stepTrackHazards(ground.w, ground.ctx);
+    expect(g.body.wallContact).toBe(0); expect(g.status.cc).toBe(0);
+  });
+
   it('keeps motion scratch separate for interleaved worlds and reuses no history without capture', async () => {
     const { captureTrackHazardMotion, stepTrackHazards } = await import('../src/race/trackhazards.ts');
     const a = single('box'), b = single('box');

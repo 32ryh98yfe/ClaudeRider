@@ -3,6 +3,8 @@
 
 /** Per-vertex stride: x y z nx ny nz s d */
 export const VS = 8;
+/** The authored wall thickness is shared by visible top/outer faces and physical geometry. */
+export const WALL_THICKNESS = 0.45;
 
 export class TriSoup {
   v: number[] = [];       // 3 × VS floats per triangle
@@ -23,6 +25,20 @@ export class TriSoup {
     this.surf.push(surf); this.flg.push(flg); this.path.push(path); this.role.push(role);
   }
   vert(t: number, k: number): number[] { const o = (t * 3 + k) * VS; return this.v.slice(o, o + VS); }
+  /** Ground is one-sided. Tight row transitions can reverse tiny triangles; preserve the authored surface up. */
+  orientGround(): number {
+    let changed = 0;
+    for (let t = 0; t < this.count; t++) {
+      const o = t * 3 * VS, v = this.v;
+      const ax = v[o + VS]! - v[o]!, ay = v[o + VS + 1]! - v[o + 1]!, az = v[o + VS + 2]! - v[o + 2]!;
+      const bx = v[o + 2 * VS]! - v[o]!, by = v[o + 2 * VS + 1]! - v[o + 1]!, bz = v[o + 2 * VS + 2]! - v[o + 2]!;
+      const nx = v[o + 3]! + v[o + VS + 3]! + v[o + 2 * VS + 3]!, ny = v[o + 4]! + v[o + VS + 4]! + v[o + 2 * VS + 4]!, nz = v[o + 5]! + v[o + VS + 5]! + v[o + 2 * VS + 5]!;
+      if ((ay * bz - az * by) * nx + (az * bx - ax * bz) * ny + (ax * by - ay * bx) * nz >= 0) continue;
+      for (let k = 0; k < VS; k++) { const value = v[o + VS + k]!; v[o + VS + k] = v[o + 2 * VS + k]!; v[o + 2 * VS + k] = value; }
+      changed++;
+    }
+    return changed;
+  }
   /** keeps triangles for which keep(t) is true; returns the removed soup */
   filter(keep: (t: number) => boolean): TriSoup {
     const kept = new TriSoup(), gone = new TriSoup();

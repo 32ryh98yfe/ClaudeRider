@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Edge, Held } from '@cr/sim';
+import { driftRequestAt, driftRequestCount, Edge, Held, makeInput } from '@cr/sim';
 import type { ReferenceClip, ReferenceKey } from '@cr/content/reference-driving.ts';
 import { ReferenceReplay } from '../src/dev/reference/replay.ts';
 import { defaultKeys, defaultPad } from '../src/input/bindings.ts';
@@ -35,6 +35,7 @@ let time = 0;
 function key(type: 'keydown' | 'keyup', code: string, at = time, repeat = false): void {
   time = at;
   const event = new Event(type, { cancelable: true });
+  Object.defineProperty(event, 'timeStamp', { value: at });
   Object.assign(event, { code, key: code, repeat, isComposing: false });
   windowEvents.dispatchEvent(event);
 }
@@ -197,7 +198,7 @@ describe('driving input suspension', () => {
     if (reason === 'composition') windowEvents.dispatchEvent(new Event('compositionstart'));
     if (reason === 'hidden') documentEvents.hidden = true;
     if (reason === 'text') documentEvents.activeElement = { tagName: 'INPUT', type: 'text' };
-    expect(sample(60)).toEqual({ steer: 0, throttle: 0, brake: 0, held: 0, edges: 0, aim: 255, emote: 0 });
+    expect(sample(60)).toEqual(makeInput());
     expect(heldUi.value).toEqual({ look: false, standings: false });
     source.pad.connected = false;
     documentEvents.hidden = false;
@@ -205,7 +206,7 @@ describe('driving input suspension', () => {
     windowEvents.dispatchEvent(new Event('compositionend'));
     windowEvents.dispatchEvent(new Event('focus'));
     setGameKeysActive(true);
-    expect(sample(80)).toEqual({ steer: 0, throttle: 0, brake: 0, held: 0, edges: 0, aim: 255, emote: 0 });
+    expect(sample(80)).toEqual(makeInput());
   });
 });
 
@@ -298,5 +299,48 @@ describe('analog and digital pedals', () => {
     key('keydown', 'ArrowUp');
     key('keydown', 'ArrowDown');
     expect(sample(16)).toMatchObject({ throttle: 15, brake: 15 });
+  });
+});
+
+
+describe('overlapping physical keyboard chords', () => {
+  it('last direction wins without releasing the earlier key; repeats do not steal priority', () => {
+    key('keydown', 'ArrowUp', 0); key('keydown', 'ArrowLeft', 0); sample(40);
+    key('keydown', 'ArrowRight', 41); key('keydown', 'ArrowLeft', 43, true);
+    expect(sample(65)).toMatchObject({ steerIntent: 1, throttle: 15 });
+    expect(sample(66).steer).toBeGreaterThan(0);
+    key('keyup', 'ArrowRight', 67);
+    expect(sample(90)).toMatchObject({ steerIntent: -1, throttle: 15 });
+  });
+  it('retains3Shift requests and direction order before the next frame', () => {
+    key('keydown', 'ArrowUp', 0); key('keydown', 'ArrowLeft', 1);
+    key('keydown', 'ShiftLeft', 3); key('keyup', 'ShiftLeft', 4);
+    key('keydown', 'ArrowRight', 5);
+    key('keydown', 'ShiftLeft', 6); key('keyup', 'ShiftLeft', 7);
+    key('keyup', 'ArrowRight', 8);
+    key('keydown', 'ShiftLeft', 9); key('keyup', 'ShiftLeft', 10);
+    const input = sample(16);
+    expect(input.throttle).toBe(15); expect(driftRequestCount(input.driftRequests)).toBe(3);
+    expect([0,1,2].map((i) => driftRequestAt(input.driftRequests, i))).toEqual([-1,1,-1]);
+    expect(sample(32).driftRequests).toBe(0);
+  });
+  it('ignores residual analog steering while a keyboard direction remains held', () => {
+    source.pad.connected = true; source.pad.steer = 0.01;
+    key('keydown', 'ArrowLeft', 0);
+    expect(sample(20)).toMatchObject({ steerIntent: -1 }); expect(sample(25).steer).toBeLessThan(0);
+    key('keyup', 'ArrowLeft', 30); expect(sample(40)).toMatchObject({ steerIntent: 0, steer: 1 });
+  });
+});
+
+
+describe('analog intent amplitude', () => {
+  it.each([-.01,.01,-.15,.15,-1,1])('does not turn analog%s into a full digital counter-steer request', (steer) => {
+    source.pad.connected = true; source.pad.steer = steer;
+    expect(sample(16)).toMatchObject({ steerIntent: 0, steer: Math.round(steer*127) });
+  });
+  it('retains a deliberate analog Shift direction independently of continuous steering amplitude', () => {
+    source.pad.connected = true; source.pad.steer = -.2; source.presses = 1 << 2;
+    const input = sample(16); expect(input.steerIntent).toBe(0); expect(input.steer).toBe(-25);
+    expect(driftRequestCount(input.driftRequests)).toBe(1); expect(driftRequestAt(input.driftRequests,0)).toBe(-1);
   });
 });

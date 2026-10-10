@@ -1,7 +1,7 @@
 // In-race HUD (31-ui-spec §4). The information architecture follows the KRD teardown (rank at 11.6 % H, standings,
 // LAP/TIME/BEST, 270° speedometer, 2 slots + gauges, minimap / progress rail) in ClaudeRider's own look.
 // Every element is positioned in a centred 16:9 safe box and scaled about its anchor by the HUD-scale setting.
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { ITEM_IDS, idOf, loadContent } from '@cr/content';
 import { hud } from '../store/hud.ts';
 import { hudX } from '../store/hudExtra.ts';
@@ -16,6 +16,7 @@ import { Portrait } from '../components/Portrait.tsx';
 import { Speedometer } from './Speedometer.tsx';
 import { Overlays, ScreenOverlays } from './HudOverlays.tsx';
 import './hud.css';
+import { minimapGeometry, type HudMapData } from './minimap.ts';
 
 function Rank() {
   const f = hudX.rankFlash.value;
@@ -154,23 +155,13 @@ function Slots() {
   );
 }
 
-function Minimap({ points }: { points: Float32Array | null }) {
-  const pts = points;
-  const [geo, setGeo] = useState<{ d: string; x0: number; z0: number; w: number; h: number } | null>(null);
-  useEffect(() => {
-    if (!pts || pts.length < 4) { setGeo(null); return; }
-    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
-    for (let i = 0; i < pts.length; i += 2) { x0 = Math.min(x0, pts[i]!); x1 = Math.max(x1, pts[i]!); z0 = Math.min(z0, pts[i + 1]!); z1 = Math.max(z1, pts[i + 1]!); }
-    const pad = 24;
-    let d = '';
-    for (let i = 0; i < pts.length; i += 2) d += `${i ? 'L' : 'M'}${(pts[i]! - x0 + pad).toFixed(1)} ${(pts[i + 1]! - z0 + pad).toFixed(1)} `;
-    setGeo({ d: d + 'Z', x0: x0 - pad, z0: z0 - pad, w: x1 - x0 + pad * 2, h: z1 - z0 + pad * 2 });
-  }, [pts]);
+function Minimap({ map }: { map: HudMapData | null }) {
+  const geo = useMemo(() => minimapGeometry(map), [map]);
   if (!geo) return null;
   const r = Math.max(geo.w, geo.h);
   return (
     <svg class="hud-minimap" viewBox={`0 0 ${geo.w} ${geo.h}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-      <path d={geo.d} class="mm-o" style={{ strokeWidth: r / 28 }} /><path d={geo.d} class="mm-track" style={{ strokeWidth: r / 60 }} />
+      {geo.paths.map((p) => <g key={p.id} data-map-path={p.id}><path d={p.d} class="mm-o" style={{ strokeWidth: r / 28 }} /><path d={p.d} class="mm-track" style={{ strokeWidth: r / 60 }} /></g>)}
       {hud.minimap.value.slice().sort((a, b) => (a.me ? 1 : 0) - (b.me ? 1 : 0) || b.rank - a.rank).map((m, i) => (
         <circle key={i} cx={m.x - geo.x0} cy={m.z - geo.z0} r={m.me ? r / 34 : r / 52} class={m.me ? 'mm-dot me' : m.rank === 1 ? 'mm-dot lead' : 'mm-dot'} />
       ))}
@@ -234,10 +225,10 @@ function RearView() {
   );
 }
 
-export function Hud({ minimap }: { minimap: Float32Array | null }) {
+export function Hud({ minimap }: { minimap: HudMapData | null }) {
   if (!hud.visible.value) return null;
   const s = saveState.value.settings;
-  const showMap = hud.itemMode.value || !!s.minimapInSpeed;
+  const showMap = s.raceMap !== 'progress';
   return (
     <div class={`hud ${s.highContrast ? 'hc' : ''}`}>
       <NameTags />
@@ -246,10 +237,10 @@ export function Hud({ minimap }: { minimap: Float32Array | null }) {
         <Rank />
         <Standings />
         <LapBlock />
-        {!hud.itemMode.value && !hudX.timeAttack.value ? <ProgressRail /> : null}
+        {!showMap ? <ProgressRail /> : null}
         <Speedometer />
         <Slots />
-        {showMap ? <Minimap points={minimap} /> : null}
+        {showMap ? <Minimap map={minimap} /> : null}
         <Toasts />
         <NetIndicator />
         <RearView />

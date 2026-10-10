@@ -4,7 +4,7 @@
 import type { WorldState } from '../core/state.ts';
 import type { BakedTrack } from '../track/BakedTrack.ts';
 import type { EffectiveProfile } from './profiles.ts';
-import type { HazardBlocks } from './hazards.ts';
+import { MAX_BLOCKS, type HazardBlocks } from './hazards.ts';
 
 /** Inputs the driver fills before each re-plan (a reused scratch object: no allocation). */
 export interface LaneQuery {
@@ -49,7 +49,7 @@ export interface LaneResult {
 }
 
 const OFFS = [-0.5, -0.25, 0, 0.25, 0.5] as const;
-const N_CAND = 8; // 5 lanes + current lane + follow-draft + wish
+const N_CAND = 8 + 2 * MAX_BLOCKS; // regular lanes plus both safe edges of every hazard footprint
 const C_CUR = 5, C_DRAFT = 6, C_WISH = 7;
 const candU = new Float64Array(N_CAND);
 const candOk = new Uint8Array(N_CAND);
@@ -79,9 +79,12 @@ export function planLane(w: Readonly<WorldState>, track: BakedTrack, q: Readonly
     if (j === q.slot) continue;
     const o = w.karts[j]!;
     // ghosted, finished and respawning karts are ignored (14-ai §5)
-    if (!o.active || o.race.finishTick >= 0 || o.race.respawnPhase !== 0 || o.body.ghostTicks > 0) continue;
+    if (!o.active || o.race.finishTick >= 0 || o.race.retired || o.race.respawnPhase !== 0 || o.body.ghostTicks > 0) continue;
     if (o.race.loc.path !== q.path) continue;
     const ob = o.body;
+    // A missed jump below the road is not oncoming traffic on the ramp. Projecting its
+    // rebound into XZ alone made every follower brake below the validated launch speed.
+    if (w.karts[q.slot]!.body.ny > 0.7 && o.race.loc.h < -2 && ob.vy < 0 && ob.grounded === 0) continue;
     const ovS = ob.vx * q.tx + ob.vz * q.tz, ovU = ob.vx * q.rx + ob.vz * q.rz;
     const ds = gap(o.race.loc.sMain - q.sMain, L, circuit) + (ovS - q.vS) * q.la;
     // the forward cone grows with closing speed (a boosted kart covers 30 m in under 3 s)
@@ -103,6 +106,16 @@ export function planLane(w: Readonly<WorldState>, track: BakedTrack, q: Readonly
   candOk[C_WISH] = q.wish === q.wish ? 1 : 0;
   if (candOk[C_WISH]) candU[C_WISH] = clamp(q.wish, lim);
   const nBlk = q.blocks ? q.blocks.n : 0;
+  for (let c = 8; c < N_CAND; c++) candOk[c] = 0;
+  let hazardBlocksCurrent = false;
+  for (let b = 0; b < nBlk; b++) {
+    const B = q.blocks!, left = B.u0[b]! - 0.25, right = B.u1[b]! + 0.25;
+    const a = 8 + 2 * b;
+    // A central solid can block every regular half-width lane while leaving a perfectly drivable outside lane.
+    if (left >= -lim && left <= lim) { candU[a] = left; candOk[a] = 1; }
+    if (right >= -lim && right <= lim) { candU[a + 1] = right; candOk[a + 1] = 1; }
+    if (B.ds[b]! <= 70 && cur > B.u0[b]! && cur < B.u1[b]!) hazardBlocksCurrent = true;
+  }
   if (!anyNear && !candOk[C_WISH] && nBlk === 0) {
     // clear road: back to the line (the driver's slew keeps it smooth)
     res.laneOff = 0; res.ttc = Infinity; res.closing = 0; res.actualClosing = 0; res.drafting = false; res.overtaking = false; res.urgent = false;
@@ -150,7 +163,7 @@ export function planLane(w: Readonly<WorldState>, track: BakedTrack, q: Readonly
     for (let b = 0; b < nBlk; b++) {
       // an active / telegraphing hazard at our arrival: that lane is out (14-ai §4.7, +50·hazard)
       const B = q.blocks!;
-      if (cu > B.u0[b]! && cu < B.u1[b]!) cost += 50;
+      if (cu > B.u0[b]! && cu < B.u1[b]!) cost += 1000; // a solid/active hazard is not a racing-line or drafting trade-off
     }
     if (blockedCur && q.nextCornerDir !== 0 && q.nextCornerDist < 80) {
       // overtaking: prefer the inside of the next corner
@@ -165,7 +178,7 @@ export function planLane(w: Readonly<WorldState>, track: BakedTrack, q: Readonly
   res.actualClosing = bestActualClosing === -Infinity ? 0 : bestActualClosing;
   res.drafting = best === C_DRAFT;
   res.overtaking = blockedCur && best !== C_CUR && best !== C_DRAFT;
-  res.urgent = blockedCur;
+  res.urgent = blockedCur || hazardBlocksCurrent;
 }
 
 const clamp = (x: number, l: number): number => (x > l ? l : x < -l ? -l : x);

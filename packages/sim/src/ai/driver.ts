@@ -9,8 +9,8 @@ import type { InputFrame } from '../core/input.ts';
 import { Held, Edge } from '../core/input.ts';
 import { Attach, Phase, type KartState, type WorldState } from '../core/state.ts';
 import { DT } from '../core/units.ts';
-import type { BakedTrack } from '../track/BakedTrack.ts';
-import { paramsFor, type KartParams } from '../kart/params.ts';
+import type { BakedTrack, FrameSample } from '../track/BakedTrack.ts';
+import { gripGain, paramsFor, type KartParams } from '../kart/params.ts';
 import type { AiDriver, AiProfile } from './api.ts';
 import { AI_TIERS } from './api.ts';
 import { AiRng, mixSeed } from './rng.ts';
@@ -33,13 +33,6 @@ const RAIL_INTENT: Readonly<Record<string, number>> = { rookie: 0.3, racer: 0.6,
 const FORK_GRACE = 40;
 /** Branch ends converge into the host over this many metres; queries there resolve onto the host. */
 const MERGE_BLEND = 20;
-/**
- * Brake pulses while drifting (15-driving-techniques §4.3): every brake press in a drift is a brake turn (heading ×2
- * for ticks 1–8) and a press held 11 ticks spins out, so in a drift the brake comes in pulses of at most
- * BRAKE_PULSE_MAX frames with at least BRAKE_COOL released frames between them (never more than 6 consecutive
- * brake ticks, far from spinTicks).
- */
-const BRAKE_PULSE_MAX = 6, BRAKE_COOL = 4;
 /** Counter-steer of a trim: just under the cut threshold (cutSteer 0.7 on the wire grid: 86/127 = 0.677). */
 const TRIM_SIN = 0.677;
 /** Validated gap-2 controller constants (docs/research/sim-prototype.md aiDriver). */
@@ -124,7 +117,7 @@ export interface AiDriverStats {
   /** Technique plans (M5): drag, tap and brake-turn plans rolled on eligible corners, taps pressed, boosters fired
    *  into a planned drag corner, straight-line boosters held back so they expire in a drift. */
   dragPlans: number; tapPlans: number; brakeTurnPlans: number; tapsPressed: number; dragBoosts: number; expiryWaits: number;
-  /** Longest run of consecutive brake frames committed while drifting (spin-out guard: ≤ BRAKE_PULSE_MAX). */
+  /** Longest run of consecutive brake frames committed while drifting. */
   maxDriftBrakeRun: number;
 }
 
@@ -190,7 +183,7 @@ class BotDriver implements AiDriverEx {
   // ---- drift state
   private tapLeft = 0; private tapDir = 1; private rek = 0;
   private predDrifting = false;
-  private brakeRun = 0; private brakeCool = 0; // brake pulses while drifting (spin-out guard, see commit)
+  private brakeRun = 0; // diagnostics: actual continuous brake requests
   private lastHeld = false; // DRIFT held in the last committed frame
   private instOk = true; private instHandled = true; private instPressAt = -1; private instArmed = false;
   private holdExtra = 0; private cornerDrifts = 0;
@@ -213,6 +206,7 @@ class BotDriver implements AiDriverEx {
   private readonly recIn: RecoveryIn = { sinceGo: 0, v: 0.5, vFwd: 0.5, aTarget: 0.5, aTrack: 0.5, lowSpeedTicks: 0, wrongWayTicks: 0, canAct: false, sinceRespawn: 0, raceDist: 0.5, sinceCc: 999, sinceWall: 999 };
   private lastCcTick = -1000; private lastWallTick = -1000;
   private readonly recOut: RecoveryOut = { steer: 0.5, thr: 0.5, brk: 0.5, reset: false };
+  private readonly surfaceFrame: FrameSample = { px: 0, py: 0, pz: 0, tx: 0, ty: 0, tz: -1, rx: 1, ry: 0, rz: 0, ux: 0, uy: 1, uz: 0, wL: 6, wR: 6, sMain: 0, flags: 0 };
   private lastRespawnTick = -1000; private prevRespawns = 0;
   // ---- mash-out
   private nextTap = 0; private mashDir = 1;
@@ -222,7 +216,7 @@ class BotDriver implements AiDriverEx {
     straight: false, nextCornerDir: 0, nextCornerDist: 0.5, lineWeight: 1.5, draftActive: false, wish: NaN, horizon: 1.5, blocks: null,
   };
   private readonly blocks = makeBlocks();
-  private hazardCap = 99;
+  private hazardCap = 99; private hazardLane = false;
   private readonly lr: LaneResult = { laneOff: 0.5, ttc: 1e9, closing: 0.5, actualClosing: 0.5, drafting: false, overtaking: false, urgent: false };
   private laneUrgent = false;
   private readonly view: { -readonly [K in keyof AiItemView]: AiItemView[K] };
@@ -254,14 +248,14 @@ class BotDriver implements AiDriverEx {
     this.dragKey = this.plan.paths.map((pp) => new Int32Array(pp.corners.length).fill(-999));
     this.dragPlan = this.plan.paths.map((pp) => new Uint8Array(pp.corners.length));
     this.startOffset = args.startOffsetTicks ?? NaN;
-    this.laneOff = 0; this.laneTarget = 0; this.noise = 0; this.laneTtc = Infinity; this.laneClosing = 0; this.laneActualClosing = 0;
+    this.laneOff = 0; this.laneTarget = 0; this.hazardLane = false; this.noise = 0; this.laneTtc = Infinity; this.laneClosing = 0; this.laneActualClosing = 0;
     this.view = {
       w: null as unknown as WorldState, track, slot, profile: this.profile, applyTick: 0, highRate: false, s: 0, u: 0, turnAhead40: 0, straightAhead: 0, busy: false,
     };
   }
 
   resync(): void {
-    this.cCorner = -2; this.rec.reset(); this.laneOff = 0; this.laneTarget = 0; this.boostReadyAt = -1;
+    this.cCorner = -2; this.rec.reset(); this.laneOff = 0; this.laneTarget = 0; this.hazardLane = false; this.boostReadyAt = -1;
     this.instHandled = true; this.instPressAt = -1; this.holdExtra = 0; this.tapLeft = 0; this.rek = 0; this.pred.reset();
   }
 
@@ -312,9 +306,11 @@ class BotDriver implements AiDriverEx {
 
   // ------------------------------------------------------------------------------------------------ decide
   decide(w: Readonly<WorldState>, out: InputFrame): void {
+    out.steerIntent = 0; out.driftRequests = 0;
     out.steer = 0; out.throttle = 0; out.brake = 0; out.held = 0; out.edges = 0; out.aim = 255; out.emote = 0;
     const k = w.karts[this.slot];
     if (!k || !k.active) return;
+    if (k.race.finishTick >= 0 || k.race.retired || w.phase === Phase.DONE) { this.commit(out); return; }
     this.decideDriving(w, k, out);
     // L2 item brain: the single item call site, after the driving controls are final (it may add item edges, aim
     // and LOOK_BACK, and counter-steer under Mirror Mode). Never while cruising after the finish or on a kill-risk branch.
@@ -349,29 +345,17 @@ class BotDriver implements AiDriverEx {
       this.commit(out);
       return;
     }
-    this.drive(w, k, out, applyTick, k.race.finishTick >= 0 || this.role === 'cruise');
+    this.drive(w, k, out, applyTick, this.role === 'cruise');
     this.commit(out, k);
   }
 
-  /**
-   * Every frame goes into the self-prediction pipe (it applies LA ticks from now). Safety guard (M5): a brake held
-   * through 11 drift ticks spins the kart out (15-driving-techniques §4.3), so while the kart drifts or may drift at
-   * the apply tick (DRIFT held, the predicted drift, or drifting now) the brake comes in pulses of at most
-   * BRAKE_PULSE_MAX frames with BRAKE_COOL released frames between them. A drift entry restarts the sim's brake
-   * count, so brake frames outside that context never add up to a spin-out. The sim counts brake ticks on the ground
-   * only (a release in the air does not reset the count), so the predicted count at the apply tick is checked too and
-   * a drift never brakes in the air.
-   */
+  /** Commit the actual requested brake to the lookahead model; there is no timed spin-out to work around. */
   private commit(out: InputFrame, k?: KartState): void {
     const ctx = (out.held & Held.DRIFT) !== 0 || this.pred.drift === 1 || (k !== undefined && k.drive.drift === 1);
     const air = k !== undefined && k.body.grounded === 0 && k.body.coyote <= 0;
-    if (out.brake > 0 && ctx && (air || this.brakeCool > 0 || this.brakeRun >= BRAKE_PULSE_MAX || this.pred.brakeT >= BRAKE_PULSE_MAX)) out.brake = 0;
-    if (out.brake > 0 && ctx) { this.brakeRun++; if (this.brakeRun > this.stats.maxDriftBrakeRun) this.stats.maxDriftBrakeRun = this.brakeRun; }
-    else {
-      if (this.brakeRun > 0) this.brakeCool = BRAKE_COOL;
-      this.brakeRun = 0;
-      if (this.brakeCool > 0) this.brakeCool--;
-    }
+    if (air) out.brake = 0;
+    if (out.brake > 0 && ctx) { this.brakeRun++; this.stats.maxDriftBrakeRun = Math.max(this.stats.maxDriftBrakeRun, this.brakeRun); }
+    else this.brakeRun = 0;
     this.lastHeld = (out.held & Held.DRIFT) !== 0;
     this.pred.push(-out.steer / 127, this.lastHeld, out.throttle > 0, out.brake > 0, out.edges, (out.edges & Edge.USE_ITEM) !== 0);
   }
@@ -515,8 +499,8 @@ class BotDriver implements AiDriverEx {
     // personality line bias: + = outside of the next corner, on straights and before corners (not inside them)
     let bias = 0;
     if (corner && !inCorner) bias = prof.lineBiasFrac * Math.max(0, hwT - 1.5) * corner.dir * (cornerDist < 120 ? 1 : 0.5);
-    let off = lineAbs + bias + this.noise + this.laneOff;
-    if (dCorner < 1e8 && planDrift && !drifting) {
+    let off = lineAbs + (this.hazardLane ? 0 : bias + this.noise) + this.laneOff;
+    if (dCorner < 1e8 && planDrift && !drifting && !this.hazardLane) {
       // approach bias to the outside of a drift corner within the lead distance (validated gap-2 approach);
       // the outside of a left corner (+1) is the right side (+u)
       const ob = cornerDir * A.outBias * (hwT - 1.5) + bias;
@@ -524,7 +508,7 @@ class BotDriver implements AiDriverEx {
     }
     const ledge = ppT.LEDGE[this.ri]! | ppT.LEDGE[this.rj]!;
     let limL = (ppT.LIM_L[this.ri]! + (ppT.LIM_L[this.rj]! - ppT.LIM_L[this.ri]!) * this.rf), limR = (ppT.LIM_R[this.ri]! + (ppT.LIM_R[this.rj]! - ppT.LIM_R[this.ri]!) * this.rf);
-    if (this.cMistake === Mistake.WIDE && inCorner && corner && (ledge & (corner.dir > 0 ? 2 : 1)) === 0) {
+    if (!this.hazardLane && this.cMistake === Mistake.WIDE && inCorner && corner && (ledge & (corner.dir > 0 ? 2 : 1)) === 0) {
       // running wide (onto the shoulder or into the wall) never toward an open ledge
       off += corner.dir * this.wideT;
       if (corner.dir > 0) limR += 2; else limL += 2;
@@ -667,7 +651,7 @@ class BotDriver implements AiDriverEx {
         const kapS = (this.rp.KAP[this.ri]! + (this.rp.KAP[this.rj]! - this.rp.KAP[this.ri]!) * this.rf) * dd;
         wantYaw = (kapS > 0 ? kapS : 0) * v + AI_TUNING.dragKh * e;
       }
-      const yaw0 = P.y0 / (1 + (pr.dTicks * DT) / P.y0T) + P.y2, yawNow = pr.yaw * dd;
+      const yawNow = pr.yaw * dd;
       if (dragCorner && pr.dragT === 0 && pr.sb < P.dragEnterLo) {
         // build-up: the AI's plain drift slides at 8–17° and the drag needs β ≥ 20°: a hard entry (full in-steer,
         // DRIFT held from the entry tap) while the nose lags the track and the yaw is not already past what the corner
@@ -680,24 +664,12 @@ class BotDriver implements AiDriverEx {
       } else if (dragCorner && eh > AI_TUNING.dragEhLo && eh < AI_TUNING.dragEhHi && (pr.dragT > 0 || pr.sb >= P.dragEnterLo)) {
         // a boosted entry often slides into the window during the entry tap: the drag takes over from it
         this.tapLeft = 0;
-        // Invert the player's yaw law inside the neutral band. Counter-steer also removes the old slide's carry,
-        // so its gain is y1 + centred yaw. A tapping drag budgets the taps' mean yaw into that target.
+        // Invert the same blended yaw law as the player. Taps raise a smooth curvature target, never mean impulse.
         this.dragging = true;
-        const tr = AI_TUNING.dragTrim * P.dragNeutral;
         const tapping = this.cTap && pr.dragT > 1;
-        const tapAvg = tapping ? (P.tapYaw / P.kYawDrift) / (this.tapNext * DT) : 0;
-        const want = wantYaw - tapAvg;
-        // DRIFT keeps its state (a re-press re-kicks: +0.8 rad/s and −1% speed) unless the yaw needs the other one; a
-        // tapping drag never re-presses (the taps are its yaw source)
-        const held = this.lastHeld;
-        const yc = held ? yaw0 : yaw0 - P.y2;
-        const raw = (want - yc) / (want < yc ? P.y1 + yc : P.y1) - AI_TUNING.dragKd * (yawNow - wantYaw);
-        if (held && (want < yc - (P.y1 + yc) * tr - AI_TUNING.dragHeldSwap || (raw < -tr && yawNow > wantYaw + AI_TUNING.dragYawRelease))) drift = false;
-        else if (!held && !tapping && want > yc + P.y1 * tr + AI_TUNING.dragHeldSwap) drift = true;
-        else drift = held;
-        const yt = drift ? yaw0 : yaw0 - P.y2;
-        sIn = (want - yt) / (want < yt ? P.y1 + yt : P.y1) - AI_TUNING.dragKd * (yawNow - wantYaw);
-        if (sIn > tr) sIn = tr; else if (sIn < -tr) sIn = -tr;
+        const gain = gripGain(v, P) * (1 - pr.engagement) + (P.driftYaw + P.tightenYaw * pr.tightness) * v / (v + 3) * pr.engagement;
+        sIn = Math.max(0, Math.min(1, wantYaw / Math.max(0.1, gain) - AI_TUNING.dragKd * (yawNow - wantYaw)));
+        drift = true;
         thr = 1; keepThrottle = true;
         if (tapping && eh > AI_TUNING.tapEhMin && yawNow < wantYaw + AI_TUNING.tapYawMargin && (pr.gap >= 255 || pr.gap + 1 >= this.tapNext)) {
           tapEdge = dd > 0 ? Edge.TAP_L : Edge.TAP_R;
@@ -706,7 +678,7 @@ class BotDriver implements AiDriverEx {
           this.tapNext = g < P.tapMinGap ? P.tapMinGap : g > P.tapMaxGap ? P.tapMaxGap : g;
         }
       } else if (this.cBrakeTurn && !this.bturnDone && corner !== null && corner.dir === dd && inCorner && eh > AI_TUNING.bturnEh && pr.dTicks >= 2) {
-        // brake drift turn (고속턴) on a rolled hairpin: one short brake tap turns the nose at twice the yaw rate
+        // A planned hairpin brake tap lowers entry speed and starts recovery; yaw remains continuous.
         this.bturnDone = true; this.bturnLeft = AI_TUNING.bturnFrames;
       }
       // side contact in a drift: the slide carries the kart to the outside of its line, into a kart running alongside
@@ -717,12 +689,6 @@ class BotDriver implements AiDriverEx {
         else if (rep < 0 && sIn > AI_TUNING.sideDriftMin) sIn = sIn + rep < AI_TUNING.sideDriftMin ? AI_TUNING.sideDriftMin : sIn + rep;
       }
       const prepareInstant = sIn < -0.3;
-      if (!this.dragging && sIn < 0 && sIn > -P.cutSteer) {
-        // The heading controller's partial trim expresses a yaw correction. Human counter-steer now removes
-        // slide carry as well, so invert that stronger gain; keep deliberate full cuts at their actual threshold.
-        const carry = yaw0 - (drift ? 0 : P.y2);
-        sIn *= P.y1 / (P.y1 + carry);
-      }
       // (the band test has a wire-step margin: 0.3 is sent as 38/127 = 0.299, inside the band)
       if (!this.dragging && AI_TUNING.dragAvoid && pr.boost > 0 && pr.sb >= P.dragExitLo && sIn > -P.dragNeutral - 0.012 && sIn < P.dragNeutral + 0.012) {
         // no unplanned drag: a boosted drift sliding in the drag window with the wheel near centre would enter the drag
@@ -730,6 +696,7 @@ class BotDriver implements AiDriverEx {
         // this tier) keeps the wheel just outside the neutral band instead — the technique is a choice, not an accident
         sIn = sIn >= 0 ? P.dragNeutral + 0.012 : -P.dragNeutral - 0.012; // 40/127 on the wire
       }
+      if (sIn > 0.05 && !e_forceExit && pr.recovering !== 2) drift = true;
       steer = sIn * dd;
       // throttle off during the counter-steer sets up the instant-boost edge (only when this drift plans one)
       if (prepareInstant && this.instOk) thr = 0;
@@ -821,10 +788,11 @@ class BotDriver implements AiDriverEx {
     // (also mid-drift: a drift brakes at 14 m/s² and keeps its slide)
     // The lane scorer uses a synthetic closing floor for stopped traffic: it must not suppress the throttle
     // needed to steer out of a queue. Moving karts start braking earlier for the more frequent booster arrivals.
-    // A spacing-cost floor is not an approaching obstacle. Below a committed jump's minimum speed,
-    // keep accelerating behind an equally fast/faster leader; retain real-closing collision avoidance.
+    // Once committed to the ramp, traffic braking must respect the same launch floor as
+    // corner braking. A failed jumper ahead otherwise makes each following kart fail too.
+    // The predictor already includes pending brake frames; the 2 m/s margin covers the ramp.
     const jumpNeedsSpeed = !cruising && b.grounded === 1 && k.status.cc === 0
-      && dLip > 0 && dLip < 60 && jvMin > 0 && vFwd < jvMin && this.laneActualClosing <= 0;
+      && dLip > -2 && dLip < 60 && jvMin > 0 && vFwd < jvMin + 2;
     if (!jumpNeedsSpeed && vS > 6 && this.laneTtc < 0.6 && this.laneClosing > 1.5) {
       if (this.laneTtc < 0.45 && this.laneClosing > 3) wantBrake = true;
       else if (!drifting) wantCoast = true;
@@ -859,6 +827,24 @@ class BotDriver implements AiDriverEx {
     const vNow = Math.sqrt(b.vx * b.vx + b.vy * b.vy + b.vz * b.vz), fNow = b.vx * b.fx + b.vy * b.fy + b.vz * b.fz;
     ri.sinceGo = w.tick - w.goTick; ri.v = vNow < v ? vNow : v; ri.vFwd = fNow < vFwd ? fNow : vFwd; ri.aTarget = aH;
     ri.aTrack = Math.atan2(hx * tYs - hy * tXs, hx * tXs + hy * tYs);
+    // A vertical loop has almost no horizontal forward component. The planar predictor then
+    // points at the far side of its XZ chord and can command full lock into the side rail.
+    // Use the real surface tangent plane throughout RMF spans, including recovery headings.
+    if (ppS.RMF[this.ri] === 1 && !airborne) {
+      const f = this.surfaceFrame;
+      const lx = b.ny * b.fz - b.nz * b.fy, ly = b.nz * b.fx - b.nx * b.fz, lz = b.nx * b.fy - b.ny * b.fx;
+      this.track.frameAt(loc.path, loc.s, f);
+      ri.aTrack = Math.atan2(f.tx * lx + f.ty * ly + f.tz * lz, f.tx * b.fx + f.ty * b.fy + f.tz * b.fz);
+      const ahead = A.Lk0 + (A.Lk1 + this.LA * DT) * vNow;
+      this.track.frameAt(loc.path, loc.s + ahead, f);
+      const dx = f.px - b.px, dy = f.py - b.py, dz = f.pz - b.pz;
+      const forward = dx * b.fx + dy * b.fy + dz * b.fz, lateral = dx * lx + dy * ly + dz * lz;
+      const distance = Math.max(1, Math.hypot(forward, lateral));
+      ri.aTarget = Math.atan2(lateral, forward); ri.v = vNow; ri.vFwd = fNow;
+      const gain = gripGain(vNow, P);
+      steer = Math.max(-1, Math.min(1, 2 * Math.sin(ri.aTarget) * vNow / (distance * Math.max(1e-3, gain))));
+      drift = false; tapEdge = 0; thr = 1; brk = 0;
+    }
     ri.lowSpeedTicks = d.lowSpeedTicks; ri.wrongWayTicks = k.race.wrongWayTicks;
     ri.canAct = !airborne && k.status.cc === 0 && w.phase >= Phase.RACING;
     ri.sinceRespawn = w.tick - this.lastRespawnTick; ri.raceDist = k.race.raceDist;
@@ -948,8 +934,11 @@ class BotDriver implements AiDriverEx {
       if (d < -8 || d > approach) continue;
       this.forkNear = f.side; this.forkTakeNear = this.forkTake[f.id] === 1;
       this.forkNearRailVMin = f.kind === 'rail' && this.forkTakeNear ? f.vMin : 0;
-      // not lined up on the branch side 30 m out (traffic, a late drift): keep to the host road this time
-      if (this.forkTakeNear && d > 0 && d < 30) {
+      // Validate alignment while returning to the host is still physically possible.
+      // Rechecking within a few metres of the split flips the target after pending
+      // inputs already commit to the branch, swinging the kart into its solid gore.
+      const commitDistance = Math.max(10, 0.5 * Math.sqrt(b.vx * b.vx + b.vy * b.vy + b.vz * b.vz));
+      if (this.forkTakeNear && d > commitDistance && d < 30) {
         const usable = Math.max(0.5, pp.HW[Math.min(pp.n - 1, Math.max(0, Math.round(s / pp.ds)))]! - 1.5);
         const onSide = k.race.loc.u * f.side > 0.3 * usable;
         const b = k.body, tIdx = Math.min(pp.n - 1, Math.max(0, Math.round(s / pp.ds)));
@@ -1197,6 +1186,8 @@ class BotDriver implements AiDriverEx {
     // track hazards ahead, sampled at our arrival (analytic hazardPose)
     const ppH = this.plan.paths[path]!;
     if (AI_TUNING.hazards) scanHazards(this.track, ppH, s, Math.max(vS, 1), w.tick + 1 + this.LA, this.blocks); else this.blocks.n = 0;
+    this.hazardLane = false;
+    for (let i = 0; i < this.blocks.n; i++) if (this.blocks.ds[i]! <= 80) this.hazardLane = true;
     q.blocks = this.blocks.n > 0 ? this.blocks : null;
     planLane(w, this.track, q, prof, this.lr);
     // no free lane through an active hazard: arrive after it clears (presses, crossing trains, geysers)
@@ -1226,7 +1217,7 @@ class BotDriver implements AiDriverEx {
     for (let j = 0; j < w.karts.length; j++) {
       if (j === this.slot) continue;
       const o = w.karts[j]!;
-      if (!o.active || o.race.finishTick >= 0 || o.race.respawnPhase !== 0 || o.body.ghostTicks > 0 || o.race.loc.path !== path) continue;
+      if (!o.active || o.race.finishTick >= 0 || o.race.retired || o.race.respawnPhase !== 0 || o.body.ghostTicks > 0 || o.race.loc.path !== path) continue;
       const ob = o.body;
       const ovS = ob.vx * tx - ob.vz * ty, ovU = ob.vx * ty + ob.vz * tx; // world → (along, right) in the 2D frame (Y = −z)
       let ds = o.race.loc.sMain - k.race.loc.sMain;

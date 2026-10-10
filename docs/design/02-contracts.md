@@ -129,20 +129,27 @@ export type TeamFormat = 'solo' | 'duo' | 'squad';
 export type AiTier = 'rookie' | 'racer' | 'pro' | 'legend';
 
 // units.ts
-export const TICK_HZ = 60, DT = 1 / 60, MAX_KARTS = 8, V_REF = 34.0, V_BOOST = 44.4, G = 28, KMH_PER_MPS = 5.4;
+export const TICK_HZ = 60, DT = 1 / 60, MAX_KARTS = 8, V_REF = 28.9, V_BOOST = 32.591975, G = 28, KMH_PER_MPS = 205 / 34;
 export type Tick = number;                                  // integer
 export const ticks = (sec: number): number => Math.round(sec * TICK_HZ);   // config/bake time only
 
-// input.ts — 6 bytes on the wire
+// input.ts — 8 bytes on the wire (simulation 10, lobby protocol 3)
 export const Held = { DRIFT: 1, ITEM: 2, LOOK_BACK: 4 } as const;           // ITEM held = speed-mode auto-fire
 export const Edge = { USE_ITEM: 1, SWAP: 2, TAP_L: 4, TAP_R: 8, RESPAWN: 16, EMOTE: 32, DRIFT: 64 } as const; // latched since last tick
-export interface InputFrame { steer: number /*int −127..127, +right*/; throttle: number /*0..15*/; brake: number /*0..15*/;
+export interface InputFrame { steerIntent: number /*digital −1/0/+1*/; driftRequests: number /*four signed FIFO requests*/; steer: number /*int −127..127, +right*/; throttle: number /*0..15*/; brake: number /*0..15*/;
   held: number; edges: number; aim: number /*slot 0..7, 255 none*/; emote: number /*0..15*/ }
 export const NEUTRAL_INPUT: Readonly<InputFrame>;
-export function packInput(f: InputFrame): number;            // ≤ 2^48, used in ring buffers / ghosts / hashing
+export function packInput(f: InputFrame): number;            // < 2^49, exact integer used in ring buffers / ghosts / hashing
 export function unpackInput(p: number, out: InputFrame): InputFrame;
 ```
-Throttle edges are derived inside `step()` from `prevThrottle`. Drift accepts a held transition or the latched `DRIFT` edge (SIM_VERSION 9), so a short Shift press/release between samples reaches the simulation once. One-shot actions arrive as latched `edges`.
+Throttle edges are derived inside `step()` from `prevThrottle`. Digital direction
+uses the last pressed key while analog magnitude remains in `steer`. Timestamped
+transitions feed a common 60 Hz input generator. `driftRequests` preserves up to
+four ordered press directions per tick; remaining requests carry through FIFO
+queues, including late network samples. A short press retains 36 ticks of
+interruptible physical drift intent. Other one-shot actions retain their latched
+`edges`. See `19-continuous-handling.md` and `20-track-contact-and-finish.md` for
+the authoritative simulation-10 amendments to historical excerpts below.
 
 ### B2. World state and quantization — `packages/sim/src/core/{state,quant,hash}.ts`
 ```ts

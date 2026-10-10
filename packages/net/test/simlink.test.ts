@@ -1,7 +1,7 @@
 // SimLink (20-netcode-spec §13): the real RaceRoom and NetClients on virtual time over modelled links.
 // Smoke by default (CI); NET_MATRIX=full runs the RTT × jitter × loss matrix with several seeds.
 import { describe, expect, it } from 'vitest';
-import { AI_TIERS, createAiDriver, type RaceConfig, type SimEvent } from '@cr/sim';
+import { appendDriftRequest, Edge, Held, AI_TIERS, createAiDriver, type RaceConfig, type SimEvent } from '@cr/sim';
 import { RaceRoom } from '@cr/room';
 import { runScenario, percentile, type LinkProfile, type ScenarioResult } from '../src/simlink/index.ts';
 import { raceConfig, testContent, testTrack } from './helpers.ts';
@@ -112,8 +112,8 @@ describe('SimLink items (L2 decisions over EVENTS + predictor)', () => {
 
 describe('SimLink missing-input brake (20-netcode-spec §6.2)', () => {
   /**
-   * One player (Pro AI on its predicted world) who, 10 ticks into every drift, brakes for exactly 6 ticks: a brake
-   * drift turn (doc 15 §4.3), far from the 11-tick spin-out. `stall` stalls the uplink at a server race tick.
+   * A player explicitly drifts on the launch straight and brakes10ticks later for6ticks. This tests packet-loss
+   * handling independently of whether the current AI tuning chooses to drift on this forgiving oval.
    */
   function brakeTurns(stall?: { atTick: number; ms: number }): { r: ScenarioResult; brakes: number[]; spins: number[]; serverBrake: number[] } {
     const cfg = raceConfig({ humans: 1, empty: 7, laps: 1, seed: 5 });
@@ -136,7 +136,12 @@ describe('SimLink missing-input brake (20-netcode-spec §6.2)', () => {
         return (w, out) => {
           ai.decide(w, out);
           const d = w.karts[0]!.drive, T = w.tick + 1;
-          if (d.drift === 1 && d.driftTicks === 10 && T > last + 6) { last = T; brakes.push(T); }
+          const begin = w.goTick + 120;
+          if (T >= begin && T < begin + 30) {
+            out.throttle = 15; out.steer = -45; out.steerIntent = -1; out.held = Held.DRIFT;
+            out.edges = T === begin ? Edge.DRIFT : 0; out.driftRequests = T === begin ? appendDriftRequest(0, -1) : 0;
+            if (T === begin + 10 && d.drift === 1) { last = T; brakes.push(T); }
+          }
           out.brake = T >= last && T < last + 6 ? 15 : 0;
         };
       },

@@ -4,7 +4,7 @@
 import type * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
-import { merge, paint, place, rbox, box, cyl, cone, sph, ico, sparkleGeometry } from '../../util/geo.ts';
+import { cosmetic, merge, paint, place, rbox, box, cyl, cone, sph, ico, sparkleGeometry } from '../../util/geo.ts';
 import { sparkSignLit } from './lamps.ts';
 
 // Shared materials for the whole kit (vertex colour carries the variation). 2026-10 stylized pass: gloss belongs on the
@@ -263,7 +263,7 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
         paint(place(rbox(2.6, 0.4, 2.6, 0.15, 2), -1.2, 2.55, 0), C.sunset),
         paint(place(box(0.1, 1.0, 1.6), -0.08, 1.5, 0), C.glass),
         paint(place(cyl(0.05, 0.05, 3.6, 5), 0.2, 1.8, 1.0), C.graphite),
-        paint(place(box(0.05, 0.7, 1.1), 0.2, 3.2, 1.6), '#f2c14e'),
+        cosmetic(paint(place(box(0.05, 0.7, 1.1), 0.2, 3.2, 1.6), '#f2c14e')),
       ]), material: satin(),
     }),
     maxInstances: 40,
@@ -276,7 +276,7 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
       for (let y = 1.5; y < 9; y += 2.5) { parts.push(paint(place(box(1.9, 0.1, 0.1), -1.2, y, -0.9), '#9aa0a8'), paint(place(box(1.9, 0.1, 0.1), -1.2, y, 0.9), '#9aa0a8')); }
       parts.push(paint(place(box(2.6, 0.25, 2.6), -1.2, 9.1, 0), C.graphite));
       parts.push(paint(place(rbox(0.9, 0.6, 0.5, 0.1, 2), -0.9, 9.7, 0), '#1c1d21'), paint(place(cyl(0.16, 0.2, 0.6, 8), -0.25, 9.7, 0, 0, 0, Math.PI / 2), '#3a3d42'));
-      parts.push(paint(place(cyl(0.04, 0.04, 2, 4), -1.6, 10.2, 0), C.graphite), paint(place(cone(1.4, 0.6, 8), -1.6, 11.3, 0), C.kerbRed));
+      parts.push(paint(place(cyl(0.04, 0.04, 2, 4), -1.6, 10.2, 0), C.graphite), cosmetic(paint(place(cone(1.4, 0.6, 8), -1.6, 11.3, 0), C.kerbRed)));
       return { geometry: merge(parts), material: metal() };
     },
     maxInstances: 12,
@@ -363,8 +363,8 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
     build: () => ({
       geometry: merge([
         paint(place(cyl(0.25, 0.35, 2.4, 7), 0, 1.2, 0), C.bark),
-        paint(place(ico(1.9, 1), 0, 3.6, 0, 0, 0, 0, 1, 0.9, 1), '#5f9e45', 0.12, 3),
-        paint(place(ico(1.3, 1), 0.9, 4.4, 0.4), '#72b352', 0.12, 5),
+        cosmetic(paint(place(ico(1.9, 1), 0, 3.6, 0, 0, 0, 0, 1, 0.9, 1), '#5f9e45', 0.12, 3)),
+        cosmetic(paint(place(ico(1.3, 1), 0.9, 4.4, 0.4), '#72b352', 0.12, 5)),
       ]), material: leafy(), castShadow: true,
     }),
     maxInstances: 400,
@@ -375,10 +375,10 @@ export const SPARK_PROPS: Record<string, PropFactory> = {
     build: () => ({
       geometry: merge([
         paint(place(cyl(0.2, 0.32, 2.2, 6), 0, 1.1, 0), C.bark),
-        paint(place(cone(2.2, 3.2, 8), 0, 3.0, 0), C.pine, 0.1, 3),
-        paint(place(cone(1.8, 2.9, 8), 0, 4.6, 0), C.pineLight, 0.1, 5),
-        paint(place(cone(1.35, 2.6, 8), 0, 6.1, 0), C.pine, 0.1, 7),
-        paint(place(cone(0.85, 2.0, 8), 0, 7.5, 0), C.pineLight, 0.1, 9),
+        cosmetic(paint(place(cone(2.2, 3.2, 8), 0, 3.0, 0), C.pine, 0.1, 3)),
+        cosmetic(paint(place(cone(1.8, 2.9, 8), 0, 4.6, 0), C.pineLight, 0.1, 5)),
+        cosmetic(paint(place(cone(1.35, 2.6, 8), 0, 6.1, 0), C.pine, 0.1, 7)),
+        cosmetic(paint(place(cone(0.85, 2.0, 8), 0, 7.5, 0), C.pineLight, 0.1, 9)),
       ]), material: leafy(), castShadow: true,
     }),
     maxInstances: 400,

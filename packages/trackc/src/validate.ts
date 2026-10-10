@@ -2,12 +2,14 @@
 // Severity policy: structural rules are always errors. Design/placement rules (V5 V6 V9 V10 V13 V14 V19 V20) are
 // errors in strict mode — any track that declares `@signature` (every roster track, §13) or `--strict` — and
 // warnings otherwise, so M1-era tracks keep baking while their world lane brings them up to the roster rules.
-import { SFLAG, TFLAG, TICK_HZ, V_BOOST, type GroundHit, type Contact } from '@cr/sim';
+import { SFLAG, TFLAG, TICK_HZ, V_BOOST, gripGain, paramsFor, type GroundHit } from '@cr/sim';
+import { loadContent } from '@cr/content';
 import type { BuildResult } from './build.ts';
 import { inSpans } from './build.ts';
 import { sampleAt, type PathModel, type Sample, type TrackModel } from './paths.ts';
 import { inS } from './content.ts';
 import { DEG } from './turtle.ts';
+import { probeBoostClearance } from './boostclearance.ts';
 
 export interface Finding { rule: `V${number}`; severity: 'error' | 'warn'; path?: string; s?: number; msg: string }
 export interface GhostData { refLapTicks: number; corners?: { s: number; driftGain: number }[] }
@@ -19,7 +21,8 @@ export const STRAIGHT_BAND: [number, number][] = [[0, 1], [0.40, 0.55], [0.32, 0
 export const GRADE = [0, 0.08, 0.08, 0.10, 0.12, 0.12];
 export const MAX_BANK = [0, 15, 18, 20, 22, 25];
 export const V19_N = [0, 3, 4, 5, 7, 9];
-export const V_REF = [0, 37, 36, 35, 34, 33];
+export const V_REF = [0, 37, 36, 35, 34, 33].map((v) => v * 0.85);
+const REFERENCE_KART = paramsFor(loadContent().karts.get('pebble'));
 const G = 28;
 const DESIGN_RULES = new Set(['V5', 'V6', 'V9', 'V10', 'V13', 'V14', 'V19', 'V20']);
 
@@ -325,27 +328,22 @@ function v9(r: BuildResult, push: Push): void {
 }
 
 // ------------------------------------------------------------------------------------------------ V10 boost pads
-/** Straight-ahead clearance past a boost pad: 2 s at the Balance vBoost (M5: 45.11 m/s, so 90.2 m; was 88.8 m). */
+/** Straight-ahead clearance past a boost pad: 2 s at the current Balance boost cap. */
 export const V10_CLEAR = 2 * V_BOOST;
 function v10(r: BuildResult, push: Push): void {
   const m = r.model, c = r.content, track = r.track;
   const boost = c.pads.filter((p) => p.kind === 'boost' && p.path === 0);
   if (boost.length && (boost.length < 2 || boost.length > Math.max(4, Math.round(m.lapLength / 200)))) push('V10', `${boost.length} boost pads per lap (standard 2–4; boost-heavy ≈ 1 per 200 m)`, undefined, undefined, 'warn');
   const tight = apexes(m, 30);
-  const cs: Contact[] = Array.from({ length: 4 }, () => ({ x: 0, y: 0, z: 0, nx: 0, ny: 0, nz: 0, depth: 0, flags: 0, tri: 0 }));
   for (const pd of c.pads) {
     const p = m.paths[pd.path]!;
     if (pd.path === 0) for (const ap of tight) if (circDist(m, pd.s0, ap) < 15 || circDist(m, pd.s1, ap) < 15) push('V10', 'pad within 15 m of the apex of an R < 30 corner', pd.s0);
     for (const j of c.jumps) if (j.path === pd.path && pd.kind === 'boost' && (inS(m, pd.path, pd.s0, j.landS0, j.landS1) || inS(m, pd.path, pd.s1, j.landS0, j.landS1))) push('V10', 'boost pad in a jump landing zone', pd.s0, p.id);
     if (pd.kind !== 'boost') continue;
-    // no wall ahead within 2 s at the Balance vBoost: march straight along the pad's tangent at kart height
     const q = sampleAt(p, pd.s1);
-    const d = (pd.d0 + pd.d1) / 2;
-    const ox = q.x + q.rx * d + q.ux * 0.8, oy = q.y + q.ry * d + q.uy * 0.8, oz = q.z + q.rz * d + q.uz * 0.8;
-    for (let t = 2; t <= V10_CLEAR; t += 1) {
-      const n = track.sphereWalls(ox + q.tx * t, oy + q.ty * t, oz + q.tz * t, 0.6, cs, 4);
-      if (n > 0) { push('V10', `wall ${t.toFixed(0)} m straight ahead of the boost pad (need ≥ ${V10_CLEAR.toFixed(1)} m = 2 s at ${V_BOOST} m/s)`, pd.s0, p.id); break; }
-    }
+    const result = probeBoostClearance(track, q, (pd.d0 + pd.d1) / 2);
+    if (result.blocked) push('V10', `${result.reason} after ${result.distance.toFixed(1)} m / ${(result.tick / 60).toFixed(2)} s of unsteered boost exit (need 2 s on the actual road/flight path)`, pd.s0, p.id);
+
   }
 }
 
@@ -557,16 +555,18 @@ function v18(r: BuildResult, push: Push): void {
 }
 
 // ------------------------------------------------------------------------------------------------ V19 drift demand
-/** gap-2 validated envelope (ADR-012 #16): grip radius needed to hold speed v, and drift radius with no net loss.
- *  M5 leaves these numbers alone on purpose: corners() caps the entry speed at vIn = 34 (V_GRIP), so the analytic
- *  estimate only interpolates up to 34 m/s; anything the tables give above that is clamped, and the 44.4 row is only
- *  the upper bracket of that clamped range. The M5 boost speeds (vBoost 45.11, drag, tap boost) never enter it. */
-const GRIP_ENV: [number, number][] = [[15, 14.7], [20, 21], [25, 29], [30, 39.5], [34, 50], [44.4, 86]];
-const DRIFT_ENV: [number, number][] = [[15, 11], [20, 14], [25, 21], [30, 26], [34, 47], [44.4, 80]];
-function speedFor(env: [number, number][], R: number): number {
-  if (R <= env[0]![1]) return env[0]![0] * Math.sqrt(R / env[0]![1]);
-  for (let i = 1; i < env.length; i++) if (R <= env[i]![1]) { const [v0, r0] = env[i - 1]!, [v1, r1] = env[i]!; return v0 + ((v1 - v0) * (R - r0)) / (r1 - r0); }
-  return 99;
+/** v10 steady curvature budgets; entry transients are verified in held-Shift corner fixtures.
+ * Grip follows the live speed-dependent yaw gain. Drift uses the base (one-press) yaw, with 20% room
+ * for the velocity to follow the nose. No retired gap-2 speed table is used by compilation. */
+function speedForRadius(R: number, drift: boolean): number {
+  const P = REFERENCE_KART;
+  let lo = 0, hi = P.vGrip;
+  for (let i = 0; i < 24; i++) {
+    const v = (lo + hi) / 2;
+    const yaw = drift ? P.driftYaw * v / (v + 3) / 1.2 : gripGain(v, P);
+    if (yaw > 0 && v / yaw <= R) lo = v; else hi = v;
+  }
+  return lo;
 }
 export interface CornerInfo { s: number; deg: number; R: number; w: number; RL: number; gain: number }
 export function corners(m: TrackModel): CornerInfo[] {
@@ -577,10 +577,10 @@ export function corners(m: TrackModel): CornerInfo[] {
     const Rc = cur.R, W = cur.w, dl = Math.min(cur.deg, 180) * DEG;
     const Ro = Rc + W / 2 - 1.5, Ri = Rc - W / 2 + 1.5;
     const RL = cur.deg >= 180 ? Ro : (Ro - Ri * Math.cos(dl / 2)) / (1 - Math.cos(dl / 2));
-    const vIn = 34; // V_GRIP entry (a Pro ghost carries more with boosts; the ghost-based V19 refines this)
-    const vg = Math.min(vIn, speedFor(GRIP_ENV, RL)), vd = Math.min(vIn, speedFor(DRIFT_ENV, RL) * 1.0 + 0);
+    const vIn = REFERENCE_KART.vGrip;
+    const vg = Math.min(vIn, speedForRadius(RL, false)), vd = Math.min(vIn, speedForRadius(RL, true));
     const arc = RL * dl;
-    const accelLoss = (v0: number): number => { let t = 0; for (let v = v0; v < vIn - 0.05; v += 0.1) { const a = 18 * (1 - v / 35); t += 0.1 / Math.max(0.5, a) - (0.1 / Math.max(0.5, a)) * (v / vIn); } return t; };
+    const accelLoss = (v0: number): number => { let t = 0; for (let v = v0; v < vIn - 0.05; v += 0.1) { const a = REFERENCE_KART.a0 * (1 - (v / vIn) * (v / vIn)); t += 0.1 / Math.max(0.5, a) - (0.1 / Math.max(0.5, a)) * (v / vIn); } return t; };
     const gain = vg >= vIn ? 0 : arc / vg - arc / Math.max(vg, vd) + accelLoss(vg) - accelLoss(Math.max(vg, vd));
     out.push({ s: cur.s, deg: cur.deg, R: Rc, w: W, RL, gain });
     cur = null;

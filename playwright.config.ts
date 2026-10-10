@@ -4,6 +4,7 @@ import { defineConfig } from '@playwright/test';
 const PORT = Number(process.env['E2E_PORT'] ?? 8787);
 
 const SWIFTSHADER = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'];
+const GPU = ['--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'];
 
 export default defineConfig({
   testDir: 'e2e',
@@ -16,7 +17,9 @@ export default defineConfig({
   use: {
     baseURL: `http://127.0.0.1:${PORT}`,
     viewport: { width: 960, height: 540 },
-    launchOptions: { args: SWIFTSHADER },
+    launchOptions: { args: process.env['E2E_GPU'] === '1' ? GPU : SWIFTSHADER,
+      ...(process.env['PLAYWRIGHT_CHROMIUM_EXECUTABLE'] ? { executablePath: process.env['PLAYWRIGHT_CHROMIUM_EXECUTABLE'] } : {}),
+    },
     trace: 'retain-on-failure',
   },
   webServer: {

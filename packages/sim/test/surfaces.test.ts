@@ -2,7 +2,7 @@
 // and the zone kinds the sim acts on (conveyor, surface, kill, noItem, gravity).
 import { describe, expect, it } from 'vitest';
 import { SURFACE_IDS, SURFACE_FX, surfaceFx, SURFACES, type SurfaceId } from '@cr/content';
-import { Boost, type ZoneBaked } from '@cr/sim';
+import { Boost, V_REF, V_BOOST, type ZoneBaked } from '@cr/sim';
 import { isNoItem } from '../src/kart/zones.ts';
 import { getContent } from './rig.ts';
 import { strip } from './fixtures/kits.ts';
@@ -45,15 +45,16 @@ describe('surface table (§13.1)', () => {
 describe('surface behaviour', () => {
   it.each(['grass', 'sand', 'gravel', 'dirt', 'snow', 'asphalt'] as const)('%s: top speed = vGrip·vMul', (id) => {
     const v = topSpeed(id);
-    expect(v / (34 * TABLE[id][1])).toBeGreaterThan(0.99);
-    expect(v / (34 * TABLE[id][1])).toBeLessThan(1.003);
+    expect(v / (V_REF * TABLE[id][1])).toBeGreaterThan(0.99);
+    expect(v / (V_REF * TABLE[id][1])).toBeLessThan(1.003);
   });
 
   it.each(['asphalt', 'sand', 'grass', 'ice'] as const)('%s: coasting decelerates at 2.5·dragMul m/s²', (id) => {
     const rig = racingRig(strip(id).track);
-    const k = place(rig, 0, { s: 300, speed: 18 });
+    const start = Math.min(18, V_REF * TABLE[id][1] * 0.9);
+    const k = place(rig, 0, { s: 300, speed: start });
     rig.run(30, () => { /* no throttle */ });
-    const decel = (18 - fwdKmh(k) / KMH) / 0.5;
+    const decel = (start - fwdKmh(k) / KMH) / 0.5;
     expect(decel).toBeCloseTo(2.5 * TABLE[id][2], 1);
   });
 
@@ -72,9 +73,9 @@ describe('surface behaviour', () => {
   });
 
   it('conveyor surfaces scale the target speed ×1.15 / ×0.85', () => {
-    expect(topSpeed('conveyor_fwd') / (34 * 1.15)).toBeGreaterThan(0.99);
-    expect(topSpeed('conveyor_back') / (34 * 0.85)).toBeLessThan(1.003);
-    expect(topSpeed('conveyor_back') / (34 * 0.85)).toBeGreaterThan(0.99);
+    expect(topSpeed('conveyor_fwd') / (V_REF * 1.15)).toBeGreaterThan(0.99);
+    expect(topSpeed('conveyor_back') / (V_REF * 0.85)).toBeLessThan(1.003);
+    expect(topSpeed('conveyor_back') / (V_REF * 0.85)).toBeGreaterThan(0.99);
   });
 
   it('a boost pad grants a 45-tick pad boost on entry (no booster consumed)', () => {
@@ -93,7 +94,8 @@ describe('surface behaviour', () => {
     expect(starts[0]!.t === 'boostStart' && starts[0]!.kind).toBe(Boost.PAD);
     expect(boosted).toBe(45);
     expect(k.drive.boosters).toBe(1);
-    expect(maxV).toBeGreaterThan(37);
+    expect(maxV).toBeGreaterThan(V_REF * 1.05);
+    expect(maxV).toBeLessThanOrEqual(V_BOOST + 1 / 4096);
   });
 
   it('a jump pad launches the kart to ≥ 9 m/s along its up, then it lands', () => {
@@ -127,19 +129,20 @@ describe('zones (§13.2)', () => {
   it('conveyor zone: vT × speedMul inside the (s, u) box only', () => {
     const t = strip('asphalt', { key: 'conv', zones: [Z('conveyor', 200, 1000, { speedMul: 1.2 })] }).track;
     const rig = racingRig(t);
-    const k = place(rig, 0, { s: 210, speed: 34 });
+    const k = place(rig, 0, { s: 210, speed: V_REF });
     rig.run(600, (_w, inp) => { inp[0]!.throttle = 15; });
-    expect(fwdKmh(k) / KMH).toBeGreaterThan(34 * 1.2 * 0.99);
+    expect(fwdKmh(k) / KMH).toBeGreaterThan(V_REF * 1.2 * 0.99);
     // past the box the target speed is back to vGrip
-    rig.run(900, (_w, inp) => { inp[0]!.throttle = 15; });
+    for (let n = 0; n < 1800 && k.race.loc.s <= 1000; n++) rig.tick((_w, inp) => { inp[0]!.throttle = 15; });
+    rig.run(300, (_w, inp) => { inp[0]!.throttle = 15; }); // five seconds to settle after actually leaving the box
     expect(k.race.loc.s).toBeGreaterThan(1000);
-    expect(fwdKmh(k) / KMH).toBeLessThan(34 * 1.01);
+    expect(fwdKmh(k) / KMH).toBeLessThan(V_REF * 1.01);
   });
 
   it('surface zone overrides the triangle surface (grass on asphalt caps the speed at 0.6·vGrip)', () => {
     const t = strip('asphalt', { key: 'surfz', zones: [Z('surface', 200, 1000, { surf: SURFACE_IDS.indexOf('grass') + 1 })] }).track;
     const rig = racingRig(t);
-    const k = place(rig, 0, { s: 210, speed: 34 });
+    const k = place(rig, 0, { s: 210, speed: V_REF });
     rig.run(600, (_w, inp) => { inp[0]!.throttle = 15; });
     expect(fwdKmh(k) / KMH).toBeLessThan(0.6 * 34 * 1.01);
   });

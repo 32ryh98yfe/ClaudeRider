@@ -5,7 +5,7 @@ import { SIM_VERSION, type RaceConfig, type SlotConfig, type WorldState } from '
 import { createWorld } from '../core/world.ts';
 import { makeContext } from '../api.ts';
 import { step } from '../step.ts';
-import { Edge, Held, makeInput, type InputFrame } from '../core/input.ts';
+import { appendDriftRequest, Edge, Held, makeInput, type InputFrame } from '../core/input.ts';
 import { ArraySink, type SimEvent } from '../core/events.ts';
 import { hashWorld } from '../core/hash.ts';
 import { AI_TIERS } from '../ai/api.ts';
@@ -38,13 +38,16 @@ export function determinismScenario(track: BakedTrack, content: ContentTables, m
       input.throttle = 15; input.brake = 0; input.steer = t <= 312 ? -127 : 127;
       input.held = t >= 306 && t <= 310 ? Held.DRIFT : 0;
       input.edges = t === 300 || t === 306 || t === 309 || t === 312 ? Edge.DRIFT : 0;
+      input.steerIntent = t < 312 ? -1 : 1;
+      input.driftRequests = input.edges & Edge.DRIFT ? appendDriftRequest(0, input.steerIntent) : 0;
+      if (t === 309) { input.driftRequests = appendDriftRequest(input.driftRequests, -1); input.driftRequests = appendDriftRequest(input.driftRequests, 1); }
       // Fresh opposite intent arrives before the old smoothed sign changes, like simultaneous arrow + Shift.
       if (t === 312) input.edges |= Edge.TAP_R;
     }
     step(w, inputs, ctx);
     observe?.(t, w, inputs, sink.list);
     sink.list.length = 0;
-    for (const inp of inputs) inp.edges = 0;
+    for (const inp of inputs) { inp.edges = 0; inp.driftRequests = 0; }
     if (t % every === 0) out.push(hashWorld(w).toString(16).padStart(8, '0'));
   }
   return out;

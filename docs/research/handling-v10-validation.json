@@ -1,0 +1,961 @@
+{
+  "schemaVersion": 1,
+  "simVersion": 10,
+  "baseline": {
+    "commit": "5db2299080399066cd2aa94cf9c8d49ff1e4a33a",
+    "simVersion": 9
+  },
+  "status": "local_acceptance_complete",
+  "completedClaim": true,
+  "targets": {
+    "kart": "pebble",
+    "normalWorldSpeedMps": 28.9,
+    "boostMotorCapMps": 32.591975,
+    "normalHudKmh": 174.25,
+    "boostHudKmh": 196.510437,
+    "displayScaleKmhPerMps": 6.029411764705882,
+    "roundedUserTargetsKmh": [
+      174,
+      197
+    ],
+    "motorCapIsNotGlobalVelocityClamp": true,
+    "referenceSpeedErrors": "diagnostic: deliberate speed reduction; original <=5% source-speed fidelity target not met"
+  },
+  "sources": {
+    "staticContact": {
+      "file": "contact-final.json",
+      "sha256": "bf1fa582f0a9bff2d212b8555794825eb6ebf7886a2a7030c5ee40a8f6d0a414"
+    },
+    "renderedHazards": {
+      "file": "hazard-final.json",
+      "sha256": "867bbcc571db65a2c9b980c015ed689dfbfe2896072d2670976242f2446a18d6"
+    },
+    "hud": {
+      "file": "results.json",
+      "sha256": "39d2754bfa3c02f80c1e9b988a630a0bde6f6465c8922626aa1c0c4cc434d6c7"
+    },
+    "finishPersistence": {
+      "file": "dev-finish-persistence.json",
+      "sha256": "67b915d9e3bf8a597142244b589ca25220cc4861295266d0e083d74d0994a4ae"
+    },
+    "nativeKeyboard": {
+      "file": "keyboard-v10-results.json",
+      "sha256": "a534b402f17a9952e4bf144c820e8a18fd258cb8cb883b8f59e2773682d809d7"
+    },
+    "handling": {
+      "file": "handling-v10-metrics.json",
+      "sha256": "e9e822205635e993edde281a0e0b393ff235a15a989de4de430f7782dac86ace"
+    },
+    "referenceBaseline": {
+      "file": "reference-baseline.json",
+      "sha256": "4c4d266946e3bd7ac86d07bcf576a518ffccf339a1fe482d72c3412f0db1c9c0"
+    },
+    "referenceCandidate": {
+      "file": "reference-candidate.json",
+      "sha256": "7bce868880de8f221e2d1ad74bcc1ca8e62a6d8ac71f56ef9374f72bbbab2188"
+    },
+    "referenceParity": {
+      "file": "reference-parity.json",
+      "sha256": "89cdb02d362fcb0cedb6273545745e40aec623e295b9d1c9d5ec0334eb28b3db"
+    },
+    "releaseMatrix": {
+      "file": "matrix-release.json",
+      "sha256": "9c08e740e528f432877275a5683598646c0ecb0514132ce1815a683efab4be86"
+    },
+    "releaseRegression": {
+      "file": "regression-release.json",
+      "sha256": "86c85a011b6c4b9f13b258fc1f6ae055380b45cf73af27e136e6b671c9d01238"
+    },
+    "releaseE2e": {
+      "file": "e2e-release.log",
+      "sha256": "5111cbd10dc52176f5c31ad1a5db7fd91291f521ba80fe5e7cf93393b13c8a8b"
+    },
+    "respawnCausalReview": {
+      "file": "respawn-classification-final.json",
+      "sha256": "537c3f20aa6d9d837f76a11e797b9d3809e8b11565152188266f61e0e77c84d0"
+    },
+    "racerAcceptance": {
+      "file": "racer-0955-acceptance.json",
+      "sha256": "80ee3a7bda46d1681284f3ce32010fe7882df61e8b4d06a86874b54362028e95"
+    },
+    "repositoryRespawnReview": {
+      "file": "item-respawn-v10-review.json",
+      "sha256": "a778e7e1a34fedc4de640668447a45ac7f8c19b0425d6b4587fbb548f4bb316c"
+    }
+  },
+  "staticContact": {
+    "passed": true,
+    "tracks": 21,
+    "unexplainedFindings": 0,
+    "spacingM": 0.75,
+    "sphereRadiusM": 0.85,
+    "centerHeightM": 0.6,
+    "counts": {
+      "groundSamples": 9059558,
+      "proxySamples": 72940,
+      "sourceModelSamples": 19076,
+      "runtimeInstanceSamples": 10577348,
+      "exactProxyTriangles": 10571636,
+      "exactSourceTriangles": 1149838,
+      "specialSweeps": 3452,
+      "hazardCases": 412,
+      "propInstances": 74960,
+      "groundCredits": 16660
+    },
+    "sourceProxyMaxErrorM": 0.00020888544494488195,
+    "worldProxyMaxErrorM": 0.0006978197896307187,
+    "classifications": {
+      "explicit_cosmetic_instance": 53062,
+      "ballistic_path_lands_on_actual_ground": 108,
+      "render_contact_at_outer_ground_boundary": 5,
+      "authored_gore_cushion": 1215,
+      "jump_pad_lands_on_actual_ground": 9,
+      "target_omitted_by_bounded_deepest_contact_selection": 3
+    },
+    "trackFiles": [
+      {
+        "track": "meadow_loop",
+        "status": "passed",
+        "trackHash": "f0058d90",
+        "ctrkSha256": "be370783f8fe701378ae47e6ec27b6cacbac7e2c07473d457ff0e7635165674c",
+        "visSha256": "b13f34bcc68b0e02f6f7198821eac6771742590b03a026a8798a3dbc5569b390"
+      },
+      {
+        "track": "belltower_piazza",
+        "status": "passed",
+        "trackHash": "f95726af",
+        "ctrkSha256": "5974c3f7c369b9e3e43f5473047e1291b46bc877b7163d88ada39dc281273b6d",
+        "visSha256": "5c6152bcd8f638f2549969837a9d437d4bbf49a9f656af262525be08a498836b"
+      },
+      {
+        "track": "sunstone_bazaar",
+        "status": "passed",
+        "trackHash": "f4045f4d",
+        "ctrkSha256": "695459d7a5cccd533ca6de35653cc3b72a7c6590dc6bc897dee9eebd0dcdfc09",
+        "visSha256": "9d3a3cbf04bda90b7ca06483e1346671482b61843838ced26c9ca593e3aaffc3"
+      },
+      {
+        "track": "sandglass_canyon",
+        "status": "passed",
+        "trackHash": "fae71605",
+        "ctrkSha256": "dacc74183a4681d0df38b1f06642f18665e17e49eb893a74354583b058ce187c",
+        "visSha256": "53133ed4513f728ed8f6bbec95ff0ed4327c6fcbf044532836fb84db7844756b"
+      },
+      {
+        "track": "snowglobe_halfpipe",
+        "status": "passed",
+        "trackHash": "697eeb14",
+        "ctrkSha256": "a4888fcfacac5261dfabe8a7a8ea0804a2bb5a04762d6ce2be3380ca93a124eb",
+        "visSha256": "0cef6df7fb1968e6c978e62e6a7a06f054dc980821ec438e6687713bdb3b4e83"
+      },
+      {
+        "track": "aurora_summit",
+        "status": "passed",
+        "trackHash": "d7c8e808",
+        "ctrkSha256": "0fa75cab3ccd2288d00925d863a2f893f84245c7b2dcfdebd219a7a6da4112a2",
+        "visSha256": "951a79b5805c154f2e3b466e5f8046e5983184dfde907e0aaca12b363740d25b"
+      },
+      {
+        "track": "fernwood_hollow",
+        "status": "passed",
+        "trackHash": "cc8b3620",
+        "ctrkSha256": "99500f79258244f4732d65e55659ebe921d20a067f72368f8c767b38d470618e",
+        "visSha256": "f392a6ff803e642d1a98015ac74a13d3e722a1de234b91305848b20504246511"
+      },
+      {
+        "track": "cascade_slalom",
+        "status": "passed",
+        "trackHash": "9cc822ab",
+        "ctrkSha256": "c411438f24e5669c90d53b674d0f9ab8393ea4e3bf74ab3492e99a2fe1168d69",
+        "visSha256": "add48bf4f473c558c912efa32a57368195143cfa91d44c96813a3eb91df9688c"
+      },
+      {
+        "track": "geode_rail_quarry",
+        "status": "passed",
+        "trackHash": "6cd06dd7",
+        "ctrkSha256": "3005b73dbb1a36db40c6019e62410fa42246bf2030fcfd35b60edd181e509e77",
+        "visSha256": "6cd55c21e5bf6cc2a0014dcec91df2c1209e9ab673bb245edd4c7eed56d4d334"
+      },
+      {
+        "track": "magma_switchback",
+        "status": "passed",
+        "trackHash": "365ba3eb",
+        "ctrkSha256": "754f7bb39ee0ed46837bd406143a553b00c994d367ec0b2145e0e6dd23710f23",
+        "visSha256": "c8f3143253e48c8270fcf3b49d56fb46e1149a192c6ff1be863c5d95f2ed6de7"
+      },
+      {
+        "track": "pumpkin_lane",
+        "status": "passed",
+        "trackHash": "0c6316f0",
+        "ctrkSha256": "3a952183c8061cdbf7bc29c96dfdca24bb72a3091edc6b2acb39634a9769f724",
+        "visSha256": "0e5dd93deffddb9c10bb98a29be6cdb40b35a5449920e99162fa86db4d821a9e"
+      },
+      {
+        "track": "manor_catacombs",
+        "status": "passed",
+        "trackHash": "d32f5ace",
+        "ctrkSha256": "8d52b11881c1e3c6e8a5099e37f4e5912a567be91ecaaa0768457aeea77a1dbb",
+        "visSha256": "5a2a937475664ef23b0521025229c6f34ef52c212aae1997a6dbe283bd968040"
+      },
+      {
+        "track": "coral_cove_docks",
+        "status": "passed",
+        "trackHash": "153ce45b",
+        "ctrkSha256": "951925a36e79612a4c0b97253ff3c2b6ce55e81cc1235aa549897eef99121283",
+        "visSha256": "ec1b5cbcb8de57b6ec1ec1715a612df798cbaa432e39d49fbf2ddd744652156a"
+      },
+      {
+        "track": "kraken_lighthouse",
+        "status": "passed",
+        "trackHash": "f0e36024",
+        "ctrkSha256": "02d6acf81e80c64ebc8460efd4219729c8e012e91a86081e8b40b2634862aaad",
+        "visSha256": "a6c606b612d4062d2a4a585d284f8aed2e0bc8be9b1a2024641a55a894891c77"
+      },
+      {
+        "track": "rainline_blvd",
+        "status": "passed",
+        "trackHash": "b1b2152c",
+        "ctrkSha256": "4379f2dadeb8c763334167e1d8d0c1f704341c5ba100f819e100645cdb0004b6",
+        "visSha256": "2cb4bbaf87c366fb84b03a922d7357db99aac9abb2bfd1e94da8af42596e29f1"
+      },
+      {
+        "track": "skyway_interchange",
+        "status": "passed",
+        "trackHash": "7a6f48cf",
+        "ctrkSha256": "f86e9ad803bdf1a083924ecf4440e36bc416a416ac7f4de8fb7d2474443e9c5f",
+        "visSha256": "784ef8fd00657210d84b49616a39be0d4f5d00c66b18543908a38998b592ef00"
+      },
+      {
+        "track": "spark_grand_circuit",
+        "status": "passed",
+        "trackHash": "dbba40ad",
+        "ctrkSha256": "2a25c235a70597b17365d2552cd2ff64ccd417f7ef5d09368bfb27e496119d98",
+        "visSha256": "4fb661aed7efe48be73af715f28da16770686fe18ef627c3dfb161b3a9af3e6f"
+      },
+      {
+        "track": "sunset_arena_rally",
+        "status": "passed",
+        "trackHash": "f919b5a9",
+        "ctrkSha256": "f40eb613af7ba48bb3a7a7edad0d5bca7f1c128a83fb4d9059dc97611aa8bba9",
+        "visSha256": "6bb683ea17c45557170937001d21f64a51e266ea82c4e2c6380e8371652179c9"
+      },
+      {
+        "track": "token_foundry",
+        "status": "passed",
+        "trackHash": "5d986c74",
+        "ctrkSha256": "19e10a31dce36720d64ff41e6ae888c38076b5113690dd28c1db8de866a8d8cc",
+        "visSha256": "73fd8ee901d13d648ed0576e83bffdeaf9d067a0ba5402e18069c0813ff54b4f"
+      },
+      {
+        "track": "orbital_express",
+        "status": "passed",
+        "trackHash": "4f40880b",
+        "ctrkSha256": "5212b0fc2afd6933d96ea32112a119d049dc6229d7c88be943aeb375a5b1e8f8",
+        "visSha256": "89a4ea94339ec04f43057d8f1cb9e0945014391ecbf548eafcae0f6a53fab6f3"
+      },
+      {
+        "track": "proving_ring",
+        "status": "passed",
+        "trackHash": "51a363cd",
+        "ctrkSha256": "4ffe44ce8bec474a97b4f80ae42007c8874d075334a89d42ebefd53fc60758ad",
+        "visSha256": "ec34279a969e95ff9391dca3423fad5100cef79cdb994fbd3a12639da80beb4d"
+      }
+    ],
+    "limits": "Independent geometry/index/proxy coverage plus finite trajectory samples; connected gameplay and the completed race matrix are evaluated separately in this report."
+  },
+  "renderedHazards": {
+    "passed": true,
+    "tracks": 21,
+    "bodies": 32,
+    "phaseCases": 142,
+    "visibleVertices": 236034,
+    "grateSamples": 68700,
+    "fluidMeshCases": 12,
+    "maxProxyExcessM": 4.7683744064386246e-8,
+    "maxGrateGroundDistanceM": 0.0035000001080334187,
+    "unexplainedFindings": 0,
+    "classifications": {
+      "steam": "cosmetic particles, no rigid geometry",
+      "fluidTrigger": "explicit fluid role plus transparent, nonmetallic material without depth writing; opacity at most 0.8",
+      "warningRing": "explicit telegraph area indicator",
+      "flexibleSuspension": "explicit contactRole plus width/depth≤0.14m only",
+      "geyserGrate": "rigid appearance supported by actual ground within0.006m"
+    }
+  },
+  "handling": {
+    "passed": true,
+    "details": "handling-v10-metrics.json",
+    "counterCases": 8,
+    "maxYawReversalMs": 83.333333,
+    "maxRestorationMs": 116.666667,
+    "maxAlignmentWithin3DegMs": 66.666667,
+    "unrequestedDrifts": 0,
+    "shortPress": [
+      {
+        "pressMs": 20,
+        "driftStateDurationMs": 850,
+        "physicalSkidDurationMs": 600,
+        "peakSlipDeg": 8.123389,
+        "minSpeedMps": 26.300898
+      },
+      {
+        "pressMs": 50,
+        "driftStateDurationMs": 850,
+        "physicalSkidDurationMs": 600,
+        "peakSlipDeg": 8.123389,
+        "minSpeedMps": 26.300898
+      },
+      {
+        "pressMs": 100,
+        "driftStateDurationMs": 850,
+        "physicalSkidDurationMs": 600,
+        "peakSlipDeg": 8.123389,
+        "minSpeedMps": 26.300898
+      }
+    ],
+    "repeatPress": [
+      {
+        "presses": 1,
+        "measurementWindowSeconds": [
+          1,
+          2
+        ],
+        "meanVelocityCurveRadiusM": 12.364866,
+        "distanceM": 23.008084,
+        "velocityTurnDeg": 106.613863,
+        "maxYawAccelerationRadPerSec2": 5.493164
+      },
+      {
+        "presses": 2,
+        "measurementWindowSeconds": [
+          1,
+          2
+        ],
+        "meanVelocityCurveRadiusM": 10.399223,
+        "distanceM": 21.491556,
+        "velocityTurnDeg": 118.410336,
+        "maxYawAccelerationRadPerSec2": 5.493164
+      },
+      {
+        "presses": 3,
+        "measurementWindowSeconds": [
+          1,
+          2
+        ],
+        "meanVelocityCurveRadiusM": 8.858071,
+        "distanceM": 20.098669,
+        "velocityTurnDeg": 130.002225,
+        "maxYawAccelerationRadPerSec2": 5.493164
+      }
+    ],
+    "boostTimeTo90PercentGainMs": 1266.666667,
+    "boostMaxTickGainMps": 0.110742,
+    "uTurnCases": 6,
+    "uTurnMaxHeadingErrorDeg": 1.046927,
+    "uTurnContacts": 0,
+    "uTurnRespawns": 0
+  },
+  "nativeKeyboard": {
+    "passed": true,
+    "details": "keyboard-v10-results.json",
+    "rows": [
+      {
+        "course": "flat",
+        "renderedFps": 60.001463,
+        "requests": 9,
+        "orderedInputMatches": true,
+        "wallContactTicks": 0,
+        "respawns": 0,
+        "minimumSpeedMps": 26.31893,
+        "peakSlipDeg": 8.861137,
+        "headingErrorFrom180Deg": null
+      },
+      {
+        "course": "R9L",
+        "renderedFps": 60.002202,
+        "requests": 1,
+        "orderedInputMatches": true,
+        "wallContactTicks": 0,
+        "respawns": 0,
+        "minimumSpeedMps": 21.214574,
+        "peakSlipDeg": 8.208543,
+        "headingErrorFrom180Deg": 1.229125
+      },
+      {
+        "course": "R9R",
+        "renderedFps": 60.000732,
+        "requests": 1,
+        "orderedInputMatches": true,
+        "wallContactTicks": 0,
+        "respawns": 0,
+        "minimumSpeedMps": 21.160023,
+        "peakSlipDeg": 8.208543,
+        "headingErrorFrom180Deg": 2.957359
+      },
+      {
+        "course": "R12L",
+        "renderedFps": 60.003582,
+        "requests": 1,
+        "orderedInputMatches": true,
+        "wallContactTicks": 0,
+        "respawns": 0,
+        "minimumSpeedMps": 21.23461,
+        "peakSlipDeg": 8.208518,
+        "headingErrorFrom180Deg": 0.085116
+      },
+      {
+        "course": "R12R",
+        "renderedFps": 60.002508,
+        "requests": 1,
+        "orderedInputMatches": true,
+        "wallContactTicks": 0,
+        "respawns": 0,
+        "minimumSpeedMps": 21.215487,
+        "peakSlipDeg": 8.208612,
+        "headingErrorFrom180Deg": 1.195357
+      },
+      {
+        "course": "R16L",
+        "renderedFps": 59.823396,
+        "requests": 1,
+        "orderedInputMatches": true,
+        "wallContactTicks": 0,
+        "respawns": 0,
+        "minimumSpeedMps": 21.494293,
+        "peakSlipDeg": 8.208407,
+        "headingErrorFrom180Deg": 0.050429
+      },
+      {
+        "course": "R16R",
+        "renderedFps": 60.001796,
+        "requests": 1,
+        "orderedInputMatches": true,
+        "wallContactTicks": 0,
+        "respawns": 0,
+        "minimumSpeedMps": 21.506134,
+        "peakSlipDeg": 8.206886,
+        "headingErrorFrom180Deg": 0.532028
+      }
+    ],
+    "receivedRequests": 15,
+    "appliedRequests": 15,
+    "fastBurstBatches": [
+      4,
+      3
+    ],
+    "limits": "Wall-clock browser scheduling can deliver a transition one or two ticks later. The recorded R9R heading error is 2.957 degrees; deterministic six-way fixture acceptance is separately <=2 degrees."
+  },
+  "hud": {
+    "passed": true,
+    "cases": [
+      {
+        "track": "meadow_loop",
+        "viewport": {
+          "width": 960,
+          "height": 720
+        },
+        "paths": [
+          {
+            "id": "main",
+            "closed": true
+          }
+        ],
+        "markerErrorWorldM": 0.00506206696995339
+      },
+      {
+        "track": "spark_grand_circuit",
+        "viewport": {
+          "width": 960,
+          "height": 720
+        },
+        "paths": [
+          {
+            "id": "main",
+            "closed": true
+          },
+          {
+            "id": "pit_lane",
+            "closed": false
+          }
+        ],
+        "markerErrorWorldM": 0.004594637639892085
+      },
+      {
+        "track": "aurora_summit",
+        "viewport": {
+          "width": 960,
+          "height": 720
+        },
+        "paths": [
+          {
+            "id": "main",
+            "closed": false
+          }
+        ],
+        "markerErrorWorldM": 0.0019996891116640316
+      },
+      {
+        "track": "meadow_loop",
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "paths": [
+          {
+            "id": "main",
+            "closed": true
+          }
+        ],
+        "markerErrorWorldM": 0.00506206696995339
+      },
+      {
+        "track": "spark_grand_circuit",
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "paths": [
+          {
+            "id": "main",
+            "closed": true
+          },
+          {
+            "id": "pit_lane",
+            "closed": false
+          }
+        ],
+        "markerErrorWorldM": 0.004594637639892085
+      },
+      {
+        "track": "aurora_summit",
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "paths": [
+          {
+            "id": "main",
+            "closed": false
+          }
+        ],
+        "markerErrorWorldM": 0.0019996891116640316
+      }
+    ],
+    "maxMarkerErrorWorldM": 0.00506206696995339,
+    "legacyFalseMigratesToTrackMap": true,
+    "explicitProgressSelectionPersists": true,
+    "consoleErrors": 0
+  },
+  "finishPersistence": {
+    "passed": true,
+    "fixture": "R9L",
+    "checks": {
+      "saveUnchanged": true,
+      "noGhostOpen": true,
+      "parkedAfter820ms": true,
+      "noRecorder": true,
+      "noGhostRun": true,
+      "postFinishInputsNeutral": true,
+      "allAfter48TicksStopped": true
+    },
+    "finishTick": 691,
+    "parkedTick": 740,
+    "postFinishNeutralInputCount": 130,
+    "parkedSamples": 86,
+    "wallContactTicks": 0,
+    "respawns": 0,
+    "gameStateInitialization": "Session handling fixture initializer only, once before first authority keyframe",
+    "worldStateOverridesDuringDrive": 0,
+    "speedAt820ms": 0,
+    "ghostDbOpens": 0,
+    "normalTimeAttackChecks": {
+      "developmentGuardFalse": true,
+      "recorderEnabled": true,
+      "ghostLoadAttempted": true,
+      "recordPersisted": true,
+      "ghostPersisted": true,
+      "rewardPersisted": true
+    },
+    "consoleErrors": 0
+  },
+  "referenceDiagnostics": {
+    "source": {
+      "sha256": "af4ad63b07786412742068a0ff9c239f738730532cd7ced0acfdb241aa1e16a9",
+      "fps": 30,
+      "width": 1920,
+      "height": 1080,
+      "durationSeconds": 338.0351088435374,
+      "gameViewport": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1080
+      }
+    },
+    "speedGateStatus": "not_met_deliberately_slower_candidate",
+    "baselineHeldOutMapePercent": 4.744563,
+    "candidateHeldOutMapePercent": 40.909719,
+    "aggregation": "Mean of the two eligible held-out launch clip MAPEs; each clip excludes source speed zero. No time scaling.",
+    "clips": [
+      {
+        "id": "expert-launch",
+        "split": "calibration",
+        "quantitativeEligible": true,
+        "samples": 31,
+        "baselineMaeKmh": 8.133496,
+        "candidateMaeKmh": 86.575919,
+        "baselineMapePercent": 5.411144,
+        "candidateMapePercent": 42.272948
+      },
+      {
+        "id": "expert-right",
+        "split": "calibration",
+        "quantitativeEligible": false,
+        "samples": 30,
+        "baselineMaeKmh": 12.543742,
+        "candidateMaeKmh": 69.339944,
+        "baselineMapePercent": 4.314908,
+        "candidateMapePercent": 24.241644
+      },
+      {
+        "id": "expert-left",
+        "split": "calibration",
+        "quantitativeEligible": false,
+        "samples": 30,
+        "baselineMaeKmh": 4.717419,
+        "candidateMaeKmh": 52.688635,
+        "baselineMapePercent": 1.713745,
+        "candidateMapePercent": 19.239885
+      },
+      {
+        "id": "expert-repeat",
+        "split": "calibration",
+        "quantitativeEligible": false,
+        "samples": 38,
+        "baselineMaeKmh": 14.305018,
+        "candidateMaeKmh": 63.9793,
+        "baselineMapePercent": 5.51951,
+        "candidateMapePercent": 24.333546
+      },
+      {
+        "id": "intermediate-launch",
+        "split": "validation",
+        "quantitativeEligible": true,
+        "samples": 33,
+        "baselineMaeKmh": 8.301238,
+        "candidateMaeKmh": 85.369643,
+        "baselineMapePercent": 4.800964,
+        "candidateMapePercent": 41.534405
+      },
+      {
+        "id": "intermediate-right",
+        "split": "validation",
+        "quantitativeEligible": false,
+        "samples": 30,
+        "baselineMaeKmh": 20.282799,
+        "candidateMaeKmh": 65.443981,
+        "baselineMapePercent": 7.124238,
+        "candidateMapePercent": 23.026709
+      },
+      {
+        "id": "intermediate-left",
+        "split": "validation",
+        "quantitativeEligible": false,
+        "samples": 30,
+        "baselineMaeKmh": 4.902221,
+        "candidateMaeKmh": 56.390607,
+        "baselineMapePercent": 1.754165,
+        "candidateMapePercent": 20.5412
+      },
+      {
+        "id": "intermediate-repeat",
+        "split": "validation",
+        "quantitativeEligible": false,
+        "samples": 30,
+        "baselineMaeKmh": 15.199134,
+        "candidateMaeKmh": 40.775783,
+        "baselineMapePercent": 6.055625,
+        "candidateMapePercent": 15.916483
+      },
+      {
+        "id": "beginner-launch",
+        "split": "validation",
+        "quantitativeEligible": true,
+        "samples": 34,
+        "baselineMaeKmh": 10.36765,
+        "candidateMaeKmh": 81.171896,
+        "baselineMapePercent": 4.688162,
+        "candidateMapePercent": 40.285032
+      },
+      {
+        "id": "beginner-right",
+        "split": "validation",
+        "quantitativeEligible": false,
+        "samples": 32,
+        "baselineMaeKmh": 16.132736,
+        "candidateMaeKmh": 46.8805,
+        "baselineMapePercent": 6.392537,
+        "candidateMapePercent": 18.406082
+      },
+      {
+        "id": "beginner-left",
+        "split": "validation",
+        "quantitativeEligible": false,
+        "samples": 34,
+        "baselineMaeKmh": 17.836116,
+        "candidateMaeKmh": 47.996232,
+        "baselineMapePercent": 7.118082,
+        "candidateMapePercent": 18.757341
+      },
+      {
+        "id": "beginner-repeat",
+        "split": "validation",
+        "quantitativeEligible": false,
+        "samples": 42,
+        "baselineMaeKmh": 32.262825,
+        "candidateMaeKmh": 41.572437,
+        "baselineMapePercent": 14.087089,
+        "candidateMapePercent": 18.049022
+      }
+    ],
+    "nodeBrowserParity": {
+      "runs": 8,
+      "states": 1536,
+      "allHashesEqual": true,
+      "allFrameStepsTwoTicks": true,
+      "cameraProfile": "reference in both variants"
+    },
+    "sourceLimits": "Unknown continuation slip/gauge and physical transition timing; beginner source uses a different kart. This report does not establish full video, camera, or <=100ms source transition fidelity."
+  },
+  "localMedia": {
+    "reference": {
+      "file": "reference-v9-v10-comparison.mp4",
+      "durationSeconds": 12.733,
+      "kind": "deterministic rendered replay: source/v9/v10 with keys and speed curves; 2 physics ticks per 1/30s rendered frame"
+    },
+    "nativeUTurns": [
+      {
+        "file": "R9L/realtime.webm",
+        "kind": "native real-time Chrome keyboard capture"
+      },
+      {
+        "file": "R9R/realtime.webm",
+        "kind": "native real-time Chrome keyboard capture"
+      },
+      {
+        "file": "R12L/realtime.webm",
+        "kind": "native real-time Chrome keyboard capture"
+      },
+      {
+        "file": "R12R/realtime.webm",
+        "kind": "native real-time Chrome keyboard capture"
+      },
+      {
+        "file": "R16L/realtime.webm",
+        "kind": "native real-time Chrome keyboard capture"
+      },
+      {
+        "file": "R16R/realtime.webm",
+        "kind": "native real-time Chrome keyboard capture"
+      }
+    ],
+    "captureScope": "Native U-turns captured during stronger-grip candidate. Later collision/AI/finish guards do not change these flat no-contact handling traces. Full local data/media are not committed."
+  },
+  "claimScope": "Local validation of the documented v10 control repair; not a claim of original-video speed/camera fidelity or a substitute for remote exact-head CI.",
+  "integration": {
+    "matrix": {
+      "status": "completed_with_reviewed_comparison_flags",
+      "complete": true,
+      "sourceStable": true,
+      "sourceTreeSha256": "4d39ce92f02974413a80c9473d241dd10b60e87993ff81cabdddea400b303263",
+      "sourceTreeSha256After": "4d39ce92f02974413a80c9473d241dd10b60e87993ff81cabdddea400b303263",
+      "seeds": [
+        4242,
+        2026,
+        7301
+      ],
+      "summary": {
+        "races": 441,
+        "expectedRaces": 441,
+        "completeRaces": 441,
+        "finishedKarts": 1764,
+        "totalKarts": 1764,
+        "hardHits": 47,
+        "respawns": 20,
+        "maxStuckTicks": 198,
+        "itemsUsed": 3284,
+        "effectHits": 4679,
+        "combatEffectHits": 2011
+      },
+      "baselineSummary": {
+        "races": 441,
+        "expectedRaces": 441,
+        "completeRaces": 441,
+        "finishedKarts": 1764,
+        "totalKarts": 1764,
+        "hardHits": 47,
+        "respawns": 12,
+        "maxStuckTicks": 407,
+        "itemsUsed": 3221,
+        "effectHits": 4618,
+        "combatEffectHits": 2022
+      },
+      "soloRespawns": 0,
+      "nonItemRespawns": 0,
+      "allTrackFilesMatchIndependentContactAudit": true,
+      "rawComparisonFlagCount": 11,
+      "rawComparisonFlags": [
+        {
+          "key": "cascade_slalom/item/pack/2026",
+          "baselineRespawns": 0,
+          "finalRespawns": 2,
+          "reviewStatus": "reviewed_not_removed"
+        },
+        {
+          "key": "cascade_slalom/item/pack/7301",
+          "baselineRespawns": 0,
+          "finalRespawns": 1,
+          "reviewStatus": "reviewed_not_removed"
+        },
+        {
+          "key": "coral_cove_docks/item/pack/4242",
+          "baselineRespawns": 0,
+          "finalRespawns": 1,
+          "reviewStatus": "reviewed_not_removed"
+        },
+        {
+          "key": "coral_cove_docks/item/pack/7301",
+          "baselineRespawns": 0,
+          "finalRespawns": 1,
+          "reviewStatus": "reviewed_not_removed"
+        },
+        {
+          "key": "meadow_loop/item/pack/4242",
+          "baselineRespawns": 0,
+          "finalRespawns": 1,
+          "reviewStatus": "reviewed_not_removed"
+        },
+        {
+          "key": "pumpkin_lane/item/pack/7301",
+          "baselineRespawns": 0,
+          "finalRespawns": 2,
+          "reviewStatus": "reviewed_not_removed"
+        },
+        {
+          "key": "sandglass_canyon/item/pack/7301",
+          "baselineRespawns": 0,
+          "finalRespawns": 1,
+          "reviewStatus": "reviewed_not_removed"
+        },
+        {
+          "key": "skyway_interchange/item/pack/7301",
+          "baselineRespawns": 0,
+          "finalRespawns": 5,
+          "reviewStatus": "reviewed_not_removed"
+        },
+        {
+          "key": "sunset_arena_rally/item/pack/4242",
+          "baselineRespawns": 0,
+          "finalRespawns": 2,
+          "reviewStatus": "reviewed_not_removed"
+        },
+        {
+          "key": "sunset_arena_rally/item/pack/2026",
+          "baselineRespawns": 0,
+          "finalRespawns": 2,
+          "reviewStatus": "reviewed_not_removed"
+        },
+        {
+          "key": "sunstone_bazaar/item/pack/4242",
+          "baselineRespawns": 0,
+          "finalRespawns": 1,
+          "reviewStatus": "reviewed_not_removed"
+        }
+      ],
+      "causalReview": {
+        "cases": 20,
+        "combatOrResidualCombat": 18,
+        "bodyContactProven": 2,
+        "unexplained": 0,
+        "exactScenarioSlotTickIdentitiesMatchRelease": true,
+        "baselineRespawns": 12,
+        "finalRespawns": 20,
+        "retainedIncrease": 8,
+        "interpretation": "Causal attribution does not establish that every combat loss is inherently unavoidable. Same public seed does not ensure identical item histories after track-hash/pickup changes.",
+        "repositorySummary": "item-respawn-v10-review.json",
+        "reproductionTool": "../../tools/reference/review-item-respawns.mjs"
+      }
+    },
+    "regression": {
+      "status": "passed",
+      "total": 1103,
+      "passed": 1042,
+      "failed": 0,
+      "existingSkipped": 61
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 14,
+      "failed": 0,
+      "coverage": [
+        "Node/Chrome/Worker determinism",
+        "two-client online race",
+        "normal timeAttack ghost save/replay",
+        "squad",
+        "menus/HUD",
+        "pause and fresh-input resume"
+      ]
+    },
+    "checks": {
+      "typecheckProjects": 9,
+      "typecheck": "passed",
+      "lint": "passed",
+      "dependencyBoundaries": "passed",
+      "frozenContracts": "passed",
+      "propCatalog": "passed",
+      "trackBake": "passed",
+      "productionBuild": "passed"
+    },
+    "racerBalance": {
+      "oldCandidateMultiplier": 0.95,
+      "finalMultiplier": 0.955,
+      "reason": "The reduced boost advantage compressed tier pace. Two seed-31 two-lap mixed Manor/Kraken fields retired moving racers near the finish at0.95;0.955 retains the unchanged600-tick deadline and restores completion without changing Pro/Legend/human physics.",
+      "measuredTwelveCharacterPacePercent": 95,
+      "unchangedPaceBandPercent": [
+        92,
+        96
+      ],
+      "acceptanceTests": 31,
+      "acceptancePassed": 31,
+      "mixedItemTrackGates": 21,
+      "formerlyFailingFields": [
+        {
+          "track": "manor_catacombs",
+          "seed": 31,
+          "laps": 2,
+          "finished": 8,
+          "total": 8,
+          "maxNoProgressTicks": 105,
+          "respawns": 0,
+          "hardHits": 0
+        },
+        {
+          "track": "kraken_lighthouse",
+          "seed": 31,
+          "laps": 2,
+          "finished": 8,
+          "total": 8,
+          "maxNoProgressTicks": 126,
+          "respawns": 0,
+          "hardHits": 0
+        }
+      ],
+      "design": "../design/19-continuous-handling.md"
+    },
+    "remoteCi": {
+      "statusSource": "live_exact_head_checks",
+      "checksUrl": "https://github.com/32ryh98yfe/ClaudeRider/pull/1/checks",
+      "rule": "Read the run whose head SHA matches the current PR head. Publication metadata records the exact commit and run; this document does not invent a SHA or freeze a pending/success status."
+    }
+  }
+}

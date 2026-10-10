@@ -29,5 +29,5 @@ export class InputDelayLine {
     return this.ring[(this.head + k) % n]!;
   }
 
-  clear(): void { for (const f of this.ring) { f.steer = 0; f.throttle = 0; f.brake = 0; f.held = 0; f.edges = 0; f.aim = 255; f.emote = 0; } }
+  clear(): void { for (const f of this.ring) { f.steerIntent = 0; f.driftRequests = 0; f.steer = 0; f.throttle = 0; f.brake = 0; f.held = 0; f.edges = 0; f.aim = 255; f.emote = 0; } }
 }

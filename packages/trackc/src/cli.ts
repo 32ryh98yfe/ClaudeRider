@@ -11,6 +11,7 @@ import { basename, join } from 'node:path';
 import { Worker, isMainThread, parentPort } from 'node:worker_threads';
 import { gzipSync } from 'node:zlib';
 import { COMPILER_VERSION, buildTrack, type BuildOptions } from './build.ts';
+import { CTRK_MAX_BYTES, CVIS_GZIP_MAX_BYTES } from './budgets.ts';
 
 const ROOT = new URL('../../..', import.meta.url).pathname;
 
@@ -31,12 +32,12 @@ async function runJob(j: Job): Promise<Done> {
       ghostNote = `${(g.lapTicks / 60).toFixed(2)} s/lap (${g.note})`;
     }
     const ms = Date.now() - t0;
-    // budgets (11-track-spec / L4 brief): bake ≤ 20 s, .ctrk ≤ 1.5 MB, .vis ≤ 2 MB gzip
+    // budgets (v10 amendment): bake ≤ 20 s, exact-contact .ctrk ≤ 5 MiB, .vis ≤ 3 MiB gzip
     const stats = { ...r.stats, visGzBytes: gzipSync(r.vis, { level: 9 }).byteLength, bakeMs: ms };
     const findings = [...r.findings];
     const over = (what: string): void => { findings.push({ rule: 'V20', severity: 'warn', msg: `budget: ${what}` }); };
-    if (r.ctrk.byteLength > 1.5 * 1024 * 1024) over(`.ctrk ${(r.ctrk.byteLength / 1048576).toFixed(2)} MB > 1.5 MB`);
-    if (stats.visGzBytes > 2 * 1024 * 1024) over(`.vis ${(stats.visGzBytes / 1048576).toFixed(2)} MB gzip > 2 MB`);
+    if (r.ctrk.byteLength > CTRK_MAX_BYTES) over(`.ctrk ${(r.ctrk.byteLength / 1048576).toFixed(2)} MiB > ${CTRK_MAX_BYTES / 1048576} MiB`);
+    if (stats.visGzBytes > CVIS_GZIP_MAX_BYTES) over(`.vis ${(stats.visGzBytes / 1048576).toFixed(2)} MiB gzip > ${CVIS_GZIP_MAX_BYTES / 1048576} MiB`);
     if (ms > 20000) over(`bake ${(ms / 1000).toFixed(1)} s > 20 s`);
     return {
       id: r.id, ok: true, ctrk: r.ctrk, vis: r.vis, svg: r.previewSvg, ghostNote, ms,

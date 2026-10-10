@@ -94,6 +94,8 @@ function foliage(a: string, b: string): THREE.MeshStandardNodeMaterial { return 
 function foliageLit(): THREE.MeshStandardNodeMaterial { return memo('foliageLit', () => buildFoliage('#000', '#000', true)); }
 function vertexLit(roughness = 0.7, metalness = 0): THREE.MeshStandardNodeMaterial { return memo(keyOf('vlit', [roughness, metalness]), () => buildVertexLit(roughness, metalness)); }
 function bubble(c: string, bands = false): THREE.MeshBasicNodeMaterial { return memo(keyOf('bubble', [c, bands]), () => buildBubble(c, bands)); }
+/** Open water/steam trigger surfaces: vertex-coloured, visibly translucent, with no opaque metal body. */
+function fluidTrigger(): THREE.MeshBasicNodeMaterial { return memo('fluidTrigger', () => new THREE.MeshBasicNodeMaterial({ vertexColors: true, transparent: true, opacity: 0.65, depthWrite: false, side: THREE.DoubleSide })); }
 /** Time Attack ghost hologram (shared by every mesh of the ghost kart and mascot). */
 function ghost(): THREE.MeshBasicNodeMaterial { return memo('ghost', buildGhost); }
 function ringDecal(c: string): THREE.MeshBasicNodeMaterial { return memo(keyOf('ring', c), () => buildRingDecal(c)); }
@@ -105,7 +107,7 @@ const counted = new Set<THREE.Material>();
 
 export const MaterialLibrary = {
   configure, world, road, kerb, wall, terrain, water, boostPad, killPlane, startLine, vinyl, kartPaint, emissive, emissiveVertex, neon,
-  flame, flameShared, foliage, foliageLit, vertexLit, bubble, ringDecal, custom,
+  flame, flameShared, foliage, foliageLit, vertexLit, bubble, fluidTrigger, ringDecal, custom,
   mascotVinyl, mascotGlass, mascotEyes, kartLivery, kartOverlay, ghost,
   /** Look uniforms shared by all library materials (rim boost, wind, wetness, pulse). */
   uniforms: fxUniforms,

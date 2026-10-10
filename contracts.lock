@@ -2,7 +2,7 @@
   "note": "FROZEN contract files (M1). Change only via docs/design/contract-requests/ + orchestrator checkpoint; then run: node tools/check-frozen.mjs --update",
   "files": {
     "apps/client/src/i18n/index.ts": "63d37492399758c7d54724e53e8a3e04c8528f9d1d2b0a8e1e99983c409dcd97",
-    "apps/client/src/meta/save.ts": "10952ee3c43492b0d8dfee5ac8a9fc34c24b910742e6cbd8f8f3386bcae299a7",
+    "apps/client/src/meta/save.ts": "facc709a24b6678f0d7e149f442817cdd3d966fbf80c47e29e5cbf00c32613fa",
     "apps/client/src/ui/store/hud.ts": "224a7dc7fbf4e269218723f14852b3489a207ce77172d065c9e0baa43e74d4de",
     "apps/client/src/ui/store/route.ts": "4832a966851dd52c7d230a27206da65cb85a1d88f947cd901607df2e4f959837",
     "packages/content/src/ids.ts": "05c188a33832264992b1646937a06c3ff60baefa35713b225d7a69f84f4a9d84",
@@ -10,15 +10,15 @@
     "packages/net/src/transport.ts": "92e715df4fcabfe0bd552c2e525a500d3888380d92b6d4fe5310aae2e1b14faa",
     "packages/sim/src/api.ts": "b927326b55ddf4e7b7a4824b93d8d3c2866d195a99c38261addbcb5a0c715478",
     "packages/sim/src/core/events.ts": "fc2d5952abffa4ce064350ecdfafe48c7d23339fd3341aa3a347c1143030fa21",
-    "packages/sim/src/core/hash.ts": "5dd0dcc270d8af1de3ceea2af0b499ccfb5902c9b66b434cb0e7820fa3452873",
-    "packages/sim/src/core/input.ts": "a583ab8eb9b747b49ca92d2f22a2ab1810658c5c0b37a2bde11085c9bd551b47",
-    "packages/sim/src/core/quant.ts": "19b53690a3f807b9a72fc69183fd5e27e7e484c0287ed2ff847e39b871a06dc8",
-    "packages/sim/src/core/state.ts": "bb214359cd29734f6b6e96be187f98be83ffa271155dcdd6e3cd63998bf9e841",
-    "packages/sim/src/core/units.ts": "e13a713019939a559c03e1af571d95e9f8ba00e9b04e26beb47845b782d2eb76",
-    "packages/sim/src/core/world.ts": "adf8572c98b87695ba5130c32ce70f30c8cb92908847179ce9012b35a6b465ca",
-    "packages/sim/src/step.ts": "19344b3792b3128891dcc1a25118a96f8c2f936f440f71f90121b52d94d5ec98",
+    "packages/sim/src/core/hash.ts": "2ab7a093fb886688611c6feabd4c595f101e0e59691dc81ec493ecdf9a79d025",
+    "packages/sim/src/core/input.ts": "439c0dd2c953e1b3bd64734eddb764e73032a516cd11c785f7a14be9a75ce014",
+    "packages/sim/src/core/quant.ts": "b894cec360513bd5e828f76ab0ff4a995cc1d6a2fcc30e8bd0e558d1c897113f",
+    "packages/sim/src/core/state.ts": "8bb95fe97e9973be9f6e175a6edfa3d840711c3a8aac542c82a157eb074443a6",
+    "packages/sim/src/core/units.ts": "4356d5c4b2f2d61d7a4567ce2e2173d40de8d0b46c72aea0c4b2a60da6dc6ebe",
+    "packages/sim/src/core/world.ts": "e1a1a3abcf7b50fea9f6b190187526cd78523a4e45f1cb7a1b256a88f00a23fe",
+    "packages/sim/src/step.ts": "1983ec8ab85bdf1573dc470a97df7432f60d293a5a1322a25e03da32ae0891a2",
     "packages/sim/src/track/container.ts": "4f6c2d82a42ad7aecc6d55766c5bf9fafcd3b9d629ac4e78ee94d9cc974c4090",
-    "packages/sim/src/track/format.ts": "bb30abd586b5e7c1c1d918e72f23395c9354eb7db488a702db236f53f4a67d40",
+    "packages/sim/src/track/format.ts": "b5fd432d1ab601ec5051cf56dedd2582e416c35e3d6947d1ed268877a782e406",
     "packages/sim/src/track/trihash.ts": "ed15a52c8c575bbb037a9ee826b1118d55e0e5f5ad558331d26498a58ee710d8"
   }
 }

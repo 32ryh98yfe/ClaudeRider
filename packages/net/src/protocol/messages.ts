@@ -1,12 +1,12 @@
 // Small fixed-layout messages (20-netcode-spec §3.1–3.3): INPUT, PING/PONG, RESUME, INPUT_RELAY, LOBBY_JSON.
-import { makeInput, type InputFrame, type Tick } from '@cr/sim';
+import { makeInput, validDriftRequests, type InputFrame, type Tick } from '@cr/sim';
 import { ByteReader, ByteWriter, ProtocolError } from './bytes.ts';
 import { C2S, S2C } from './ids.ts';
 import type { C2SLobby, S2CLobby } from './lobby.ts';
 
 export interface Codec<T> { encode(w: ByteWriter, v: T): void; decode(r: ByteReader, into?: T): T }
 
-// ---------------------------------------------------------------- InputFrame (6 bytes)
+// ---------------------------------------------------------------- InputFrame (8 bytes)
 
 /** Writes a frame; out-of-range values are clamped (the sender is trusted to be sane, the receiver is not). */
 export function writeFrame(w: ByteWriter, f: Readonly<InputFrame>): void {
@@ -17,6 +17,7 @@ export function writeFrame(w: ByteWriter, f: Readonly<InputFrame>): void {
   w.u8(f.edges & 127);
   w.u8(f.aim >= 0 && f.aim < 8 ? f.aim : 255);
   w.u8(f.emote & 15);
+  w.u16((f.steerIntent + 1) | (f.driftRequests << 2));
 }
 
 /** Reads a frame. Returns false when reserved bits or invalid values are present (§11: drop + strike). */
@@ -29,7 +30,8 @@ export function readFrame(r: ByteReader, out: InputFrame): boolean {
   out.edges = edges & 127;
   out.aim = aim < 8 ? aim : 255;
   out.emote = emote & 15;
-  return (held & ~7) === 0 && (edges & ~127) === 0 && (emote & ~15) === 0 && (aim < 8 || aim === 255);
+  const extra = r.u16(); out.steerIntent = (extra & 3) - 1; out.driftRequests = (extra >>> 2) & 511;
+  return (extra & ~2047) === 0 && (extra & 3) !== 3 && validDriftRequests(out.driftRequests) && (held & ~7) === 0 && (edges & ~127) === 0 && (emote & ~15) === 0 && (aim < 8 || aim === 255);
 }
 
 // ---------------------------------------------------------------- C2S_INPUT
@@ -50,7 +52,7 @@ export const InputMsg: Codec<InputMsgT> = {
     out.ackEventSeq = r.u16();
     const n = r.u8();
     if (n < 1 || n > 4) throw new ProtocolError('input', `n=${n}`);
-    if (r.remaining() !== n * 6) throw new ProtocolError('input', 'length');
+    if (r.remaining() !== n * 8) throw new ProtocolError('input', 'length');
     let valid = true;
     for (let i = 0; i < n; i++) {
       const f = out.frames[i] ?? (out.frames[i] = makeInput());
@@ -128,13 +130,13 @@ export const RelayMsg: Codec<RelayT> = {
     if (r.u8() !== S2C.INPUT_RELAY) throw new ProtocolError('type');
     out.baseTick = r.u32();
     const n = r.u8();
-    if (r.remaining() !== n * 8) throw new ProtocolError('relay', 'length');
+    if (r.remaining() !== n * 10) throw new ProtocolError('relay', 'length');
     for (let i = 0; i < n; i++) {
       const e = out.entries[i] ?? (out.entries[i] = { slot: 0, dTick: 0, frame: makeInput() });
       e.slot = r.u8();
       if (e.slot > 7) throw new ProtocolError('relay', 'slot');
       e.dTick = r.u8();
-      readFrame(r, e.frame);
+      if (!readFrame(r, e.frame)) throw new ProtocolError('relay', 'frame');
     }
     out.entries.length = n;
     return out;

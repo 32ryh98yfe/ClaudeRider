@@ -22,7 +22,7 @@ export function simRig(track: BakedTrack, laps = 3): SimRig {
   const rig: SimRig = {
     w, ctx, inp, events,
     tick(n = 1, drive) {
-      for (let i = 0; i < n; i++) { drive?.(w, inp); step(w, [inp], ctx); sink.drain(events); inp.edges = 0; }
+      for (let i = 0; i < n; i++) { drive?.(w, inp); step(w, [inp], ctx); sink.drain(events); inp.edges = 0; inp.driftRequests = 0; }
     },
   };
   // run the countdown so the race is live

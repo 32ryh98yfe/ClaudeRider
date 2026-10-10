@@ -16,6 +16,13 @@ const RUNUP_ACCEL = 9;
 const LAND_IN = 5;
 /** The local walk-back used everywhere else, in samples; it stays inside the locate window. */
 const LOCAL_BACK = 15;
+/** Horizontal room reserve, sampled with real-height spheres: a single 3 m sphere also hits the road underside. */
+const ROOM_DIRECTIONS: readonly [number, number][] = [
+  [1, 0], [0.923879532511287, 0.38268343236509], [0.707106781186548, 0.707106781186548], [0.38268343236509, 0.923879532511287],
+  [0, 1], [-0.38268343236509, 0.923879532511287], [-0.707106781186548, 0.707106781186548], [-0.923879532511287, 0.38268343236509],
+  [-1, 0], [-0.923879532511287, -0.38268343236509], [-0.707106781186548, -0.707106781186548], [-0.38268343236509, -0.923879532511287],
+  [0, -1], [0.38268343236509, -0.923879532511287], [0.707106781186548, -0.707106781186548], [0.923879532511287, -0.38268343236509],
+];
 
 export interface RespawnContext {
   closed: boolean;       // the main line is a circuit
@@ -49,8 +56,14 @@ export function respawnTables(track: BakedTrack, p: PathModel, rc: RespawnContex
     // a kart placed here could land on either, or on the step between them
     if (Math.abs((hit.x - s.x) * s.ux + (hit.y - s.y) * s.uy + (hit.z - s.z) * s.uz) > 0.15) return;
     if (track.groundRay(hit.x - s.ux * 0.05, hit.y - s.uy * 0.05, hit.z - s.uz * 0.05, -s.ux, -s.uy, -s.uz, 1.5, hit2)) return;
-    const r = Math.max(0.9, Math.min(3, s.w / 2 - 0.5));
-    if (track.sphereWalls(hit.x + s.ux * 0.6, hit.y + s.uy * 0.6, hit.z + s.uz * 0.6, r, cs, 4) > 0) return;
+    const room = Math.max(0.9, Math.min(3, s.w / 2 - 0.5)), radius = Math.min(room, 0.95);
+    const x = hit.x + s.ux * 0.6, y = hit.y + s.uy * 0.6, z = hit.z + s.uz * 0.6;
+    if (track.sphereWalls(x, y, z, radius, cs, 4) > 0) return;
+    if (room > 1) for (let ring = 1; ring <= 2; ring++) for (let d = 0; d < ROOM_DIRECTIONS.length; d += ring === 1 ? 2 : 1) {
+      const [a, b] = ROOM_DIRECTIONS[d]!, distance = (room - 0.8) * ring / 2;
+      const dx = (s.rx * a + s.tx * b) * distance, dy = (s.ry * a + s.ty * b) * distance, dz = (s.rz * a + s.tz * b) * distance;
+      if (track.sphereWalls(x + dx, y + dy, z + dz, radius, cs, 4) > 0) return;
+    }
     ok[i] = 1;
   });
 

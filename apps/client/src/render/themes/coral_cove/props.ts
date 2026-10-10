@@ -5,7 +5,7 @@
 import * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
-import { merge, paint, place, rbox, box, cyl, cone, sph, ico, sparkleGeometry, torus } from '../../util/geo.ts';
+import { cosmetic, merge, paint, place, rbox, box, cyl, cone, sph, ico, sparkleGeometry, torus } from '../../util/geo.ts';
 
 /** Sea surface relative to a prop origin (road height − 0.2 m): the water sits 1.3 m below a sea-level road. */
 export const SEA_Y = -1.1;
@@ -68,14 +68,14 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
       const parts: THREE.BufferGeometry[] = [];
       for (const x of [-11.2, 11.2]) {
         parts.push(paint(place(cyl(0.55, 0.7, 8.6, 9), x, 4.3, 0), C.trunk, 0.06, 3));
-        for (let k = 0; k < 4; k++) parts.push(paint(place(cyl(0.72, 0.72, 0.25, 9), x, 1.2 + k * 1.9, 0), C.rope));
+        for (let k = 0; k < 4; k++) parts.push(cosmetic(paint(place(cyl(0.72, 0.72, 0.25, 9), x, 1.2 + k * 1.9, 0), C.rope)));
       }
       parts.push(paint(place(rbox(24, 1.9, 1.0, 0.45, 2), 0, 8.4, 0), C.sea));
       for (let k = 0; k < 7; k++) parts.push(paint(place(cyl(0.9, 0.9, 1.06, 12), -9 + k * 3, 8.4, 0, Math.PI / 2, 0, 0), k % 2 ? C.lagoon : C.white));
       parts.push(paint(place(box(24.2, 0.3, 1.05), 0, 9.45, 0), C.sand));
       // bunting: small flags hanging from a rope under the board
       const flag = [C.red, C.white, C.gold, C.sea];
-      for (let k = 0; k < 20; k++) parts.push(paint(place(cone(0.34, 0.7, 3), -10.4 + k * 1.1, 6.9 - Math.sin((k / 19) * Math.PI) * 0.5, 0, Math.PI, 0, 0), flag[k % 4]!));
+      for (let k = 0; k < 20; k++) parts.push(cosmetic(paint(place(cone(0.34, 0.7, 3), -10.4 + k * 1.1, 6.9 - Math.sin((k / 19) * Math.PI) * 0.5, 0, Math.PI, 0, 0), flag[k % 4]!)));
       parts.push(paint(place(sparkleGeometry(2.0, 0.3, 5), 0, 10.9, 0), '#d97757'));
       return { geometry: merge(parts), material: gloss(), castShadow: true };
     },
@@ -94,10 +94,10 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
       for (let k = 0; k < 7; k++) {
         const a = (k / 7) * Math.PI * 2 + 0.3;
         const cx = Math.cos(a), cz = Math.sin(a);
-        parts.push(paint(place(box(2.2, 0.08, 0.75), x + cx * 1.0, y + 0.25, cz * 1.0, 0, -a, 0.25), k % 2 ? C.leaf : C.leafLight, 0.08, k + 1));
-        parts.push(paint(place(box(1.9, 0.08, 0.6), x + cx * 2.8, y - 0.35, cz * 2.8, 0, -a, -0.55), k % 2 ? C.leafLight : C.leaf, 0.08, k + 9));
+        parts.push(cosmetic(paint(place(box(2.2, 0.08, 0.75), x + cx * 1.0, y + 0.25, cz * 1.0, 0, -a, 0.25), k % 2 ? C.leaf : C.leafLight, 0.08, k + 1)));
+        parts.push(cosmetic(paint(place(box(1.9, 0.08, 0.6), x + cx * 2.8, y - 0.35, cz * 2.8, 0, -a, -0.55), k % 2 ? C.leafLight : C.leaf, 0.08, k + 9)));
       }
-      for (let k = 0; k < 3; k++) parts.push(paint(place(sph(0.22, 6, 4), x + Math.cos(k * 2.1) * 0.35, y - 0.2, Math.sin(k * 2.1) * 0.35), C.coconut));
+      for (let k = 0; k < 3; k++) parts.push(cosmetic(paint(place(sph(0.22, 6, 4), x + Math.cos(k * 2.1) * 0.35, y - 0.2, Math.sin(k * 2.1) * 0.35), C.coconut)));
       return { geometry: merge(parts), material: matte(), castShadow: true };
     },
     maxInstances: 500,
@@ -109,7 +109,7 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
         paint(place(cyl(0.22, 0.26, 7.4, 7), 0, -3.2, -1.2), C.woodLight, 0.08, 2),
         paint(place(cyl(0.22, 0.26, 7.4, 7), 0, -3.2, 1.2), C.woodLight, 0.08, 4),
         paint(place(cyl(0.26, 0.26, 0.12, 7), 0, 0.5, -1.2), C.woodPale), paint(place(cyl(0.26, 0.26, 0.12, 7), 0, 0.5, 1.2), C.woodPale),
-        paint(place(cyl(0.05, 0.05, 2.4, 4), 0, 0.25, 0, Math.PI / 2, 0, 0), C.rope),
+        cosmetic(paint(place(cyl(0.05, 0.05, 2.4, 4), 0, 0.25, 0, Math.PI / 2, 0, 0), C.rope)),
         paint(place(box(0.5, 0.18, 2.9), -0.1, -0.35, 0), C.wood),
       ]), material: matte(),
     }),
@@ -146,7 +146,7 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
       for (const [z, h] of [[-4, 24], [7, 28], [17, 20]] as const) {
         parts.push(paint(place(cyl(0.45, 0.6, h, 8), -6, SEA_Y + 4.5 + h / 2, z), C.trunkDark));
         for (const [yy, w, hh] of [[h * 0.42, 13, 6.5], [h * 0.78, 10, 5]] as const) {
-          for (let s = 0; s < 3; s++) parts.push(paint(place(box(w, hh / 3, 0.35), -6, SEA_Y + 4.5 + yy - hh / 3 + s * (hh / 3), z + 0.6, 0, 0, 0), s % 2 ? C.red : C.sail));
+          for (let s = 0; s < 3; s++) parts.push(cosmetic(paint(place(box(w, hh / 3, 0.35), -6, SEA_Y + 4.5 + yy - hh / 3 + s * (hh / 3), z + 0.6, 0, 0, 0), s % 2 ? C.red : C.sail)));
           parts.push(paint(place(cyl(0.15, 0.15, w + 1, 5), -6, SEA_Y + 4.5 + yy + hh / 2, z + 0.3, 0, 0, Math.PI / 2), C.trunkDark));
         }
         parts.push(paint(place(box(0.08, 1.2, 2.2), -6, SEA_Y + 4.5 + h + 0.8, z + 1.1), C.red));
@@ -206,7 +206,7 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
         paint(place(box(2.5, 0.12, 5.1), -1.4, 1.14, 0), C.woodPale),
       ];
       for (const [x, z] of [[-0.2, -2.4], [-0.2, 2.4], [-2.6, -2.4], [-2.6, 2.4]] as const) parts.push(paint(place(cyl(0.07, 0.07, 3.1, 5), x, 1.55, z), C.wood));
-      for (let k = 0; k < 7; k++) parts.push(paint(place(box(3.4, 0.1, 0.78), -1.2, 3.05, -2.7 + k * 0.78, 0, 0, -0.28), k % 2 ? C.white : C.red));
+      for (let k = 0; k < 7; k++) parts.push(cosmetic(paint(place(box(3.4, 0.1, 0.78), -1.2, 3.05, -2.7 + k * 0.78, 0, 0, -0.28), k % 2 ? C.white : C.red)));
       for (let k = 0; k < 3; k++) {
         const z = -1.6 + k * 1.6;
         parts.push(paint(place(box(1.0, 0.3, 1.2), -0.9, 1.35, z), C.woodPale));
@@ -227,7 +227,7 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
       parts.push(paint(place(rbox(3.6, 0.35, 3.6, 0.12, 2), -2, 5.8, 0), C.sea));
       parts.push(paint(place(box(0.1, 0.9, 1.9), -0.5, 4.9, 0), C.navy));
       parts.push(paint(place(box(1.0, 0.12, 4.2), -0.6, 1.7, 2.6, -0.75, 0, 0), C.woodLight));
-      parts.push(paint(place(cyl(0.04, 0.04, 2.4, 4), -3.2, 7.0, -1.2), C.iron), paint(place(box(0.05, 0.6, 1.0), -3.2, 7.8, -0.7), C.red));
+      parts.push(paint(place(cyl(0.04, 0.04, 2.4, 4), -3.2, 7.0, -1.2), C.iron), cosmetic(paint(place(box(0.05, 0.6, 1.0), -3.2, 7.8, -0.7), C.red)));
       return { geometry: merge(parts), material: gloss(), castShadow: true };
     },
     maxInstances: 12,
@@ -266,7 +266,7 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
         paint(place(ico(3.4, 1), 0, SEA_Y + 2, 0, 0.2, 0.4, 0, 1.2, 1.6, 1.1), C.rockDark, 0.12, 3),
         paint(place(ico(2.8, 1), 0.3, SEA_Y + 8, 0.2, 0.5, 0.1, 0.2, 1, 1.5, 0.95), C.rock, 0.12, 5),
         paint(place(ico(2.2, 1), 0, SEA_Y + 13, 0, 0.1, 0.7, 0, 1.05, 0.9, 1), C.rockLight, 0.1, 7),
-        paint(place(ico(2.3, 1), 0, SEA_Y + 14.4, 0, 0, 0, 0, 1.1, 0.35, 1.05), C.leafLight, 0.1, 9),
+        cosmetic(paint(place(ico(2.3, 1), 0, SEA_Y + 14.4, 0, 0, 0, 0, 1.1, 0.35, 1.05), C.leafLight, 0.1, 9)),
       ]), material: matte(), castShadow: true,
     }),
     maxInstances: 60,
@@ -278,7 +278,7 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
         paint(place(ico(6.5, 1), -5.5, -6.5, 0, 0.3, 0.2, 0.1, 1, 1.25, 1.35), C.rock, 0.12, 11),
         paint(place(ico(5.5, 1), -4.5, -14, 2, 0.1, 0.9, 0.3, 1.3, 1.1, 1.2), C.rockDark, 0.12, 13),
         paint(place(ico(4.2, 1), -2.8, -1.8, -2.5, 0.6, 0.3, 0.2, 1.1, 0.45, 1.3), C.rockLight, 0.1, 17),
-        paint(place(ico(2.6, 1), -6.5, -0.9, 3.5, 0, 0.4, 0, 1.2, 0.35, 1.1), C.leafLight, 0.1, 19),
+        cosmetic(paint(place(ico(2.6, 1), -6.5, -0.9, 3.5, 0, 0.4, 0, 1.2, 0.35, 1.1), C.leafLight, 0.1, 19)),
       ]), material: matte(), castShadow: true,
     }),
     maxInstances: 300,
@@ -293,8 +293,8 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
       ];
       for (let k = 0; k < 6; k++) parts.push(paint(place(box(5.05, 0.06, 6.05), -3.2, 0.5 + k * 0.5, 0), C.wood));
       for (const z of [-2.6, 2.6]) parts.push(paint(place(cyl(0.07, 0.07, 2.6, 5), -0.3, 1.3, z + (z > 0 ? 1.8 : -1.8)), C.wood));
-      for (let r = 0; r < 5; r++) for (const z of [-4.4, 4.4]) parts.push(paint(place(box(0.04, 0.05, 1.8), -0.3, 0.5 + r * 0.45, z), C.net));
-      for (let c = 0; c < 5; c++) for (const z of [-4.4, 4.4]) parts.push(paint(place(box(0.04, 2.0, 0.05), -0.3, 1.4, z - 0.8 + c * 0.4), C.net));
+      for (let r = 0; r < 5; r++) for (const z of [-4.4, 4.4]) parts.push(cosmetic(paint(place(box(0.04, 0.05, 1.8), -0.3, 0.5 + r * 0.45, z), C.net)));
+      for (let c = 0; c < 5; c++) for (const z of [-4.4, 4.4]) parts.push(cosmetic(paint(place(box(0.04, 2.0, 0.05), -0.3, 1.4, z - 0.8 + c * 0.4), C.net)));
       for (let k = 0; k < 4; k++) parts.push(paint(place(sph(0.18, 6, 4), -0.25, 2.35, -3.6 + k * 2.4), k % 2 ? C.gold : C.red));
       return { geometry: merge(parts), material: gloss() };
     },
@@ -306,7 +306,7 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
       geometry: merge([
         paint(place(cyl(15, 19, 1.4, 20), -13, -0.75, 0, 0, 0, 0, 1, 1, 1.35), C.sand, 0.04, 3),
         paint(place(cyl(19.6, 21, 0.6, 20), -13, SEA_Y - 0.12, 0, 0, 0, 0, 1, 1, 1.35), '#dcc28c', 0.05, 5),
-        paint(place(cyl(21.5, 23, 0.3, 20), -13, SEA_Y - 0.3, 0, 0, 0, 0, 1, 1, 1.35), '#8fe0d6', 0.03, 7),
+        cosmetic(paint(place(cyl(21.5, 23, 0.3, 20), -13, SEA_Y - 0.3, 0, 0, 0, 0, 1, 1, 1.35), '#8fe0d6', 0.03, 7)),
       ]), material: matte(),
     }),
     maxInstances: 300,
@@ -316,12 +316,12 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
     build: () => {
       const parts: THREE.BufferGeometry[] = [
         paint(place(sph(9, 16, 6), 0, SEA_Y - 5.6, 0, 0, 0, 0, 1.4, 0.8, 1), C.sand, 0.05, 3),
-        paint(place(cyl(13.2, 14, 0.25, 18), 0, SEA_Y - 0.1, 0), '#8fe0d6', 0.03, 5),
+        cosmetic(paint(place(cyl(13.2, 14, 0.25, 18), 0, SEA_Y - 0.1, 0), '#8fe0d6', 0.03, 5)),
       ];
       for (const [x, z, lean] of [[-2, 1, 0.25], [3, -2, -0.3]] as const) {
         let px = x, py = SEA_Y + 1.3;
         for (let i = 0; i < 7; i++) { parts.push(paint(place(cyl(0.26 - i * 0.015, 0.28 - i * 0.015, 1.05, 6), px, py + 0.5, z, 0, 0, lean), i % 2 ? C.trunk : C.trunkDark)); px -= lean * 0.9; py += 1.0; }
-        for (let k = 0; k < 6; k++) { const a = (k / 6) * Math.PI * 2; parts.push(paint(place(box(3.4, 0.08, 0.7), px + Math.cos(a) * 1.5, py - 0.1, z + Math.sin(a) * 1.5, 0, -a, -0.3), k % 2 ? C.leaf : C.leafLight)); }
+        for (let k = 0; k < 6; k++) { const a = (k / 6) * Math.PI * 2; parts.push(cosmetic(paint(place(box(3.4, 0.08, 0.7), px + Math.cos(a) * 1.5, py - 0.1, z + Math.sin(a) * 1.5, 0, -a, -0.3), k % 2 ? C.leaf : C.leafLight))); }
       }
       return { geometry: merge(parts), material: matte(), castShadow: true };
     },
@@ -353,14 +353,14 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
         for (const z of [-18, 4, 22]) {
           const h = z === 4 ? 26 : 21;
           parts.push(paint(place(cyl(0.45, 0.6, h, 8), side * 11.4, h / 2 - 1, z), C.trunkDark));
-          parts.push(paint(place(box(0.08, 1.1, 2.0), side * 11.4, h + 0.2, z + 1), C.red));
+          parts.push(cosmetic(paint(place(box(0.08, 1.1, 2.0), side * 11.4, h + 0.2, z + 1), C.red)));
         }
       }
       // sails and yards span the road high above the karts (lowest yard 9 m up)
       for (const z of [-18, 4, 22]) {
         const top = z === 4 ? 23 : 18.5;
         for (const [yy, hh] of [[top - 7.5, 6], [top - 1.5, 5]] as const) {
-          for (let s = 0; s < 3; s++) parts.push(paint(place(box(20.4, hh / 3, 0.3), 0, yy + s * (hh / 3), z + 0.5), s % 2 ? C.red : C.sail));
+          for (let s = 0; s < 3; s++) parts.push(cosmetic(paint(place(box(20.4, hh / 3, 0.3), 0, yy + s * (hh / 3), z + 0.5), s % 2 ? C.red : C.sail)));
           parts.push(paint(place(cyl(0.16, 0.16, 23.5, 5), 0, yy - 0.3, z + 0.3, 0, 0, Math.PI / 2), C.trunkDark));
         }
       }
@@ -385,8 +385,8 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
       for (let y = 2; y < 14; y += 3) parts.push(paint(place(box(4.5, 0.25, 0.25), -4, y, -2), C.gold), paint(place(box(4.5, 0.25, 0.25), -4, y, 2), C.gold));
       parts.push(paint(place(rbox(5.4, 3, 5.4, 0.4, 2), -4, 15.5, 0), C.red), paint(place(box(1.6, 1.2, 0.1), -1.5, 15.8, 2.72), C.glass));
       parts.push(paint(place(box(22, 1.1, 1.1), -12, 17.5, 0, 0, 0, 0.12), C.gold));
-      parts.push(paint(place(cyl(0.04, 0.04, 8, 4), -21, 13.5, 0), C.iron));
-      parts.push(paint(place(ico(1.6, 1), -21, 8.8, 0, 0, 0, 0, 1, 1.2, 1), C.net, 0.1, 3), paint(place(box(1.2, 1.2, 1.2), -21, 8.6, 0), C.woodPale));
+      parts.push(cosmetic(paint(place(cyl(0.04, 0.04, 8, 4), -21, 13.5, 0), C.iron)));
+      parts.push(cosmetic(paint(place(ico(1.6, 1), -21, 8.8, 0, 0, 0, 0, 1, 1.2, 1), C.net, 0.1, 3)), paint(place(box(1.2, 1.2, 1.2), -21, 8.6, 0), C.woodPale));
       return { geometry: merge(parts), material: metal(), castShadow: true };
     },
     maxInstances: 6,
@@ -415,15 +415,17 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
   },
   // ---- hazard models (HAZ … prop=<key>), posed each frame by the renderer from track.hazardPose (vis v2 §8):
   // cylinders stand on the pose's up axis, capsules lie along it, boxes use (along f, across, up).
-  /** Kraken Lighthouse cannonball impact (geyser, r 2.6): the ball, a foam column, a target ring on the road. */
+  /** Kraken Lighthouse splash impact (geyser, r2.6): open water jet, foam droplets and a flat ripple. */
   hazard_cannonball: {
     build: () => ({
-      geometry: merge([
-        paint(place(new THREE.TorusGeometry(2.4, 0.18, 6, 24), 0, 0.08, 0, Math.PI / 2, 0, 0), '#e5484d'),
-        paint(place(cyl(1.1, 2.0, 3.2, 12), 0, 1.6, 0), C.white, 0.08, 3),
-        paint(place(sph(1.6, 10, 6), 0, 3.4, 0, 0, 0, 0, 1, 0.6, 1), C.lagoon, 0.08, 5),
-        paint(place(sph(0.85, 12, 8), 0, 4.6, 0), C.iron),
-      ]), material: gloss(),
+      geometry: cosmetic(merge([
+        paint(place(new THREE.RingGeometry(1.65, 2.5, 36).rotateX(-Math.PI / 2), 0, 0.008, 0), C.lagoon),
+        paint(place(new THREE.CylinderGeometry(0.55, 1.6, 3.4, 14, 5, true), 0, 1.7, 0), C.sea),
+        ...Array.from({ length: 7 }, (_, i) => {
+          const a = i * Math.PI * 2 / 7, radius = 0.85 + (i % 3) * 0.3;
+          return paint(place(sph(0.23 + (i % 2) * 0.08, 8, 6), Math.cos(a) * radius, 3.3 + (i % 3) * 0.65, Math.sin(a) * radius, 0, 0, (i - 3) * 0.14, 1, 1.7, 1), C.white);
+        }),
+      ])), material: MaterialLibrary.fluidTrigger(), hazardBodyRole: 'fluid-trigger',
     }),
     maxInstances: 8,
   },
@@ -446,7 +448,7 @@ export const CORAL_PROPS: Record<string, PropFactory> = {
       geometry: merge([
         paint(place(ico(1.5, 1), 0, 0, 0, 0, 0, 0, 1, 1.15, 1), C.net, 0.1, 3),
         paint(place(box(1.0, 1.0, 1.0), 0.2, -0.3, 0.2), C.woodPale), paint(place(cyl(0.4, 0.4, 0.9, 8), -0.4, -0.2, -0.3), C.red),
-      ]), hazardDecoration: paint(place(cyl(0.05, 0.05, 6, 4), 0, 3.6, 0), C.iron), material: gloss(), castShadow: true,
+      ]), hazardDecorationRole: 'flexible-suspension', hazardDecoration: paint(place(cyl(0.05, 0.05, 6, 4), 0, 3.6, 0), C.iron), material: gloss(), castShadow: true,
     }),
     maxInstances: 4,
   },

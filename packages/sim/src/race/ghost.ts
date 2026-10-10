@@ -4,19 +4,19 @@
 // recorded final hashWorld proves it. Rendering a ghost means stepping that private world alongside the race
 // (one kart, a few µs per tick); the ghost never interacts with the live race.
 //
-// Import from '@cr/sim/race/ghost.ts'. Binary layout (little-endian), version 1:
+// Import from '@cr/sim/race/ghost.ts'. Binary layout (little-endian), version 2:
 //   u32 magic 'CRG1' | u16 version | u16 simVersion | u32 seed | u8 mode | u8 laps | u16 introTicks
 //   u16 countdownTicks | u32 retireTicks | u8 friendlyFire | u8 itemSet | u8 rule flags | u8 reserved
 //   str trackId | str trackHash | str characterId | str kartBodyId | str name     (str = u16 length + u16 code units)
 //   u32 ticks | f64 raceTicks | f64 bestLapTicks | u8 lapCount | f64 × lapCount | u32 finalHash
-//   u32 runCount | runCount × (u32 packed low | u16 packed high | u16 length)
+//   u32 runCount | runCount × (u32 packed low | u32 packed high | u16 length)
 import type { CharacterId, KartBodyId, ModeId, TrackId } from '@cr/content';
 import type { InputFrame } from '../core/input.ts';
-import { packInput, unpackInput } from '../core/input.ts';
+import { makeInput, packInput, unpackInput, validDriftRequests } from '../core/input.ts';
 import type { RaceConfig, RaceRules } from '../core/state.ts';
 
 export const GHOST_MAGIC = 0x31475243; // 'CRG1'
-export const GHOST_VERSION = 1;
+export const GHOST_VERSION = 2;
 
 const MODES: readonly ModeId[] = ['speed', 'item', 'infinite', 'timeAttack'];
 const FF: readonly RaceRules['friendlyFire'][] = ['off', 'area', 'all'];
@@ -93,7 +93,7 @@ export class GhostPlayer {
   next(out: InputFrame): boolean {
     const r = this.g.runs;
     while (this.left === 0 && this.run + 2 < r.length) { this.run += 2; this.left = r[this.run + 1]!; }
-    if (this.left === 0) { out.steer = 0; out.throttle = 0; out.brake = 0; out.held = 0; out.edges = 0; out.aim = 255; out.emote = 0; return false; }
+    if (this.left === 0) { out.steer = 0; out.throttle = 0; out.brake = 0; out.held = 0; out.edges = 0; out.aim = 255; out.emote = 0; out.steerIntent = 0; out.driftRequests = 0; return false; }
     unpackInput(r[this.run]!, out);
     this.left--; this.tick++;
     return true;
@@ -143,7 +143,7 @@ export function encodeGhost(g: Readonly<Ghost>): Uint8Array {
   w.u32(nRuns);
   for (let i = 0; i < nRuns; i++) {
     const p = g.runs[2 * i]!, hi = Math.floor(p / TWO32);
-    w.u32(p - hi * TWO32); w.u16(hi); w.u16(g.runs[2 * i + 1]!);
+    w.u32(p - hi * TWO32); w.u32(hi); w.u16(g.runs[2 * i + 1]!);
   }
   return new Uint8Array(w.buf.buffer, 0, w.o).slice();
 }
@@ -163,7 +163,14 @@ export function decodeGhost(bytes: Uint8Array): Ghost {
   for (let i = 0; i < nl; i++) lapTicks.push(r.f64());
   const finalHash = r.u32();
   const nRuns = r.u32(), runs: number[] = [];
-  for (let i = 0; i < nRuns; i++) { const lo = r.u32(), hi = r.u16(), len = r.u16(); runs.push(hi * TWO32 + lo, len); }
+  const input = makeInput();
+  for (let i = 0; i < nRuns; i++) {
+    const lo = r.u32(), hi = r.u32(), len = r.u16(), packed = hi * TWO32 + lo;
+    if (!Number.isSafeInteger(packed) || packed >= 562949953421312 || len === 0) throw new Error('ghost: invalid input run');
+    unpackInput(packed, input);
+    if (input.steerIntent < -1 || input.steerIntent > 1 || !validDriftRequests(input.driftRequests)) throw new Error('ghost: invalid driving intent');
+    runs.push(packed, len);
+  }
   return {
     simVersion, seed, mode, laps, introTicks, countdownTicks,
     rules: { retireTicks, friendlyFire, itemSet, rubberBand: (fl & 1) !== 0, instantBoostInItem: (fl & 2) !== 0 },

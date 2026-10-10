@@ -11,7 +11,7 @@ const F: FrameSample = { px: 0, py: 0, pz: 0, tx: 0, ty: 0, tz: 0, rx: 0, ry: 0,
 const GUESS: TrackLoc = { path: 0, i: 0, s: 0, u: 0, h: 0, sMain: 0, valid: 0 };
 
 /** Exit speed when a warp does not keep the entry speed (m/s). */
-export const WARP_EXIT_SPEED = 30;
+export const WARP_EXIT_SPEED = 25.5;
 /** Kart–kart contacts stay off for a moment after the exit so a queue of karts cannot stack up [P]. */
 export const WARP_EXIT_GHOST = 30;
 
@@ -38,8 +38,8 @@ export function tryEnterWarp(w: WorldState, k: KartState, ctx: StepContext, prev
     if (d.drift === 1) {
       d.drift = 0; d.driftDir = 1; d.driftTicks = 0; d.driftPeak = 0; d.reDriftLock = 6;
       ctx.events.push({ t: 'driftEnd', kart: k.slot, tick: w.tick, key: evKey(w.tick, 4, k.slot) });
-      clearDriftTech(w, k, ctx);
     }
+    clearDriftTech(w, k, ctx);
     b.attachKind = Attach.WARP; b.attachId = i; b.attachT = 0;
     b.attachS = Math.sqrt(b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
     b.vx = 0; b.vy = 0; b.vz = 0; b.yawRate = 0;

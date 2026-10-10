@@ -2,6 +2,7 @@
 // OFFSET, never its world position, so movement does not create a speed-dependent following gap. Camera
 // calibration is independent of physics. Reduced motion disables speed/boost FOV changes and impact shake.
 import * as THREE from 'three/webgpu';
+import { V_REF, V_BOOST } from '@cr/sim';
 
 export interface CamTarget {
   pos: THREE.Vector3; fwd: THREE.Vector3; up: THREE.Vector3; speed: number; boosting: boolean;
@@ -12,6 +13,8 @@ export interface CamTarget {
   slip?: number;
   /** Launch boost only; ordinary boost keeps the cruising frame. */
   starting?: boolean;
+  /** Actual motor targets for the current kart, in m/s (presentation normalization only). */
+  gripSpeed?: number; boostSpeed?: number;
 }
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -98,6 +101,9 @@ export class ChaseCamera {
   update(t: CamTarget, dt: number): void {
     const cam = this.camera;
     const p = this.profile;
+    const legacy = this.profileName === 'legacy';
+    const gripSpeed = legacy ? 34 : Math.max(1, t.gripSpeed ?? V_REF);
+    const boostSpeed = legacy ? 45 : Math.max(gripSpeed + 0.01, t.boostSpeed ?? V_BOOST);
     const slip = t.slip ?? t.drift * 0.35;
     // ---- heading yaw spring, blending nose and travel direction during slip
     const fx = t.fwd.x, fz = t.fwd.z;
@@ -128,7 +134,7 @@ export class ChaseCamera {
     const ds = this.distanceScale;
     // The reference begins close to the kart, then opens the view as launch speed rises.
     // Drive this from actual launch/speed state so normal play and replay use the same presentation.
-    const launch = t.starting && !this.reducedMotion ? THREE.MathUtils.clamp(1 - t.speed / 45, 0, 1) : 0;
+    const launch = t.starting && !this.reducedMotion ? THREE.MathUtils.clamp(1 - t.speed / boostSpeed, 0, 1) : 0;
     const wantDist = (p.distance + (t.boosting ? p.boostPullback : 0) - slowPull - p.launchPullIn * launch) * ds;
     const wantH = (p.height + (t.airborne ? 0.5 : 0)) * (0.6 + 0.4 * ds);
     if (!this.init && launch > 0 && p.launchPullIn > 0) { this.dist = wantDist; this.height = wantH; }
@@ -164,9 +170,13 @@ export class ChaseCamera {
     cam.up.copy(this.heightDir);
     cam.lookAt(this.look);
     // ---- smooth speed/boost FOV cue; clamp horizontal FOV ≤ 120° on wide viewports
-    const sp = THREE.MathUtils.clamp((t.speed - 20) / 14, 0, 1);
-    const hi = THREE.MathUtils.clamp((t.speed - 45) / 6, 0, 1);
-    const target = this.reducedMotion ? this.baseFov + 2 : this.baseFov + sp * p.speedFov + (t.boosting ? p.boostFov - sp * p.speedFov : 0) + hi * p.overSpeedFov;
+    const slowSpeed = gripSpeed * (20 / 34);
+    const sp = THREE.MathUtils.clamp((t.speed - slowSpeed) / (gripSpeed - slowSpeed), 0, 1);
+    const hi = THREE.MathUtils.clamp((t.speed - boostSpeed) / (boostSpeed * (6 / 45)), 0, 1);
+    // A boost press alone does not pretend the kart has already reached its boost speed.
+    const boostProgress = t.boosting ? THREE.MathUtils.clamp((t.speed - gripSpeed) / (boostSpeed - gripSpeed), 0, 1) : 0;
+    const boostCue = legacy ? (t.boosting ? p.boostFov - sp * p.speedFov : 0) : boostProgress * (p.boostFov - p.speedFov);
+    const target = this.reducedMotion ? this.baseFov + 2 : this.baseFov + sp * p.speedFov + boostCue + hi * p.overSpeedFov;
     this.fov += (target - this.fov) * (1 - Math.exp(-dt / 0.25));
     this.applyFov(this.fov);
   }

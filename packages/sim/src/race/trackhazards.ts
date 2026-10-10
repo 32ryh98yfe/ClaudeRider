@@ -140,8 +140,11 @@ export function stepTrackHazards(w: WorldState, ctx: StepContext): void {
   for (let i = 0; i < H.length; i++) {
     const h = H[i]!;
     T.hazardPose(i, w.tick, POSE);
-    // Activity remains tick-discrete: a trap that has shut down cannot hit on its first inactive tick.
-    if (POSE.active !== 1) continue;
+    // Damage activity is tick-discrete. Visible mechanical bodies remain solid while raised/idle; parked trains
+    // follow the renderer's active/telegraph visibility, while plumes are trigger volumes only.
+    const solid = h.contact === 'solid' || h.effect === 'block';
+    const physical = solid && (h.kind !== 'train' || POSE.active === 1 || POSE.telegraph === 1);
+    if (POSE.active !== 1 && !physical) continue;
     T.hazardPose(i, w.tick - 1, SWEEP);
     // Lane restart and a parked train's arrival are teleports, never a sweep across the road.
     const lane = h.motion?.type === 'lane' ? h.motion : undefined;
@@ -169,15 +172,16 @@ export function stepTrackHazards(w: WorldState, ctx: StepContext): void {
           T.frameAt(h.path, h.s, FR);
           SWEEP.fx = FR.tx; SWEEP.fy = FR.ty; SWEEP.fz = FR.tz; SWEEP.ux = FR.ux; SWEEP.uy = FR.uy; SWEEP.uz = FR.uz;
         }
-        if (SWEEP.active === 1 && touch(h, SWEEP, x0 + dx * t, y0 + dy * t, z0 + dz * t, R + 0.00001)) { contact = true; break; }
+        const collidable = SWEEP.active === 1 || solid && (h.kind !== 'train' || SWEEP.telegraph === 1);
+        if (collidable && touch(h, SWEEP, x0 + dx * t, y0 + dy * t, z0 + dz * t, R + 0.00001)) { contact = true; break; }
         if (t >= 1) break;
         // Distance to a convex shape is Lipschitz: this step cannot jump over contact. The time cap also observes
         // activity edges; inactive geometry is skipped without inventing contact on its invisible parked route.
-        const advance = SWEEP.active === 1 && bound > 0 ? Math.max(0.000001, -C.depth / bound) : 0.125;
+        const advance = collidable && bound > 0 ? Math.max(0.000001, -C.depth / bound) : 0.125;
         t = Math.min(1, t + Math.min(0.125, advance));
       }
       if (!contact) continue;
-      if (h.effect === 'block') {
+      if (solid) {
         keepAboveSupport(k, h, SWEEP, ctx, x0 + dx * t, y0 + dy * t, z0 + dz * t);
         // Clip only the remaining inward displacement. Rewinding the entire segment would pin a kart that
         // starts touching a block even while steering away or sliding along its face.
@@ -189,19 +193,29 @@ export function stepTrackHazards(w: WorldState, ctx: StepContext): void {
           keepAboveSupport(k, h, POSE, ctx, b.px + b.nx * KART_CY, b.py + b.ny * KART_CY, b.pz + b.nz * KART_CY);
           block(k);
         }
-        continue;
+        if (h.effect === 'block') continue;
       }
-      if (hazardCC(w, k) || k.status.immuneUntil > w.tick) continue;
+      if (POSE.active !== 1 || hazardCC(w, k) || k.status.immuneUntil > w.tick) continue;
       hit(w, ctx, h, i, k);
     }
   }
   if (prev) prev.tick = -1;
 }
 
-/** A descending solid press must eject to a free side, never force a supported kart through its floor. */
+/** A moving solid must eject to an available side, never force a supported kart through its floor or a wall. */
 function keepAboveSupport(k: KartState, h: Readonly<HazardDefBaked>, p: Readonly<HazardPose>, ctx: StepContext, cx: number, cy: number, cz: number): void {
   const b = k.body;
-  if (!b.grounded || h.shape !== 'box' || C.nx * b.nx + C.ny * b.ny + C.nz * b.nz >= -0.001) return;
+  if (!b.grounded) return;
+  const downward = C.nx * b.nx + C.ny * b.ny + C.nz * b.nz < -0.001;
+  let obstructed = false;
+  if (!downward) {
+    const pieces = Math.max(1, Math.ceil(C.depth / 0.4));
+    for (let n = 1; n <= pieces; n++) {
+      const d = C.depth * n / pieces;
+      if (ctx.track.sphereWalls(cx + C.nx * d, cy + C.ny * d, cz + C.nz * d, KART_R - 0.01, ctx.scratch.contacts, 1) > 0) { obstructed = true; break; }
+    }
+    if (!obstructed) return;
+  }
   const fx = p.fx!, fy = p.fy!, fz = p.fz!, ux = p.ux!, uy = p.uy!, uz = p.uz!;
   const sx = uy * fz - uz * fy, sy = uz * fx - ux * fz, sz = ux * fy - uy * fx;
   const dx = cx - p.x, dy = cy - p.y, dz = cz - p.z;
@@ -209,15 +223,23 @@ function keepAboveSupport(k: KartState, h: Readonly<HazardDefBaked>, p: Readonly
   let best = Infinity, bx = 0, by = 0, bz = 0;
   // The closest geometric face can lie beyond a road edge (the Manor bookcase overlaps the right wall).
   // Check all four ground-plane exits, including their entire translation, before selecting the shortest.
-  for (let face = 0; face < 4; face++) {
+  for (let face = 0; face < (h.shape === 'box' ? 4 : 8); face++) {
     const along = face < 2, sign = (face & 1) === 0 ? -1 : 1;
     let nx = (along ? fx : sx) * sign, ny = (along ? fy : sy) * sign, nz = (along ? fz : sz) * sign;
+    if (face >= 4) { const sideSign = face < 6 ? -1 : 1; nx = fx * sign + sx * sideSign; ny = fy * sign + sy * sideSign; nz = fz * sign + sz * sideSign; }
     const down = nx * b.nx + ny * b.ny + nz * b.nz;
     nx -= down * b.nx; ny -= down * b.ny; nz -= down * b.nz;
     const length = Math.sqrt(nx * nx + ny * ny + nz * nz);
     if (length < 0.001) continue;
     nx /= length; ny /= length; nz /= length;
-    const depth = Math.max(0, (along ? h.size[0] : h.size[1]) * 0.5 + KART_R - (along ? a : c) * sign) / length + 0.00001;
+    let depth: number;
+    if (h.shape === 'box') depth = Math.max(0, (along ? h.size[0] : h.size[1]) * 0.5 + KART_R - (along ? a : c) * sign) / length + 0.00001;
+    else {
+      // A low swinger/capsule can also press down on the kart. Search its convex section in the support plane.
+      let low = 0, high = 2 * (reach(h) + KART_R);
+      for (let n = 0; n < 24; n++) { const mid = (low + high) / 2; if (touch(h, p, cx + nx * mid, cy + ny * mid, cz + nz * mid, KART_R)) low = mid; else high = mid; }
+      depth = high + 0.00001;
+    }
     if (depth >= best) continue;
     const x = cx + nx * depth - b.nx * KART_CY, y = cy + ny * depth - b.ny * KART_CY, z = cz + nz * depth - b.nz * KART_CY;
     const loc = ctx.scratch.loc;

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three/webgpu';
-import { loadCtrk, toArrayBuffer, type BakedTrack, type FrameSample } from '@cr/sim';
+import { loadCtrk, toArrayBuffer, readContainer, CVIS_MAGIC, CVIS_VERSION, type BakedTrack, type FrameSample } from '@cr/sim';
 import { loadContent } from '@cr/content';
 import { PropRoadClearance } from '../src/render/track/clearance.ts';
 import { getThemeKit } from '../src/render/themes/registry.ts';
@@ -35,7 +35,7 @@ describe('render-only scenery clearance', () => {
     expect(new PropRoadClearance(straight()).conflict(g, new THREE.Matrix4().makeTranslation(0, 0, 20))).not.toBeNull();
   });
 
-  it('detects the reported road-crossing cliff, forest wall and shortcut shed geometry', () => {
+  it('uses the baked obstacle transforms without runtime hiding or fitting', () => {
     for (const sample of [
       { id: 'cascade_slalom', theme: 'canopy_forest', kind: 'forest_wall', at: [-195.8, 5.3, -228.2], yaw: 0 },
       { id: 'coral_cove_docks', theme: 'coral_cove', kind: 'net_shed', at: [54.4, -0.2, -373.8], yaw: 0 },
@@ -43,10 +43,14 @@ describe('render-only scenery clearance', () => {
       const t = load(sample.id), kit = getThemeKit(sample.theme, content);
       const buf = toArrayBuffer(readFileSync(new URL(`${sample.id}.vis`, DIR)));
       const view = buildTrackView(buf, t, kit, { mergeChunks: 1, propFar: 400, foliage: 1 });
-      expect(view.stats.rejectedProps, sample.id).toBeGreaterThan(0);
+      expect(view.meta.propContactVersion).toBe(2);
+      expect(view.stats.rejectedProps, sample.id).toBe(0);
+      const data = readContainer(buf, CVIS_MAGIC, CVIS_VERSION);
+      const index = view.meta.props.findIndex(p => p.kind === sample.kind), description = view.meta.props[index]!;
       const mesh = view.root.getObjectByName(`props:${sample.kind}`) as THREE.InstancedMesh;
-      const test = new PropRoadClearance(t), m = new THREE.Matrix4();
-      for (let i = 0; i < mesh.count; i++) { mesh.getMatrixAt(i, m); expect(test.conflict(mesh.geometry, m)).toBeNull(); }
+      const stored = data.arrays.get(`p${index}.mat`) as Float32Array, m = new THREE.Matrix4();
+      expect(mesh.count).toBe(description.n);
+      for (let i = 0; i < mesh.count; i++) { mesh.getMatrixAt(i, m); expect(m.elements).toEqual(Array.from(stored.subarray(i * 16, i * 16 + 16))); }
       expect(view.root.getObjectByName('props:gantry')).toBeDefined();
     }
   }, 15000);
@@ -62,12 +66,15 @@ describe('render-only scenery clearance', () => {
 });
 
 describe('track hazard presentation follows activity', () => {
-  it('shows a warning then the damaging cannonball only during the live window', () => {
+  it('shows a warning then a visibly fluid splash trigger only during the live window', () => {
     const track = load('kraken_lighthouse'), kit = getThemeKit('coral_cove', content);
     const i = track.hazards.findIndex(h => h.name === 'ball1'), h = track.hazards[i]!;
     const view = new TrackHazards([{ id: i, name: h.name!, kind: h.kind, prop: 'hazard_cannonball', size: h.size, shape: h.shape }], track, kit);
     const particles = { rate: () => 0, burst: () => 0 } as unknown as GpuParticles;
     const body = view.root.children[0]!.children[0]!, ring = view.root.children[0]!.children[1]!;
+    expect(h.contact).toBe('trigger'); expect(body.userData.contactRole).toBe('fluid-trigger');
+    const material = (body as THREE.Mesh).material as THREE.Material;
+    expect(material.transparent).toBe(true); expect(material.opacity).toBeLessThanOrEqual(0.8); expect(material.depthWrite).toBe(false);
     view.update(100, 0, 0, particles, particles);
     expect(body.visible).toBe(false); expect(ring.visible).toBe(false);
     view.update(h.periodTicks - 20, 0, 0, particles, particles);

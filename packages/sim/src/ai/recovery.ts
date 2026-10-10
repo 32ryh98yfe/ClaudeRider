@@ -29,6 +29,7 @@ export interface RecoveryIn {
 
 export interface RecoveryOut { steer: number; thr: number; brk: number; reset: boolean }
 
+const POST_CC_REVERSE_TICKS = 30; // half-second retreat uses the limited immunity window without excessive backtracking
 const SLOW_V = 2, SLOW_TICKS = 90, PIN_TICKS = 24, MAX_TRIES = 2, REVERSE_TICKS = 54, DRIVE_OUT_TICKS = 60, RESET_AT = 200, PROGRESS_M = 12, WRONG_DEG = 110 * Math.PI / 180, TURN_LIMIT = 150;
 
 export class Recovery {
@@ -38,24 +39,37 @@ export class Recovery {
   private episode = 0;    // ticks since the stuck episode began (0 = none)
   private wrong = 0;      // consecutive ticks pointed the wrong way at low speed
   private startDist = 0;  // race distance when the episode began
+  private reverseTicks = REVERSE_TICKS;
   private tries = 0;      // reverse attempts in this episode
   /** Episodes started / resets pressed (for tests and the balance report). */
   episodes = 0; resets = 0;
 
-  reset(): void { this.mode = RecoveryMode.NONE; this.t = 0; this.slow = 0; this.episode = 0; this.wrong = 0; this.tries = 0; }
+  reset(): void { this.mode = RecoveryMode.NONE; this.t = 0; this.slow = 0; this.episode = 0; this.wrong = 0; this.tries = 0; this.reverseTicks = REVERSE_TICKS; }
 
   /** Returns true when recovery overrides the driving controls this tick (writes `out`). */
   update(r: Readonly<RecoveryIn>, out: RecoveryOut): boolean {
     out.reset = false;
-    if (!r.canAct || r.sinceGo < 90 || r.sinceRespawn < 40 || r.sinceCc < 30) { this.reset(); return false; }
+    if (r.sinceGo < 90 || r.sinceRespawn < 40) { this.reset(); return false; }
+    if (!r.canAct) {
+      // Hard CC pauses an already committed escape; restarting the maneuver after each pendulum hit
+      // used the entire immunity window waiting and left a low-speed kart permanently nose-first on it.
+      if (r.sinceCc !== 0) this.reset();
+      return false;
+    }
+    const pinnedAfterCc = r.v < SLOW_V && r.sinceWall < 10 && r.lowSpeedTicks >= PIN_TICKS;
+    if (r.sinceCc < 30 && !pinnedAfterCc && this.mode === RecoveryMode.NONE) { this.reset(); return false; }
     const slowNow = r.v < SLOW_V;
-    this.slow = slowNow ? this.slow + 1 : 0;
+    this.slow = slowNow ? Math.max(this.slow + 1, pinnedAfterCc ? PIN_TICKS : 0) : 0;
     // wrong way: the nose points > 110° away from the track (after a spin, a bad bounce or a mirrored drift)
     const wrongNow = Math.abs(r.aTrack) > WRONG_DEG;
     this.wrong = wrongNow ? this.wrong + 1 : 0;
     if (this.episode > 0) {
       this.episode++;
-      if (r.raceDist > this.startDist + PROGRESS_M && this.mode === RecoveryMode.NONE) this.episode = 0;
+      // A drive-out may release the wheel just before alignment settles. Re-evaluate
+      // recovery once it has made measurable forward progress; otherwise a live kart
+      // already metres beyond a temporary blocker inherits the old reset deadline.
+      const movingFree = r.raceDist > this.startDist + 2 && r.vFwd > 6 && Math.abs(r.aTrack) < 0.6;
+      if (this.mode === RecoveryMode.NONE && (r.raceDist > this.startDist + PROGRESS_M || movingFree)) this.episode = 0;
     }
 
     switch (this.mode) {
@@ -64,13 +78,15 @@ export class Recovery {
         // attempt in the same episode goes straight to the manual reset
         if (this.slow >= SLOW_TICKS || (this.slow >= PIN_TICKS && r.sinceWall < 10)) {
           this.begin(r, this.slow);
-          this.enter(++this.tries >= MAX_TRIES ? RecoveryMode.RESET : RecoveryMode.REVERSE);
+          const next = ++this.tries >= MAX_TRIES ? RecoveryMode.RESET : RecoveryMode.REVERSE;
+          this.enter(next);
+          if (next === RecoveryMode.REVERSE && pinnedAfterCc && r.sinceCc < 30) this.reverseTicks = POST_CC_REVERSE_TICKS;
         }
         else if (this.wrong >= 12) { this.enter(RecoveryMode.TURN_AROUND); this.begin(r, this.wrong); }
         else if (r.wrongWayTicks >= 72) { this.enter(RecoveryMode.RESET); this.begin(r, r.wrongWayTicks); }
         break;
       case RecoveryMode.REVERSE:
-        if (this.t >= REVERSE_TICKS) this.enter(RecoveryMode.DRIVE_OUT);
+        if (this.t >= this.reverseTicks) this.enter(RecoveryMode.DRIVE_OUT);
         break;
       case RecoveryMode.DRIVE_OUT:
         if (this.t >= DRIVE_OUT_TICKS || (r.vFwd > 6 && Math.abs(r.aTarget) < 0.35)) this.finishIfFree(r);
@@ -110,7 +126,7 @@ export class Recovery {
     return false;
   }
 
-  private enter(m: number): void { this.mode = m; this.t = 0; }
+  private enter(m: number): void { this.mode = m; this.t = 0; if (m === RecoveryMode.REVERSE) this.reverseTicks = REVERSE_TICKS; }
   private begin(r: Readonly<RecoveryIn>, already: number): void {
     if (this.episode === 0) { this.episode = already; this.startDist = r.raceDist; this.episodes++; this.tries = 0; }
   }

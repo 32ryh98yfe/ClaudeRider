@@ -5,6 +5,19 @@ This file is the **single source of truth**.
 - All durations are **integer ticks at 60 Hz** (1 tick = 16.667 ms), with seconds shown in parentheses.
 - Units are metres, m/s and m/s². The world is right-handed with +Y up.
 
+## Current amendment — simulation 10
+
+The user-approved play-test changes in [19 — Continuous handling](19-continuous-handling.md)
+and [20 — Shared track contacts](20-track-contact-and-finish.md) are canonical
+amendments to the historical parameter tables below. Reference/Balance uses
+28.9 m/s ordinary speed, 32.591975 m/s boost speed, 15.3 m/s² base thrust,
+24/12/24 s⁻¹ grip/drift/counter lateral damping, 36-tick minimum drift intent,
+continuous yaw acceleration, and 48-tick finish braking. The display factor
+remains 205/34. Wall impacts preserve charge, inventory and active boost timers.
+Input is an ordered 8-byte sample (lobby protocol 3, ghost format 2); track
+containers use CTRK 3/CVIS 2 with shared instance contacts. These amendments
+supersede old impulse, speed, brake-spin and immutable-track requirements.
+
 Status keys: **[S]** sourced from research · **[V]** validated by the headless gap-2 simulation · **[P]** proposed design value.
 
 ---

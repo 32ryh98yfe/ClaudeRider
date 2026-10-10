@@ -277,7 +277,7 @@ export function applyEffectMods(w: WorldState, ctx: StepContext): void {
     const P = paramsFor(ctx.content.karts.byCode[k.spec]!);
     const d = k.drive;
     const boosting = d.boostTicks > 1 || d.startTicks > 1;
-    if (VT[i]! > 0) m.vTarget = boosting && P.vBoost > VT[i]! ? P.vBoost : VT[i]!;
+    if (VT[i]! > 0) m.vTarget = Math.min(P.vBoost, boosting && P.vBoost > VT[i]! ? P.vBoost : VT[i]!);
     if (CAP[i]! < 99) {
       // effect caps are absolute (vT ← min(vT, cap·V_REF), 10-sim-spec §7.3): fold into the multiplicative vCapMul
       const est = m.vTarget > 0 || boosting ? (m.vTarget > 0 ? m.vTarget : P.vBoost) : P.vGrip;

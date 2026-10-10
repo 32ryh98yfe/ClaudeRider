@@ -4,7 +4,7 @@ import { AIS, SHARED } from '@cr/sim';
 import type { Sample } from './geometry.ts';
 
 // The braking preview must use the same deceleration as the live kart model.
-const A_BRAKE = SHARED.aBrake, BRAKE_FRAC = 0.8, OMEGA_CAP = 1.7, HAIRPIN_CAP = 1.0, HAIRPIN_TURN = 2.2, R_BIAS = 0.6;
+const A_BRAKE = SHARED.aBrake, BRAKE_FRAC = 0.8, OMEGA_CAP = SHARED.driftYaw * 0.6, HAIRPIN_CAP = SHARED.driftYaw * 0.38, HAIRPIN_TURN = 2.2, R_BIAS = 0.6;
 
 /**
  * Headings of the plan tangent (radians, CCW from +x with north = −z). Where the tangent is near vertical (inside a
