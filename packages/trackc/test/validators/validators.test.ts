@@ -90,7 +90,8 @@ describe('seeded violations', () => {
   });
   it('V13 laps do not match the reference lap', () => {
     expect(errors(MEADOW, 'V13', { refLapTicks: 60 * 20 })).toContainEqual(expect.stringMatching(/laps=3 but the ghost lap 20\.0 s/));
-    expect(errors(MEADOW, 'V13', { refLapTicks: 60 * 38 })).toEqual([]);
+    // The v10 design-speed table is 15% slower: 42s remains within its ±8% band and gives a126s three-lap race.
+    expect(errors(MEADOW, 'V13', { refLapTicks: 60 * 42 })).toEqual([]);
   });
   it('V14 straight ratio outside the band (strict)', () => {
     expect(errors(edit(MEADOW, 'length=1400', 'length=2200'), 'V14')).toEqual([expect.stringMatching(/straight ratio/)]);

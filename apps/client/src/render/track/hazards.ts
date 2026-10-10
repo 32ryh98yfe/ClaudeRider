@@ -14,12 +14,13 @@ import type { ThemeKit } from '../themes/kit.ts';
 import { MaterialLibrary } from '../materials/library.ts';
 import { merge, paint, place, box, cyl, rbox, torus } from '../util/geo.ts';
 import type { GpuParticles, SpawnOpts } from '../vfx/gpuParticles.ts';
+import { fitHazardBody, fitHazardSuspension } from './hazardBody.ts';
 
 export interface HazardVisMeta { id: number; kind: string; name: string; prop: string; size: [number, number, number]; shape: string; group?: number }
 
 interface Haz {
   meta: HazardVisMeta; root: THREE.Group; body: THREE.Object3D; glow: THREE.Mesh | null; ring: THREE.Mesh;
-  arm: THREE.Mesh | null; armLen: number; flat: boolean; capsule: boolean; wasActive: boolean; wasTele: boolean; lastPhase: number; hornT: number;
+  activeBody: boolean; arm: THREE.Mesh | null; armLen: number; flat: boolean; capsule: boolean; wasActive: boolean; wasTele: boolean; lastPhase: number; hornT: number;
 }
 
 const STEAM: SpawnOpts = { shape: 5, additive: false, size0: 0.8, size1: 2.6, gravity: 2.5, drag: 1.2, alpha: 0.5 };
@@ -32,8 +33,13 @@ const CAR_COLORS = ['#D97757', '#6A9BCC', '#FAF9F5', '#7BD88F', '#FFC857'];
 function defaultParts(kind: string, id: number): { lit: THREE.BufferGeometry; glow: THREE.BufferGeometry | null } {
   switch (kind) {
     case 'geyser': return {
-      // vent rim at ground level; the water column (glow) only shows while active
-      lit: merge([paint(place(cyl(1.05, 1.2, 0.18, 14), 0, 0.09, 0), '#3b3530', 0.1, 3), paint(place(torus(0.9, 0.12, 6, 18), 0, 0.2, 0, Math.PI / 2, 0, 0), '#5a4f45')]),
+      // A flush metal grate is supported by the real road, not an inert raised rim. Its outer radius matches
+      // the plume footprint; the grate is only millimetres above the surface to avoid depth fighting.
+      lit: merge([
+        paint(place(new THREE.CircleGeometry(0.76, 32).rotateX(-Math.PI / 2), 0, 0.001, 0), '#292827'),
+        paint(place(new THREE.RingGeometry(0.76, 1, 32).rotateX(-Math.PI / 2), 0, 0.003, 0), '#5a4f45'),
+        ...[-0.5, -0.25, 0, 0.25, 0.5].map(x => paint(place(new THREE.PlaneGeometry(0.035, 2 * Math.sqrt(0.76 * 0.76 - x * x)).rotateX(-Math.PI / 2), x, 0.0035, 0), '#77706a')),
+      ]),
       glow: paint(place(cyl(0.55, 0.85, 1, 12), 0, 0.5, 0), '#dff6ff'),
     };
     case 'press': return {
@@ -68,6 +74,7 @@ function defaultParts(kind: string, id: number): { lit: THREE.BufferGeometry; gl
 export class TrackHazards {
   readonly root = new THREE.Group();
   private list: Haz[] = [];
+  private ownedGeometry: THREE.BufferGeometry[] = [];
   private track: BakedTrack;
   private a: HazardPose = { x: 0, y: 0, z: 0, active: 0, telegraph: 0 };
   private b: HazardPose = { x: 0, y: 0, z: 0, active: 0, telegraph: 0 };
@@ -91,17 +98,30 @@ export class TrackHazards {
       const generic = `hazard_${meta.kind === 'traffic' ? 'car' : meta.kind}`;
       const kitProp = kit.props[meta.prop] ?? kit.props[generic];
       const isDefault = meta.prop === generic;
-      let body: THREE.Object3D, glow: THREE.Mesh | null = null;
+      let body: THREE.Object3D, glow: THREE.Mesh | null = null, decoration: THREE.Mesh | null = null;
       if (kitProp) {
         const built = kitProp.build(kit.data.palette);
-        body = new THREE.Mesh(built.geometry, built.material);
+        const fitted = fitHazardBody(built.geometry, def ?? meta);
+        this.ownedGeometry.push(fitted.geometry);
+        body = new THREE.Mesh(fitted.geometry, built.material);
+        body.userData.contactRole = built.hazardBodyRole;
+        if (built.hazardDecoration) {
+          const suspended = fitHazardSuspension(built.hazardDecoration, fitted.transform);
+          this.ownedGeometry.push(suspended);
+          decoration = new THREE.Mesh(suspended, built.material);
+          decoration.name = 'hazardSuspension'; decoration.castShadow = true;
+          decoration.userData.contactRole = built.hazardDecorationRole;
+        }
       } else {
         if (!kitProp && !isDefault && import.meta.env.DEV && !warned.has(meta.prop)) { warned.add(meta.prop); console.warn(`[hazards] no prop ${meta.prop}; using the default ${meta.kind} look`); }
         const key = meta.kind === 'traffic' ? `traffic${meta.id % CAR_COLORS.length}` : meta.kind;
         let parts = geoCache.get(key);
         if (!parts) { parts = defaultParts(meta.kind, meta.id); geoCache.set(key, parts); }
         body = new THREE.Mesh(parts.lit, MaterialLibrary.vertexLit(0.55, 0.15));
-        if (parts.glow) glow = new THREE.Mesh(parts.glow, meta.kind === 'geyser' ? MaterialLibrary.bubble('#bfeaff', true) : MaterialLibrary.emissiveVertex(3));
+        if (parts.glow) {
+          glow = new THREE.Mesh(parts.glow, meta.kind === 'geyser' ? MaterialLibrary.fluidTrigger() : MaterialLibrary.emissiveVertex(3));
+          if (meta.kind === 'geyser') glow.userData.contactRole = 'fluid-trigger';
+        }
       }
       const capsule = meta.kind === 'swinger';
       const [s0, s1, s2] = meta.size;
@@ -115,13 +135,15 @@ export class TrackHazards {
         body = grp;
       }
       // built-in looks are unit-sized → scale to the hazard size in its frame (x across, y up, z along f);
-      // kit models (L12-hazard-models.md) are authored at real size in the same frame and are used as they are
-      if (kitProp) { /* real size */ }
+      // Kit body geometry is already fitted to the matching collider; suspension decorations remain separate.
+      if (kitProp) { /* fitted real size */ }
       else if (meta.shape === 'box') body.scale.set(s1, s2, s0);
       else if (meta.shape === 'sphere') body.scale.setScalar(s0);
       else if (!capsule) body.scale.set(s0, meta.kind === 'geyser' ? 1 : s1, s0);
       (body as THREE.Mesh).castShadow = meta.kind !== 'geyser';
+      body.name = 'hazardBody';
       root.add(body);
+      if (decoration) root.add(decoration);
       if (glow) {
         if (meta.kind === 'geyser') glow.scale.set(s0 * 0.9, s1, s0 * 0.9);
         else glow.scale.copy(body.scale);
@@ -144,7 +166,7 @@ export class TrackHazards {
         root.add(arm);
       }
       this.root.add(root);
-      this.list.push({ meta, root, body, glow, ring, arm, armLen, flat, capsule, wasActive: false, wasTele: false, lastPhase: -1, hornT: 2 + meta.id * 1.7 });
+      this.list.push({ meta, root, body, glow, ring, activeBody: !!kitProp && meta.kind === 'geyser', arm, armLen, flat, capsule, wasActive: false, wasTele: false, lastPhase: -1, hornT: 2 + meta.id * 1.7 });
     }
   }
 
@@ -168,13 +190,15 @@ export class TrackHazards {
       if (u.lengthSq() < 1e-8) u.set(0, 1, 0);
       u.normalize(); s.crossVectors(u, f).normalize(); f.crossVectors(s, u).normalize();
       const tele = A.telegraph === 1, active = A.active === 1;
-      // press: shake while telegraphing
-      if (tele && h.meta.kind === 'press') p.addScaledVector(s, Math.sin(this.t * 60) * 0.06);
+      // Warning rings and audio pulse; the rigid body always shares the exact physical pose.
       this.m.makeBasis(s, u, f).setPosition(p);
       h.root.matrix.copy(this.m);
       h.root.matrixWorldNeedsUpdate = true;
       // parked trains are far off the road: skip drawing them when not active or telegraphing
       h.root.visible = h.meta.kind !== 'train' || active || tele;
+      // Custom geysers include the active fluid column in their body (the built-in vent splits the plume out).
+      // An idle column looked solid but deliberately had no sim contact; show only its warning before eruption.
+      if (h.activeBody) h.body.visible = active;
       h.ring.visible = tele && h.meta.kind !== 'traffic' && h.meta.kind !== 'train';
       if (h.ring.visible) {
         const beat = 0.5 + 0.5 * Math.sin(this.t * 14);
@@ -219,7 +243,7 @@ export class TrackHazards {
     h.lastPhase = phase;
   }
 
-  dispose(): void { this.root.removeFromParent(); }
+  dispose(): void { this.root.removeFromParent(); for (const geometry of this.ownedGeometry) geometry.dispose(); this.ownedGeometry.length = 0; }
 }
 
 let unitCyl: THREE.BufferGeometry | null = null;

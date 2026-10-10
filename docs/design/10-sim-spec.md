@@ -181,7 +181,7 @@ Specified in `12-items-spec.md` §6. The sim reads `status.modMask` (a bitmask o
 | Phase | Work | Section |
 |---|---|---|
 | 0 | `w.tick += 1` | — |
-| 1 | **Latch inputs** for every kart; derive drift and throttle edges from `prevHeld`/`prevThrottle`; apply input-modifying effects | §5.1 |
+| 1 | **Latch inputs** for every kart; combine explicit drift presses with `prevHeld` transitions, derive throttle edges from `prevThrottle`; apply input-modifying effects | §5.1 |
 | 2 | **Effects starting now** (`start == tick`), in `effectId` order; rebuild `modMask`/`cc` | `12-items-spec.md` §6 |
 | 3 | **Kart dynamics**, integrated once per kart (K0–K19) | §6–§9 |
 | 4 | **Move and collide** in 2 half-displacements: for each half, every kart moves `v·DT/2`, then ground ray, then wall sphere; after all karts moved, kart–kart contacts | §10, §11 |
@@ -201,9 +201,9 @@ For each kart with `spec ≠ 0`:
 | `thrIn` | `throttle > 0` |
 | `τ` | `throttle / 15` (analog throttle scale on the base acceleration only) [P] |
 | `brk` | `brake > 0` |
-| `driftHeld`, `itemHeld`, `lookBack` | `held & DRIFT`, `held & ITEM`, `held & LOOK_BACK` |
+| `driftHeld`, `itemHeld`, `lookBack` | `(held & DRIFT) || (edges & DRIFT)`, `held & ITEM`, `held & LOOK_BACK` (SIM_VERSION 9: a latched Drift press lasts one tick if already released) |
 | `thrEdge` | `thrIn && prevThrottle == 0` |
-| `driftEdge` | `driftHeld && !(prevHeld & DRIFT)` |
+| `driftEdge` | `(edges & DRIFT) || (driftHeld && !(prevHeld & DRIFT))`; hard CC/respawn disable both |
 | `useEdge`, `swapEdge`, `tapL`, `tapR`, `respawnEdge`, `emoteEdge` | from `edges` |
 
 Input-modifying state, applied in this order:

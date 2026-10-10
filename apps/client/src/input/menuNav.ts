@@ -76,10 +76,13 @@ function isTextField(el: Element | null): boolean {
 }
 
 function onKey(e: KeyboardEvent): void {
-  if (gameKeysActive() || isCapturing() || e.defaultPrevented && e.key !== 'Escape') return;
+  // The capture-phase race handler can open pause before this event bubbles here.
+  // Its consumed Escape must not also close the newly mounted pause menu.
+  if (gameKeysActive() || isCapturing() || e.defaultPrevented) return;
   const act = document.activeElement;
   const text = isTextField(act);
   if (e.key === 'Escape') {
+    if (e.repeat) return;
     if (text) { (act as HTMLElement).blur(); e.preventDefault(); return; }
     if (goBack()) e.preventDefault();
     return;

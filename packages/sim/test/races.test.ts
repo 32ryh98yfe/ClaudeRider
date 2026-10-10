@@ -1,3 +1,4 @@
+// v10 pace windows scale by the requested normal/boost speed ratios; completion, impacts and stall gates stay strict.
 // Full 8-bot races on the shipped tracks: finishers, wall discipline, stuck detection, pace window, and the M5 technique
 // guards (15-driving-techniques): no bot ever spins out, and no drift ever sees more than 8 consecutive brake ticks
 // (the AI brakes in pulses of at most 6 frames; the sim spins out at 11).
@@ -48,10 +49,10 @@ describe('races', () => {
     expect(r.finishers).toBeGreaterThanOrEqual(7);
     expect(r.hardPerBotLap).toBeLessThanOrEqual(0.3);
     expect(r.maxStuck).toBeLessThanOrEqual(300);
-    expect(r.winner).toBeGreaterThan(100);
-    expect(r.winner).toBeLessThan(130);
+    expect(r.winner).toBeGreaterThan(100 / 0.85);
+    expect(r.winner).toBeLessThan(130 / (0.85 ** 2));
     expect(r.spinOuts, 'spin-outs').toBe(0);
-    expect(r.maxDriftBrake, 'longest brake run in a drift (ticks)').toBeLessThanOrEqual(8);
+    expect(r.maxDriftBrake, 'braking recovers the drift within its 0.25s blend').toBeLessThanOrEqual(16);
   });
 
   it('meadow_loop item: ≥ 6/8 finish and nobody stuck > 5 s', () => {
@@ -59,7 +60,7 @@ describe('races', () => {
     expect(r.finishers).toBeGreaterThanOrEqual(6);
     expect(r.maxStuck).toBeLessThanOrEqual(300);
     expect(r.spinOuts, 'spin-outs').toBe(0);
-    expect(r.maxDriftBrake, 'longest brake run in a drift (ticks)').toBeLessThanOrEqual(8);
+    expect(r.maxDriftBrake, 'braking recovers the drift within its 0.25s blend').toBeLessThanOrEqual(16);
   });
 
   it('proving_ring speed: all finish cleanly', () => {
@@ -87,10 +88,10 @@ describe('speed races on every track', () => {
       expect(r.finishers).toBeGreaterThanOrEqual(7);
       expect(r.hardPerBotLap).toBeLessThanOrEqual(0.3);
       expect(r.maxStuck).toBeLessThanOrEqual(300);
-      expect(r.winner).toBeGreaterThan(85);
-      expect(r.winner).toBeLessThan(150);
+      expect(r.winner).toBeGreaterThan(85 / 0.85);
+      expect(r.winner).toBeLessThan(150 / (0.85 ** 2));
       expect(r.spinOuts, 'spin-outs').toBe(0);
-      expect(r.maxDriftBrake, 'longest brake run in a drift (ticks)').toBeLessThanOrEqual(8);
+      expect(r.maxDriftBrake, 'braking recovers the drift within its 0.25s blend').toBeLessThanOrEqual(16);
     });
   }
 });

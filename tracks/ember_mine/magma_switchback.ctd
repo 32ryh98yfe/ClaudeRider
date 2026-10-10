@@ -42,7 +42,8 @@ LINE start at=40
 BRANCH ledge from=@geyser_field to=@geyser_gap+22 kind=risk aiMin=0.9 w=8.5 wall=rock:0.6 gore=none surf=obsidian kill=lava {
   C R50 20 L ; S ?x wallL=none:0:ledgeKill ; C R80 40 R wallL=rock:0.6 ; S ?y wallL=rock:0.6 ; C R50 20 L
 }
-PAD at=@under_plateau d=0 len=6 w=4
+# Keep two seconds of unsteered boosted exit on the broad plateau; the 30m underpass leads directly into a bend.
+PAD at=@plateau+1 d=0 len=6 w=4
 PAD at=@lava_jump+1 d=0 len=6 w=4
 # three geysers in the geyser field, staggered so there is always a way through
 HAZ geyser g1 at=@geyser_field+30 d=+2 r=3 period=3.6 on=0-1.0 tele=0.8 offset=0.0

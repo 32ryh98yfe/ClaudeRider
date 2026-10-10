@@ -23,11 +23,11 @@ describe('robustness: random drops (§14.8)', () => {
     ['meadow_loop', () => bakedTrack('clayhill_village/meadow_loop')],
     ['proving_ring', () => bakedTrack('spark_circuit/proving_ring')],
   ];
-  it.each(tracks)('%s: every drop lands on ground or triggers a kill respawn; no fall-through', (_name, mk) => {
+  it.each(tracks)('%s: every drop lands, reaches a kill plane, or safely recovers from a solid prop; no fall-through', (_name, mk) => {
     const s = dropTest(mk(), DROPS, 7);
     expect(s.fallThrough).toBe(0);
     expect(s.stuck).toBe(0);
-    expect(s.landed + s.killed).toBe(s.drops);
+    expect(s.landed + s.killed + s.recoveredFromProp).toBe(s.drops);
     expect(s.landed).toBeGreaterThan(0);
   });
 });

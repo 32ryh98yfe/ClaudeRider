@@ -1,7 +1,7 @@
 // Per-item tick-exact timelines (12-items-spec §2, §7): use, spawn, commit, start S, end, onEnd — on scripted karts
 // driving the drag oval's 1 km straight (slots alternate lanes u = −4 / +4, 3.5 m apart along the track).
 import { describe, expect, it } from 'vitest';
-import { Edge, Phase, type Decision, type SimEvent } from '@cr/sim';
+import { Edge, Phase, V_REF, V_BOOST, type Decision, type SimEvent } from '@cr/sim';
 import { EF, IT } from '../src/items/codes.ts';
 import { objectId } from '../src/items/ids.ts';
 import { planarSpeed } from '../src/items/effects.ts';
@@ -356,7 +356,7 @@ describe('self and team items', () => {
   });
 
   it('Overclock Aura: boost toward vBoost for 180 ticks and spins an opponent it touches', () => {
-    const sc = pair(8);
+    const sc = pair(2); // within the smaller boost advantage
     sc.give(2, 'overclock_aura');
     const T = use(sc, 2);
     expect(sc.ctx.scratch.mods[2]!.vTarget).toBe(0); // applied from the next tick's modifiers
@@ -379,15 +379,20 @@ describe('self and team items', () => {
     expect(evs(sc, 'effectEnd').filter((e) => e.victim === 2 && e.effect === EF.tether_pull).map((e) => e.tick)).toEqual([T + 21 + 131]);
     expect(hits(sc, 2, EF.slingshot)).toEqual([]);
     const gap1 = sc.w.karts[0]!.race.raceDist - sc.w.karts[2]!.race.raceDist;
-    expect(gap0 - gap1).toBeGreaterThan(12);         // closed at ≈ 0.25·34 m/s for 2.2 s
+    expect(gap0 - gap1).toBeGreaterThan((V_BOOST - V_REF) * 0.5);         // closed at ≈ 0.25·34 m/s for 2.2 s
   });
 
   it('Attention Tether: hook 21 ticks, pull, slingshot on reaching a slowing target', () => {
-    const sc = pair(60);
+    // Doc 17's stronger start adds ~13 m to the leader's head start. Keep this
+    // catchable-gap fixture near the old 63.6 m instead of silently testing an
+    // out-of-reach target (the separate cruising-target test covers no catch).
+    const sc = pair(35);
     sc.give(2, 'attention_tether');
     sc.aim[2] = 0;
     sc.until(() => sc.w.karts[2]!.items.aimLockTicks >= 17, 60);
     const T = use(sc, 2);
+    const gap = sc.w.karts[0]!.race.raceDist - sc.w.karts[2]!.race.raceDist;
+    expect(gap).toBeGreaterThan(V_REF); expect(gap).toBeLessThan(V_REF * 1.5);
     sc.brakeAt[0] = T;
     expect(dec(sc, 'effect').filter((d) => d.code === EF.tether_pull)).toMatchObject([{ victim: 2, start: T + 21, dur: 132 }]);
     sc.until(() => hits(sc, 2, EF.slingshot).length > 0 || sc.w.tick > T + 21 + 132, 200);
@@ -396,7 +401,7 @@ describe('self and team items', () => {
     expect(s).toHaveLength(1);
     expect(s[0]!.tick).toBeLessThan(T + 21 + 132);
     sc.advance(2);
-    expect(sc.ctx.scratch.mods[2]!.vTarget).toBeCloseTo(42.5, 5);
+    expect(sc.ctx.scratch.mods[2]!.vTarget).toBeCloseTo(42.5 * 0.85 ** 2, 5);
   });
 });
 

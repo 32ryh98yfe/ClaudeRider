@@ -16,8 +16,8 @@ describe('F4 rail and warp fixture', () => {
     expect(pm.map!.host).toBe(0);
     expect(rail.captureDMax).toBe(2);
     expect(rail.captureHeadingDeg).toBe(25);
-    expect(rail.vMin).toBe(15);
-    expect([rail.speedMin, rail.accel, rail.speedMax]).toEqual([38, 3, 42]);
+    expect(rail.vMin).toBe(15 * 0.85);
+    expect([rail.speedMin, rail.accel, rail.speedMax]).toEqual([38 * 0.85, 3 * 0.85, 42 * 0.85]);
     expect(rail.gaugePerSec).toBeCloseTo(0.3, 6);
     const lockMin = (rail.length! / rail.speedMax) * 60, lockMax = (rail.length! / rail.speedMin) * 60;
     expect(lockMin).toBeGreaterThanOrEqual(48);

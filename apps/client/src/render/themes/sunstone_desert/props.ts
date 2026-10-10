@@ -6,7 +6,7 @@ import type { PropFactory } from '../../props/defaults.ts';
 import { TRACKSIDE_PROPS } from '../../props/trackside.ts';
 import { BACKED_BOARDS } from './mirror.ts';
 import { GlowParts, glowLit } from '../neon_harbor/glowlit.ts';
-import { merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../../util/geo.ts';
+import { cosmetic, merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../../util/geo.ts';
 import { arcTube, buntingLine, dome, lathe, part, prism, seeded, tubeThrough } from '../clayhill_village/toyshapes.ts';
 
 const SAND = '#e8c27a', SANDSTONE = '#c98b4e', SANDSTONE_DK = '#a86f3c', OASIS = '#3fb8af', TERRA = '#c96442', CREAM = '#f4e3c3';
@@ -54,7 +54,7 @@ function palmLite(x: number, z: number, k: number, yaw: number, seed: number): T
   const out = [part(tubeThrough([[x, -0.5, z], [x + c * lean * 0.3 * k, 3 * k, z + s * lean * 0.3 * k], top], 0.22 * k, 6, 5), TRUNK)];
   for (let i = 0; i < 5; i++) {
     const a = (i / 5) * Math.PI * 2 + seed;
-    out.push(part(cone(0.5 * k, 3.2 * k, 4), i % 2 ? PALM : PALM_DK, top[0] + Math.cos(a) * 1.4 * k, top[1] - 0.25 * k, top[2] + Math.sin(a) * 1.4 * k, 0, -a, Math.PI / 2 + 0.4, 1, 1, 0.25));
+    out.push(cosmetic(part(cone(0.5 * k, 3.2 * k, 4), i % 2 ? PALM : PALM_DK, top[0] + Math.cos(a) * 1.4 * k, top[1] - 0.25 * k, top[2] + Math.sin(a) * 1.4 * k, 0, -a, Math.PI / 2 + 0.4, 1, 1, 0.25)));
   }
   return out;
 }
@@ -85,8 +85,8 @@ function bazaarHouse(v: 'a' | 'b' | 'c'): THREE.BufferGeometry {
   // trim band under the roof
   p.push(part(box(0.06, 0.22, W), trim, 0.03, H - 0.45, 0));
   // striped awning over the wall: 3.0 m at its lip, 3.7 m at the house, 1.15 m deep
-  for (let i = 0; i < 8; i++) p.push(part(box(1.25, 0.07, W / 8 - 0.02), cloth[i % 2]!, 0.5, 3.35, -W / 2 + W / 16 + (i * W) / 8, 0, 0, -0.55));
-  p.push(part(box(0.06, 0.18, W), cloth[1]!, 1.06, 2.98, 0));                                  // valance
+  for (let i = 0; i < 8; i++) p.push(cosmetic(part(box(1.25, 0.07, W / 8 - 0.02), cloth[i % 2]!, 0.5, 3.35, -W / 2 + W / 16 + (i * W) / 8, 0, 0, -0.55)));
+  p.push(cosmetic(part(box(0.06, 0.18, W), cloth[1]!, 1.06, 2.98, 0)));                                  // valance
   for (const z of [-W / 2 + 0.2, W / 2 - 0.2]) p.push(part(box(0.06, 0.06, 0.06), WOOD_DK, 1.0, 3.0, z));
   if (v === 'b') {
     // rug hung over a small balcony rail
@@ -98,7 +98,7 @@ function bazaarHouse(v: 'a' | 'b' | 'c'): THREE.BufferGeometry {
   } else {
     // potted palm on the roof terrace
     p.push(part(lathe([[0, 0], [0.4, 0.05], [0.45, 0.5], [0.35, 0.6]], 8), TERRA, -1.6, H + 0.3, 1.8));
-    for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; p.push(part(cone(0.22, 1.3, 4), i % 2 ? PALM : PALM_DK, -1.6 + Math.cos(a) * 0.55, H + 1.25, 1.8 + Math.sin(a) * 0.55, 0, -a, Math.PI / 2 - 0.5, 1, 1, 0.3)); }
+    for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; p.push(cosmetic(part(cone(0.22, 1.3, 4), i % 2 ? PALM : PALM_DK, -1.6 + Math.cos(a) * 0.55, H + 1.25, 1.8 + Math.sin(a) * 0.55, 0, -a, Math.PI / 2 - 0.5, 1, 1, 0.3))); }
   }
   return merge(p);
 }
@@ -122,9 +122,9 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
       const p: THREE.BufferGeometry[] = [part(tubeThrough([[0, -1.5, 0], [0.3, 2, 0], [0.9, 4.5, 0], [1.6, 6.6, 0]], 0.26, 10, 6), TRUNK)];
       for (let i = 0; i < 7; i++) {
         const a = (i / 7) * Math.PI * 2;
-        p.push(part(cone(0.55, 3.6, 4), i % 2 ? PALM : PALM_DK, 1.6 + Math.cos(a) * 1.6, 6.3, Math.sin(a) * 1.6, 0, -a, Math.PI / 2 + 0.35, 1, 1, 0.25));
+        p.push(cosmetic(part(cone(0.55, 3.6, 4), i % 2 ? PALM : PALM_DK, 1.6 + Math.cos(a) * 1.6, 6.3, Math.sin(a) * 1.6, 0, -a, Math.PI / 2 + 0.35, 1, 1, 0.25)));
       }
-      for (let i = 0; i < 3; i++) p.push(part(sph(0.22, 6, 5), '#7a5a2e', 1.6 + Math.cos(i * 2.1) * 0.35, 6.2, Math.sin(i * 2.1) * 0.35));
+      for (let i = 0; i < 3; i++) p.push(cosmetic(part(sph(0.22, 6, 5), '#7a5a2e', 1.6 + Math.cos(i * 2.1) * 0.35, 6.2, Math.sin(i * 2.1) * 0.35)));
       return { geometry: merge(p), material: MaterialLibrary.foliageLit(), castShadow: true };
     },
   },
@@ -133,7 +133,7 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
     build: () => {
       const p: THREE.BufferGeometry[] = [part(box(2.4, 1.0, 4), '#9c6b40', 0, 0.5, 0), part(box(2.5, 0.1, 4.1), '#7a522e', 0, 1.02, 0)];
       for (const [x, z] of [[-1.15, -1.95], [-1.15, 1.95], [1.2, -1.95], [1.2, 1.95]] as const) p.push(part(cyl(0.07, 0.07, 3, 6), '#6b4a33', x, 1.5, z));
-      for (let i = 0; i < 7; i++) p.push(part(box(3.0, 0.08, 0.62), i % 2 ? CREAM : (i % 4 === 0 ? OASIS : TERRA), 0.45, 2.95, -1.86 + i * 0.62, 0, 0, -0.28));
+      for (let i = 0; i < 7; i++) p.push(cosmetic(part(box(3.0, 0.08, 0.62), i % 2 ? CREAM : (i % 4 === 0 ? OASIS : TERRA), 0.45, 2.95, -1.86 + i * 0.62, 0, 0, -0.28)));
       const r = seeded(13);
       for (let i = 0; i < 10; i++) p.push(part(sph(0.2, 6, 4), ['#e0b04b', '#c96442', '#8fb573', '#f28b3c'][i % 4]!, -0.6 + r() * 1.3, 1.25, -1.6 + r() * 3.2));
       p.push(part(lathe([[0, 0], [0.35, 0.1], [0.42, 0.5], [0.2, 0.9], [0.22, 1.0]], 8), TERRA, 1.7, 0, -1.2), part(lathe([[0, 0], [0.3, 0.1], [0.36, 0.4], [0.18, 0.75]], 8), SANDSTONE, 1.8, 0, 0.9));
@@ -146,7 +146,7 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
       const p: THREE.BufferGeometry[] = [part(cyl(0.08, 0.08, 3, 6), '#6b4a33', 0, 1.5, -2.2), part(cyl(0.08, 0.08, 3, 6), '#6b4a33', 0, 1.5, 2.2), part(cyl(0.06, 0.06, 4.6, 6), '#6b4a33', 0, 2.9, 0, Math.PI / 2, 0, 0)];
       for (let i = 0; i < 3; i++) {
         const z = -1.45 + i * 1.45;
-        p.push(part(box(0.06, 2.4, 1.3), RUGS[i]!, 0, 1.65, z), part(box(0.07, 1.4, 0.9), RUGS[(i + 2) % 5]!, 0.01, 1.7, z), part(box(0.08, 0.5, 0.4), GOLD, 0.02, 1.7, z));
+        p.push(cosmetic(part(box(0.06, 2.4, 1.3), RUGS[i]!, 0, 1.65, z)), cosmetic(part(box(0.07, 1.4, 0.9), RUGS[(i + 2) % 5]!, 0.01, 1.7, z)), cosmetic(part(box(0.08, 0.5, 0.4), GOLD, 0.02, 1.7, z)));
       }
       return { geometry: merge(p), material: lit() };
     },
@@ -213,7 +213,7 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
       for (const x of [-14, 14]) p.push(...strata(3.2, 10, 3.2, 4, x > 0 ? 3 : 4).map((g) => place(g, x, 0, 0)));
       p.push(part(arcTube(14, 1.6, Math.PI, 6, 24), SANDSTONE, 0, 9.5, 0, 0, 0, 0, 1, 0.42, 1));
       p.push(part(box(30, 1.6, 3.4), SANDSTONE_DK, 0, 16.1, 0), part(box(2.4, 2.2, 3.6), GOLD, 0, 14.6, 0));
-      p.push(...buntingLine(-12.5, 12.5, 10.8, 1.4, 0, RUGS, 14));
+      p.push(...buntingLine(-12.5, 12.5, 10.8, 1.4, 0, RUGS, 14).map(cosmetic));
       return { geometry: merge(p), material: lit(), castShadow: true };
     },
   },
@@ -287,7 +287,7 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
   rope_post: {
     // rope-bridge post with a rope handrail running along the track (spaced every 6 m)
     maxInstances: 200,
-    build: () => ({ geometry: merge([part(cyl(0.12, 0.15, 1.6, 6), '#7a522e', 0, 0.8, 0), part(cyl(0.035, 0.035, 6.2, 4), '#d9c7a0', 0, 1.35, 0, Math.PI / 2, 0, 0), part(sph(0.16, 6, 4), '#6b4a33', 0, 1.62, 0)]), material: lit() }),
+    build: () => ({ geometry: merge([part(cyl(0.12, 0.15, 1.6, 6), '#7a522e', 0, 0.8, 0), cosmetic(part(cyl(0.035, 0.035, 6.2, 4), '#d9c7a0', 0, 1.35, 0, Math.PI / 2, 0, 0)), part(sph(0.16, 6, 4), '#6b4a33', 0, 1.62, 0)]), material: lit() }),
   },
   sandfall: {
     // sand pouring off the canyon rim (faces the road): light strands (#f6e6c4 at the rim → #e3c48f at the foot) with
@@ -298,7 +298,7 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
       const r = seeded(157), p: THREE.BufferGeometry[] = [];
       const TOP = new THREE.Color('#f6e6c4'), FOOT = new THREE.Color('#e3c48f');
       const strand = (x: number, y0: number, y1: number, z: number, w: number, t: number): void => {
-        p.push(gradient(place(box(t, y1 - y0, w), x, (y0 + y1) / 2, z), 0, 22.2, FOOT, TOP));
+        p.push(cosmetic(gradient(place(box(t, y1 - y0, w), x, (y0 + y1) / 2, z), 0, 22.2, FOOT, TOP)));
       };
       for (let i = 0; i < 7; i++) {
         const z = -2.4 + i * 0.8 + (r() - 0.5) * 0.15, w = 0.32 + r() * 0.22, t = 0.2 + r() * 0.15, x = -0.6 + (r() - 0.5) * 0.3;
@@ -309,7 +309,7 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
       }
       p.push(part(rbox(2.2, 1.2, 6.4, 0.2, 2), STRATA[2], -1.4, 22.6, 0));
       p.push(part(sph(3, 12, 6), '#e6c995', -0.6, 0, 0, 0, 0, 0, 1.1, 0.15, 1.2), part(sph(1.8, 10, 5), '#f0d8a8', 0.6, 0, 0.8, 0, 0, 0, 1, 0.15, 1));
-      for (let i = 0; i < 3; i++) p.push(part(ico(0.4 + r() * 0.3, 1), '#f2e2c0', -0.8 - r() * 1.6, 0.4 + r() * 0.6, (r() - 0.5) * 4));
+      for (let i = 0; i < 3; i++) p.push(cosmetic(part(ico(0.4 + r() * 0.3, 1), '#f2e2c0', -0.8 - r() * 1.6, 0.4 + r() * 0.6, (r() - 0.5) * 4)));
       return { geometry: merge(p), material: lit() };
     },
   },
@@ -410,12 +410,12 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
     build: () => {
       const C1 = '#5f9a4c', C2 = '#4f8a42';
       const p: THREE.BufferGeometry[] = [
-        part(sph(0.34, 10, 7), C1, 0, 0.3, 0, 0, 0, 0, 1, 1.2, 1), part(ico(0.09, 0), '#f25f7a', 0, 0.72, 0),
+        part(sph(0.34, 10, 7), C1, 0, 0.3, 0, 0, 0, 0, 1, 1.2, 1), cosmetic(part(ico(0.09, 0), '#f25f7a', 0, 0.72, 0)),
         part(sph(0.22, 8, 6), C2, 0.45, 0.2, 0.3, 0, 0, 0, 1, 1.15, 1),
         part(cyl(0.3, 0.3, 0.08, 10), C1, -0.45, 0.32, -0.15, Math.PI / 2, 0.4, 0, 1, 1, 1.4),
         part(cyl(0.24, 0.24, 0.07, 10), C2, -0.62, 0.68, -0.05, Math.PI / 2, 0.9, 0.3, 1, 1, 1.4),
         part(cyl(0.2, 0.2, 0.07, 10), C1, -0.3, 0.7, -0.35, Math.PI / 2, -0.3, -0.3, 1, 1, 1.4),
-        part(ico(0.07, 0), '#f2c14e', -0.66, 0.98, -0.05),
+        cosmetic(part(ico(0.07, 0), '#f2c14e', -0.66, 0.98, -0.05)),
         part(ico(0.28, 0), '#c8a07a', 0.2, 0.06, -0.45, 0, 0, 0, 1.3, 0.5, 1),
       ];
       return { geometry: merge(p), material: MaterialLibrary.foliageLit(), castShadow: true };
@@ -428,9 +428,9 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
       geometry: merge([
         part(cyl(0.2, 0.32, 3.4, 7), TRUNK, 0, 1.6, 0),
         part(cyl(0.11, 0.17, 2.4, 6), TRUNK, 0.75, 3.9, 0.1, 0, 0, -0.65), part(cyl(0.11, 0.17, 2.3, 6), TRUNK, -0.7, 3.9, -0.2, 0.15, 0, 0.6),
-        part(ico(2.6, 1), '#6f8f3e', 0, 4.95, 0, 0, 0, 0, 1.25, 0.32, 1.1, 0.08, 3),
-        part(ico(1.9, 1), '#7f9d48', 1.4, 5.35, 0.5, 0, 0, 0, 1.1, 0.34, 1, 0.08, 5),
-        part(ico(1.7, 1), '#5f7f36', -1.35, 5.2, -0.6, 0, 0, 0, 1.1, 0.34, 1, 0.08, 7),
+        cosmetic(part(ico(2.6, 1), '#6f8f3e', 0, 4.95, 0, 0, 0, 0, 1.25, 0.32, 1.1, 0.08, 3)),
+        cosmetic(part(ico(1.9, 1), '#7f9d48', 1.4, 5.35, 0.5, 0, 0, 0, 1.1, 0.34, 1, 0.08, 5)),
+        cosmetic(part(ico(1.7, 1), '#5f7f36', -1.35, 5.2, -0.6, 0, 0, 0, 1.1, 0.34, 1, 0.08, 7)),
       ]), material: MaterialLibrary.foliageLit(), castShadow: true,
     }),
   },
@@ -440,7 +440,7 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
     build: () => {
       const p: THREE.BufferGeometry[] = [], r = seeded(149);
       for (let i = 0; i < 5; i++) p.push(...palmLite((r() - 0.5) * 13, (r() - 0.5) * 13, 0.8 + r() * 0.5, r() * 6.28, i));
-      for (let i = 0; i < 3; i++) p.push(part(ico(1.3, 0), SCRUB[i % 3]!, (r() - 0.5) * 12, 0.4, (r() - 0.5) * 12, 0, r() * 3, 0, 1.4, 0.6, 1.2, 0.08, 31 + i));
+      for (let i = 0; i < 3; i++) p.push(cosmetic(part(ico(1.3, 0), SCRUB[i % 3]!, (r() - 0.5) * 12, 0.4, (r() - 0.5) * 12, 0, r() * 3, 0, 1.4, 0.6, 1.2, 0.08, 31 + i)));
       return { geometry: merge(p), material: MaterialLibrary.foliageLit(), castShadow: true };
     },
   },
@@ -472,7 +472,7 @@ export const SUNSTONE_PROPS: Record<string, PropFactory> = {
     // the frontage opens into a plaza
     maxInstances: 40,
     build: () => {
-      const p = buntingLine(-10.25, 10.25, 6.3, 1.3, 0, [TERRA, CREAM, OASIS, GOLD, '#c8402e'], 18);
+      const p = buntingLine(-10.25, 10.25, 6.3, 1.3, 0, [TERRA, CREAM, OASIS, GOLD, '#c8402e'], 18).map(cosmetic);
       for (const x of [-10.25, 10.25]) p.push(part(cyl(0.09, 0.12, 7.0, 6), WOOD_DK, x, 2.9, 0), part(sph(0.16, 6, 4), GOLD, x, 6.5, 0));
       return { geometry: merge(p), material: lit(), castShadow: true };
     },

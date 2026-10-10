@@ -1,0 +1,125 @@
+{
+  "simVersion": 10,
+  "description": "Fixed digital-key schedules, no pursuit, braking, position correction or repeated Shift. Each starts at s=150, v=28.9m/s on a 12m-wide flat 180 degree course with a 200m approach and 260m exit. Mirror steer and initial u for the right-hand case.",
+  "kart": "pebble",
+  "throttle": "held throughout",
+  "widthM": 12,
+  "initialS": 150,
+  "initialSpeedMps": 28.9,
+  "completion": "arcEnd + 60m, no wallContact including severity-0 grinding, no reset; velocity heading within 2deg of 180",
+  "timing": "60Hz, zero-based tick; neutral until entryTick, hold turn direction + Shift for turnTicks, hold opposite direction + same Shift for counterTicks, then release both steering and Shift",
+  "scenarios": [
+    {
+      "radiusM": 9,
+      "initialU": 4.5,
+      "entryTick": 71,
+      "turnTicks": 117,
+      "counterTicks": 16
+    },
+    {
+      "radiusM": 12,
+      "initialU": 2,
+      "entryTick": 79,
+      "turnTicks": 117,
+      "counterTicks": 16
+    },
+    {
+      "radiusM": 16,
+      "initialU": -2,
+      "entryTick": 91,
+      "turnTicks": 112,
+      "counterTicks": 8
+    }
+  ],
+  "handling": {
+    "normalSpeedMps": 28.9,
+    "boostSpeedMps": 32.591975,
+    "baseDriftYawRadPerSec": 2.1,
+    "yawAccelerationRadPerSec2": 5.5,
+    "counterYawAccelerationRadPerSec2": 24,
+    "engagementRisePerSec": 3.5,
+    "releaseFadePerSec": 4,
+    "counterFadePerSec": 10,
+    "minimumSkidIntentTicks": 36,
+    "slipDragCoefficient": 11,
+    "driftPropulsionMaxMps2": 2.5,
+    "gripLateralDampingPerSec": 24,
+    "driftLateralDampingPerSec": 12,
+    "counterLateralDampingPerSec": 24,
+    "gaugeSlipReference": 0.25,
+    "instantBoostMinimumSlipDeg": 4
+  },
+  "measuredShortShift": [
+    {
+      "pressMs": 20,
+      "driftEndSeconds": 0.85,
+      "slipThresholdDeg": 3,
+      "physicalSkidSeconds": 0.6,
+      "pathTravelDuringSkidM": 16.520955789,
+      "lateralTravelDuringSkidM": 1.8092010165,
+      "peakSlipDeg": 8.123388697,
+      "minimumSpeedMps": 26.300897533
+    },
+    {
+      "pressMs": 50,
+      "driftEndSeconds": 0.85,
+      "slipThresholdDeg": 3,
+      "physicalSkidSeconds": 0.6,
+      "pathTravelDuringSkidM": 16.520955789,
+      "lateralTravelDuringSkidM": 1.8092010165,
+      "peakSlipDeg": 8.123388697,
+      "minimumSpeedMps": 26.300897533
+    },
+    {
+      "pressMs": 100,
+      "driftEndSeconds": 0.85,
+      "slipThresholdDeg": 3,
+      "physicalSkidSeconds": 0.6,
+      "pathTravelDuringSkidM": 16.520955789,
+      "lateralTravelDuringSkidM": 1.8092010165,
+      "peakSlipDeg": 8.123388697,
+      "minimumSpeedMps": 26.300897533
+    }
+  ],
+  "measuredBoostFromNormal": [
+    {
+      "seconds": 0.2,
+      "speedMps": 30.030517578125
+    },
+    {
+      "seconds": 0.5,
+      "speedMps": 31.111328125
+    },
+    {
+      "seconds": 1,
+      "speedMps": 31.997802734375
+    },
+    {
+      "seconds": 1.5,
+      "speedMps": 32.353515625
+    },
+    {
+      "seconds": 3,
+      "speedMps": 32.576171875
+    }
+  ],
+  "strongerTractionComparison": {
+    "input": "same flat 28.9m/s start; left held for 117ticks, counter for16, then neutral; one Shift held117ticks",
+    "before": {
+      "gripLateralDampingPerSec": 18,
+      "driftLateralDampingPerSec": 6,
+      "counterLateralDampingPerSec": 9,
+      "slipDragCoefficient": 2.2,
+      "peakSlipDeg": 17.891357664,
+      "lateralTravelM": 12.004340931
+    },
+    "after": {
+      "gripLateralDampingPerSec": 24,
+      "driftLateralDampingPerSec": 12,
+      "counterLateralDampingPerSec": 24,
+      "slipDragCoefficient": 11,
+      "peakSlipDeg": 8.208199718,
+      "lateralTravelM": 5.936694784
+    }
+  }
+}

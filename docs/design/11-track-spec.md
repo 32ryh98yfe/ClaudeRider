@@ -1,5 +1,7 @@
 # 11 — Track spec
 
+> Simulation-10 amendment: CTRK 3 uses exact instanced prop contacts and corrected structural skins. The current storage bounds are 5 MiB uncompressed physics and 3 MiB gzip visuals, replacing the historical 1.5/2 MiB figures below. See [20 — Shared track contacts](20-track-contact-and-finish.md) for the measured tradeoff and unchanged collision/clearance gates.
+
 Owner: L4 TRACKC (compiler, validators, formats), L5/L6/L7 WORLD lanes (the tracks), L3 AI (ai-bake), L11 (render budgets).
 Sources: ADR-006, ADR-012 (#8, #9, #13, #15, #16), gap-3 report (§2–§9 verbatim where marked), `04-maps-tracks.md` (names, layouts, gimmicks, palettes, music), gap-2 §5–§6 (corner envelope, track limits).
 Status keys: **[S]** sourced · **[V]** validated by gap-2 · **[P]** proposed. Ticks at 60 Hz; seconds in parentheses.

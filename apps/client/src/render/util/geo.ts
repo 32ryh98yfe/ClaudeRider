@@ -3,8 +3,26 @@ import * as THREE from 'three/webgpu';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
+export interface ContactRange { start: number; count: number; role: 'solid' | 'cosmetic' | 'support' }
+/** Semantic parts for the offline contact bake. These markers never change the rendered geometry. */
+export function cosmetic(g: THREE.BufferGeometry): THREE.BufferGeometry { g.userData['contactRole'] = 'cosmetic'; return g; }
+export function support(g: THREE.BufferGeometry): THREE.BufferGeometry { g.userData['contactRole'] = 'support'; return g; }
+
 export function paint(g: THREE.BufferGeometry, c: THREE.ColorRepresentation, jitter = 0, seed = 1): THREE.BufferGeometry {
   const geo = g.index ? g.toNonIndexed() : g;
+  if (geo !== g) {
+    geo.userData = { ...g.userData };
+    const ranges = g.userData['contactRanges'] as ContactRange[] | undefined;
+    if (ranges?.length && g.index) {
+      const expanded: ContactRange[] = [];
+      for (let i = 0; i < g.index.count; i++) {
+        const vertex = g.index.getX(i), role = ranges.find((r) => vertex >= r.start && vertex < r.start + r.count)?.role ?? 'solid';
+        const last = expanded[expanded.length - 1];
+        if (last?.role === role) last.count++; else expanded.push({ start: i, count: 1, role });
+      }
+      geo.userData['contactRanges'] = expanded;
+    }
+  }
   const col = new THREE.Color(c);
   const n = geo.attributes.position!.count;
   const arr = new Float32Array(n * 3);
@@ -29,6 +47,15 @@ export function place(g: THREE.BufferGeometry, x = 0, y = 0, z = 0, rx = 0, ry =
 export function merge(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
   const g = mergeGeometries(parts, false);
   if (!g) throw new Error('mergeGeometries failed (attribute mismatch)');
+  const ranges: ContactRange[] = []; let offset = 0;
+  for (const part of parts) {
+    const count = part.getAttribute('position').count, role = part.userData['contactRole'] as ContactRange['role'] | undefined;
+    const nested = part.userData['contactRanges'] as ContactRange[] | undefined;
+    if (!role && nested?.length) for (const r of nested) ranges.push({ start: offset + r.start, count: r.count, role: r.role });
+    else ranges.push({ start: offset, count, role: role ?? 'solid' });
+    offset += count;
+  }
+  g.userData['contactRanges'] = ranges;
   g.computeBoundingSphere();
   return g;
 }

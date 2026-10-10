@@ -2,7 +2,7 @@
   "name": "clauderider",
   "private": true,
   "version": "0.1.0",
-  "description": "ClaudeRider — an unofficial, non-commercial fan kart racer inspired by KartRider: Drift, starring Clawd.",
+  "description": "ClaudeRider \u2014 an unofficial, non-commercial fan kart racer inspired by KartRider: Drift, starring Clawd.",
   "type": "module",
   "packageManager": "pnpm@10.33.0",
   "engines": {
@@ -24,9 +24,14 @@
     "start:test": "node apps/server/src/main.ts --port 8787 --static apps/client/dist",
     "e2e": "playwright test",
     "size": "node tools/size.mjs",
-    "verify": "pnpm gen && pnpm check:frozen && pnpm check:deps && pnpm typecheck && pnpm lint && pnpm test && pnpm bake && pnpm build && pnpm e2e",
+    "verify": "pnpm gen && pnpm check:frozen && pnpm check:deps && pnpm check:contacts && pnpm typecheck && pnpm lint && pnpm bake && pnpm check:track-contacts && pnpm check:hazard-contacts && pnpm check:driving-matrix && pnpm test && pnpm build && pnpm e2e",
     "art:pack": "node tools/art/codex-pack.ts",
-    "art:refs": "node tools/art/refs.ts"
+    "art:refs": "node tools/art/refs.ts",
+    "check:contacts": "node tools/reference/generate-prop-contact-catalog.mjs --check",
+    "gen:contacts": "node tools/reference/generate-prop-contact-catalog.mjs",
+    "check:track-contacts": "node tools/reference/audit-track-contact.ts .cache/trackc/contact-audit.json",
+    "check:hazard-contacts": "node tools/reference/audit-hazard-render.ts .cache/trackc/hazard-audit.json",
+    "check:driving-matrix": "node tools/reference/map-matrix.ts .cache/trackc/driving-audit.json"
   },
   "devDependencies": {
     "@babel/core": "7.29.7",

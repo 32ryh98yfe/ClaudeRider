@@ -1,6 +1,7 @@
 // Determinism (ADR-003): identical inputs → identical world hashes; snapshots resume bit-exactly.
 import { describe, expect, it } from 'vitest';
-import { hashWorld, cloneWorld, copyWorld, makeContext, step, ArraySink, createAiDriver, AI_TIERS, type InputFrame } from '@cr/sim';
+import { driftRequestAt, driftRequestCount, hashWorld, cloneWorld, copyWorld, makeContext, step, ArraySink, createAiDriver, AI_TIERS, Edge, Held, type InputFrame } from '@cr/sim';
+import { determinismScenario } from '../src/testing/scenario.ts';
 import { bakedTrack, makeRig, getContent } from './rig.ts';
 
 const CHARS = ['clay', 'pixel', 'turbo', 'anchor', 'rune', 'nova', 'kage', 'bisque'] as const;
@@ -16,6 +17,51 @@ function hashes(mode: 'speed' | 'item', ticks: number, every: number): number[] 
 }
 
 describe('determinism', () => {
+  it.each(['speed', 'item'] as const)('shared Node/browser/Worker scenario preserves ordered drift requests, pending reversal and snapshot restore in %s mode', (mode) => {
+    const track = bakedTrack('clayhill_village/meadow_loop'), seen: number[] = [];
+    let previousHeld = 0;
+    let queuedSnapshot: ReturnType<typeof cloneWorld> | undefined;
+    let resumedPending = false, reversed = false;
+    const cfg = makeRig(track, { mode, slots: field, seed: 77 }).cfg;
+    const hashes = determinismScenario(track, getContent(), mode, 600, 120, 77, (tick, w, inputs, events) => {
+      const input = inputs[0]!, k = w.karts[0]!;
+      if ((input.edges & Edge.DRIFT) !== 0) {
+        seen.push(tick);
+        expect(Math.hypot(k.body.vx, k.body.vy, k.body.vz)).toBeGreaterThan(10);
+        expect(k.drive.drift).toBe(tick === 312 ? 0 : 1);
+        const transitions = events.filter((e) => 'kart' in e && e.kart === 0 && (e.t === 'driftStart' || e.t === 'doubleDrift' || e.t === 'driftEnd'));
+        expect(transitions).toHaveLength(1);
+        expect(transitions[0]!.t).toBe(tick === 300 ? 'driftStart' : tick === 312 ? 'driftEnd' : 'doubleDrift');
+        expect(driftRequestCount(input.driftRequests)).toBe(tick === 309 ? 3 : 1);
+        if (tick === 300 || tick === 312) expect(input.held & Held.DRIFT).toBe(0);
+        if (tick === 309) {
+          expect(previousHeld & Held.DRIFT).toBe(Held.DRIFT);
+          expect([0,1,2].map(i => driftRequestAt(input.driftRequests, i))).toEqual([-1,-1,1]);
+          expect(k.drive.driftTarget).toBe(.75); // both in-direction requests tightened before the opposite request
+          expect(k.drive.pendingDriftDir).toBe(-1); expect(k.drive.driftRecovering).toBe(2);
+          queuedSnapshot = cloneWorld(w);
+          const changed = cloneWorld(w); changed.karts[0]!.drive.pendingDriftDir = 0;
+          expect(hashWorld(changed)).not.toBe(hashWorld(w));
+        }
+        if (tick === 312) { expect(input.steer).toBe(-127); expect(input.steerIntent).toBe(1); expect(input.edges & Edge.TAP_R).toBe(Edge.TAP_R); expect(k.drive.pendingDriftDir).toBe(-1); }
+      }
+      if (tick === 310 && queuedSnapshot) {
+        const restored = cloneWorld(queuedSnapshot); copyWorld(restored, queuedSnapshot);
+        step(restored, inputs, makeContext({ track, cfg, content: getContent(), role: 'authority', events: new ArraySink() }));
+        expect(hashWorld(restored)).toBe(hashWorld(w)); resumedPending = true;
+      }
+      if (tick === 313) {
+        expect(input.driftRequests).toBe(0); expect(input.held & Held.DRIFT).toBe(0);
+        expect(k.drive.drift).toBe(1); expect(k.drive.driftDir).toBe(-1); expect(k.drive.pendingDriftDir).toBe(0);
+        expect(events.some(e => e.t === 'driftStart' && e.kart === 0)).toBe(true); reversed = true;
+      }
+      previousHeld = input.held;
+    });
+    expect(seen).toEqual([300, 306, 309, 312]);
+    expect(resumedPending).toBe(true); expect(reversed).toBe(true);
+    expect(hashes).toEqual(determinismScenario(track, getContent(), mode, 600));
+  });
+
   it('two runs of an 8-bot speed race produce identical hash streams', () => {
     expect(hashes('speed', 2400, 60)).toEqual(hashes('speed', 2400, 60));
   });

@@ -4,11 +4,16 @@
 // World lanes' tracks join automatically on merge.
 import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import type { BakedTrack, WorldState } from '@cr/sim';
+import { Edge, type BakedTrack, type SimEvent, type WorldState } from '@cr/sim';
 import { frameScratch, pathCovers, pathS, sMainOf } from '../src/items/route.ts';
 import { SFLAG } from '../src/track/format.ts';
+import { spawnProjectile } from '../src/items/projectiles.ts';
+import { EF } from '../src/items/codes.ts';
+import { runRace } from '../src/ai/balance.ts';
 import { runItemRace } from './items-rig.ts';
 import { bakedTrack, getContent } from './rig.ts';
+import { flatPlane } from './fixtures/kits.ts';
+import { place, racingRig } from './util.ts';
 
 const ROOT = new URL('../../../', import.meta.url);
 const tracks = getContent().tracks.all
@@ -30,8 +35,9 @@ function load(rel: string): BakedTrack | null {
 
 /** Route features a homing projectile can cross (bit per feature), read from the route frame it flies on. */
 const LOOP = 1, ZERO_G = 2, HELIX = 4;
-/** Features that at least one impacting homing projectile must cross (the seed-31 race, topped up by seeds 32–33). */
-const MUST_HOME: Record<string, number> = { orbital_express: LOOP | ZERO_G | HELIX, skyway_interchange: HELIX, cascade_slalom: HELIX };
+/** Orbital's three features have guaranteed scripted shots below; its three random
+ * races still check completion and every projectile's geometry independently. */
+const MUST_HOME: Record<string, number> = { skyway_interchange: HELIX, cascade_slalom: HELIX };
 
 /**
  * Per-tick probe of every projectile: which features its route point is in, the largest per-tick change of its height
@@ -40,10 +46,12 @@ const MUST_HOME: Record<string, number> = { orbital_express: LOOP | ZERO_G | HEL
 function homingProbe(T: BakedTrack) {
   const F = frameScratch(), AI = { lineU: 0, vLim: 0, kappa: 0, turnAhead40: 0, driftZone: 0, width: 0 };
   const tags = new Map<number, number>(), lastH = new Map<number, number>();
-  const out = { tags, maxStepH: 0, maxMiss: 0 };
+  const shots = new Map<number, { target: number; code: number }>();
+  const out = { tags, shots, maxStepH: 0, maxMiss: 0 };
   const tick = (w: WorldState): void => {
     for (const p of w.projectiles) {
       if (p.phase > 1) continue;
+      shots.set(p.id, { target: p.target, code: p.code });
       const sm = sMainOf(T, p.s), path = pathCovers(T, p.path, sm) ? p.path : 0, s = pathS(T, path, sm);
       T.frameAt(path, s, F);
       T.aiAt(path, s, AI);
@@ -64,6 +72,119 @@ function homingProbe(T: BakedTrack) {
   };
   return { out, tick };
 }
+
+/** A real defensive cancellation is not a route failure. Require the projectile's declared counter, its exact
+ * target, the same simulation tick and a successful effect; an unrelated Pulse cannot excuse a missing impact. */
+function defendedFizzles(events: readonly SimEvent[], probe: ReturnType<typeof homingProbe>): Set<number> {
+  const cleared = new Set<number>();
+  for (const e of events) {
+    if (e.t !== 'itemFizzle') continue;
+    const shot = probe.out.shots.get(e.obj);
+    if (!shot || !getContent().items.byCode[shot.code]?.clearedBy?.includes('pulse')) continue;
+    if (events.some((p) => p.t === 'effect' && p.effect === EF.pulse_guard && p.victim === shot.target && p.tick === e.tick && p.result === 'hit')) cleared.add(e.obj);
+  }
+  return cleared;
+}
+
+describe('controlled homing routes', () => {
+  it('a drone crossing a helix is legitimately canceled by its target Pulse, not by an unrelated defense', () => {
+    const track = bakedTrack('ember_mine/magma_switchback'), F = frameScratch();
+    const AI = { lineU: 0, vLim: 0, kappa: 0, turnAhead40: 0, driftZone: 0, width: 0 };
+    let helix = -1;
+    for (let s = 0; s < track.path(0).length; s++) {
+      track.frameAt(0, s, F); track.aiAt(0, s, AI);
+      if (Math.abs(F.ty) > 0.03 && Math.abs(AI.kappa) > 1 / 45) { helix = s; break; }
+    }
+    expect(helix).toBeGreaterThanOrEqual(0);
+    const rig = racingRig(track, { mode: 'item', slots: [{}, {}] });
+    place(rig, 0, { s: helix + 5 }); const target = place(rig, 1, { s: helix + 40 });
+    const shot = spawnProjectile(rig.w, rig.ctx, getContent().items.get('throttle_drone'), 0, 1), id = shot.id;
+    const probe = homingProbe(track);
+    for (let tick = 0; tick < 3; tick++) { rig.tick(); probe.tick(rig.w); }
+    expect((probe.out.tags.get(id) ?? 0) & HELIX).toBe(HELIX);
+    target.items.slot0 = getContent().items.get('interrupt_pulse').code;
+    rig.tick((_w, inputs) => { inputs[1]!.edges = Edge.USE_ITEM; });
+    expect(rig.events.some((e) => e.t === 'itemFizzle' && e.obj === id)).toBe(true);
+    expect(rig.w.projectiles.some((p) => p.id === id)).toBe(false);
+    expect(defendedFizzles(rig.events, probe).has(id)).toBe(true);
+    // Change only the claimed defensive evidence. None may hide a genuine missing projectile impact.
+    for (const change of [{ victim: 0 }, { tick: -1 }, { effect: EF.shield }, { result: 'immune' as const }]) {
+      const wrong = rig.events.map((e): SimEvent => e.t === 'effect' && e.effect === EF.pulse_guard ? { ...e, ...change } : e);
+      expect(defendedFizzles(wrong, probe).has(id)).toBe(false);
+    }
+    probe.out.shots.get(id)!.code = getContent().items.get('prompt_missile').code;
+    expect(defendedFizzles(rig.events, probe).has(id)).toBe(false);
+  });
+
+  it('an airborne launch eases down without a one-metre height snap', () => {
+    const track = flatPlane().track;
+    const rig = racingRig(track, { mode: 'item', slots: [{}, {}] });
+    place(rig, 0, { s: 300, h: 8, speed: 0 });
+    place(rig, 1, { s: 500, speed: 0 });
+    const shot = spawnProjectile(rig.w, rig.ctx, getContent().items.get('prompt_missile'), 0, 1);
+    const initialHeight = shot.h;
+    const probe = homingProbe(track);
+    probe.tick(rig.w);
+    for (let tick = 0; tick < 20; tick++) { rig.tick(); probe.tick(rig.w); }
+    expect(initialHeight).toBeGreaterThan(8);
+    expect(shot.h).toBeLessThan(2);
+    expect(probe.out.maxStepH).toBeLessThan(1);
+  });
+
+  it.each([['inverted loop', LOOP], ['low-gravity tube', ZERO_G], ['docking helix', HELIX]] as const)('a guaranteed Orbital shot traverses the %s and still meets its target', (_name, feature) => {
+    const track = bakedTrack('orbital_nexus/orbital_express');
+    const frame = frameScratch();
+    const ai = { lineU: 0, vLim: 0, kappa: 0, turnAhead40: 0, driftZone: 0, width: 0 };
+    let first = -1, last = -1, spanStart = -1;
+    // Locate the actual feature from baked frames, without coupling
+    // the test to a particular station number or an AI's item-use random seed.
+    for (let s = 0; s < track.path(0).length; s++) {
+      track.frameAt(0, s, frame);
+      track.aiAt(0, s, ai);
+      // The loop also carries rotated gravity and a pitched tangent. Exclude
+      // RMF from the other searches so three distinct spans must be exercised.
+      const rmf = (frame.flags & SFLAG.RMF) !== 0;
+      const matches = feature === LOOP ? frame.uy < 0.5
+        : feature === ZERO_G ? !rmf && (frame.flags & SFLAG.GRAV_MASK) !== 0
+          : !rmf && Math.abs(frame.ty) > 0.03 && Math.abs(ai.kappa) > 1 / 45;
+      if (matches) { if (spanStart < 0) spanStart = s; }
+      else if (spanStart >= 0) {
+        // Isolated tessellation transitions can satisfy the slope/curvature
+        // predicate for one sample. Use the longest real feature span.
+        if (s - 1 - spanStart > last - first) { first = spanStart; last = s - 1; }
+        spanStart = -1;
+      }
+    }
+    expect(last - first).toBeGreaterThan(10);
+    const rig = racingRig(track, { mode: 'item', slots: [{}, {}] });
+    place(rig, 0, { s: first - 30, speed: 0 });
+    place(rig, 1, { s: last + 50, speed: 0 });
+    const shot = spawnProjectile(rig.w, rig.ctx, getContent().items.get('prompt_missile'), 0, 1);
+    const shotId = shot.id, probe = homingProbe(track);
+    for (let tick = 0; tick < 500 && rig.w.projectiles.length; tick++) { rig.tick(); probe.tick(rig.w); }
+    expect((probe.out.tags.get(shotId) ?? 0) & feature).toBe(feature);
+    expect(rig.events.filter((event) => event.t === 'projImpact' && event.obj === shotId)).toHaveLength(1);
+    expect(rig.events.some((event) => event.t === 'itemFizzle' && event.obj === shotId)).toBe(false);
+    expect(probe.out.maxStepH).toBeLessThan(1);
+    expect(probe.out.maxMiss).toBeLessThan(1.5);
+  });
+});
+
+describe('headless item-combat opt-in', () => {
+  it('enables actual item use and opponent hits while retaining the legacy pace-only default', () => {
+    const setup = {
+      track: bakedTrack('clayhill_village/meadow_loop'), content: getContent(), mode: 'item' as const,
+      bots: Array.from({ length: 8 }, () => ({ tier: 'pro' as const })), seed: 4242, laps: 1, lookahead: 8,
+    };
+    const driving = runRace(setup), combat = runRace({ ...setup, itemCombat: true });
+    expect(driving.itemsUsed).toBe(0);
+    expect(driving.combatEffectHits).toBe(0);
+    expect(combat.itemsUsed).toBeGreaterThan(10);
+    expect(combat.effectHits).toBeGreaterThan(0);
+    expect(combat.combatEffectHits).toBeGreaterThan(0);
+    expect(combat.karts.filter((kart) => kart.finished).length).toBeGreaterThanOrEqual(6);
+  });
+});
 
 // L4's F1 fixture (shortcut branch, noItem zone): projectiles must follow targets onto the branch. Present once the
 // F1 track features are merged; skipped before that.
@@ -106,23 +227,27 @@ describe('item-mode races on every track', () => {
       let landed = 0;
       const homing = (race: typeof r.race, pr: ReturnType<typeof homingProbe>, seed: number): void => {
         const impact = new Set<number>(), fizzle = new Set<number>();
+        const defended = defendedFizzles(race.events, pr);
         for (const e of race.events) { if (e.t === 'projImpact') impact.add(e.obj); if (e.t === 'itemFizzle') fizzle.add(e.obj); }
         let featImpacts = 0, featFizzles = 0;
         for (const [objId, bits] of pr.out.tags) {
           if (!bits) continue;
           if (impact.has(objId)) { landed |= bits; featImpacts++; }
-          if (fizzle.has(objId)) featFizzles++;
+          if (fizzle.has(objId) && !defended.has(objId)) featFizzles++;
         }
-        expect(featFizzles, `fizzles after crossing a feature (seed ${seed})`).toBeLessThanOrEqual(Math.max(1, featImpacts / 10));
+        expect(featFizzles, `unexplained fizzles after crossing a feature (seed ${seed})`).toBeLessThanOrEqual(Math.max(1, featImpacts / 10));
         expect(pr.out.maxStepH, `per-tick height snap (m, seed ${seed})`).toBeLessThan(1);
         expect(pr.out.maxMiss, `distance to target one tick before impact (m, seed ${seed})`).toBeLessThan(1.5);
       };
       homing(r.race, probe, 31);
       // feature coverage needs a homing shot fired across each feature that also lands, which a single race does not
       // always produce (where the bots fire depends on how the race unfolds): up to two more races top it up
-      for (let seed = 32; seed <= 33 && (landed & must) !== must; seed++) {
+      for (let seed = 32; seed <= 33 && (id === 'orbital_express' || (landed & must) !== must); seed++) {
         const pr = homingProbe(track!);
         const extra = runItemRace({ track: rel, seed, tiers: ['pro', 'racer'], laps: Math.min(2, track!.laps) }, undefined, pr.tick);
+        expect(extra.race.w.phase).toBe(4);
+        expect(extra.finishers).toBeGreaterThanOrEqual(6);
+        expect(extra.maxStuck).toBeLessThanOrEqual(300);
         expect(extra.nanProjectiles).toBe(0);
         expect(extra.offTrackProjectiles).toBe(0);
         homing(extra.race, pr, seed);

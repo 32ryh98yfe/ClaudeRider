@@ -4,9 +4,12 @@
 // Constructor path (RaceScreen): `new Session(three, tier, opts)` for offline races (or `opts.online`).
 // Online entry point: `Session.online(three, tier, race)` with the race taken from `takePendingRace()`.
 import type * as THREE from 'three/webgpu';
+import type { ReferenceClip } from '@cr/content/reference-driving.ts';
+import { ReferenceReplay, initializeReferenceWorld } from '../dev/reference/replay.ts';
+import { ReferenceTelemetry, type ReferenceFrame } from '../dev/reference/telemetry.ts';
 import { loadContent, type CharacterId, type KartBodyId, type ModeId, type TrackId, type AiTier, type TeamFormat, CHARACTER_IDS, KART_BODY_IDS } from '@cr/content';
 import {
-  loadCtrk, toArrayBuffer, AI_TIERS, SIM_VERSION, createAiDriver, fillBotSlots, localizeBotName, makeInput, cloneWorld, copyWorld, createWorld, makeContext, step, raceTicksOf, NULL_SINK, Held, Phase,
+  NEUTRAL_INPUT, copyInput, loadCtrk, toArrayBuffer, AI_TIERS, SIM_VERSION, createAiDriver, fillBotSlots, localizeBotName, makeInput, cloneWorld, copyWorld, createWorld, makeContext, step, raceTicksOf, NULL_SINK, Held, Phase, Gear, StartTier, paramsFor, quantizeWorld,
   type StepContext, type SlotConfig,
   type RaceConfig, type SimEvent, type InputFrame, type AiDriver, type WorldState, type BakedTrack,
 } from '@cr/sim';
@@ -14,7 +17,7 @@ import { NetClient, loopbackPair, type Transport, type RaceResultWire } from '@c
 import { raceResult, type RaceRoom, type RaceResult } from '@cr/room';
 import { RaceRenderer, type KartSlotVisual } from '../render/RaceRenderer.ts';
 import type { QualityTier } from '../render/quality.ts';
-import { sampleInput } from '../input/keyboard.ts';
+import { pumpInput, sampleInputTick, inputTrace, clearDrivingInput } from '../input/keyboard.ts';
 import { HudPresenter } from './HudPresenter.ts';
 import { raceAudioStart, raceAudioStop, raceAudioFrame, raceAudioEvent } from '../audio/race.ts';
 import { save } from '../meta/save.ts';
@@ -37,6 +40,10 @@ export interface SessionOptions {
   solo?: boolean;
   /** Offline team race with bots: duo = 4 teams of 2, squad = 2 teams of 4. */
   teams?: TeamFormat;
+  /** Development-only, offline reference playback; mutually exclusive with autopilot/custom input. */
+  referenceRun?: { clip: ReferenceClip; capture?: boolean; comparisonTrack?: 'reference_pad' };
+  /** Tick-addressed offline input, sampled by the same NetClient used in normal races. */
+  inputProvider?: (world: Readonly<WorldState>, out: InputFrame) => void;
 }
 
 
@@ -54,8 +61,16 @@ export class Session {
   private events: SimEvent[] = [];
   private localSlot = 0;
   private autopilot: AiDriver | null = null;
+  private reference: ReferenceReplay | null = null;
+  private handlingFixture: string | null = null;
+  private referenceLog: ReferenceTelemetry | null = null;
+  private captureClock = 0;
+  private captureFrames = 0;
+  private captureReady: Promise<void> = Promise.resolve();
+  private capturePending = false;
   private onEndCb: ((r: RaceResult) => void) | null = null;
   private ended = false;
+  private finishInputReleased = false;
   private simRate = 1;
   private worker: Worker | null = null;
   private local: LocalAuthority | null = null;
@@ -85,7 +100,7 @@ export class Session {
   private three: THREE.WebGPURenderer; private tier: QualityTier; private opts: SessionOptions;
 
   constructor(three: THREE.WebGPURenderer, tier: QualityTier, opts: SessionOptions) {
-    this.three = three; this.tier = tier; this.opts = opts;
+    this.three = three; this.tier = tier; this.opts = { ...opts };
     // online only when asked (opts.online / Session.online): an implicit takePendingRace() here let a stale raceStart
     // hijack a later offline race (L10 report)
     this.onlineRace = opts.online ?? null;
@@ -98,25 +113,56 @@ export class Session {
   }
 
   get isOnline(): boolean { return this.onlineRace !== null; }
+  /** Reference and handling experiments have no roster identity and must never write records or rewards. */
+  get isDevelopmentRun(): boolean { return this.reference !== null || this.handlingFixture !== null; }
 
   /** Legacy M1 accessor: an object exposing the (predicted) world, for code that expected the offline room. */
   get room(): { readonly world: Readonly<WorldState>; readonly prev: Readonly<WorldState> } { return { world: this.net.world, prev: this.net.prev }; }
 
   async load(progress: (p: number, label: string) => void): Promise<void> {
+    const q = new URLSearchParams(location.search);
+    if (import.meta.env.DEV && q.has('handling')) {
+      const name = q.get('handling')!;
+      if (!/^(flat|R(9|12|16)[LR])$/.test(name)) throw new Error('Unknown handling fixture');
+      if (this.onlineRace || q.has('reference') || this.opts.referenceRun || this.opts.autopilot || this.opts.inputProvider) throw new Error('Handling fixture requires ordinary offline keyboard input');
+      this.handlingFixture = name;
+      this.opts.solo = true; this.opts.authority = 'main'; this.opts.simRate = 1;
+      this.opts.characterId = 'clay'; this.opts.kartBodyId = 'pebble'; this.opts.mode = 'speed';
+    }
+    if (import.meta.env.DEV && q.has('reference') && !this.opts.referenceRun) {
+      const { REFERENCE_CLIPS } = await import('@cr/content/reference-driving.ts');
+      const clip = REFERENCE_CLIPS.find((c) => c.id === q.get('reference'));
+      if (!clip) throw new Error(`Unknown reference clip: ${q.get('reference')}`);
+      this.opts.referenceRun = { clip, capture: q.get('capture') === '1' };
+      if (q.has('referenceTrack')) {
+        if (q.get('referenceTrack') !== 'reference_pad') throw new Error('Unknown reference comparison track');
+        this.opts.referenceRun.comparisonTrack = 'reference_pad';
+      }
+    }
     const online = this.onlineRace;
+    if (Number(!!this.opts.referenceRun) + Number(!!this.opts.inputProvider) + Number(!!this.opts.autopilot) > 1) throw new Error('Choose exactly one input source');
+    if (online && (this.opts.referenceRun || this.opts.inputProvider)) throw new Error('Reference/custom input requires an offline session');
+    if (this.opts.referenceRun) {
+      if (!import.meta.env.DEV) throw new Error('Reference playback requires a development build');
+      this.opts.solo = true; this.opts.authority = 'main'; this.opts.simRate = 1; this.opts.seed = 4242;
+      this.opts.characterId = 'clay'; this.opts.kartBodyId = 'pebble'; this.opts.mode = 'speed';
+      this.reference = new ReferenceReplay(this.opts.referenceRun.clip);
+      this.referenceLog = new ReferenceTelemetry(this.opts.referenceRun.clip, this.opts.referenceRun.capture === true);
+    }
     if (online) registerActiveRace({ raceId: online.raceId, setStartTick: (tk) => { this.startTick = tk; this.net?.setStartTick(tk); }, finish: (r) => this.finishSoon(r), replaceTransport: (tr) => this.net?.replaceTransport(tr) });
     const trackId = online ? online.config.trackId : this.opts.trackId;
     progress(0.05, t('common.loading'));
-    const [ctrk, vis] = await Promise.all([fetchBuf(`tracks/${trackId}.ctrk`), fetchBuf(`tracks/${trackId}.vis`)]);
+    const resource = this.handlingFixture ? `reference/handling_${this.handlingFixture}` : this.opts.referenceRun?.comparisonTrack === 'reference_pad' ? 'reference/reference_pad' : `tracks/${trackId}`;
+    const [ctrk, vis] = await Promise.all([fetchBuf(`${resource}.ctrk`), fetchBuf(`${resource}.vis`)]);
     progress(0.35, t(`tracks.${trackId}.name`));
     const track = loadCtrk(ctrk.slice(0));
-    const q = new URLSearchParams(location.search);
+    if (this.referenceLog) this.referenceLog.fixture = { resource, hash: track.hash };
     if (online) {
       this.config = online.config;
       this.localSlot = online.yourSlot;
       this.slotNames = this.config.slots.map((s) => localizeBotName(s.name, viewerLocale()));
       this.startTick = latestStartTick(online.raceId, online.startTick);
-      if (track.hash !== this.config.trackHash) console.warn(`[net] track hash ${track.hash} ≠ server ${this.config.trackHash}`);
+      if (track.hash !== this.config.trackHash) throw new Error(t('errors.track_hash_mismatch'));
     } else {
       this.config = this.offlineConfig(track);
       this.simRate = Math.max(1, Math.min(16, this.opts.simRate ?? 1));
@@ -128,11 +174,19 @@ export class Session {
       slot: i, characterId: s.characterId, kartBodyId: s.kartBodyId,
       livery: i === this.localSlot ? lv : { primary: KART_COLORS[i % KART_COLORS.length]!, secondary: '#faf9f5', pattern: i % 3, number: i + 1 },
     }));
-    this.renderer = new RaceRenderer(this.three, track, vis, this.content, this.tier);
+    this.renderer = new RaceRenderer(this.three, track, vis, this.content, this.tier, this.config.mode);
     this.renderer.localSlot = this.localSlot;
     await this.renderer.init(visuals);
     progress(0.9, t('common.loading'));
-    const provider = this.autopilot ? (w: Readonly<WorldState>, out: InputFrame): void => { this.autopilot!.decide(w, out); copyInputInto(this.lastInput, out); } : undefined;
+    const source = this.reference ? (w: Readonly<WorldState>, out: InputFrame): void => { this.reference!.frameAt(w.tick, out); }
+      : this.opts.inputProvider ?? (this.autopilot ? (w: Readonly<WorldState>, out: InputFrame): void => { this.autopilot!.decide(w, out); } : undefined);
+    const provider = (w: Readonly<WorldState>, out: InputFrame, boundaryMs: number): void => {
+      const kart = w.karts[this.localSlot];
+      if (w.phase === Phase.DONE || (kart && (kart.race.finishTick >= 0 || kart.race.retired))) copyInput(out, NEUTRAL_INPUT);
+      else if (source) source(w, out);
+      else sampleInputTick(this.isOnline ? boundaryMs : boundaryMs / this.simRate + this.pausedMs, out);
+      copyInputInto(this.lastInput, out);
+    };
     if (online) {
       // a channel opened now (e.g. after a reconnect while loading) missed the keyframe sent at attach: ask for one
       const taken = takeRaceChannel(online.raceId) ?? { channel: conn.raceChannel(), buffered: [], needKeyframe: true };
@@ -141,7 +195,7 @@ export class Session {
       this.authorityKind = 'server';
       this.net = new NetClient({
         transport: ch, track, content: this.content, cfg: this.config, slot: this.localSlot, nowMs: () => performance.now(), startTick: this.startTick,
-        mode: 'synced', clock: conn.clock, maxSteps: 8, ...(online.resumeToken ? { resumeToken: online.resumeToken } : {}), ...(provider ? { inputProvider: provider } : {}),
+        mode: 'synced', clock: conn.clock, maxSteps: 8, ...(online.resumeToken ? { resumeToken: online.resumeToken } : {}), inputProvider: provider,
       });
       for (const b of taken.buffered) ch.onMessage?.(b); // frames that arrived while loading
       if (taken.needKeyframe) this.net.requestKeyframe();
@@ -150,12 +204,12 @@ export class Session {
       const want = this.opts.authority ?? (q.get('authority') === 'main' ? 'main' : 'worker');
       const transport = (want === 'worker' ? await this.startWorker(ctrk) : null) ?? this.startMainThread(track);
       this.net = new NetClient({
-        transport, track, content: this.content, cfg: this.config, slot: this.localSlot, nowMs: () => this.clock(performance.now()),
-        mode: 'free', maxSteps: 5 * this.simRate, onLobby: (m) => this.onAuthorityMessage(m), ...(provider ? { inputProvider: provider } : {}),
+        transport, track, content: this.content, cfg: this.config, slot: this.localSlot, nowMs: () => this.opts.referenceRun?.capture ? this.captureClock : this.clock(performance.now()),
+        mode: 'free', maxSteps: this.opts.referenceRun?.capture ? 2 : 15 * this.simRate, onLobby: (m) => this.onAuthorityMessage(m), inputProvider: provider,
         ...(this.opts.solo ? { onOwnInput: (_t: number, f: Readonly<InputFrame>) => this.recorder?.push(f) } : {}),
       });
     }
-    if (this.opts.solo && !online) {
+    if (this.opts.solo && !online && !this.isDevelopmentRun) {
       this.recorder = new GhostRecorder();
       if (save.get().settings.ghost !== false) await this.loadGhostRun(track).catch((e: unknown) => console.warn('[ghost] load failed', e));
     }
@@ -166,6 +220,7 @@ export class Session {
     // HudPresenter reads world + track (L10); the NetClient-backed session exposes both
     const roomLike = { get world(): Readonly<WorldState> { return net().world; }, track };
     this.hud = new HudPresenter(roomLike as unknown as RaceRoom, this.localSlot, this.slotNames, this.config, (slot, out) => this.renderer.project(slot, out));
+    this.hud.suppressStartCountdown = !!this.opts.referenceRun && this.opts.referenceRun.clip.initialSpeedKmh > 0;
     progress(0.95, t('common.loading'));
   }
 
@@ -188,9 +243,9 @@ export class Session {
     this.slotNames = filled.map((s) => localizeBotName(s.name, viewerLocale()));
     return {
       simVersion: SIM_VERSION, mode: this.opts.mode, teams, trackId: this.opts.trackId, trackHash: track.hash, laps: this.opts.laps ?? track.laps,
-      slots: filled, seed: this.opts.solo ? 0 : seed,
+      slots: filled, seed: this.reference ? 4242 : this.opts.solo ? 0 : seed,
       rules: { retireTicks: this.opts.solo ? 60 * 60 * 60 : 600, friendlyFire: 'area', itemSet: 'standard', rubberBand: !this.opts.solo, instantBoostInItem: true },
-      introTicks: 150, countdownTicks: 180,
+      introTicks: this.reference ? 0 : 150, countdownTicks: this.reference ? 0 : 180,
     };
   }
 
@@ -223,7 +278,37 @@ export class Session {
 
   private startMainThread(track: BakedTrack): Transport {
     const [client, authority] = loopbackPair(0);
-    this.local = new LocalAuthority({ config: this.config, track, content: this.content, slot: this.localSlot, transport: authority });
+    this.local = new LocalAuthority({ config: this.config, track, content: this.content, slot: this.localSlot, transport: authority,
+      ...(this.handlingFixture ? {
+        // Apply the declared starting pose/speed once, before the authority's first keyframe.
+        // All subsequent input, networking, integration and rendering are the ordinary game path.
+        initialize: (world: WorldState): void => {
+          const k = world.karts[this.localSlot]!, speed = paramsFor(this.content.karts.get('pebble')).vGrip;
+          world.phase = Phase.RACING; world.goTick = 0;
+          k.body.vx = k.body.fx * speed; k.body.vy = k.body.fy * speed; k.body.vz = k.body.fz * speed;
+          k.drive.gear = Gear.D; k.drive.prevThrottle = 1; k.drive.boosters = 2;
+          k.stats.startTier = StartTier.NONE;
+          quantizeWorld(world);
+        },
+      } : {}),
+      ...(this.opts.referenceRun ? {
+        initialize: (world: WorldState): void => initializeReferenceWorld(world, this.opts.referenceRun!.clip, this.localSlot),
+        onTick: (world: Readonly<WorldState>, events: readonly SimEvent[]): void => {
+          this.referenceLog!.recordTick(world, this.reference!.frameAt(world.tick - 1), events, this.localSlot);
+        },
+      } : {}),
+    });
+    if (import.meta.env.DEV) {
+      const applied: { tick: number; slot: number; input: InputFrame }[] = [];
+      const dev = window as unknown as { __cr?: Record<string, unknown> };
+      dev.__cr = { ...dev.__cr, authorityInputTrace: (enabled = true) => {
+        applied.length = 0;
+        this.local!.room.inputObserver = enabled ? (tick, slot, input) => {
+          if (slot === this.localSlot) { if (applied.length >= 20000) applied.shift(); applied.push({ tick, slot, input: { ...input } }); }
+        } : undefined;
+        return applied;
+      } };
+    }
     this.authorityKind = 'main';
     return client;
   }
@@ -237,7 +322,36 @@ export class Session {
 
   start(): void {
     this.running = true;
+    if (import.meta.env.DEV) {
+      const dev = window as unknown as { __cr?: Record<string, unknown> };
+      dev.__cr = { ...dev.__cr, inputTrace, inputHistory: (from: number, count?: number) => this.net.inputHistory(from, count) };
+    }
     this.last = performance.now();
+    if (this.reference || this.handlingFixture) {
+      this.local!.publishInitialSnapshot();
+      this.net.update(this.opts.referenceRun?.capture ? 0 : this.clock(this.last));
+      this.referenceLog?.recordTick(this.net.world, makeInput(), [], this.localSlot);
+    } else this.net.update(this.isOnline ? this.last : this.clock(this.last));
+    if (this.opts.referenceRun?.capture) {
+      this.captureReady = (async (): Promise<void> => {
+        // Three's scene PassNode updates once per browser animation frame. A synchronous draw after
+        // shader warm-up can reuse its unposed scene texture even though the camera has already moved.
+        await this.capturePresentationFrame();
+        if (!this.running) throw new Error('Reference capture stopped before its first frame');
+        // Anchor the HUD clock above its update throttle so the initial captured speed is visible.
+        this.draw(1000, 0, this.lastInput, 1, true);
+        await this.capturePresentationFrame();
+      })();
+    }
+    if (this.referenceLog) {
+      window.__cr = { ...window.__cr, reference: {
+        ready: this.captureReady,
+        captureFrame: (): Promise<ReferenceFrame> => this.captureReferenceFrame(),
+        telemetry: (): ReferenceTelemetry => this.referenceLog!,
+        durationTicks: this.reference!.durationTicks,
+      } };
+    }
+    if (this.opts.referenceRun?.capture) return;
     raceAudioStart(this.config.mode);
     const frame = (now: number): void => {
       if (!this.running) return;
@@ -255,14 +369,18 @@ export class Session {
 
   /** Input → network → prediction; returns the sampled input (for audio). */
   private simulate(now: number): InputFrame {
-    const inp = sampleInput();
-    this.renderer.lookBack = (inp.held & Held.LOOK_BACK) !== 0;
-    if (!this.autopilot) { this.net.submit(inp); copyInputInto(this.lastInput, inp); }
-    inp.edges = 0;
+    pumpInput(now);
     this.net.update(this.isOnline ? now : this.clock(now));
+    const own = this.net.auth.karts[this.localSlot];
+    if (!this.finishInputReleased && own && (own.race.finishTick >= 0 || own.race.retired)) {
+      this.finishInputReleased = true;
+      clearDrivingInput(now); this.net.clearPendingInput();
+    }
+    const inp = this.lastInput;
+    this.renderer.lookBack = (inp.held & Held.LOOK_BACK) !== 0;
     this.net.drainEvents(this.events);
     if (this.isOnline) this.watchOnline(now);
-    return this.autopilot ? this.lastInput : inp;
+    return inp;
   }
 
   private frame(now: number): void {
@@ -272,6 +390,40 @@ export class Session {
     this.lastFrameAt = now;
     if (dt > 0.25) dt = 0.25;
     const inp = this.simulate(now);
+    this.draw(now, dt, inp, this.net.alpha);
+  }
+
+  /** One captured frame is exactly two physics ticks followed by the ordinary draw path at 1/30 s. */
+  async captureReferenceFrame(): Promise<ReferenceFrame> {
+    if (!this.running || !this.opts.referenceRun?.capture || !this.reference || !this.referenceLog) throw new Error('No active deterministic reference capture');
+    if (this.capturePending) throw new Error('A reference frame is already being captured');
+    this.capturePending = true;
+    try {
+      await this.captureReady;
+      if (this.net.world.tick >= this.reference.durationTicks) throw new Error('Reference capture is complete');
+      // Presentation barriers advance neither physics nor camera time. They prevent PassNode from reusing
+      // a previous scene texture and give the compositor a chance to present the submitted frame.
+      await this.capturePresentationFrame();
+      if (!this.running) throw new Error('Reference capture stopped');
+      const before = this.net.world.tick;
+      this.captureClock = ++this.captureFrames * (1000 / 30) + 0.000001;
+      const steps = this.net.update(this.captureClock);
+      if (steps !== 2 || this.net.world.tick !== before + 2) throw new Error(`Reference capture advanced ${steps} ticks instead of two`);
+      // The synchronous loopback delivered authority snapshots during update; reconcile without advancing time.
+      this.net.update(this.captureClock);
+      this.net.drainEvents(this.events);
+      this.draw(1000 + this.captureClock, 1 / 30, this.lastInput, 1, true);
+      const frame = this.referenceLog.frames[this.referenceLog.frames.length - 1]!;
+      await this.capturePresentationFrame();
+      return frame;
+    } finally { this.capturePending = false; }
+  }
+
+  private capturePresentationFrame(): Promise<void> {
+    return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+  }
+
+  private draw(now: number, dt: number, inp: InputFrame, alpha: number, forceFrame = false): void {
     for (const e of this.events) { this.renderer.onEvent(e); this.hud.onEvent(e); raceAudioEvent(e, this.localSlot); }
     this.events.length = 0;
     // draw every kart at its predicted pose plus the spring-smoothed correction offset (ADR-007 visualOffset)
@@ -288,11 +440,20 @@ export class Session {
         if (yaw !== 0) { const c = Math.cos(yaw), sn = Math.sin(yaw), fx = b.fx, fz = b.fz; b.fx = fx * c + fz * sn; b.fz = -fx * sn + fz * c; }
       }
     }
-    this.renderer.update(vp, vc, this.net.alpha, dt);
+    const renderedBefore = this.renderer.renderedFrameCount;
+    this.renderer.update(vp, vc, alpha, dt, forceFrame);
     if (this.ghostRun) this.stepGhost(dt);
     this.renderer.render();
-    this.hud.update(now, this.net.alpha);
+    this.hud.update(now, alpha);
     raceAudioFrame(this.net.world, this.localSlot, inp);
+    if (this.referenceLog && this.renderer.renderedFrameCount > renderedBefore && this.net.world.tick <= this.reference!.durationTicks) {
+      const camera = this.renderer.director.camera;
+      this.referenceLog.frames.push({ frame: this.referenceLog.frames.length, tick: this.net.world.tick,
+        sourceFrame: this.referenceLog.clip.sourceStartFrame + this.net.world.tick / 2, dt: this.renderer.renderedDeltaSeconds, alpha, wallTimeMs: performance.now(),
+        cameraProfile: (this.renderer.chase as { profileName?: string }).profileName ?? 'legacy',
+        cameraPosition: camera.position.toArray(), cameraQuaternion: camera.quaternion.toArray(), fov: camera.fov, aspect: camera.aspect,
+      });
+    }
   }
 
   /**
@@ -337,6 +498,8 @@ export class Session {
 
   /** Offline races pause (L10-session-hooks §1). Online races never pause. */
   setPaused(p: boolean): void {
+    // Keyboard release alone cannot remove a pre-menu sample waiting for the next simulation tick.
+    if (p) this.net?.clearPendingInput();
     if (this.isOnline || p === this.paused) return;
     const now = performance.now();
     if (p) this.pauseAt = now;
@@ -392,6 +555,7 @@ export class Session {
 
   /** Saves this run as the track's ghost when it finished and beat the stored one. */
   private async saveGhostIfBest(): Promise<void> {
+    if (this.isDevelopmentRun) return;
     const w = this.net.world, k = w.karts[this.localSlot];
     if (!this.recorder || !k || k.race.finishTick < 0) return;
     const raceTicks = raceTicksOf(w, k);
@@ -402,6 +566,7 @@ export class Session {
 
   stop(): void {
     this.running = false;
+    if (this.reference && window.__cr) delete window.__cr.reference;
     cancelAnimationFrame(this.raf);
     if (this.pump) clearInterval(this.pump);
     this.pump = null;
@@ -417,6 +582,7 @@ export class Session {
 }
 
 function copyInputInto(d: InputFrame, s: Readonly<InputFrame>): void {
+  d.steerIntent = s.steerIntent; d.driftRequests = s.driftRequests;
   d.steer = s.steer; d.throttle = s.throttle; d.brake = s.brake; d.held = s.held; d.edges = s.edges; d.aim = s.aim; d.emote = s.emote;
 }
 

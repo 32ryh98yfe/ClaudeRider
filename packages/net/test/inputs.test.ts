@@ -7,9 +7,9 @@ const frame = (o: Partial<InputFrame>): InputFrame => Object.assign(makeInput(),
 
 describe('missing inputs (§6.2)', () => {
   it('holds steer, throttle and held bits; releases the brake after MISSING_BRAKE_HOLD ticks; never synthesizes edges', () => {
-    const cur = frame({ steer: 127, throttle: 15, brake: 15, held: 1, edges: 4 });
+    const cur = frame({ steer: 127, throttle: 15, brake: 15, held: 1, edges: 4, steerIntent: 1, driftRequests: 341 });
     const seen: [number, number, number, number, number][] = [];
-    for (let miss = 1; miss <= 8; miss++) { stepMissing(cur, miss); seen.push([cur.steer, cur.throttle, cur.brake, cur.held, cur.edges]); }
+    for (let miss = 1; miss <= 8; miss++) { stepMissing(cur, miss); expect(cur.driftRequests).toBe(0); seen.push([cur.steer, cur.throttle, cur.brake, cur.held, cur.edges]); }
     expect(NET.MISSING_BRAKE_HOLD).toBe(2);
     expect(seen.map((x) => x[2])).toEqual([15, 15, 0, 0, 0, 0, 0, 0]);
     expect(seen.map((x) => x[0])).toEqual([127, 127, 127, 127, 127, 127, 107, 90]);

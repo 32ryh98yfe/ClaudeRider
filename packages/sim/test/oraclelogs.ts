@@ -173,4 +173,19 @@ export const ORACLE_LOGS: OracleLog[] = [
       else set(o, t >= 555 && t < 590 ? -0.6 : 0, 1);
     },
   },
+  {
+    name: 'reference recovery and repeated kick spacing', v0: 34, boosters: 0,
+    // Clock-driven pulses exercise rejected two-tick mashing, accepted nine-tick presses, a partial recovery
+    // interrupted by neutral steering, then sustained recovery, in both directions (doc 16).
+    frame: (t, _k, o) => {
+      const ph = t % 150, dir = Math.floor(t / 150) % 2 === 0 ? 1 : -1;
+      if (ph < 12) set(o, dir, 1, true);
+      else if (ph < 50) set(o, 0.8 * dir, 1, ph % 2 === 0);
+      else if (ph < 80) set(o, 0.8 * dir, 1, ph % 9 === 0);
+      else if (ph < 82) set(o, -dir, 1);
+      else if (ph < 87) set(o, 0, 1);
+      else if (ph < 105) set(o, -dir, 1);
+      else set(o, 0, 1);
+    },
+  },
 ];

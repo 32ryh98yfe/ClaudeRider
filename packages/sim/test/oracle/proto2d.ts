@@ -9,12 +9,17 @@
 //      written independently of the sim (flat ground only: no slope gravity, always grounded): stun, the brake
 //      counter, the brake turn and spin-out, taps, cut, drag (K7b) with etaDrag, the drag law with its planar cap,
 //      K16 skipped while dragging, the post-boost bleed, the reverse gauge, the gear machine and the zero-lock.
+//   5. docs/design/16-reference-driving.md: finite counter-steer recovery and a nine-tick cooldown between
+//      repeated drift impulses, using the existing reDrift timer.
+//   6. Version 10 supersedes those impulses: continuous engagement (3.5/s in,4/s release,10/s counter),
+//      target-tightening presses, bounded yaw acceleration, and no deletion of residual lateral velocity.
+//      These equations are written independently here; no live handling helper is imported.
 // Mapping (§1.1): proto (x, y) ↔ world (x, −z); heading (hx, hy) ↔ (fx, −fz). Values are kept in world
 // coordinates where rounding matters (q(−y) ≠ −q(y) at exact halves).
 import type { KartParams } from '@cr/sim';
 
 const DT = 1 / 60;
-const SIN6 = 0.10452846326765347, SIN8 = 0.13917310096006544, SIN55 = 0.8191520442889918;
+const SIN6 = 0.10452846326765347, SIN4 = 0.0697564737441253, SIN55 = 0.8191520442889918;
 /** Gear (core/state.ts `Gear`): stopped, drive, neutral, reverse. */
 const STOP = 0, D = 1, N = 2, R = 3;
 
@@ -44,6 +49,8 @@ const q = (x: number, k: number): number => Math.round(x * k) / k;
 export interface OracleKart {
   px: number; pz: number; hx: number; hy: number; vx: number; vy: number; r: number;
   drift: 0 | 1; dDir: number; dT: number; dPeak: number; reDrift: number;
+  armed: boolean; intentTicks: number;
+  engagement: number; tightness: number; tightTarget: number; recovery: number; pending: number;
   gauge: number; gT: number; boosters: number; boostT: number; startT: number; instWin: number; instT: number;
   prevThr: number; prevDrift: boolean;
   // doc 15 (KartDrive: stunTicks, postTicks, gear, dragTicks, tapStreak, tapGap, counterTicks, brakeTicks)
@@ -54,6 +61,7 @@ export interface OracleKart {
 export function oracleKart(px: number, pz: number, fx: number, fz: number, v: number): OracleKart {
   return {
     px, pz, hx: fx, hy: -fz, vx: fx * v, vy: -fz * v, r: 0, drift: 0, dDir: 1, dT: 0, dPeak: 0, reDrift: 0, gauge: 0, gT: 0, boosters: 0, boostT: 0, startT: 0, instWin: 0, instT: 0, prevThr: 1, prevDrift: false,
+    armed: false, intentTicks: 0, engagement: 0, tightness: 0, tightTarget: 0, recovery: 0, pending: 0,
     stunT: 0, postT: 0, gear: v > 0 ? D : v < 0 ? R : STOP, dragT: 0, streak: 0, tapGap: 255, counterT: 0, brakeT: 0,
   };
 }
@@ -68,10 +76,12 @@ function resetTech(k: OracleKart): void { endDrag(k); k.counterT = 0; }
 function endDrift(k: OracleKart, P: OracleParams): void {
   k.drift = 0; k.reDrift = P.reDriftTicks; k.dDir = 1; k.dT = 0; k.dPeak = 0;
   resetTech(k);
+  k.armed = false; k.intentTicks = 0; k.engagement = 0; k.tightness = 0; k.tightTarget = 0; k.recovery = 0;
 }
 
 export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): void {
   // §4.1 timers: the boost state is read before the decrements; only a natural expiry starts the bleed
+  if (k.intentTicks > 0) k.intentTicks--;
   const wasBoost = k.boostT > 0 || k.startT > 0;
   if (k.boostT > 0) k.boostT--;
   if (k.startT > 0) k.startT--;
@@ -95,57 +105,53 @@ export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): vo
   // §4.2 brake counter (control branch; the flat plane is always grounded)
   k.brakeT = brk ? Math.min(255, k.brakeT + 1) : 0;
   // K2 drift entry / double drift
-  if (k.drift === 0) {
-    if (inp.drift && (steer >= P.driftMinSteer || steer <= -P.driftMinSteer) && u >= P.driftMinSpeed && k.reDrift <= 0 && !stunned) {
-      k.drift = 1; k.dDir = steer > 0 ? 1 : -1; k.dT = 0; k.dPeak = 0;
-      k.r += k.dDir * P.kickR;
-      [hx, hy] = rotH(hx, hy, k.dDir * P.kickAngle);
-      k.vx *= P.kickLoss; k.vy *= P.kickLoss;
+  const driftSteer = driftEdge && Boolean(inp.tapL) !== Boolean(inp.tapR) ? (inp.tapL ? 1 : -1) : steer;
+  if (!inp.drift) k.armed = false;
+  if (driftEdge && k.drift === 0) k.armed = true;
+  const req = k.drift === 0 && k.pending ? k.pending : driftEdge ? Math.sign(driftSteer) : k.drift === 0 && k.armed && inp.drift ? Math.sign(steer) : 0;
+  if (req) {
+    if (!k.drift && u >= P.driftMinSpeed && !stunned && !brk) {
+      k.drift = 1; k.dDir = req; k.dT = 0; k.dPeak = 0; k.reDrift = 0;
+      k.armed = false; k.intentTicks = 36; k.engagement = 0; k.tightness = 0; k.tightTarget = 0; k.recovery = 0; k.pending = 0;
       resetTech(k); k.brakeT = brk ? 1 : 0; k.postT = 0;
+    } else if (k.drift) {
+      if (req !== k.dDir || k.recovery === 2) { k.pending = req; k.recovery = 2; k.intentTicks = 0; }
+      else { k.tightTarget = Math.min(1, k.tightTarget + 0.25); k.recovery = 0; k.intentTicks = 36; }
     }
-  } else if (driftEdge && k.dT >= P.rekickMinTicks) {
-    k.r += k.dDir * P.rekickR;
-    [hx, hy] = rotH(hx, hy, k.dDir * P.rekickAngle);
-    k.vx *= P.rekickLoss; k.vy *= P.rekickLoss;
   }
-  // §4.3 K3 brake turn, spin-out and taps (while drifting)
-  let brakeTurn = false, spin = false;
-  if (k.drift === 1) {
-    if (k.brakeT >= P.spinTicks) {
-      // spin-out: the drift ends with no instant window and the active boost is cancelled (stored boosters stay)
-      spin = true;
-      endDrift(k, P);
-      k.boostT = 0; k.startT = 0; k.instT = 0; k.instWin = 0; k.postT = 0;
-      k.stunT = P.spinStunTicks + 1;
-    } else if (k.brakeT >= 1 && k.brakeT <= P.brakeTurnTicks) brakeTurn = true;
-    if (k.drift === 1 && k.dragT > 0) {
-      k.tapGap = Math.min(255, k.tapGap + 1);
-      if (k.dDir > 0 ? inp.tapL : inp.tapR) {
-        if (k.tapGap > P.tapMaxGap) k.streak = 1;
-        else if (k.tapGap >= P.tapMinGap) k.streak = Math.min(P.tapStreakMax, k.streak + 1);
-        else k.streak = 0;
-        k.tapGap = 0;
-        if (k.streak > 0) k.r += k.dDir * P.tapYaw;
-      }
+  if (brk) { k.pending = 0; k.intentTicks = 0; }
+  if (k.drift) {
+    if (brk) { k.intentTicks = 0; if (k.recovery === 0) k.recovery = 1; }
+    if (steer * k.dDir < -0.05) { k.recovery = 2; k.intentTicks = 0; }
+    const sustain = inp.drift || k.intentTicks > 0;
+    if (!sustain && k.recovery === 0) k.recovery = 1;
+    const on = sustain && k.recovery === 0;
+    const rate = on ? 3.5 : k.recovery === 2 ? 10 : 4;
+    k.engagement = Math.max(0, Math.min(1, k.engagement + (on ? 1 : -1) * rate * DT));
+    k.tightness += Math.max(-2 * DT, Math.min(2 * DT, k.tightTarget - k.tightness));
+  }
+  // Directional tap rewards change the curvature target; braking does not spin or inject heading.
+  if (k.drift === 1 && k.dragT > 0) {
+    k.tapGap = Math.min(255, k.tapGap + 1);
+    if (k.dDir > 0 ? inp.tapL : inp.tapR) {
+      if (k.tapGap > P.tapMaxGap) k.streak = 1;
+      else if (k.tapGap >= P.tapMinGap) k.streak = Math.min(P.tapStreakMax, k.streak + 1);
+      else k.streak = 0;
+      k.tapGap = 0;
+      if (k.streak > 0) k.tightTarget = Math.min(1, k.tightTarget + 0.08);
     }
   }
   u = k.vx * hx + k.vy * hy;
   const sIn = steer * k.dDir;
   // K4 yaw target and lag
-  let rT: number;
-  if (k.drift === 0) {
-    const vv = u > 0 ? u : 0; const qq = vv / P.gripV1;
-    rT = steer * P.yGrip * vv / (vv + P.gripV0) / (1 + qq * qq);
-    if (u < -0.5) rT = -steer * P.yGrip * 0.5 * (-u) / (-u + P.gripV0);
-  } else {
-    // §4.4: inside the tap grace of a drag, in-direction steer counts as neutral (clamped to dragNeutral)
-    const grace = k.dragT > 0 && k.streak > 0 && k.tapGap <= P.tapGrace;
-    rT = k.dDir * (P.y0 / (1 + (k.dT * DT) / P.y0T) + P.y1 * (grace ? Math.min(sIn, P.dragNeutral) : sIn) + (inp.drift ? P.y2 : 0));
-  }
-  if (stunned) rT *= 0.3;
-  k.r += (rT - k.r) * (1 - decayF(k.drift === 0 ? P.kYawGrip : P.kYawDrift));
-  // K5 heading rotation (×brakeTurnMul on brake-turn ticks)
-  [hx, hy] = rotH(hx, hy, k.r * DT * (brakeTurn ? P.brakeTurnMul : 1));
+  const vv = Math.max(0, u), qq = vv / P.gripV1;
+  let grip = steer * ((P.yGrip * vv) / (vv + P.gripV0) / (1 + qq * qq));
+  if (u < -0.5) grip = -steer * P.yGrip * 0.5 * (-u) / (-u + P.gripV0);
+  const turn = steer * (P.driftYaw + P.tightenYaw * k.tightness) * vv / (vv + 3);
+  const target = grip + (turn - grip) * k.engagement;
+  const step = (k.recovery === 2 ? P.counterYawAccel : P.yawAccel) * DT;
+  k.r += Math.max(-step, Math.min(step, (target - k.r) * (k.recovery === 2 ? 0.5 : 0.25)));
+  [hx, hy] = rotH(hx, hy, k.r * DT);
   // K6 decomposition (K7 slope gravity is zero on the flat plane)
   u = k.vx * hx + k.vy * hy;
   let w = -k.vx * hy + k.vy * hx;
@@ -154,10 +160,8 @@ export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): vo
   let cut = false;
   if (k.drift === 1) {
     const boosting = k.boostT > 0 || k.startT > 0;
-    k.counterT = sIn <= -P.cutSteer ? Math.min(255, k.counterT + 1) : 0;
-    cut = k.counterT >= P.cutTicks && !(boosting && inp.drift);
+    k.counterT = k.recovery === 2 ? Math.min(255, k.counterT + 1) : 0;
     const sb7 = v > 0.1 ? -k.dDir * w / v : 0;
-    if (cut) { if (u > 0) u += P.etaCut * (v - u); w = 0; k.r = 0; }
     const steerOk = sIn > -P.dragNeutral && (sIn < P.dragNeutral || (k.streak > 0 && k.tapGap <= P.tapGrace));
     const ok = !cut && boosting && thr === 1 && !brk && steerOk;
     if (k.dragT > 0) {
@@ -175,12 +179,14 @@ export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): vo
     const sL = k.dragT > 0 && k.streak > 0 && k.tapGap <= P.tapGrace ? Math.min(sIn, P.dragNeutral) : sIn;
     if (sL >= 0.3) kL = P.kLatNeutral + (P.kLatIn - P.kLatNeutral) * ((sL - 0.3) / 0.7); else if (sL > -0.3) kL = P.kLatNeutral;
     else kL = P.kLatNeutral + (P.kLatCounter - P.kLatNeutral) * ((-sL - 0.3) / 0.7);
-    if (inp.drift) kL *= P.kLatShift;
+    kL = P.kLatGrip + (kL - P.kLatGrip) * k.engagement;
+    eta = P.etaGrip + (eta - P.etaGrip) * k.engagement;
   }
   const w2 = w * decayF(kL);
   const vRaw = Math.sqrt(u * u + w2 * w2);
   if (vRaw > 1e-6) { const f = (vRaw + eta * (v - vRaw)) / vRaw; u *= f; w = w2 * f; } else w = w2;
   v = Math.sqrt(u * u + w * w);
+  cut = k.recovery === 2 && k.engagement === 0 && Math.abs(w) <= P.exitSin * v;
   // K9 slip cap
   if (k.drift === 1) { const sm = SIN55 * v; if (w > sm || w < -sm) { w = w > 0 ? sm : -sm; u = Math.sqrt(v * v - w * w); } }
   // K10 fatigue, K11 bookkeeping (reverse gauge ×revGaugeMul; a cut is an exit)
@@ -195,8 +201,8 @@ export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): vo
       if ((k.boostT > 0 || k.startT > 0) && sIn <= -0.3) dg *= P.revGaugeMul;
       addGauge(k, dg);
     }
-    if ((k.dT >= P.exitMinTicks && sb < SIN6) || u < 5 || cut) {
-      if (k.dT >= P.instMinDriftTicks && k.dPeak >= SIN8) k.instWin = P.instWindowTicks;
+    if ((k.dT >= P.exitMinTicks && k.engagement === 0 && Math.abs(sb) < SIN6) || u < 5 || cut) {
+      if (k.dT >= P.instMinDriftTicks && k.dPeak >= SIN4) k.instWin = P.instWindowTicks;
       endDrift(k, P);
     }
   }
@@ -205,7 +211,7 @@ export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): vo
   if (inp.boost && k.boosters > 0 && k.boostT < P.chainTicks) { k.boosters--; k.boostT += P.tBoostTicks; }
   // K14 target speed; any boost law, drift or instant boost cancels the bleed for good
   const boosting = k.boostT > 0 || k.startT > 0;
-  const vT = boosting ? P.vBoost : P.vGrip;
+  const vT = k.boostT > 0 ? P.vBoost : k.startT > 0 ? P.vBoost * P.startCapMul : P.vGrip;
   if (boosting || k.drift === 1 || k.instT > 0) k.postT = 0;
   // §4.8 gear machine (before the longitudinal law)
   let gear = k.gear;
@@ -258,6 +264,7 @@ export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): vo
     }
     const aBrk = -(k.drift === 1 ? P.aBrakeDrift : P.aBrake);
     if (brk && u > 0) a = aBrk;
+    else if (brk && thrIn) a = u < 0 ? P.aBrake : 0;
     if (!dragLaw) {
       uN = u + a * DT;
       // post-boost bleed toward the non-boost target (↑ held, above it) or toward 0 (↑ released); a brake wins if stronger
@@ -266,8 +273,13 @@ export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): vo
         if (brk && u > 0) { const ub = u + aBrk * DT; if (ub < uN) uN = ub; }
       }
     }
+    if (thr && !brk && uN > u) {
+      const limit = instOn ? Math.max(vT, P.vInst) : vT;
+      const along = Math.sqrt(Math.max(0, limit * limit - w * w));
+      uN = Math.max(u, Math.min(uN, along));
+    }
     if ((thr === 0 || brk) && u >= 0 && uN < 0) uN = 0;
-    else if (thr === 0 && u < 0 && uN > 0) uN = 0;
+    else if ((thr === 0 || brk) && u < 0 && uN > 0) uN = 0;
   }
   // N or R coasting to exactly 0 on flat ground, with the planar speed under 0.5 m/s → STOP (the zero-lock holds
   // from the next tick)
@@ -276,8 +288,6 @@ export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): vo
   u = uN;
   // K16 drift drag (skipped while dragging)
   if (k.drift === 1 && sb > 0 && k.dragT === 0) { let f = 1 - P.cBeta * sb * sb * DT; if (f < 0) f = 0; u *= f; w *= f; }
-  // §4.9 spin-out speed
-  if (spin) { const vp = Math.sqrt(u * u + w * w); if (vp > 1e-9) { const s = P.spinSpeed / vp; u *= s; w *= s; } }
   k.vx = u * hx - w * hy; k.vy = u * hy + w * hx;
   // world coordinates: z = −y; two half-displacements like the sim
   const vz = -k.vy;
@@ -294,6 +304,7 @@ export function oracleStep(k: OracleKart, inp: OracleInput, P: OracleParams): vo
   k.r = q(k.r, 4096);
   k.gauge = q(k.gauge, 65536);
   k.dPeak = q(k.dPeak, 32768);
+  k.engagement = q(k.engagement, 32768); k.tightness = q(k.tightness, 32768); k.tightTarget = q(k.tightTarget, 32768);
 }
 
 function addGauge(k: OracleKart, dg: number): void {

@@ -13,7 +13,7 @@ export function newKart(slot: number): KartState {
     slot, team: 0, spec: 1, active: 0,
     body: { px: 0, py: 0, pz: 0, vx: 0, vy: 0, vz: 0, fx: 0, fy: 0, fz: -1, nx: 0, ny: 1, nz: 0, yawRate: 0, grounded: 0, coyote: 0, airTicks: 0, surf: 0, wallContact: 0, ghostTicks: 0, attachKind: 0, attachId: 0, attachS: 0, attachT: 0 },
     drive: {
-      drift: 0, driftDir: 1, driftTicks: 0, driftPeak: 0, reDriftLock: 0, gauge: 0, fatigueTicks: 0, boosters: 0, teamBoosters: 0,
+      drift: 0, driftDir: 1, driftTicks: 0, driftPeak: 0, driftIntentTicks: 0, driftArmed: 0, driftEngagement: 0, driftTightness: 0, driftTarget: 0, driftRecovering: 0, pendingDriftDir: 0, reDriftLock: 0, gauge: 0, fatigueTicks: 0, boosters: 0, teamBoosters: 0,
       boostTicks: 0, boostKind: 0, startTicks: 0, wheelspinTicks: 0, instWindow: 0, instTicks: 0, stunTicks: 0, draftCharge: 0,
       draftTicks: 0, prevHeld: 0, prevThrottle: 0, lowSpeedTicks: 0, startPressTick: -1,
       gear: 0, postTicks: 0, dragTicks: 0, tapStreak: 0, tapGap: 255, counterTicks: 0, brakeTicks: 0,

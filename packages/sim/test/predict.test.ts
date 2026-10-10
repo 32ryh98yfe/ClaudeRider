@@ -26,6 +26,13 @@ const taps = (n: number, gap: number, f: Frame, edge: number, from = 0): Frame[]
 const boosted = (ticks: number) => (k: KartState): void => { k.drive.boostTicks = ticks; k.drive.boostKind = Boost.NORMAL; };
 
 const SCENARIOS: Scenario[] = [
+  { name: 'valid existing drag/reward state unwinds with continuous traction', speed: 30, setup: (k) => {
+    k.drive.boostTicks = 200; k.drive.boostKind = Boost.NORMAL;
+    Object.assign(k.drive, { drift: 1, driftDir: 1, driftEngagement: 1, driftIntentTicks: 36, driftTicks: 30, driftPeak: 0.5, dragTicks: 40, tapStreak: 3, tapGap: 7, prevHeld: Held.DRIFT });
+    k.body.vx = 30 * Math.cos(Math.PI / 6); k.body.vz = 30 * Math.sin(Math.PI / 6);
+  }, frames: [{ drift: true, edges: Edge.TAP_L }, ...rep(20, { drift: true }), ...rep(60, { steer: -1 })] },
+  { name: 'tiny analogue counter trim agrees with authority without becoming a digital full counter', speed: 28.9, frames: [
+    ...rep(30, { steer: 1, drift: true }), ...rep(24, { steer: -1 / 127, drift: true }), ...rep(60, { steer: -1 })] },
   { name: 'drift entry, β build-up and a neutral drag (DRIFT held)', speed: 45, setup: boosted(300), frames: [...rep(20, { steer: 1, drift: true }), ...rep(70, { drift: true })] },
   { name: 'drag with taps every 8 ticks (streak 1, 2, 3, 3)', speed: 45, setup: boosted(300), frames: [...rep(18, { steer: 1, drift: true }), ...rep(4, { drift: true }), ...taps(90, 8, { drift: true }, Edge.TAP_L)] },
   { name: 'right drag with taps every 6 and 12 ticks, mashing and wrong-way taps', speed: 45, setup: boosted(300), frames: [
@@ -44,6 +51,19 @@ const SCENARIOS: Scenario[] = [
   { name: 'brake to a stop, STOP, reverse after 6 ticks, ↑ back to D', speed: 12, frames: [...rep(80, { brk: 1, thr: 0 }), ...rep(40, { brk: 1, thr: 0, steer: 0.5 }), ...rep(40, {})] },
   { name: 'coasting in N to rest, then a start in D', speed: 14, frames: [...rep(400, { thr: 0 }), ...rep(40, { steer: 0.3 })] },
   { name: 'neon_blade (speed body): drag with taps', kart: 'neon_blade', speed: 46, setup: boosted(300), frames: [...rep(20, { steer: 1, drift: true }), ...rep(4, { drift: true }), ...taps(80, 9, { drift: true }, Edge.TAP_L)] },
+  { name: 'reference recovery: full counter-steer interrupted by neutral, then resumed', speed: 34, frames: [
+    ...rep(24, { steer: 1, drift: true }), ...rep(2, { steer: -1 }), ...rep(3, {}), ...rep(25, { steer: -1 }), ...rep(40, {})] },
+  { name: 'reference repeated kicks: two-tick Shift mashing and intentional nine-tick presses', speed: 34, frames: [
+    ...rep(12, { steer: 1, drift: true }),
+    ...Array.from({ length: 48 }, (_, t) => ({ steer: 0.8, drift: t % 2 === 0 })),
+    ...Array.from({ length: 36 }, (_, t) => ({ steer: 0.8, drift: t % 9 === 0 })),
+    ...rep(12, { steer: -1 }), ...rep(30, {})] },
+  { name: 'compressed Shift presses and reversed direction edge before filtered steering changes sign', speed: 34, frames: [
+    ...rep(12, { steer: 1, drift: true }),
+    ...taps(12, 3, { steer: 0.8, drift: true }, Edge.DRIFT),
+    { steer: 0.8, edges: Edge.DRIFT | Edge.TAP_R },
+    ...taps(15, 3, { steer: -1 }, Edge.DRIFT),
+    ...rep(40, { steer: -0.5 })] },
 ];
 
 function apply(rig: Rig, f: Frame): void {
@@ -97,7 +117,7 @@ describe('AI self-prediction vs step() (8-tick lookahead, M5 techniques)', () =>
     });
   }
 
-  it('the scripts reach every technique state (drag, streak 3, brake turn, spin-out, cut, bleed, R)', () => {
+  it('the scripts cover retained rewards/recovery states without automatic brake spin or yaw injection', () => {
     // guards the scenarios above against silently missing the state they are meant to exercise
     const seen = { drag: false, streak3: false, spin: false, cut: false, bleed: false, rev: false, brakeTurn: false };
     for (const sc of SCENARIOS) {
@@ -119,6 +139,6 @@ describe('AI self-prediction vs step() (8-tick lookahead, M5 techniques)', () =>
         if (e.t === 'brakeTurn') seen.brakeTurn = true;
       }
     }
-    expect(seen).toEqual({ drag: true, streak3: true, spin: true, cut: true, bleed: true, rev: true, brakeTurn: true });
+    expect(seen).toEqual({ drag: true, streak3: true, spin: false, cut: true, bleed: true, rev: true, brakeTurn: false });
   });
 });

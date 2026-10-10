@@ -272,7 +272,7 @@ const fnv = (bytes: Uint8Array): string => {
   return (h >>> 0).toString(16).padStart(8, '0');
 };
 
-export interface Fixture { track: BakedTrack; spec: FixtureSpec; S: number[][] }
+export interface Fixture { track: BakedTrack; bytes: Uint8Array; spec: FixtureSpec; S: number[][] }
 
 /** Writes the fixture through the real .ctrk container and loads it back. */
 export function buildFixture(spec: FixtureSpec): Fixture {
@@ -330,7 +330,7 @@ export function buildFixture(spec: FixtureSpec): Fixture {
   };
   meta.hash = fnv(writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays));
   const bytes = writeContainer(CTRK_MAGIC, CTRK_VERSION, meta, arrays);
-  return { track: loadCtrk(toArrayBuffer(bytes)), spec, S: Ss };
+  return { track: loadCtrk(toArrayBuffer(bytes)), bytes, spec, S: Ss };
 }
 
 /** 8 grid poses (2 columns, 7 m pitch) behind main-line s = `lineS`. */

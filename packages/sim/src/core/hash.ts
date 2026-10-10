@@ -23,6 +23,7 @@ function hashKart(k: KartState): void {
   mixF(b.yawRate, 4096); mixInt(b.grounded); mixInt(b.coyote); mixInt(b.airTicks); mixInt(b.surf); mixInt(b.wallContact); mixInt(b.ghostTicks);
   mixInt(b.attachKind); mixInt(b.attachId); mixF(b.attachS, 4096); mixInt(b.attachT);
   mixInt(d.drift); mixInt(d.driftDir); mixInt(d.driftTicks); mixF(d.driftPeak, 32768); mixInt(d.reDriftLock); mixF(d.gauge, 65536);
+  mixInt(d.driftIntentTicks); mixInt(d.driftArmed); mixF(d.driftEngagement, 32768); mixF(d.driftTightness, 32768); mixF(d.driftTarget, 32768); mixInt(d.driftRecovering); mixInt(d.pendingDriftDir);
   mixInt(d.fatigueTicks); mixInt(d.boosters); mixInt(d.teamBoosters); mixInt(d.boostTicks); mixInt(d.boostKind); mixInt(d.startTicks);
   mixInt(d.wheelspinTicks); mixInt(d.instWindow); mixInt(d.instTicks); mixInt(d.stunTicks); mixInt(d.draftCharge); mixInt(d.draftTicks);
   mixInt(d.prevHeld); mixInt(d.prevThrottle); mixInt(d.lowSpeedTicks); mixInt(d.startPressTick);

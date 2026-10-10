@@ -1,7 +1,7 @@
 // Ground, air and 3D motion (10-sim-spec §10, §13.5, §14.8): jumps, coyote time, landing, halfpipe walls up to
 // 60°, track-gravity loops on RMF frames, low gravity and stacked decks.
 import { describe, expect, it } from 'vitest';
-import { Held, type KartState, type SimEvent } from '@cr/sim';
+import { Held, V_REF, type KartState, type SimEvent } from '@cr/sim';
 import { type Rig } from './rig.ts';
 import { jumpKit, halfpipe, loopKit, helixKit, strip } from './fixtures/kits.ts';
 import { racingRig, place, speedOf, steerLeft, pursue3d } from './util.ts';
@@ -37,7 +37,7 @@ describe('jumps (§10.3, §13.5, V11)', () => {
   it.each([25, 30, 35, 40, 46, 50, 52])('taking off at %i m/s: flies, lands in the landing zone, no respawn', (v) => {
     // calibrate the entry speed so the lip speed is v (the ramp and overspeed decay cost a little)
     let v0 = v;
-    for (let i = 0; i < 3; i++) v0 += v - jump(v0).takeoffV;
+    for (let i = 0; i < 8; i++) v0 += v - jump(v0).takeoffV; // converge through adaptive substeps above 51m/s
     const { kit, k, takeoffV, landS, impact, air } = jump(v0);
     expect(Math.abs(takeoffV - v)).toBeLessThan(0.3);
     expect(landS).toBeGreaterThanOrEqual(kit.landS0 + 1.5);
@@ -190,7 +190,7 @@ describe('halfpipe walls (§10.2, 11-track-spec §5.1)', () => {
 });
 
 describe('track gravity, loops and low gravity (§10.1, 11-track-spec §4)', () => {
-  it('loop R12 with track gravity: enters and exits at ≥ 30 m/s with no ground loss > 6 ticks', () => {
+  it('loop R12 with track gravity: enters and exits above the proportionally reduced 30m/s criterion with no ground loss > 6 ticks', () => {
     const kit = loopKit();
     const rig = racingRig(kit.track);
     const k = place(rig, 0, { s: kit.loopS0 - 60, speed: 32 });
@@ -205,8 +205,8 @@ describe('track gravity, loops and low gravity (§10.1, 11-track-spec §4)', () 
       if (k.body.ny < -0.9) upsideDown++;
       if (s > kit.loopS1 + 60) break;
     }
-    expect(vIn).toBeGreaterThanOrEqual(30);
-    expect(vOut).toBeGreaterThanOrEqual(30);
+    expect(vIn).toBeGreaterThanOrEqual(V_REF * (30 / 34));
+    expect(vOut).toBeGreaterThanOrEqual(V_REF * (30 / 34));
     expect(maxRun).toBeLessThanOrEqual(6);
     expect(top).toBeGreaterThan(2 * kit.radius - 1);
     expect(upsideDown).toBeGreaterThan(3);

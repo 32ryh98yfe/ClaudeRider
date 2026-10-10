@@ -7,7 +7,8 @@ import { sampleAt, SURF, type PathModel, type TrackModel } from './paths.ts';
 import type { Content } from './content.ts';
 import { profileHeight } from './content.ts';
 import { ROLE } from './mesh.ts';
-import { TriSoup, VS, type WallQuad } from './soup.ts';
+import { TriSoup, VS, WALL_THICKNESS, type WallQuad } from './soup.ts';
+import { canonicalF32, canonicalNumber } from './canonical.ts';
 
 export const CHUNK_LEN = 50;
 
@@ -54,6 +55,10 @@ export class RenderBuilder {
   }
   /** Appends one triangle (3 × [x,y,z,nx,ny,nz,u,v,r,g,b]). */
   tri(sl: RenderSlot, chunk: number, a: number[], b: number[], c: number[]): void {
+    const ax = b[0]! - a[0]!, ay = b[1]! - a[1]!, az = b[2]! - a[2]!;
+    const bx = c[0]! - a[0]!, by = c[1]! - a[1]!, bz = c[2]! - a[2]!;
+    const x = ay * bz - az * by, y = az * bx - ax * bz, z = ax * by - ay * bx;
+    if (x * x + y * y + z * z < 1e-16) return;
     const base = sl.pos.length / 3;
     for (const v of [a, b, c]) {
       sl.pos.push(v[0]!, v[1]!, v[2]!); sl.nrm.push(v[3]!, v[4]!, v[5]!); sl.uv.push(v[6]!, v[7]!); sl.col.push(v[8]!, v[9]!, v[10]!);
@@ -75,8 +80,21 @@ export class RenderBuilder {
   finalise(): RenderSlot[] {
     const out: RenderSlot[] = [];
     for (const sl of [...this.slots.values()].sort((a, b) => a.name.localeCompare(b.name))) {
+      // Weld the attributes the file actually stores. Raw double-string keys can split the same float32
+      // vertex differently on ARM64 and x64, changing indices and LOD topology without changing its geometry.
+      for (const attribute of [sl.pos, sl.col]) for (let i = 0; i < attribute.length; i++) attribute[i] = Math.fround(attribute[i]!);
+      for (let i = 0; i < sl.nrm.length; i++) sl.nrm[i] = canonicalF32(sl.nrm[i]!);
+      // UV subtraction at a pad boundary can amplify sub-picometre station residuals near zero.
+      for (let i = 0; i < sl.uv.length; i++) sl.uv[i] = canonicalF32(canonicalNumber(sl.uv[i]!));
       const nt = sl.idx.length / 3;
-      const order = Array.from({ length: nt }, (_, i) => i).sort((p, q) => sl.triChunk[p]! - sl.triChunk[q]! || p - q);
+      // Polygon clipping can leave sub-float32 slivers. Cull after storage rounding as well as at insertion,
+      // otherwise welded zero-area triangles make closest-point and normal queries undefined.
+      const order = Array.from({ length: nt }, (_, i) => i).filter(t => {
+        const a = sl.idx[t * 3]! * 3, b = sl.idx[t * 3 + 1]! * 3, c = sl.idx[t * 3 + 2]! * 3;
+        const ax = sl.pos[b]! - sl.pos[a]!, ay = sl.pos[b + 1]! - sl.pos[a + 1]!, az = sl.pos[b + 2]! - sl.pos[a + 2]!;
+        const bx = sl.pos[c]! - sl.pos[a]!, by = sl.pos[c + 1]! - sl.pos[a + 1]!, bz = sl.pos[c + 2]! - sl.pos[a + 2]!;
+        return (ay * bz - az * by) ** 2 + (az * bx - ax * bz) ** 2 + (ax * by - ay * bx) ** 2 > 1e-16;
+      }).sort((p, q) => sl.triChunk[p]! - sl.triChunk[q]! || p - q);
       const map = new Map<string, number>();
       const pos: number[] = [], nrm: number[] = [], uv: number[] = [], col: number[] = [], idx: number[] = [];
       const chunks: RenderSlot['chunks'] = [];
@@ -175,7 +193,7 @@ export function groundToRender(rb: RenderBuilder, m: TrackModel, c: Content, gro
 
 /** Walls with thickness (inner face, top, outer face); u runs 0..1 around the profile, v = s / 3. */
 export function wallsToRender(rb: RenderBuilder, walls: WallQuad[], ao: (x: number, y: number, z: number) => number): void {
-  const T = 0.45;
+  const T = WALL_THICKNESS;
   // smooth shading on bends: a wall corner shared by quads of the same kind gets the average of their outward
   // vectors, so curved walls stop reading as a plank fence (one flat normal per 1–2 m quad). Corners sharper than
   // ≈ 37° (plaza corners, wall ends) keep the quad's flat normal, so hard edges stay crisp. Render only: .ctrk walls
@@ -228,7 +246,23 @@ export function wallsToRender(rb: RenderBuilder, walls: WallQuad[], ao: (x: numb
   }
 }
 
-/** Underside strip (−0.6 m, flipped) and side skirts so elevated ribbons read as solid. */
+/** Offset the actual clipped, profiled ground triangles; joining only outside edges cuts through gutters/bowls. */
+export function undersideFromGround(rb: RenderBuilder, ground: TriSoup): void {
+  const sl = rb.slot('underside', 'underside');
+  for (let t = 0; t < ground.count; t++) {
+    if (ground.role[t] === ROLE.KILL) continue;
+    const vertices: number[][] = [];
+    let station = 0;
+    for (let k = 0; k < 3; k++) {
+      const v = ground.vert(t, k); station += v[6]! / 3;
+      vertices.push([v[0]! - v[3]! * 0.6, v[1]! - v[4]! * 0.6, v[2]! - v[5]! * 0.6, -v[3]!, -v[4]!, -v[5]!, v[7]! / 8, v[6]! / 8, 0.55, 0.55, 0.55]);
+    }
+    const path = ground.path[t]!, chunk = ground.role[t] === ROLE.AREA ? rb.chunkOf(1000 + path, 0, 'area') : rb.chunkOf(path, station);
+    rb.triAuto(sl, chunk, vertices[0]!, vertices[1]!, vertices[2]!);
+  }
+}
+
+/** Side skirts; lower-road and flight clearance is clipped against complete volumes before finalization. */
 export function undersideToRender(rb: RenderBuilder, m: TrackModel, p: PathModel, rows: number[], skirtDepth: (x: number, y: number, z: number) => number): void {
   if (p.kind === 'rail') return;
   const sl = rb.slot('underside', 'underside');
@@ -244,10 +278,6 @@ export function undersideToRender(rb: RenderBuilder, m: TrackModel, p: PathModel
     };
     const col = 0.55;
     const V = (p3: number[], n: number[], u: number, v: number): number[] => [p3[0]!, p3[1]!, p3[2]!, n[0]!, n[1]!, n[2]!, u, v, col, col, col];
-    const dn = [-mid.ux, -mid.uy, -mid.uz];
-    const aL = E(A, -1, -0.6), aR = E(A, 1, -0.6), bL = E(B, -1, -0.6), bR = E(B, 1, -0.6);
-    rb.tri(sl, chunk, V(aL, dn, 0, sa / 8), V(bL, dn, 0, sb / 8), V(aR, dn, 1, sa / 8));
-    rb.tri(sl, chunk, V(aR, dn, 1, sa / 8), V(bL, dn, 0, sb / 8), V(bR, dn, 1, sb / 8));
     // side skirts from the surface edge down to −skirt (deeper where the road stands above the terrain)
     for (const side of [-1, 1] as const) {
       const n = [side * mid.rx, side * mid.ry, side * mid.rz];

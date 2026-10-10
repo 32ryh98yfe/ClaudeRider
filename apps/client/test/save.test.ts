@@ -19,6 +19,15 @@ const M1_SAVE = {
 const V0_SAVE = { profile: { name: 'old', characterId: 'dao', kartBodyId: 'pebble' }, settings: { hudScale: 3, keys: { drift: ['KeyQ'] } }, progress: { level: 99, sparks: -5 } };
 
 describe('migrateSave', () => {
+  it('replaces the legacy straight-rail default once and keeps a new explicit map choice', () => {
+    for (const minimapInSpeed of [false, true, undefined]) {
+      const migrated = migrateSave({ v: 1, settings: { minimapInSpeed } });
+      expect(migrated.settings.raceMap).toBe('track');
+      expect(migrated.settings.minimapInSpeed).toBe(true);
+    }
+    const explicit = migrateSave({ v: 1, settings: { minimapInSpeed: false, raceMap: 'progress' } });
+    expect(migrateSave(explicit).settings.raceMap).toBe('progress');
+  });
   it('loads an M1 v1 save unchanged and fills the new optional fields', () => {
     const s = migrateSave(structuredClone(M1_SAVE));
     expect(s.v).toBe(1);

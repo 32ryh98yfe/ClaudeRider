@@ -78,7 +78,7 @@ describe('team gauge and team booster (§9.3)', () => {
     expect(k1!.drive.teamBoosters).toBe(0);
   });
 
-  it('a stored team booster fires first and holds the team speed 1.02·vBoost for 270 ticks', () => {
+  it('a stored team booster fires first and holds the shared motor cap vBoost for 270 ticks', () => {
     const rig = duo();
     const k = place(rig, 0, { s: 200, speed: 30 });
     k.drive.boosters = 1; k.drive.teamBoosters = 1;
@@ -92,7 +92,7 @@ describe('team gauge and team booster (§9.3)', () => {
     expect(ticks).toBeLessThanOrEqual(SHARED.teamBoostTicks + 1);
     expect(top).toBeGreaterThan(pebble.vTeam - 0.4);
     expect(top).toBeLessThan(pebble.vTeam + 0.2);
-    expect(pebble.vTeam).toBeCloseTo(1.02 * pebble.vBoost, 9);
+    expect(pebble.vTeam).toBeCloseTo(pebble.vBoost, 9);
   });
 });
 

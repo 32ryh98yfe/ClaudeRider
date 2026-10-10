@@ -5,6 +5,19 @@ This file is the **single source of truth**.
 - All durations are **integer ticks at 60 Hz** (1 tick = 16.667 ms), with seconds shown in parentheses.
 - Units are metres, m/s and m/s². The world is right-handed with +Y up.
 
+## Current amendment — simulation 10
+
+The user-approved play-test changes in [19 — Continuous handling](19-continuous-handling.md)
+and [20 — Shared track contacts](20-track-contact-and-finish.md) are canonical
+amendments to the historical parameter tables below. Reference/Balance uses
+28.9 m/s ordinary speed, 32.591975 m/s boost speed, 15.3 m/s² base thrust,
+24/12/24 s⁻¹ grip/drift/counter lateral damping, 36-tick minimum drift intent,
+continuous yaw acceleration, and 48-tick finish braking. The display factor
+remains 205/34. Wall impacts preserve charge, inventory and active boost timers.
+Input is an ordered 8-byte sample (lobby protocol 3, ghost format 2); track
+containers use CTRK 3/CVIS 2 with shared instance contacts. These amendments
+supersede old impulse, speed, brake-spin and immutable-track requirements.
+
 Status keys: **[S]** sourced from research · **[V]** validated by the headless gap-2 simulation · **[P]** proposed design value.
 
 ---
@@ -185,8 +198,28 @@ Kart bodies:
 - **Brake turn (고속턴) and spin-out.** Brake ticks 1–8 in a drift rotate the heading ×2; brake held ≥ 11 ticks in a drift spins out: drift ended without an instant window, active boost cancelled (stored boosters kept), 15 ticks of stun, planar speed 3.317 m/s (20 km/h).
 - Everything else in this ADR is unchanged.
 
+### Amendment (reference driving, simulation version 5)
+`16-reference-driving.md` supersedes the instantaneous cut and repeated-kick
+rules above: counter-steering recovers grip over finite ticks, with a faster
+catch at low speed; successful re-kicks have a nine-tick cooldown. Client
+keyboard smoothing uses elapsed time. Track geometry, terrain, kart statistics,
+speed limits, grip yaw, gravity and all other map calibration remain unchanged.
+
+### Amendment (reference fidelity, simulation version 8)
+`17-reference-fidelity.md` supersedes the version-5 preservation constraint.
+The user authorized physics, kart and camera calibration from the supplied video,
+with localized changes to existing maps while preserving their themes/routes.
+Launch thrust/target, drift charge and cut recovery now use the measured-reference
+acceptance workflow, raw-input replays and held-out observations described there.
+
+### Amendment (play-test controls and contact, simulation version 9)
+`18-controls-and-track-contact.md` supersedes the prior repeat-lock and cut-yaw
+rules. Short Shift presses are latched as input edges; counter-steer and repeated
+drift impulses preserve player direction control. Track hazards sweep actual
+motion, and render-only scenery leaves the driving corridor clear.
+
 ## ADR-005 Tick order (identical on authority and predictor)
-1. Latch inputs. Derive drift and throttle edges from `prevHeld` and `prevThrottle`.
+1. Latch inputs, including explicit drift press edges. Derive held-drift and throttle rises from `prevHeld` and `prevThrottle`; an explicit drift edge and held rise are one press.
 2. Apply effects whose start tick is now, in effectId order.
 3. Kart dynamics: integrated **once**.
 4. Move and collide in **2 half-displacements**: ground ray, wall sphere, then kart contacts after each half.

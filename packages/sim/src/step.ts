@@ -12,7 +12,8 @@ import { updateProgress } from './race/progress.ts';
 import { startRespawn, updateRespawn, MANUAL_COOLDOWN } from './race/respawn.ts';
 import { updatePhase, updateRanks, updateRaceEnd, updateStartBoost } from './race/rules.ts';
 import { computeMods, startEffects, stepBoxes, stepProjectilesHazards, tickEffects, useItems } from './items/runtime.ts';
-import { stepTrackHazards } from './race/trackhazards.ts';
+import { captureTrackHazardMotion, stepTrackHazards } from './race/trackhazards.ts';
+import { brakeFinishedKart, finishedKart, moveFinishedKart, releaseFinishedDrive } from './race/finish.ts';
 
 const PARAMS: KartParams[] = [];
 const WEIGHTS: number[] = [];
@@ -24,6 +25,10 @@ export function step(w: WorldState, inputs: ReadonlyArray<InputFrame>, ctx: Step
   w.tick++;
   const cfg = ctx.cfg, T = ctx.track, K = w.karts;
   updatePhase(w, ctx);
+  if (w.phase === Phase.DONE) {
+    if (w.endTick < 0) w.endTick = w.tick;
+    for (const k of K) if (k.active && k.race.finishTick < 0) k.race.retired = 1;
+  }
   const racing = w.phase >= Phase.RACING && w.phase !== Phase.DONE;
   const mode = cfg.mode;
   DYN.itemMode = mode === 'item';
@@ -55,6 +60,7 @@ export function step(w: WorldState, inputs: ReadonlyArray<InputFrame>, ctx: Step
     const inp = inputs[i] ?? NEUTRAL_INPUT;
     const P = PARAMS[i]!;
     T.gravityAt(k.race.loc, ctx.scratch.grav);
+    if (finishedKart(k)) { brakeFinishedKart(w, k, ctx); continue; }
     updateStartBoost(w, k, inp, ctx);
     if (w.phase < Phase.RACING) {
       k.drive.prevThrottle = inp.throttle > 0 ? 1 : 0;
@@ -80,6 +86,7 @@ export function step(w: WorldState, inputs: ReadonlyArray<InputFrame>, ctx: Step
   if (racing) useItems(w, inputs, ctx);
 
   // (4) move + collide in two half-displacements
+  if (racing && T.hazards.length > 0) captureTrackHazardMotion(w);
   if (w.phase >= Phase.RACING) {
     for (let i = 0; i < K.length; i++) {
       const ms = MS[i]!;
@@ -94,7 +101,8 @@ export function step(w: WorldState, inputs: ReadonlyArray<InputFrame>, ctx: Step
         const k = K[i]!;
         if (!k.active || k.race.respawnPhase !== 0) continue;
         T.gravityAt(k.race.loc, ctx.scratch.grav);
-        halfStep(w, k, PARAMS[i]!, ctx, MS[i]!);
+        if (finishedKart(k)) moveFinishedKart(w, k, PARAMS[i]!, ctx, MS[i]!);
+        else halfStep(w, k, PARAMS[i]!, ctx, MS[i]!);
       }
       kartContacts(w, ctx, WEIGHTS);
     }
@@ -114,11 +122,13 @@ export function step(w: WorldState, inputs: ReadonlyArray<InputFrame>, ctx: Step
   if (w.phase >= Phase.RACING) {
     for (let i = 0; i < K.length; i++) {
       const k = K[i]!;
-      if (k.active) updateProgress(w, k, ctx);
+      if (k.active && !finishedKart(k)) updateProgress(w, k, ctx);
     }
     updateRanks(w, ctx);
     const hardCap = Math.max(3 * cfg.laps * (T.meta.refLapTicks || 60 * 60), 240 * 60);
     updateRaceEnd(w, ctx, hardCap);
+    // Finish is detected in phase 7: discard driving forces on that very tick, before another input can act.
+    for (const k of K) if (k.active && finishedKart(k)) releaseFinishedDrive(w, k, ctx);
   }
 
   // (8) timers

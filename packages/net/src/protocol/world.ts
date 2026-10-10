@@ -46,7 +46,7 @@ export const KART_GROUPS: readonly Group[] = [
   grp('pose', true, 'body', [['px', POS], ['py', POS], ['pz', POS]]),
   grp('dir', false, 'body', [['fx', DIR], ['fy', DIR], ['fz', DIR], ['nx', DIR], ['ny', DIR], ['nz', DIR]]),
   grp('ground', false, 'body', [['yawRate', YAW], 'grounded', 'coyote', 'airTicks', 'surf', 'wallContact', 'ghostTicks']),
-  grp('drift', false, 'drive', ['drift', 'driftDir', 'driftTicks', ['driftPeak', SLIP], 'reDriftLock', 'fatigueTicks', 'dragTicks', 'tapStreak', 'tapGap', 'counterTicks', 'brakeTicks']),
+  grp('drift', false, 'drive', ['drift', 'driftDir', 'driftTicks', ['driftPeak', SLIP], 'driftIntentTicks', 'driftArmed', ['driftEngagement', SLIP], ['driftTightness', SLIP], ['driftTarget', SLIP], 'driftRecovering', 'pendingDriftDir', 'reDriftLock', 'fatigueTicks', 'dragTicks', 'tapStreak', 'tapGap', 'counterTicks', 'brakeTicks']),
   grp('boost', false, 'drive', [['gauge', GAUGE], 'boosters', 'teamBoosters', 'boostTicks', 'boostKind', 'startTicks', 'wheelspinTicks', 'instWindow', 'instTicks', 'stunTicks', 'postTicks']),
   grp('draft', false, 'drive', ['draftCharge', 'draftTicks', 'prevHeld', 'prevThrottle', 'lowSpeedTicks', 'startPressTick', 'gear']),
   grp('items', false, 'items', ['slot0', 'slot1', 'rouletteSlot', 'rouletteEnd', 'rouletteBox', 'lastUseTick', 'aimLockTicks', 'aimTarget']),

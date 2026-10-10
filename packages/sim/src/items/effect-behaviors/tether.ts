@@ -1,9 +1,10 @@
 // tether_pull (§2.2.2): the user is pulled toward the target — steering replaced by pursuit, throttle forced on, boost
-// law toward vT = max(1.2·V_REF, min(1.25·u_target, V_BOOST)). Ends early with a slingshot when the user is within 4 m
+// law toward min(vBoost, max(1.2·vGrip, 1.25·u_target)) for the user kart. Ends early with a slingshot when the user is within 4 m
 // behind the target; without one when wall-blocked for > 18 ticks, the target warps, finishes or retires, the user
 // respawns [P], or a pulse from the target side clears it. Param: target slot (bits 0–3) | 16 | wall-blocked ticks << 5.
 import type { EffectInstance } from '../../core/state.ts';
-import { DT, V_BOOST, V_REF } from '../../core/units.ts';
+import { DT } from '../../core/units.ts';
+import { paramsFor } from '../../kart/params.ts';
 import type { EffectBehavior } from '../behavior.ts';
 import { EFlag } from '../codes.ts';
 import { planarSpeed } from '../effects.ts';
@@ -39,13 +40,12 @@ const behavior: EffectBehavior = {
     e.param = (e.param & 31) | (wall << 5);
     // boost law toward the pull speed (the bot vMul / effect caps still apply through vCapMul)
     const ut = planarSpeed(t);
-    let vT = 1.25 * ut;
-    if (vT > V_BOOST) vT = V_BOOST;
-    if (vT < 1.2 * V_REF) vT = 1.2 * V_REF;
+    const P = paramsFor(ctx.content.karts.byCode[k.spec]!);
+    let vT = Math.min(P.vBoost, Math.max(1.25 * ut, 1.2 * P.vGrip));
     vT *= ctx.scratch.mods[k.slot]?.vCapMul ?? 1;
     const u = planarSpeed(k);
-    let acc = u < vT ? 4 * (vT - u) : -0.9 * (u - vT);
-    if (acc > 25) acc = 25;
+    let acc = u < vT ? P.kBoost * (vT - u) : -P.kOver * (u - vT);
+    if (acc > P.aBoostMax) acc = P.aBoostMax;
     const turned = steerToward(k, dx, dy, dz, MAX_TURN);
     a.yawRate = turned / DT;
     // velocity follows the (new) nose: pursuit, not drift

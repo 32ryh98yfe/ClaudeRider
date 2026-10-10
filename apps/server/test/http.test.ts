@@ -9,7 +9,9 @@ import type { AddressInfo } from 'node:net';
 import { createStatic } from '../src/http/static.ts';
 import { createArtRoute } from '../src/http/artIndex.ts';
 
-describe('static and art streams', () => {
+// /proc/self/mem is a Linux-only regular-file fixture whose read fails with EIO.
+// On macOS a dangling symlink tests a missing file instead, not stream failure.
+describe.skipIf(process.platform !== 'linux')('static and art streams', () => {
   let dir = '';
   let server: Server;
   let base = '';

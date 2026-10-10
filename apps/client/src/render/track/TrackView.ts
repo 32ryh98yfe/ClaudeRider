@@ -6,7 +6,9 @@
 // - Material slots resolve exactly (`road`, `wall`, …), then by family (`wall.rock` → wall material of type rock,
 //   `road.ice`, `water`), then fall back to a magenta placeholder with a dev warning (never a crash).
 import * as THREE from 'three/webgpu';
+import type { ModeId } from '@cr/content';
 import { CVIS_MAGIC, CVIS_VERSION, readContainer, type BakedTrack } from '@cr/sim';
+import { PropRoadClearance } from './clearance.ts';
 import { repairTerrain } from './repair.ts';
 import type { HazardVisMeta } from './hazards.ts';
 import type { ThemeKit } from '../themes/kit.ts';
@@ -14,21 +16,26 @@ import type { RoadStyle, WallStyle } from '../materials/library.ts';
 import { PLACEHOLDER_PROP } from '../props/defaults.ts';
 import { MaterialLibrary } from '../materials/library.ts';
 import { merge, paint, place, rbox, box } from '../util/geo.ts';
+import type { HudMapData } from '../../ui/hud/minimap.ts';
 
 export interface VisMeta {
   id: string; themeId: string; name: string;
   slots: { name: string; material: string; variant?: string; chunks: { i0: number; n: number; bbox: number[]; chunk?: number }[] }[];
-  props: { kind: string; n: number }[];
+  props: { kind: string; n: number; contact?: 'solid' | 'cosmetic'; fingerprint?: string }[];
+  propContactVersion?: 2;
   bounds: number[];
   line: { x: number; y: number; z: number; fx: number; fy: number; fz: number; w: number };
   theme: Record<string, string>;
   /** F5 track hazards (L4-vis-v2 §8), same index as CtrkMeta.hazards. */
   hazards?: HazardVisMeta[];
   lapLength: number;
+  minimapPaths?: { id: string; kind: string; array: string }[];
 }
 
 export interface TrackViewOptions {
   mergeChunks: number; propFar: number; foliage: number;
+  /** Only item races have collectible Prompt Cubes; speed, infinite and time attack do not. */
+  mode?: ModeId;
   /**
    * Velocity tiers (TRAA / motion blur): draw every prop instance in a fixed order instead of compacting the visible
    * ones, so instance i keeps its previous-frame matrix (compaction would smear props). ≤ 863 props per track.
@@ -37,14 +44,14 @@ export interface TrackViewOptions {
 }
 
 export interface TrackView {
-  root: THREE.Group; meta: VisMeta; minimap: Float32Array; boxes: THREE.InstancedMesh | null;
+  root: THREE.Group; meta: VisMeta; minimap: Float32Array; map: HudMapData; boxes: THREE.InstancedMesh | null;
   /** The baked terrain meshes (the clipmap system hides them on Ultra). */
   terrainMeshes: THREE.Mesh[];
   update(t: number, boxAvail: (i: number) => boolean, camera?: THREE.Camera): void;
   /** World position of item box `i` (for shatter VFX). */
   boxPos(i: number, out: THREE.Vector3): THREE.Vector3;
   dispose(): void;
-  stats: { meshes: number; tris: number };
+  stats: { meshes: number; tris: number; rejectedProps: number };
 }
 
 /** Big props keep a longer visibility range than scatter. */
@@ -189,34 +196,51 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
   // props: one InstancedMesh per kind; instances are culled per frame into a compact list
   interface PropSet { im: THREE.InstancedMesh; mats: Float32Array; cx: Float32Array; cy: Float32Array; cz: Float32Array; r: Float32Array; n: number; far: number }
   const props: PropSet[] = [];
+  const clearance = meta.propContactVersion === 2 ? null : new PropRoadClearance(track);
+  let rejectedProps = 0;
   meta.props.forEach((p, j) => {
     const xf = c.arrays.get(`p${j}.xf`) as Float32Array;
+    const bakedMatrices = c.arrays.get(`p${j}.mat`) as Float32Array | undefined;
+    if (meta.propContactVersion === 2 && (!bakedMatrices || bakedMatrices.length !== p.n * 16)) throw new Error(`Missing authoritative prop matrices: ${meta.id}/${p.kind}`);
     const f = kit.props[p.kind] ?? PLACEHOLDER_PROP;
     if (!kit.props[p.kind] && import.meta.env.DEV) console.warn(`[props] no factory for ${p.kind}`);
     const built = f.build(kit.data.palette);
     const isLandmark = LANDMARK.test(p.kind), isScatter = SCATTER.test(p.kind);
     // foliage density per tier: thin out scatter deterministically (keep every k-th instance)
-    const keep = isScatter || /tree|bush/.test(p.kind) ? opts.foliage : 1;
+    const keep = p.contact === 'solid' ? 1 : isScatter || /tree|bush/.test(p.kind) ? opts.foliage : 1;
     const n0 = p.n;
     const list: number[] = [];
-    for (let i = 0; i < n0; i++) if (keep >= 1 || ((i * 0.618034) % 1) < keep) list.push(i);
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), v = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+    const transform = (i: number): void => {
+      if (bakedMatrices) { m4.fromArray(bakedMatrices, i * 16); m4.decompose(v, q, s); return; }
+      const o = i * 6, sc = xf[o + 4]!;
+      v.set(xf[o]!, xf[o + 1]!, xf[o + 2]!); q.setFromAxisAngle(up, xf[o + 3]!);
+      s.set(p.kind === 'chevron' && xf[o + 5] === 1 ? -sc : sc, p.kind === 'pillar' ? sc * (1 + (xf[o + 5] ?? 0)) : sc, sc);
+      if (p.kind === 'pillar') clearance?.fitPillar(built.geometry, v, s);
+      m4.compose(v, q, s);
+      // Theme gantries have different post spacing. Widen only across the road until their actual opening clears.
+      if (clearance && p.kind === 'gantry') for (let pass = 0; pass < 8 && clearance.conflict(built.geometry, m4); pass++) { s.x *= 1.1; m4.compose(v, q, s); }
+    };
+    for (let i = 0; i < n0; i++) {
+      if (keep < 1 && ((i * 0.618034) % 1) >= keep) continue;
+      transform(i);
+      // Gore cushions correspond to baked solid split walls. Other props are scenery and cannot block the road.
+      if (clearance && p.kind !== 'gore_cushion' && clearance.conflict(built.geometry, m4)) { rejectedProps++; continue; }
+      list.push(i);
+    }
     const n = list.length;
     const im = new THREE.InstancedMesh(built.geometry, built.material, Math.max(1, n));
-    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), v = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
     built.geometry.computeBoundingSphere();
     const gs = built.geometry.boundingSphere!;
     const set: PropSet = { im, mats: new Float32Array(n * 16), cx: new Float32Array(n), cy: new Float32Array(n), cz: new Float32Array(n), r: new Float32Array(n), n, far: opts.propFar * (isLandmark ? 2.5 : isScatter ? 0.6 : 1) };
     list.forEach((i, k) => {
-      const o = i * 6;
-      v.set(xf[o]!, xf[o + 1]!, xf[o + 2]!);
-      q.setFromAxisAngle(up, xf[o + 3]!);
-      const sc = xf[o + 4]!;
-      // chevron variant 1 = mirrored; pillar variant = height class (≈ 6 m each)
-      s.set(p.kind === 'chevron' && xf[o + 5] === 1 ? -sc : sc, p.kind === 'pillar' ? sc * (1 + (xf[o + 5] ?? 0)) : sc, sc);
-      m4.compose(v, q, s);
+      transform(i);
+      const sc = Math.max(Math.abs(s.x), Math.abs(s.y), Math.abs(s.z));
       m4.toArray(set.mats, k * 16);
       im.setMatrixAt(k, m4);
-      set.cx[k] = v.x + gs.center.x * sc; set.cy[k] = v.y + gs.center.y * sc; set.cz[k] = v.z + gs.center.z * sc; set.r[k] = gs.radius * sc;
+      // Transform the centre as well as the radius (non-uniform fitted pillars and rotated asymmetric props).
+      const centre = gs.center.clone().applyMatrix4(m4);
+      set.cx[k] = centre.x; set.cy[k] = centre.y; set.cz[k] = centre.z; set.r[k] = gs.radius * sc;
     });
     im.count = n;
     im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -247,7 +271,7 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
   }
   // item boxes ("Prompt Cubes") + glyphs (two instanced draws)
   let boxes: THREE.InstancedMesh | null = null, glyphs: THREE.InstancedMesh | null = null;
-  if (track.boxes.length) {
+  if (opts.mode === 'item' && track.boxes.length) {
     const g = promptCube();
     boxes = new THREE.InstancedMesh(g.body, MaterialLibrary.vinyl({ rim: '#ffd9c7', clearcoat: 1, roughness: 0.22 }), track.boxes.length);
     boxes.name = 'itemBoxes';
@@ -259,6 +283,15 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
     meshes += 2;
   }
   const minimap = (c.arrays.get('minimap') as Float32Array) ?? new Float32Array(0);
+  const map: HudMapData = { paths: [] };
+  const mapPaths = [];
+  for (let i = 0; i < track.nPaths; i++) {
+    const path = track.path(i), descriptor = meta.minimapPaths?.find((p) => p.id === path.id);
+    const points = c.arrays.get(descriptor?.array ?? `minimap.${path.id}`) as Float32Array | undefined;
+    if (points?.length) mapPaths.push({ id: path.id, points, closed: path.closed });
+    else if (i === 0 && minimap.length) mapPaths.push({ id: path.id, points: minimap, closed: path.closed });
+  }
+  map.paths = mapPaths;
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), s = new THREE.Vector3();
   const frustum = new THREE.Frustum(), pv = new THREE.Matrix4(), sph = new THREE.Sphere(), camPos = new THREE.Vector3();
   let frameNo = 0;
@@ -287,7 +320,7 @@ export function buildTrackView(visBuf: ArrayBuffer, track: BakedTrack, kit: Them
     }
   };
   return {
-    root, meta, minimap, boxes, terrainMeshes, stats: { meshes, tris },
+    root, meta, minimap, map, boxes, terrainMeshes, stats: { meshes, tris, rejectedProps },
     update(t: number, boxAvail: (i: number) => boolean, camera?: THREE.Camera): void {
       if (camera && !opts.stableInstances) {
         // every 3rd frame while the chase camera drifts; at once after a cut, a fly-by step or a fast turn

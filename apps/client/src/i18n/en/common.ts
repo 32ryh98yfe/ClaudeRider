@@ -32,10 +32,10 @@ export default {
     8: 'Trapped? Alternate ← and → quickly to break free faster.',
     9: 'Shortcuts are fast but narrow and risky. Learn the line in practice first.',
     10: 'Turn on "Auto-fire boosters" in Settings → Gameplay to fire boosters while you hold the item key.',
-    11: 'Drift while a booster is running, then let go of the steering to drag: keep the throttle held and you climb to about 290 km/h.',
-    12: 'While dragging, tap the corner-direction key every 0.1–0.2 s for a tap boost. Chain up to 3 for about 305 km/h; mashing faster does not count.',
+    11: 'Drift while a booster is running, then let go of the steering to drag: keep the throttle held and the slide keeps pushing you up to boost top speed.',
+    12: 'While dragging, tap the corner-direction key every 0.1–0.2 s for a tap boost: each tap briefly doubles the push and tightens the turn. Chain up to 3; mashing faster does not count.',
     13: 'Counter-steer all the way during a drift to cut it: the slide stops at once. While boosting, keep drift held as you counter-steer to fill the gauge 3× faster.',
-    14: 'Tap the brake briefly during a drift for a brake turn that whips the nose around. Hold it longer than about 0.18 s and you spin out and lose your speed!',
+    14: 'Braking during a drift slows the kart and smoothly restores grip. The brake takes priority over the accelerator, and steering stays available.',
     15: 'Hold ↓ while stopped to reverse (R), handy for backing out of a jam. Press ↑ to drive forward again.',
   },
 };

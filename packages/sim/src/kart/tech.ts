@@ -8,6 +8,7 @@ import { Boost, type GearState, type KartDrive, type KartState, type WorldState 
 import type { StepContext } from '../api.ts';
 import type { KartParams } from './params.ts';
 import { evKey } from './evkey.ts';
+import { resetDriftHandling } from './handling.ts';
 
 /** Resets the per-drift technique fields: drag, tap streak and gap, cut counter, brake counter. Gear and bleed stay. */
 export function resetTech(d: KartDrive): void {
@@ -25,6 +26,7 @@ export function endDrag(w: WorldState, k: KartState, ctx: StepContext): void {
 export function clearDriftTech(w: WorldState, k: KartState, ctx: StepContext): void {
   endDrag(w, k, ctx);
   resetTech(k.drive);
+  resetDriftHandling(k.drive);
 }
 
 /**

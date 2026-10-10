@@ -4,7 +4,7 @@
 import * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
-import { merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../../util/geo.ts';
+import { cosmetic, merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../../util/geo.ts';
 import { arcTube, dome, part, prism, seeded, tubeThrough } from '../clayhill_village/toyshapes.ts';
 import { BACKED_BOARDS } from '../sunstone_desert/mirror.ts';
 
@@ -69,8 +69,8 @@ export function fairyLights(gain: number): PropFactory {
       const p: THREE.BufferGeometry[] = [part(cyl(0.14, 0.18, 7.5, 6), '#2b3d52', -13, 3.5, 0), part(cyl(0.14, 0.18, 7.5, 6), '#2b3d52', 13, 3.5, 0)];
       const pts: [number, number, number][] = [];
       for (let i = 0; i <= 8; i++) { const t = i / 8; pts.push([-13 + 26 * t, 7 - 1.6 * 4 * t * (1 - t), 0]); }
-      p.push(paint(tubeThrough(pts, 0.03, 24, 4), '#18202c'));
-      for (let i = 0; i < 20; i++) { const t = (i + 0.5) / 20; p.push(part(sph(0.16, 6, 4), BULBS[i % BULBS.length]!, -13 + 26 * t, 7 - 1.6 * 4 * t * (1 - t) - 0.22, 0)); }
+      p.push(cosmetic(paint(tubeThrough(pts, 0.03, 24, 4), '#18202c')));
+      for (let i = 0; i < 20; i++) { const t = (i + 0.5) / 20; p.push(cosmetic(part(sph(0.16, 6, 4), BULBS[i % BULBS.length]!, -13 + 26 * t, 7 - 1.6 * 4 * t * (1 - t) - 0.22, 0))); }
       return { geometry: merge(p), material: glow(gain) };
     },
   };
@@ -82,9 +82,9 @@ export const FROSTBYTE_PROPS: Record<string, PropFactory> = {
     build: () => ({
       geometry: merge([
         part(cyl(0.22, 0.32, 3, 6), WOOD_DK, 0, -0.2, 0),
-        part(cone(2.2, 3, 8), PINE, 0, 2.2, 0), part(cone(2.25, 0.7, 8), SNOW, 0, 1.2, 0),
-        part(cone(1.7, 2.6, 8), PINE_LT, 0, 3.8, 0), part(cone(1.72, 0.6, 8), SNOW, 0, 2.95, 0),
-        part(cone(1.1, 2.2, 8), PINE, 0, 5.2, 0), part(cone(0.6, 1.2, 8), SNOW, 0, 6.1, 0),
+        cosmetic(part(cone(2.2, 3, 8), PINE, 0, 2.2, 0)), cosmetic(part(cone(2.25, 0.7, 8), SNOW, 0, 1.2, 0)),
+        cosmetic(part(cone(1.7, 2.6, 8), PINE_LT, 0, 3.8, 0)), cosmetic(part(cone(1.72, 0.6, 8), SNOW, 0, 2.95, 0)),
+        cosmetic(part(cone(1.1, 2.2, 8), PINE, 0, 5.2, 0)), cosmetic(part(cone(0.6, 1.2, 8), SNOW, 0, 6.1, 0)),
       ]), material: MaterialLibrary.foliageLit(), castShadow: true,
     }),
   },
@@ -93,7 +93,7 @@ export const FROSTBYTE_PROPS: Record<string, PropFactory> = {
     build: () => {
       const p: THREE.BufferGeometry[] = [part(cyl(0.16, 0.22, 7, 7), '#f1efe8', 0, 2.5, 0)];
       for (let i = 0; i < 5; i++) p.push(part(box(0.35, 0.08, 0.35), INK, 0, 0.8 + i * 1.2, 0, 0, i, 0));
-      p.push(part(ico(1.4, 1), '#d9b44a', 0, 6.2, 0, 0, 0, 0, 1, 1.3, 1, 0.12, 3), part(ico(0.9, 1), '#e8c95a', 0.6, 5.2, 0.4, 0, 0, 0, 1, 1, 1, 0.12, 5));
+      p.push(cosmetic(part(ico(1.4, 1), '#d9b44a', 0, 6.2, 0, 0, 0, 0, 1, 1.3, 1, 0.12, 3)), cosmetic(part(ico(0.9, 1), '#e8c95a', 0.6, 5.2, 0.4, 0, 0, 0, 1, 1, 1, 0.12, 5)));
       return { geometry: merge(p), material: MaterialLibrary.foliageLit(), castShadow: true };
     },
   },
@@ -310,10 +310,10 @@ export const FROSTBYTE_PROPS: Record<string, PropFactory> = {
       const p: THREE.BufferGeometry[] = [part(cyl(0.3, 0.42, 3, 7), WOOD_DK, 0, 0.9, 0)];
       const tiers = [[3.0, 3.2, 2.6], [2.5, 2.9, 4.4], [2.0, 2.6, 6.0], [1.45, 2.3, 7.5], [0.9, 2.0, 8.9]] as const;
       tiers.forEach(([rad, h, y], i) => {
-        p.push(part(cone(rad, h, 9), i % 2 ? PINE_LT : PINE, 0, y, 0, 0, i * 0.4, 0));
-        p.push(part(cone(rad * 1.01, h * 0.28, 9), SNOW, 0, y - h * 0.36, 0, 0, i * 0.4, 0));
+        p.push(cosmetic(part(cone(rad, h, 9), i % 2 ? PINE_LT : PINE, 0, y, 0, 0, i * 0.4, 0)));
+        p.push(cosmetic(part(cone(rad * 1.01, h * 0.28, 9), SNOW, 0, y - h * 0.36, 0, 0, i * 0.4, 0)));
       });
-      p.push(part(cone(0.5, 0.9, 8), SNOW, 0, 10.0, 0));
+      p.push(cosmetic(part(cone(0.5, 0.9, 8), SNOW, 0, 10.0, 0)));
       return { geometry: merge(p), material: MaterialLibrary.foliageLit(), castShadow: true };
     },
   },
@@ -324,9 +324,9 @@ export const FROSTBYTE_PROPS: Record<string, PropFactory> = {
       const p: THREE.BufferGeometry[] = [], r = seeded(253);
       for (let i = 0; i < 8; i++) {
         const x = (r() - 0.5) * 14, z = (r() - 0.5) * 14, k = 0.75 + r() * 0.7;
-        p.push(part(cone(2.1, 4.6, 7), i % 2 ? PINE_LT : PINE, x, 2.6 * k, z, 0, r() * 3, 0, k, k, k));
-        p.push(part(cone(2.12, 1.1, 7), SNOW, x, 1.0 * k, z, 0, r() * 3, 0, k, k, k));
-        p.push(part(cone(1.4, 3.4, 7), PINE, x, 5.4 * k, z, 0, 0, 0, k, k, k), part(cone(0.7, 1.4, 7), SNOW, x, 6.6 * k, z, 0, 0, 0, k, k, k));
+        p.push(cosmetic(part(cone(2.1, 4.6, 7), i % 2 ? PINE_LT : PINE, x, 2.6 * k, z, 0, r() * 3, 0, k, k, k)));
+        p.push(cosmetic(part(cone(2.12, 1.1, 7), SNOW, x, 1.0 * k, z, 0, r() * 3, 0, k, k, k)));
+        p.push(cosmetic(part(cone(1.4, 3.4, 7), PINE, x, 5.4 * k, z, 0, 0, 0, k, k, k)), cosmetic(part(cone(0.7, 1.4, 7), SNOW, x, 6.6 * k, z, 0, 0, 0, k, k, k)));
       }
       return { geometry: merge(p), material: MaterialLibrary.foliageLit(), castShadow: true };
     },

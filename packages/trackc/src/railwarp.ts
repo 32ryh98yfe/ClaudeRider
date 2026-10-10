@@ -12,8 +12,8 @@ export function railsMeta(m: TrackModel): RailBaked[] {
     const r = p.rail!;
     return {
       id: p.id, path: p.index, host: r.host, fromS: p.map!.fromS, toS: p.map!.toS,
-      captureDMax: r.capture.dMax, captureHeadingDeg: r.capture.headingMaxDeg, vMin: r.capture.vMin,
-      speedMin: r.speed.min, speedMax: r.speed.max, accel: r.speed.accel, gaugePerSec: r.gaugePerSec,
+      captureDMax: r.capture.dMax, captureHeadingDeg: r.capture.headingMaxDeg, vMin: r.capture.vMin * 0.85,
+      speedMin: r.speed.min * 0.85, speedMax: r.speed.max * 0.85, accel: r.speed.accel * 0.85, gaugePerSec: r.gaugePerSec,
       hostFrom: r.hostFrom, hostTo: r.hostTo, length: p.length,
     };
   });

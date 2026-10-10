@@ -10,7 +10,7 @@ const CONE_NEAR = 4, CONE_FAR = 22, CONE_LAT = 2.2, CONE_UP = 2.0, MIN_SPEED = 2
 
 /** Karts that neither give nor take slipstream: ghosted, respawning, finished, in warp transit or on a rail. */
 function draftable(k: Readonly<KartState>): boolean {
-  return k.active === 1 && k.body.ghostTicks <= 0 && k.race.respawnPhase === 0 && k.race.finishTick < 0 && k.body.attachKind === Attach.NONE;
+  return k.active === 1 && k.body.ghostTicks <= 0 && k.race.respawnPhase === 0 && k.race.finishTick < 0 && k.race.retired === 0 && k.body.attachKind === Attach.NONE;
 }
 
 export function updateDraft(w: WorldState, ctx: StepContext, chargeTicks: number, burstTicks: number): void {

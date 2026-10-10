@@ -5,7 +5,7 @@
 // The M1 offline API (setInput / tick / drainEvents / world / prev / result) is kept for local use and tests.
 import type { ContentTables } from '@cr/content';
 import {
-  createWorld, cloneWorld, copyWorld, makeContext, step, createAiDriver, AI_TIERS, makeInput, copyInput, ArraySink, Phase, Edge, rollItem,
+  appendDriftRequest, driftRequestAt, driftRequestCount, createWorld, cloneWorld, copyWorld, makeContext, step, createAiDriver, AI_TIERS, makeInput, copyInput, ArraySink, Phase, Edge, rollItem,
   type AuthorityHooks, type Decision, type BakedTrack, type InputFrame, type RaceConfig, type SimEvent, type StepContext, type WorldState, type AiDriver, type Tick,
 } from '@cr/sim';
 import {
@@ -49,6 +49,8 @@ class SlotState {
   lateHas = false;
   lateAnalog = false;                // false when only edges arrived (frames older than N − 30)
   lateEdges = 0;
+  readonly driftQueue: number[] = [];
+  driftHead = 0;
   readonly local = makeInput();
   localSet = false;
   miss = 0;
@@ -96,6 +98,8 @@ export class RaceRoom {
   private sink = new ArraySink();
   private collect: boolean;
   private inputs: InputFrame[];
+  /** Opt-in development trace of the actual authoritative input after late-input selection. */
+  inputObserver?: (tick: number, slot: number, input: Readonly<InputFrame>) => void;
   private slots: SlotState[];
   private endCbs: ((r: RaceResult) => void)[] = [];
   private ended = false;
@@ -159,7 +163,7 @@ export class RaceRoom {
       const st = this.slots[i]!;
       if (!st.bot) continue;
       st.bot.decide(this.world, this.tmp);
-      for (let t = 1; t <= this.lookahead; t++) { st.botRing.set(t, this.tmp); this.queueRelay(i, t, this.tmp); this.tmp.edges = 0; }
+      for (let t = 1; t <= this.lookahead; t++) { st.botRing.set(t, this.tmp); this.queueRelay(i, t, this.tmp); this.tmp.edges = 0; this.tmp.driftRequests = 0; }
     }
   }
 
@@ -327,7 +331,8 @@ export class RaceRoom {
       } else {
         // late: analog values take over from N, edges are applied at N (frames older than N − 30 contribute edges only)
         if (T >= N - NET.MAX_BEHIND) { copyInput(st.late, f); st.lateAnalog = true; }
-        st.lateEdges |= f.edges;
+        st.lateEdges |= f.edges & ~Edge.DRIFT;
+        this.enqueueDrifts(st, f);
         st.lateHas = true;
         p.lateFlag = true;
       }
@@ -354,7 +359,7 @@ export class RaceRoom {
     copyWorld(this.prev, this.world);
     const w = this.world;
     const N = w.tick + 1;
-    for (let s = 0; s < this.inputs.length; s++) this.selectInput(s, N);
+    for (let s = 0; s < this.inputs.length; s++) { this.selectInput(s, N); this.inputObserver?.(N, s, this.inputs[s]!); }
     step(w, this.inputs, this.ctx);
     if (!this.collect) this.sink.list.length = 0;
     this.decideBots(N);
@@ -369,7 +374,7 @@ export class RaceRoom {
 
   private selectInput(s: number, N: Tick): void {
     const cur = this.inputs[s]!, st = this.slots[s]!, kind = this.config.slots[s]?.kind;
-    if (kind === 'empty' || kind === undefined) { cur.steer = 0; cur.throttle = 0; cur.brake = 0; cur.held = 0; cur.edges = 0; return; }
+    if (kind === 'empty' || kind === undefined) { cur.steer = 0; cur.throttle = 0; cur.brake = 0; cur.held = 0; cur.edges = 0; cur.steerIntent = 0; cur.driftRequests = 0; return; }
     if (kind === 'bot') {
       const f = st.botRing.get(N);
       if (f) { copyInput(cur, f); st.miss = 0; } else stepMissing(cur, ++st.miss);
@@ -379,6 +384,7 @@ export class RaceRoom {
     const f = st.ring.get(N);
     if (f) {
       copyInput(cur, f);
+      this.enqueueDrifts(st, f);
       if (st.lateHas) { cur.edges |= st.lateEdges; mergedLate = true; }
       human = true;
     } else if (st.lateHas) {
@@ -387,10 +393,18 @@ export class RaceRoom {
       human = true; mergedLate = true;
     } else if (st.localSet) {
       copyInput(cur, st.local);
-      st.local.edges = 0;
+      this.enqueueDrifts(st, st.local);
+      st.local.edges = 0; st.local.driftRequests = 0;
       human = true;
     }
     st.lateHas = false; st.lateAnalog = false; st.lateEdges = 0;
+    if (human || st.driftHead < st.driftQueue.length) {
+      if (!human) { cur.edges = 0; cur.emote = 0; }
+      cur.driftRequests = 0; cur.edges &= ~Edge.DRIFT;
+      while (st.driftHead < st.driftQueue.length && driftRequestCount(cur.driftRequests) < 4) cur.driftRequests = appendDriftRequest(cur.driftRequests, st.driftQueue[st.driftHead++]!);
+      if (cur.driftRequests) { cur.edges |= Edge.DRIFT; human = true; mergedLate = true; }
+      if (st.driftHead === st.driftQueue.length) { st.driftQueue.length = 0; st.driftHead = 0; }
+    }
     if (human) {
       st.miss = 0; st.lastRealTick = N;
       if (st.aiActive) { st.aiActive = false; this.log(`slot ${s}: control returned at ${N}`); }
@@ -402,6 +416,11 @@ export class RaceRoom {
       if (b) { copyInput(cur, b); st.miss = 0; return; }
     }
     stepMissing(cur, ++st.miss);
+  }
+
+  private enqueueDrifts(st: SlotState, f: Readonly<InputFrame>): void {
+    if (f.driftRequests) for (let i = 0; i < driftRequestCount(f.driftRequests); i++) st.driftQueue.push(driftRequestAt(f.driftRequests, i));
+    else if (f.edges & Edge.DRIFT) st.driftQueue.push(f.steerIntent || Math.sign(f.steer));
   }
 
   private decideBots(N: Tick): void {

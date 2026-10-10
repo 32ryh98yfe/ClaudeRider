@@ -53,7 +53,8 @@ export function scanHazards(track: BakedTrack, pp: PathPlan, s: number, v: numbe
       if (ds < -reach - PAD) continue;
       const eta = tick0 + Math.max(0, ds) / vv * 60;
       track.hazardPose(h, Math.round(eta), P);
-      if (!P.active && !P.telegraph) continue;
+      const physical = (H.contact === 'solid' || H.effect === 'block') && (H.kind !== 'train' || P.active === 1 || P.telegraph === 1);
+      if (!P.active && !P.telegraph && !physical) continue;
       // footprint in the path frame at the pose
       let i = Math.round((s + ds) / pp.ds);
       i = pp.closed ? ((i % pp.n) + pp.n) % pp.n : i < 0 ? 0 : i > pp.n - 1 ? pp.n - 1 : i;
@@ -78,7 +79,8 @@ export function scanHazards(track: BakedTrack, pp: PathPlan, s: number, v: numbe
         const fx = P.fx ?? 0, fy = -(P.fz ?? 1);
         const fr = Math.abs(fx * rx + fy * ry), ft = Math.abs(fx * tx + fy * ty);
         half = 0.5 * a * fr + 0.5 * b * ft;
-      } else half = a + (H.shape === 'cyl' ? 0 : 0.5 * b * 0.5);
+      } else if (H.kind === 'swinger' || H.motion?.type === 'pendulum' || H.motion?.type === 'rotate') half = a + 0.5 * b * Math.abs((P.ux ?? 0) * rx - (P.uz ?? 0) * ry);
+      else half = a;
       if (u - half - PAD < lo) lo = u - half - PAD;
       if (u + half + PAD > hi) hi = u + half + PAD;
       blocked = true;

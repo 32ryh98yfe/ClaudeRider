@@ -17,6 +17,7 @@ import { trackInfo } from '../kart/trackinfo.ts';
 import { startRespawn } from './respawn.ts';
 
 export const WRONG_WAY_BANNER = 72, WRONG_WAY_RESPAWN = 240, OFF_GRAPH_RESPAWN = 180, NO_GROUND_RESPAWN = 72;
+export const JUMP_AIR_GRACE_TICKS = 400;
 /** After this many ticks off-graph the global (grid) search replaces the graph-local one (§12.1). */
 const GLOBAL_SEARCH_AFTER = 60;
 /** Anti-cut slack (ADR-006): accept Δs ≤ |v|·DT·(1 + ticks off-graph) + 10 m. */
@@ -96,7 +97,7 @@ export function updateProgress(w: WorldState, k: KartState, ctx: StepContext): v
   // ground loss outside declared jump spans
   if (!b.grounded && b.attachKind === Attach.NONE) {
     r.noGroundTicks++;
-    if (inJumpSpan(T, r.loc) && r.noGroundTicks < 400) r.noGroundTicks = Math.min(r.noGroundTicks, NO_GROUND_RESPAWN - 1);
+    if (inJumpSpan(T, r.loc) && b.airTicks < JUMP_AIR_GRACE_TICKS) r.noGroundTicks = Math.min(r.noGroundTicks, NO_GROUND_RESPAWN - 1);
   } else r.noGroundTicks = 0;
 
   // wrong way: heading against the track tangent while moving backwards along it

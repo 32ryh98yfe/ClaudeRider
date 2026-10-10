@@ -36,7 +36,8 @@ HAZ traffic carts at=@rug_market+32 to=@rug_market+98 lanes=[(d -5, speed 7, cou
 ZONE surface from=@oasis to=@oasis+55 d=[-12.5,-5] surf=sand
 # the awning shortcut: a caravanserai lane under market awnings, cutting inside the camel-statue corner
 BRANCH awning from=@dune_top+9 to=@caravan+80 kind=shortcut aiMin=0.2 w=9 wall=building:3 surf=cobble {
-  C R25 40 L ; S ?x ; C R25 40 L ; S ?y
+  # Doc 17: entry recovery has more room; splitting the straight preserves the shortcut centerline.
+  C R25 40 L w=11 ; S 45 ; S ?x w=9 ; C R25 40 L ; S ?y
 }
 
 # ---- look & dressing (Sunstone Desert kit; art bible: 16:00 over the caravan town) ----

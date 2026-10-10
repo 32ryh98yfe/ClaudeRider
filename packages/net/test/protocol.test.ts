@@ -42,10 +42,10 @@ describe('ByteWriter / ByteReader', () => {
 const frame = (p: Partial<InputFrame>): InputFrame => ({ ...makeInput(), ...p });
 
 describe('small messages', () => {
-  it('INPUT is 14 bytes for one frame and round-trips up to 4 frames', () => {
+  it('INPUT is 16 bytes for one frame and round-trips up to 4 frames', () => {
     const one = encodeWith(InputMsg, { firstTick: 1234, ackEventSeq: 77, frames: [frame({ steer: -127, throttle: 15, brake: 3, held: 5, edges: 33, aim: 7, emote: 9 })] });
-    expect(one.length).toBe(14);
-    const frames = [frame({ steer: 12 }), frame({ steer: 127, throttle: 1 }), frame({ aim: 255, edges: 63 }), frame({ held: 7, brake: 15 })];
+    expect(one.length).toBe(16);
+    const frames = [frame({ steer: 12 }), frame({ steer: 127, throttle: 1, edges: 64, steerIntent: -1, driftRequests: 6 }), frame({ aim: 255, edges: 127, steerIntent: 1, driftRequests: 341 }), frame({ held: 7, brake: 15 })];
     const out = InputMsg.decode(new ByteReader(encodeWith(InputMsg, { firstTick: 99, ackEventSeq: 65535, frames })));
     expect(out).toEqual({ firstTick: 99, ackEventSeq: 65535, frames, valid: true });
   });
@@ -54,8 +54,11 @@ describe('small messages', () => {
     const b = encodeWith(InputMsg, { firstTick: 1, ackEventSeq: 0, frames: [frame({})] });
     const bad = b.slice(); bad[8 + 2] = 0x80; // held bit 7
     expect(InputMsg.decode(new ByteReader(bad)).valid).toBe(false);
+    const edge = b.slice(); edge[8 + 3] = 0x80; // edge bit 7 remains reserved
+    expect(InputMsg.decode(new ByteReader(edge)).valid).toBe(false);
     const aim = b.slice(); aim[8 + 4] = 9;
     expect(InputMsg.decode(new ByteReader(aim)).valid).toBe(false);
+    for (const extra of [3, 1 | (511 << 2), 0x8001]) { const invalid = b.slice(); new DataView(invalid.buffer).setUint16(14, extra, true); expect(InputMsg.decode(new ByteReader(invalid)).valid).toBe(false); }
     expect(() => InputMsg.decode(new ByteReader(b.subarray(0, 13)))).toThrow(ProtocolError);
     const n0 = b.slice(); n0[7] = 0;
     expect(() => InputMsg.decode(new ByteReader(n0))).toThrow(ProtocolError);
@@ -73,7 +76,7 @@ describe('small messages', () => {
     expect(ResumeMsg.decode(new ByteReader(res))).toEqual({ token, lastSnapTick: 4321, lastEventSeq: 9 });
     const relay = { baseTick: 500, entries: [{ slot: 3, dTick: 0, frame: frame({ steer: 5 }) }, { slot: 7, dTick: 255, frame: frame({ throttle: 15, held: 1 }) }] };
     const rb = encodeWith(RelayMsg, relay);
-    expect(rb.length).toBe(6 + 2 * 8);
+    expect(rb.length).toBe(6 + 2 * 10);
     expect(RelayMsg.decode(new ByteReader(rb))).toEqual(relay);
   });
 

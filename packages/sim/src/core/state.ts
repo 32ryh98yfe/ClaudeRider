@@ -43,6 +43,13 @@ export interface KartDrive {
   drift: 0 | 1;
   driftDir: -1 | 1;                        // +1 = left drift
   driftTicks: number;
+  driftIntentTicks: number;                // fresh Shift skid intent (36 ticks), counter/brake can cancel
+  driftArmed: 0 | 1;                       // fresh held press waiting for direction/speed
+  driftEngagement: number;                 // continuous grip/drift blend, 0..1
+  driftTightness: number;                  // current smooth curvature adjustment, 0..1
+  driftTarget: number;                     // requested tightness, raised by fresh Shift presses
+  driftRecovering: 0 | 1 | 2;              // 0 sustained, 1 Shift released, 2 counter-steer priority
+  pendingDriftDir: -1 | 0 | 1;             // one fresh press retained while recovering
   driftPeak: number;                       // peak sin(slip) during this drift
   reDriftLock: number;
   gauge: number;                           // 0..1
@@ -209,4 +216,4 @@ export interface RaceConfig {
   countdownTicks: number;                  // 3 beats × 60
 }
 
-export const SIM_VERSION = 4; // 4: key gates and the point-to-point finish compared on the sMain grid (3: M5 review fixes, 2: first M5 build)
+export const SIM_VERSION = 10; // 10: ordered controls, continuous drift, finish braking and shared track contacts

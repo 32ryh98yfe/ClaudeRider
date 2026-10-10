@@ -52,13 +52,13 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe('lobby socket version refusals', () => {
-  it('hello carries LOBBY_PROTOCOL_VERSION (2 since M5); a matching welcome connects', async () => {
+  it('hello carries LOBBY_PROTOCOL_VERSION (3 for ordered v10 input); a matching welcome connects', async () => {
     const { LobbyConnection } = await import('../src/net/connection.ts');
     const c = new LobbyConnection();
     const p = c.connect('ws://x/ws', 'Me', LOADOUT);
     const ws = FakeWS.all.at(-1)!;
     ws.accept();
-    expect(LOBBY_PROTOCOL_VERSION).toBe(2);
+    expect(LOBBY_PROTOCOL_VERSION).toBe(3);
     expect(ws.hello().v).toBe(LOBBY_PROTOCOL_VERSION);
     ws.receive(welcome(SIM_VERSION));
     await expect(p).resolves.toBeUndefined();

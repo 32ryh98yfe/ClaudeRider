@@ -1,9 +1,10 @@
 // Bakes per-sample AI tables (docs/design/14-ai-spec.md): signed curvature, 40 m turn-ahead, speed limit, width.
 // Mirrors the validated gap-2 AI's runtime scans so the sim-side driver only does table lookups.
-import { AIS } from '@cr/sim';
+import { AIS, SHARED } from '@cr/sim';
 import type { Sample } from './geometry.ts';
 
-const A_BRAKE = 24, BRAKE_FRAC = 0.8, OMEGA_CAP = 1.7, HAIRPIN_CAP = 1.0, HAIRPIN_TURN = 2.2, R_BIAS = 0.6;
+// The braking preview must use the same deceleration as the live kart model.
+const A_BRAKE = SHARED.aBrake, BRAKE_FRAC = 0.8, OMEGA_CAP = SHARED.driftYaw * 0.6, HAIRPIN_CAP = SHARED.driftYaw * 0.38, HAIRPIN_TURN = 2.2, R_BIAS = 0.6;
 
 /**
  * Headings of the plan tangent (radians, CCW from +x with north = −z). Where the tangent is near vertical (inside a

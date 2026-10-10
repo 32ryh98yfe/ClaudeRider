@@ -8,8 +8,11 @@ import type { TrackLoc } from '../core/state.ts';
 import { detSinCos } from '../core/math.ts';
 import { readContainer, type TypedArray } from './container.ts';
 import { findCell, type TriHashData } from './trihash.ts';
+import { closestPointTri } from './closest.ts';
+export { closestPointTri } from './closest.ts';
+import { PropCollision } from './PropCollision.ts';
 import {
-  AIS, CTRK_MAGIC, CTRK_VERSION, SFLAG, SMP,
+  AIS, CTRK_MAGIC, CTRK_VERSION, SFLAG, SMP, TFLAG,
   type CtrkMeta, type CtrkPathMeta, type HazardDefBaked, type PoseBaked, type BoxBaked, type PadBaked,
   type ZoneBaked, type RailBaked, type WarpBaked, type JumpBaked, type GravMode,
 } from './format.ts';
@@ -124,6 +127,7 @@ class BakedTrackImpl implements BakedTrack {
   private sc = { s: 0, c: 0 };
   private rng = { x: { lo: 0, hi: 0 }, y: { lo: 0, hi: 0 }, z: { lo: 0, hi: 0 } };
   private rsp = { path: 0, i: -1 };
+  private propCollision: PropCollision | null = null;
 
   constructor(buf: ArrayBuffer) {
     const c = readContainer(buf, CTRK_MAGIC, CTRK_VERSION);
@@ -151,6 +155,7 @@ class BakedTrackImpl implements BakedTrack {
     this.wIdx = (A.get('w.idx') as Uint32Array | Uint16Array | undefined) ?? new Uint32Array(0);
     this.wFlg = (A.get('w.flg') as Uint8Array | undefined) ?? new Uint8Array(this.wIdx.length / 3);
     this.wHash = hashFrom(A, 'w', m.hashCells, A.get('w.hd') as Float64Array | undefined);
+    if (m.propContacts?.version === 2) this.propCollision = new PropCollision(m.propContacts, A, this.wIdx.length / 3);
   }
 
   path(p: number): Readonly<CtrkPathMeta> { return this.paths[p]!.meta; }
@@ -205,6 +210,12 @@ class BakedTrackImpl implements BakedTrack {
 
   // ---------------------------------------------------------------- sphere vs wall triangles (closest point, Ericson)
   sphereWalls(cx: number, cy: number, cz: number, r: number, out: Contact[], max: number): number {
+    if (!(r >= 0 && r < 1e6 && max > 0)) return 0;
+    const n = this.sphereStructures(cx, cy, cz, r, out, max);
+    return this.propCollision?.sphere(cx, cy, cz, r, out, max, n) ?? n;
+  }
+
+  private sphereStructures(cx: number, cy: number, cz: number, r: number, out: Contact[], max: number): number {
     const h = this.wHash;
     if (!(r >= 0 && r < 1e6) || !(max > 0)) return 0; // also NaN and ±Infinity
     const R = this.rng;
@@ -227,20 +238,29 @@ class BakedTrackImpl implements BakedTrack {
         closestPointTri(cx, cy, cz, P[a]!, P[a + 1]!, P[a + 2]!, P[b]!, P[b + 1]!, P[b + 2]!, P[c]!, P[c + 1]!, P[c + 2]!, CP);
         const dx = cx - CP.x, dy = cy - CP.y, dz = cz - CP.z;
         const d2 = dx * dx + dy * dy + dz * dz;
-        if (d2 >= r2) continue;
+        if (!(d2 >= 0 && d2 < r2)) continue;
         const d = Math.sqrt(d2);
-        let nx: number, ny: number, nz: number;
-        if (d > 1e-9) { nx = dx / d; ny = dy / d; nz = dz / d; }
+        let nx: number, ny: number, nz: number, depth = r - d;
+        const oriented = (this.wFlg[t]! & TFLAG.ORIENTED) !== 0;
+        if (d > 1e-9 && !oriented) { nx = dx / d; ny = dy / d; nz = dz / d; }
         else {
           const e1x = P[b]! - P[a]!, e1y = P[b + 1]! - P[a + 1]!, e1z = P[b + 2]! - P[a + 2]!;
           const e2x = P[c]! - P[a]!, e2y = P[c + 1]! - P[a + 1]!, e2z = P[c + 2]! - P[a + 2]!;
           nx = e1y * e2z - e1z * e2y; ny = e1z * e2x - e1x * e2z; nz = e1x * e2y - e1y * e2x;
           const l = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1; nx /= l; ny /= l; nz /= l;
         }
-        if (n < max) {
-          const o = out[n]!;
-          o.x = CP.x; o.y = CP.y; o.z = CP.z; o.nx = nx; o.ny = ny; o.nz = nz; o.depth = r - d; o.flags = this.wFlg[t]!; o.tri = t;
-          n++;
+        // A ceiling has an authored outside. A centre already inside its thickness must leave downward,
+        // not use a radial closest-point normal that pushes the kart through the driving deck above it.
+        if (oriented) depth = r - (dx * nx + dy * ny + dz * nz);
+        let slot = n;
+        if (n >= max) {
+          slot = 0;
+          for (let j = 1; j < n; j++) if (out[j]!.depth < out[slot]!.depth || out[j]!.depth === out[slot]!.depth && out[j]!.tri > out[slot]!.tri) slot = j;
+          if (depth < out[slot]!.depth || depth === out[slot]!.depth && t >= out[slot]!.tri) continue;
+        } else n++;
+        {
+          const o = out[slot]!;
+          o.x = CP.x; o.y = CP.y; o.z = CP.z; o.nx = nx; o.ny = ny; o.nz = nz; o.depth = depth; o.flags = this.wFlg[t]!; o.tri = t;
         }
       }
     }
@@ -570,31 +590,6 @@ function normalizeFrame(f: FrameSample): void {
   l = Math.sqrt(f.ux * f.ux + f.uy * f.uy + f.uz * f.uz) || 1; f.ux /= l; f.uy /= l; f.uz /= l;
 }
 
-/** Closest point on triangle ABC to P (Ericson, Real-Time Collision Detection §5.1.5). */
-export function closestPointTri(px: number, py: number, pz: number, ax: number, ay: number, az: number, bx: number, by: number, bz: number, cx: number, cy: number, cz: number, out: { x: number; y: number; z: number }): void {
-  const abx = bx - ax, aby = by - ay, abz = bz - az, acx = cx - ax, acy = cy - ay, acz = cz - az;
-  const apx = px - ax, apy = py - ay, apz = pz - az;
-  const d1 = abx * apx + aby * apy + abz * apz, d2 = acx * apx + acy * apy + acz * apz;
-  if (d1 <= 0 && d2 <= 0) { out.x = ax; out.y = ay; out.z = az; return; }
-  const bpx = px - bx, bpy = py - by, bpz = pz - bz;
-  const d3 = abx * bpx + aby * bpy + abz * bpz, d4 = acx * bpx + acy * bpy + acz * bpz;
-  if (d3 >= 0 && d4 <= d3) { out.x = bx; out.y = by; out.z = bz; return; }
-  const vc = d1 * d4 - d3 * d2;
-  if (vc <= 0 && d1 >= 0 && d3 <= 0) { const v = d1 / (d1 - d3); out.x = ax + abx * v; out.y = ay + aby * v; out.z = az + abz * v; return; }
-  const cpx = px - cx, cpy = py - cy, cpz = pz - cz;
-  const d5 = abx * cpx + aby * cpy + abz * cpz, d6 = acx * cpx + acy * cpy + acz * cpz;
-  if (d6 >= 0 && d5 <= d6) { out.x = cx; out.y = cy; out.z = cz; return; }
-  const vb = d5 * d2 - d1 * d6;
-  if (vb <= 0 && d2 >= 0 && d6 <= 0) { const w = d2 / (d2 - d6); out.x = ax + acx * w; out.y = ay + acy * w; out.z = az + acz * w; return; }
-  const va = d3 * d6 - d5 * d4;
-  if (va <= 0 && d4 - d3 >= 0 && d5 - d6 >= 0) {
-    const w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
-    out.x = bx + (cx - bx) * w; out.y = by + (cy - by) * w; out.z = bz + (cz - bz) * w; return;
-  }
-  const denom = 1 / (va + vb + vc);
-  const v = vb * denom, w = vc * denom;
-  out.x = ax + abx * v + acx * w; out.y = ay + aby * v + acy * w; out.z = az + abz * v + acz * w;
-}
 
 export function loadCtrk(buf: ArrayBuffer): BakedTrack {
   return new BakedTrackImpl(buf);

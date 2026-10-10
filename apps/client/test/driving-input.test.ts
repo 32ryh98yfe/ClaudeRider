@@ -1,0 +1,346 @@
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { driftRequestAt, driftRequestCount, Edge, Held, makeInput } from '@cr/sim';
+import type { ReferenceClip, ReferenceKey } from '@cr/content/reference-driving.ts';
+import { ReferenceReplay } from '../src/dev/reference/replay.ts';
+import { defaultKeys, defaultPad } from '../src/input/bindings.ts';
+
+const source = vi.hoisted(() => ({
+  settings: { keys: {} as Record<string, string[]>, pad: {} as Record<string, number[]>, autoBoost: true },
+  pad: { connected: false, id: 'test', steer: 0, throttle: 0, brake: 0, buttons: [] as boolean[], axes: [] as number[] },
+  presses: 0,
+  flicks: 0,
+}));
+
+vi.mock('../src/meta/save.ts', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../src/meta/save.ts')>(),
+  save: { get: () => ({ settings: source.settings }) },
+}));
+vi.mock('../src/input/gamepad.ts', () => ({
+  installGamepad: () => {},
+  onPadButton: () => () => {},
+  onPadStick: () => () => {},
+  padState: () => source.pad,
+  consumePadPresses: () => { const value = source.presses; source.presses = 0; return value; },
+  consumeStickFlicks: () => { const value = source.flicks; source.flicks = 0; return value; },
+  releasePad: () => { source.presses = 0; source.flicks = 0; },
+}));
+
+import { gameKeysActive, heldUi, installKeyboard, onUiAction, sampleInput, setGameKeysActive } from '../src/input/keyboard.ts';
+import { installMenuNav, pushBack } from '../src/input/menuNav.ts';
+
+const windowEvents = new EventTarget();
+const documentEvents = Object.assign(new EventTarget(), { hidden: false, activeElement: null as null | { tagName: string; type: string } });
+let time = 0;
+
+function key(type: 'keydown' | 'keyup', code: string, at = time, repeat = false): void {
+  time = at;
+  const event = new Event(type, { cancelable: true });
+  Object.defineProperty(event, 'timeStamp', { value: at });
+  Object.assign(event, { code, key: code, repeat, isComposing: false });
+  windowEvents.dispatchEvent(event);
+}
+
+function sample(at: number): ReturnType<typeof sampleInput> {
+  time = at;
+  return { ...sampleInput(at) };
+}
+
+beforeAll(() => {
+  vi.stubGlobal('window', windowEvents);
+  vi.stubGlobal('document', documentEvents);
+  vi.spyOn(performance, 'now').mockImplementation(() => time);
+  installKeyboard();
+  installMenuNav();
+});
+afterAll(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+beforeEach(() => {
+  time = 0;
+  source.settings.autoBoost = true;
+  source.settings.keys = defaultKeys();
+  source.settings.pad = defaultPad();
+  Object.assign(source.pad, { connected: false, steer: 0, throttle: 0, brake: 0, buttons: [] });
+  documentEvents.hidden = false;
+  documentEvents.activeElement = null;
+  windowEvents.dispatchEvent(new Event('focus'));
+  windowEvents.dispatchEvent(new Event('compositionend'));
+  setGameKeysActive(true);
+});
+
+type KeyChange = readonly [at: number, type: 'keydown' | 'keyup', code: string];
+function steeringAt(hz: number, changes: readonly KeyChange[], end: number): number {
+  time = 0;
+  setGameKeysActive(true);
+  let change = 0;
+  for (let frame = 1; frame * 1000 / hz < end; frame++) {
+    const at = frame * 1000 / hz;
+    while (change < changes.length && changes[change]![0] <= at) {
+      const [when, type, code] = changes[change++]!;
+      key(type, code, when);
+    }
+    sample(at);
+  }
+  while (change < changes.length && changes[change]![0] <= end) {
+    const [when, type, code] = changes[change++]!;
+    key(type, code, when);
+  }
+  return sample(end).steer;
+}
+
+describe('driving input timing', () => {
+  it('matches observed key playback to real keyboard events across steer, drift, countersteer and boost edges', () => {
+    source.settings.autoBoost = false;
+    const clip: ReferenceClip = {
+      id: 'keyboard-parity', split: 'validation', skill: 'expert', family: 'parity', sourceStartFrame: 0, sourceEndFrame: 20,
+      initialSpeedKmh: 0, initialBoostTicks: 0, quantitativeEligible: false, observations: [], events: [], notes: [],
+      keys: [{ frame: 0, keys: ['up', 'right'] }, { frame: 3, keys: ['up', 'right', 'drift'] },
+        { frame: 5, keys: ['up', 'left'] }, { frame: 8, keys: ['up', 'boost'] }, { frame: 9, keys: ['up'] }, { frame: 12, keys: [] }],
+    };
+    const replay = new ReferenceReplay(clip);
+    const codes: Record<ReferenceKey, string> = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', drift: 'ShiftLeft', boost: 'ControlLeft' };
+    let held = new Set<ReferenceKey>();
+    for (let tick = 0; tick < replay.durationTicks; tick++) {
+      const change = clip.keys.find((entry) => entry.frame * 2 === tick);
+      if (change) {
+        for (const action of held) if (!change.keys.includes(action)) key('keyup', codes[action], tick * 1000 / 60);
+        for (const action of change.keys) if (!held.has(action)) key('keydown', codes[action], tick * 1000 / 60);
+        held = new Set(change.keys);
+      }
+      expect(sample((tick + 1) * 1000 / 60)).toEqual(replay.frameAt(tick));
+    }
+  });
+
+  it('preserves the initial calibrated 60 Hz keyboard response', () => {
+    key('keydown', 'ArrowRight');
+    expect(sample(1000 / 60).steer).toBe(76);
+    expect(sample(2000 / 60).steer).toBe(107);
+    expect(sample(3000 / 60).steer).toBe(119);
+  });
+
+  it.each([12, 25, 50, 75, 95])('reaches identical held-steer values at %i ms across 30/60/120/144 Hz', (end) => {
+    const values = [30, 60, 120, 144].map((hz) => steeringAt(hz, [[0, 'keydown', 'ArrowRight']], end));
+    expect(new Set(values).size).toBe(1);
+  });
+
+  it.each([55, 80, 105, 130, 165])('keeps short counter-steer and release timing equal at %i ms across refresh rates', (end) => {
+    const changes: KeyChange[] = [
+      [0, 'keydown', 'ArrowRight'],
+      [47, 'keyup', 'ArrowRight'], [47, 'keydown', 'ArrowLeft'],
+      [74, 'keyup', 'ArrowLeft'],
+      [111, 'keydown', 'ArrowRight'], [119, 'keyup', 'ArrowRight'],
+    ];
+    const values = [30, 60, 120, 144].map((hz) => steeringAt(hz, changes, end));
+    expect(new Set(values).size).toBe(1);
+  });
+
+  it('does not advance the filter when render and fallback pump sample the same timestamp', () => {
+    key('keydown', 'ArrowRight');
+    const first = sample(1000 / 60).steer;
+    expect(sample(1000 / 60).steer).toBe(first);
+    expect(sample(1000 / 60 - 1).steer).toBe(first);
+    expect(sample(2000 / 60).steer).toBe(107);
+  });
+
+  it('retains keyboard and pad edges through between-frame steering updates and consumes them once', () => {
+    source.pad.connected = true;
+    source.presses = 1 << 0;
+    source.flicks = 1;
+    key('keydown', 'ArrowRight', 2);
+    key('keyup', 'ArrowRight', 5);
+    key('keydown', 'KeyE', 7);
+    key('keyup', 'KeyE', 9);
+    expect(sample(16).edges).toBe(Edge.TAP_R | Edge.TAP_L | Edge.USE_ITEM | Edge.SWAP);
+    expect(sample(17).edges).toBe(0);
+  });
+});
+
+describe('driving input suspension', () => {
+  it('opens pause once per Escape press and leaves the next press for resume', () => {
+    let paused = false;
+    const resume = vi.fn(() => { paused = false; setGameKeysActive(true); });
+    let removeBack: (() => void) | undefined;
+    const off = onUiAction('pause', () => {
+      paused = true;
+      setGameKeysActive(false);
+      // useBack registers during the pause overlay's layout effect, before bubbling ends.
+      removeBack = pushBack(resume);
+    });
+    try {
+      key('keydown', 'ArrowUp');
+      key('keydown', 'ArrowRight');
+      key('keydown', 'Escape', 50);
+      expect(paused).toBe(true);
+      expect(gameKeysActive()).toBe(false);
+      expect(resume).not.toHaveBeenCalled();
+      expect(sample(60)).toMatchObject({ throttle: 0, steer: 0, held: 0, edges: 0 });
+      key('keydown', 'Escape', 450, true);
+      expect(paused).toBe(true);
+      key('keyup', 'Escape', 500);
+      key('keydown', 'Escape', 550);
+      expect(paused).toBe(false);
+      expect(resume).toHaveBeenCalledOnce();
+      expect(gameKeysActive()).toBe(true);
+      expect(sample(560)).toMatchObject({ throttle: 0, steer: 0 });
+    } finally { off(); removeBack?.(); }
+  });
+
+  it.each(['deactivate', 'blur', 'composition', 'hidden', 'text'])('neutralizes held controls, edges and filter on %s', (reason) => {
+    key('keydown', 'ArrowRight');
+    key('keydown', 'ArrowUp');
+    key('keydown', 'ShiftLeft');
+    key('keydown', 'KeyX');
+    expect(sample(50).held & Held.DRIFT).toBe(Held.DRIFT);
+    source.pad.connected = true;
+    Object.assign(source.pad, { steer: 1, throttle: 0.7, brake: 0.4, buttons: [true] });
+    source.presses = 1;
+    key('keydown', 'Digit1');
+    if (reason === 'deactivate') setGameKeysActive(false);
+    if (reason === 'blur') windowEvents.dispatchEvent(new Event('blur'));
+    if (reason === 'composition') windowEvents.dispatchEvent(new Event('compositionstart'));
+    if (reason === 'hidden') documentEvents.hidden = true;
+    if (reason === 'text') documentEvents.activeElement = { tagName: 'INPUT', type: 'text' };
+    expect(sample(60)).toEqual(makeInput());
+    expect(heldUi.value).toEqual({ look: false, standings: false });
+    source.pad.connected = false;
+    documentEvents.hidden = false;
+    documentEvents.activeElement = null;
+    windowEvents.dispatchEvent(new Event('compositionend'));
+    windowEvents.dispatchEvent(new Event('focus'));
+    setGameKeysActive(true);
+    expect(sample(80)).toEqual(makeInput());
+  });
+});
+
+describe('repeated drift key input', () => {
+  it('keeps the new direction edge when opposite steering and Shift arrive before the filtered steering reverses', () => {
+    key('keydown', 'ArrowUp');
+    key('keydown', 'ArrowRight');
+    expect(sample(100).steer).toBe(126);
+    key('keyup', 'ArrowRight', 101);
+    key('keydown', 'ArrowLeft', 101);
+    key('keydown', 'ShiftLeft', 101);
+    const input = sample(102);
+    expect(input.steer).toBeGreaterThan(0);
+    expect(input.edges).toBe(Edge.TAP_L | Edge.DRIFT);
+    expect(input.held).toBe(Held.DRIFT);
+    expect(sample(125).steer).toBeLessThan(0);
+  });
+
+  it.each(['ShiftLeft', 'ShiftRight', 'KeyC'])('keeps held throttle and steering through three %s presses', (driftKey) => {
+    key('keydown', 'ArrowUp');
+    key('keydown', 'ArrowRight');
+    for (let press = 0; press < 3; press++) {
+      const start = 100 + press * 100;
+      key('keydown', driftKey, start);
+      expect(sample(start + 16)).toMatchObject({ throttle: 15, steer: 127, held: Held.DRIFT });
+      key('keyup', driftKey, start + 40);
+      expect(sample(start + 56)).toMatchObject({ throttle: 15, steer: 127, held: 0 });
+    }
+  });
+
+  it('latches a complete 20 ms Shift pulse between 30 Hz samples without extending its held state', () => {
+    key('keydown', 'ArrowUp'); key('keydown', 'ArrowRight'); sample(100);
+    key('keydown', 'ShiftLeft', 105); key('keyup', 'ShiftLeft', 125);
+    expect(sample(133.333)).toMatchObject({ steer: 127, throttle: 15, held: 0, edges: Edge.DRIFT });
+    expect(sample(150)).toMatchObject({ held: 0, edges: 0 });
+  });
+
+  it('latches release/repress once while Shift is still held at both surrounding samples', () => {
+    key('keydown', 'ShiftLeft', 0);
+    expect(sample(1)).toMatchObject({ held: Held.DRIFT, edges: Edge.DRIFT });
+    key('keyup', 'ShiftLeft', 2); key('keydown', 'ShiftLeft', 3);
+    expect(sample(4)).toMatchObject({ held: Held.DRIFT, edges: Edge.DRIFT });
+    key('keydown', 'ShiftLeft', 5, true);
+    expect(sample(6)).toMatchObject({ held: Held.DRIFT, edges: 0 });
+  });
+
+  it('preserves a gamepad drift press already released before sampling, including a rebound button', () => {
+    source.pad.connected = true;
+    source.presses = 1 << 2;
+    expect(sample(16)).toMatchObject({ held: 0, edges: Edge.DRIFT });
+    expect(sample(17).edges).toBe(0);
+    source.settings.pad['drift'] = [11]; source.presses = 1 << 11;
+    expect(sample(32)).toMatchObject({ held: 0, edges: Edge.DRIFT });
+  });
+});
+
+describe('analog and digital pedals', () => {
+  it.each([0.2, 0.49, 0.51, 0.7, 1])('keeps %s trigger pressure proportional even when the browser reports pressed', (pressure) => {
+    source.pad.connected = true;
+    source.pad.throttle = pressure;
+    source.pad.brake = pressure;
+    source.pad.buttons[7] = true;
+    source.pad.buttons[6] = true;
+    const input = sample(16);
+    expect(input.throttle).toBe(Math.round(pressure * 15));
+    expect(input.brake).toBe(Math.round(pressure * 15));
+  });
+
+  it('retains full digital alternate bindings and honors removed analog bindings', () => {
+    source.pad.connected = true;
+    source.pad.throttle = 0.35;
+    source.pad.brake = 0.4;
+    source.settings.pad['accel'] = [7, 0];
+    source.settings.pad['brake'] = [6, 1];
+    source.pad.buttons[0] = true;
+    source.pad.buttons[1] = true;
+    expect(sample(16)).toMatchObject({ throttle: 15, brake: 15 });
+    source.pad.buttons[0] = false;
+    source.pad.buttons[1] = false;
+    expect(sample(32)).toMatchObject({ throttle: 5, brake: 6 });
+    source.settings.pad['accel'] = [0];
+    source.settings.pad['brake'] = [1];
+    expect(sample(48)).toMatchObject({ throttle: 0, brake: 0 });
+  });
+
+  it('keeps a keyboard pedal fully pressed alongside a partially held trigger', () => {
+    source.pad.connected = true;
+    source.pad.throttle = 0.35;
+    source.pad.brake = 0.4;
+    key('keydown', 'ArrowUp');
+    key('keydown', 'ArrowDown');
+    expect(sample(16)).toMatchObject({ throttle: 15, brake: 15 });
+  });
+});
+
+
+describe('overlapping physical keyboard chords', () => {
+  it('last direction wins without releasing the earlier key; repeats do not steal priority', () => {
+    key('keydown', 'ArrowUp', 0); key('keydown', 'ArrowLeft', 0); sample(40);
+    key('keydown', 'ArrowRight', 41); key('keydown', 'ArrowLeft', 43, true);
+    expect(sample(65)).toMatchObject({ steerIntent: 1, throttle: 15 });
+    expect(sample(66).steer).toBeGreaterThan(0);
+    key('keyup', 'ArrowRight', 67);
+    expect(sample(90)).toMatchObject({ steerIntent: -1, throttle: 15 });
+  });
+  it('retains3Shift requests and direction order before the next frame', () => {
+    key('keydown', 'ArrowUp', 0); key('keydown', 'ArrowLeft', 1);
+    key('keydown', 'ShiftLeft', 3); key('keyup', 'ShiftLeft', 4);
+    key('keydown', 'ArrowRight', 5);
+    key('keydown', 'ShiftLeft', 6); key('keyup', 'ShiftLeft', 7);
+    key('keyup', 'ArrowRight', 8);
+    key('keydown', 'ShiftLeft', 9); key('keyup', 'ShiftLeft', 10);
+    const input = sample(16);
+    expect(input.throttle).toBe(15); expect(driftRequestCount(input.driftRequests)).toBe(3);
+    expect([0,1,2].map((i) => driftRequestAt(input.driftRequests, i))).toEqual([-1,1,-1]);
+    expect(sample(32).driftRequests).toBe(0);
+  });
+  it('ignores residual analog steering while a keyboard direction remains held', () => {
+    source.pad.connected = true; source.pad.steer = 0.01;
+    key('keydown', 'ArrowLeft', 0);
+    expect(sample(20)).toMatchObject({ steerIntent: -1 }); expect(sample(25).steer).toBeLessThan(0);
+    key('keyup', 'ArrowLeft', 30); expect(sample(40)).toMatchObject({ steerIntent: 0, steer: 1 });
+  });
+});
+
+
+describe('analog intent amplitude', () => {
+  it.each([-.01,.01,-.15,.15,-1,1])('does not turn analog%s into a full digital counter-steer request', (steer) => {
+    source.pad.connected = true; source.pad.steer = steer;
+    expect(sample(16)).toMatchObject({ steerIntent: 0, steer: Math.round(steer*127) });
+  });
+  it('retains a deliberate analog Shift direction independently of continuous steering amplitude', () => {
+    source.pad.connected = true; source.pad.steer = -.2; source.presses = 1 << 2;
+    const input = sample(16); expect(input.steerIntent).toBe(0); expect(input.steer).toBe(-25);
+    expect(driftRequestCount(input.driftRequests)).toBe(1); expect(driftRequestAt(input.driftRequests,0)).toBe(-1);
+  });
+});

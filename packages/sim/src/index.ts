@@ -13,7 +13,7 @@ export * from './track/container.ts';
 export * from './track/format.ts';
 export * from './track/trihash.ts';
 export * from './track/BakedTrack.ts';
-export { paramsFor, gripGain, type KartParams } from './kart/params.ts';
+export { paramsFor, gripGain, SHARED, type KartParams } from './kart/params.ts';
 export { raceTicksOf } from './race/progress.ts';
 export { StartTier } from './race/rules.ts';
 export { applyDecision } from './items/runtime.ts';

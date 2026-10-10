@@ -27,6 +27,7 @@ export default {
   racingLine: 'Racing line (Time Attack)', driftAssist: 'Drift assist', autoBoostDesc: 'Holding the item key fires boosters automatically. The HUD shows AUTO.',
   instantHintDesc: 'Shows a tag next to the slot while an instant boost is available.',
   minimapSpeed: 'Minimap in Speed races', minimapSpeedDesc: 'When off, only the progress rail on the right is shown.', nameTags: 'Name tags', itemFeed: 'Item feed',
+  raceMap: 'Course display', raceMapDesc: 'Show the actual course map or ranked race progress in every mode.', trackMap: 'Course map', progressRail: 'Progress rail',
   highContrast: 'High-contrast HUD', highContrastDesc: 'Solid panels and thicker outlines instead of see-through ones.', textScale: 'Text size',
   colorBlindDesc: 'Yellow → blue gauges, plus patterns on team colours.', reducedMotionDesc: 'No camera shake, blur or HUD punches; gentle fades only.',
   hudScaleDesc: 'Scales every HUD element around its anchor.',

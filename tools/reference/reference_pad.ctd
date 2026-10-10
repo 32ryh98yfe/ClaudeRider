@@ -1,0 +1,8 @@
+# Development-only neutral ground for fixed raw-input comparisons. Never part of the track roster.
+TRACK proving_ring name="Reference Pad" theme=spark_circuit diff=1 laps=1 topo=p2p
+DEFAULTS w=600 surf=asphalt wall=none shoulder=0 blend=0
+START pos=(0,0,0) hdg=0
+GRID rows=1 cols=1 pitch=7 stagger=0 d=0
+S 1600 @reference
+LINE start at=500
+THEME scatter=none density=0 hills=0 sky=noon

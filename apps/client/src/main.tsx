@@ -15,6 +15,12 @@ import { navigate } from './ui/store/route.ts';
 
 declare global { interface Window { __cr?: Record<string, unknown> } }
 
+// Physics/input edits can add persistent fields while Fast Refresh preserves a live Session. A fresh dev
+// world is required; otherwise an old kart could be integrated by half of the new model during play-testing.
+if (import.meta.hot) import.meta.hot.on('vite:beforeUpdate', ({ updates }) => {
+  if (window.__cr?.['race'] === 'running' && updates.some((u) => u.type === 'js-update')) location.reload();
+});
+
 async function boot(): Promise<void> {
   document.documentElement.lang = locale.value;
   installKeyboard();

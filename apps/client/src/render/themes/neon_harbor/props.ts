@@ -10,7 +10,7 @@
 import * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
-import { box, cone, cyl, ico, merge, paint, place, rbox, sparkleGeometry, sph, torus } from '../../util/geo.ts';
+import { cosmetic, box, cone, cyl, ico, merge, paint, place, rbox, sparkleGeometry, sph, torus } from '../../util/geo.ts';
 import { beam, glow, rng } from '../ember_mine/shapes.ts';
 import { part, prism } from '../clayhill_village/toyshapes.ts';
 import { GlowParts, glowLit } from './glowlit.ts';
@@ -104,8 +104,8 @@ function facade(f: FacadeSpec): THREE.BufferGeometry {
     if (shop) G.light(0.7, glass); else G.add(glass);
     G.add(part(box(0.12, 2.8, 0.1), trim, 0.29, 1.75, z), part(box(0.14, 0.12, bw - 1.0), trim, 0.29, 0.38, z));
     const aw = AWNINGS[Math.floor(R() * AWNINGS.length)]!;
-    G.add(part(box(1.6, 0.1, bw - 0.7), aw, 0.95, 3.32, z, 0, 0, -0.22), part(box(0.06, 0.32, bw - 0.7), aw, 1.73, 3.0, z));
-    for (let k = 0; k < 4; k++) G.add(part(box(0.065, 0.33, (bw - 0.7) / 8), '#f2eee6', 1.765, 3.0, z - (bw - 0.7) / 2 + ((bw - 0.7) / 8) * (2 * k + 0.5)));
+    G.add(cosmetic(part(box(1.6, 0.1, bw - 0.7), aw, 0.95, 3.32, z, 0, 0, -0.22)), cosmetic(part(box(0.06, 0.32, bw - 0.7), aw, 1.73, 3.0, z)));
+    for (let k = 0; k < 4; k++) G.add(cosmetic(part(box(0.065, 0.33, (bw - 0.7) / 8), '#f2eee6', 1.765, 3.0, z - (bw - 0.7) / 2 + ((bw - 0.7) / 8) * (2 * k + 0.5))));
     G.light(R() < 0.5 ? 1.05 : 0.8, part(box(0.12, 0.5, bw * 0.55), R() < 0.5 ? MAGENTA : R() < 0.5 ? CYAN : AMBER, 0.33, 3.95, z));
   }
   // upper floors: trims and windows on the front face and over the whole depth of both side faces (a block seen
@@ -281,10 +281,10 @@ function trafficSignal(): THREE.BufferGeometry {
 function planter(): THREE.BufferGeometry {
   return merge([
     part(box(1.0, 0.7, 2.6), '#8e8a84', -0.5, 0.35, 0), part(box(1.1, 0.08, 2.7), '#a6a29c', -0.5, 0.72, 0),
-    part(ico(0.55, 1), '#3d6b45', -0.5, 0.95, -0.7, 0, 0, 0, 0.9, 0.75, 1.0, 0.06, 3),
-    part(ico(0.6, 1), '#4a7d4f', -0.5, 1.0, 0.1, 0, 0, 0, 0.9, 0.8, 1.0, 0.06, 5),
-    part(ico(0.5, 1), '#3a6342', -0.5, 0.92, 0.85, 0, 0, 0, 0.9, 0.75, 1.0, 0.06, 7),
-    ...[[-0.3, 1.3, -0.5], [-0.65, 1.35, 0.3], [-0.35, 1.25, 0.9], [-0.7, 1.3, -0.9]].map(([x, y, z], i) => part(ico(0.09, 0), i % 2 ? '#f2a6c4' : '#f6f0e6', x!, y!, z!)),
+    cosmetic(part(ico(0.55, 1), '#3d6b45', -0.5, 0.95, -0.7, 0, 0, 0, 0.9, 0.75, 1.0, 0.06, 3)),
+    cosmetic(part(ico(0.6, 1), '#4a7d4f', -0.5, 1.0, 0.1, 0, 0, 0, 0.9, 0.8, 1.0, 0.06, 5)),
+    cosmetic(part(ico(0.5, 1), '#3a6342', -0.5, 0.92, 0.85, 0, 0, 0, 0.9, 0.75, 1.0, 0.06, 7)),
+    ...[[-0.3, 1.3, -0.5], [-0.65, 1.35, 0.3], [-0.35, 1.25, 0.9], [-0.7, 1.3, -0.9]].map(([x, y, z], i) => cosmetic(part(ico(0.09, 0), i % 2 ? '#f2a6c4' : '#f6f0e6', x!, y!, z!))),
   ]);
 }
 
@@ -293,9 +293,9 @@ function streetTree(): THREE.BufferGeometry {
   return merge([
     part(box(1.4, 0.18, 1.4), '#5a5e66', 0, 0.09, 0), part(box(1.0, 0.2, 1.0), '#2b2e33', 0, 0.11, 0),
     part(cyl(0.14, 0.2, 3.2, 6), '#5a4232', 0, 1.6, 0),
-    part(ico(1.5, 1), '#335c3c', 0, 4.0, 0, 0, 0, 0, 1.1, 0.95, 1.1, 0.06, 3),
-    part(ico(1.1, 1), '#3f6d45', 0.7, 4.7, 0.4, 0, 0, 0, 1, 0.9, 1, 0.06, 5),
-    part(ico(1.0, 1), '#2e5236', -0.6, 4.5, -0.5, 0, 0, 0, 1, 0.9, 1, 0.06, 7),
+    cosmetic(part(ico(1.5, 1), '#335c3c', 0, 4.0, 0, 0, 0, 0, 1.1, 0.95, 1.1, 0.06, 3)),
+    cosmetic(part(ico(1.1, 1), '#3f6d45', 0.7, 4.7, 0.4, 0, 0, 0, 1, 0.9, 1, 0.06, 5)),
+    cosmetic(part(ico(1.0, 1), '#2e5236', -0.6, 4.5, -0.5, 0, 0, 0, 1, 0.9, 1, 0.06, 7)),
   ]);
 }
 
@@ -358,11 +358,11 @@ function lanternString(): THREE.BufferGeometry {
   for (let i = 0; i <= N; i++) {
     const a = -9.2 + (18.4 * i) / N, b = -9.2 + (18.4 * (i + 1)) / N;
     const sag = (x: number): number => 6.9 - 1.1 * (1 - (x / 9.2) * (x / 9.2));
-    if (i < N) G.add(paint(beam(a, sag(a), 0, b, sag(b), 0, 0.03), INK));
+    if (i < N) G.add(cosmetic(paint(beam(a, sag(a), 0, b, sag(b), 0, 0.03), INK)));
     if (i > 0 && i < N) {
-      G.add(part(cyl(0.02, 0.02, 0.3, 3), INK, a, sag(a) - 0.15, 0));
-      G.light(1.3, part(sph(0.32, 10, 8), i % 3 === 1 ? '#ffb347' : '#ff5a3a', a, sag(a) - 0.55, 0, 0, 0, 0, 1, 1.3, 1));
-      G.add(part(cyl(0.18, 0.18, 0.06, 8), INK, a, sag(a) - 0.12, 0), part(cyl(0.16, 0.16, 0.06, 8), INK, a, sag(a) - 0.98, 0));
+      G.add(cosmetic(part(cyl(0.02, 0.02, 0.3, 3), INK, a, sag(a) - 0.15, 0)));
+      G.light(1.3, cosmetic(part(sph(0.32, 10, 8), i % 3 === 1 ? '#ffb347' : '#ff5a3a', a, sag(a) - 0.55, 0, 0, 0, 0, 1, 1.3, 1)));
+      G.add(cosmetic(part(cyl(0.18, 0.18, 0.06, 8), INK, a, sag(a) - 0.12, 0)), cosmetic(part(cyl(0.16, 0.16, 0.06, 8), INK, a, sag(a) - 0.98, 0)));
     }
   }
   return G.build();
@@ -373,8 +373,8 @@ function noodleStall(): THREE.BufferGeometry {
   const G = new GlowParts();
   G.add(part(box(1.4, 1.0, 3.2), '#8a5a3a', -0.9, 0.5, 0), part(box(1.5, 0.08, 3.3), '#d8c7a8', -0.9, 1.04, 0));
   for (const z of [-1.5, 1.5]) G.add(part(box(0.08, 2.4, 0.08), INK, -0.25, 1.2, z), part(box(0.08, 2.4, 0.08), INK, -1.55, 1.2, z));
-  G.add(part(box(1.8, 0.1, 3.6), '#c43a32', -0.9, 2.45, 0, 0, 0, -0.12));
-  for (let k = 0; k < 6; k++) G.add(part(box(0.06, 0.25, 0.6), k % 2 ? '#f2eee6' : '#c43a32', 0.02, 2.25, -1.5 + k * 0.6));
+  G.add(cosmetic(part(box(1.8, 0.1, 3.6), '#c43a32', -0.9, 2.45, 0, 0, 0, -0.12)));
+  for (let k = 0; k < 6; k++) G.add(cosmetic(part(box(0.06, 0.25, 0.6), k % 2 ? '#f2eee6' : '#c43a32', 0.02, 2.25, -1.5 + k * 0.6)));
   for (const z of [-1.2, 1.2]) G.light(1.3, part(sph(0.22, 8, 6), '#ff5a3a', 0.0, 1.9, z, 0, 0, 0, 1, 1.3, 1));
   G.add(part(cyl(0.3, 0.26, 0.4, 10), '#8d929c', -1.0, 1.28, -0.6));
   G.light(0.6, part(box(0.04, 0.6, 1.0), '#ffe0a0', -1.6, 1.6, 0.5));
@@ -431,8 +431,8 @@ function litChevron(color: string, gain: number, o: { panel?: string; scale?: nu
 function bannerPole(): THREE.BufferGeometry {
   const G = new GlowParts();
   G.add(part(cyl(0.07, 0.09, 6.4, 6), POLE, 0, 3.2, 0));
-  G.add(part(box(0.04, 2.4, 0.9), '#d8426e', 0, 4.2, 0.5), part(box(0.045, 0.3, 0.9), '#f4f1ea', 0, 3.1, 0.5));
-  G.add(paint(place(sparkleGeometry(0.22, 0.03, 9), 0.03, 4.6, 0.5, 0, Math.PI / 2, 0), '#f4f1ea'));
+  G.add(cosmetic(part(box(0.04, 2.4, 0.9), '#d8426e', 0, 4.2, 0.5)), cosmetic(part(box(0.045, 0.3, 0.9), '#f4f1ea', 0, 3.1, 0.5)));
+  G.add(cosmetic(paint(place(sparkleGeometry(0.22, 0.03, 9), 0.03, 4.6, 0.5, 0, Math.PI / 2, 0), '#f4f1ea')));
   G.add(part(box(0.5, 0.06, 0.06), POLE, 0.2, 6.3, 0));
   G.light(2.0, part(sph(0.13, 8, 6), SODIUM, 0.45, 6.2, 0));
   return G.build();

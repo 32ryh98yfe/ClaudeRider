@@ -4,9 +4,9 @@
 import type { TrackId } from '@cr/content';
 
 export const CTRK_MAGIC = 0x4b525443; // 'CTRK'
-export const CTRK_VERSION = 2;
+export const CTRK_VERSION = 3;
 export const CVIS_MAGIC = 0x53495643; // 'CVIS'
-export const CVIS_VERSION = 1;
+export const CVIS_VERSION = 2;
 
 /** Per-sample stride in `p{k}.smp` (Float64 after load). */
 export const SMP = { PX: 0, PY: 1, PZ: 2, TX: 3, TY: 4, TZ: 5, RX: 6, RY: 7, RZ: 8, UX: 9, UY: 10, UZ: 11, S: 12, WL: 13, WR: 14, SMAIN: 15, STRIDE: 16 } as const;
@@ -22,7 +22,7 @@ export const SFLAG = {
   AREA: 1 << 15,   // guide sample of an AREA plaza
 } as const;
 /** Bits of per-triangle `g.flg` / `w.flg` (Uint8). */
-export const TFLAG = { SOFT: 1, INVISIBLE: 2, KILL: 4, LEDGE: 8, PROP: 16, GORE: 32, SLOPE: 64 } as const;
+export const TFLAG = { SOFT: 1, INVISIBLE: 2, KILL: 4, LEDGE: 8, PROP: 16, GORE: 32, SLOPE: 64, ORIENTED: 128 } as const;
 
 export type GravMode = 0 | 1 | 2; // world, track (-up), low (scaled world)
 
@@ -81,6 +81,8 @@ export interface HazardDefBaked {
   path: number; s: number; u: number; shape: 'cyl' | 'box' | 'sphere'; size: [number, number, number];
   periodTicks: number; activeFrom: number; activeTo: number; telegraphTicks: number; offsetTicks: number;
   effect: 'spin' | 'launch' | 'squash' | 'block';
+  /** v3: physical contact is independent from effect cooldown/immunity. */
+  contact?: 'solid' | 'trigger';
   lanes?: { u: number; speed: number; count: number; spacing: number }[];
   // v2
   motion?: HazardMotion;
@@ -92,7 +94,11 @@ export interface HazardDefBaked {
 /** v2: junction record (renderer: gore cushion / signage; AI: split choice). */
 export interface JunctionBaked { branch: number; host: number; kind: 'split' | 'merge'; hostS: number; gore?: PoseBaked }
 
+export interface PropContactSetBaked { kind: string; n: number; policy: 'solid' | 'cosmetic'; fingerprint: string }
+
 export interface CtrkMeta {
+  /** v3: final instance matrices and authored model contacts live in prop{n}.mat/.contacts/.support arrays. */
+  propContacts?: { version: 2; sets: PropContactSetBaked[]; geometries: { prefix: string }[]; structuralFirst: number; structuralCount: number };
   id: TrackId;
   name: string;
   themeId: string;

@@ -16,7 +16,7 @@ const LA = 8;
 const CHARS = CHARACTER_IDS;
 const SEED = 1000;
 /** Drag entries per lap on meadow_loop (calibrated; see the header). */
-const DRAG_LEGEND_MIN = 0.5, DRAG_ROOKIE_MAX = 0.1;
+const DRAG_ROOKIE_MAX = 0.1;
 
 interface TierStats { pace: number; dragsPerLap: number; tapsPerLap: number; spinOuts: number }
 
@@ -51,7 +51,8 @@ describe('AI tier pace vs the Legend ghost', () => {
     expect(p.get('racer')!).toBeLessThan(p.get('pro')!);
     expect(p.get('pro')!).toBeLessThan(p.get('legend')!);
     const dr = (t: AiTier): number => st.get(t)!.dragsPerLap;
-    expect(dr('legend'), 'Legend drags per lap').toBeGreaterThanOrEqual(DRAG_LEGEND_MIN);
+    // At the lower speed, Meadow's R40+ curves are grip-feasible. A fixed neutral-drag quota would now reward unnecessary slides.
+    // Explicit drift/reward and lookahead coverage lives in handling-v10.test.ts and predict.test.ts.
     expect(dr('rookie'), 'Rookie drags per lap').toBeLessThanOrEqual(DRAG_ROOKIE_MAX);
     expect(dr('legend'), 'drag rate in tier order').toBeGreaterThanOrEqual(dr('racer'));
     expect(dr('pro'), 'drag rate in tier order').toBeGreaterThanOrEqual(dr('rookie'));

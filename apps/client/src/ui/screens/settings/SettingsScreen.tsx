@@ -277,7 +277,7 @@ function HudTab({ s }: { s: Readonly<SettingsV1> }) {
       <Row label={t('settings.hudScale')} desc={<>{t('settings.hudScaleDesc')} · <b class="num">{Math.round(s.hudScale * 100)}%</b></>}>
         <Slider label={t('settings.hudScale')} value={s.hudScale} min={0.8} max={1.2} step={0.05} onInput={(v) => set((x) => { x.hudScale = Math.round(v * 100) / 100; })} />
       </Row>
-      <Row label={t('settings.minimapSpeed')} desc={t('settings.minimapSpeedDesc')}><Toggle label={t('settings.minimapSpeed')} on={!!s.minimapInSpeed} onChange={(v) => set((x) => { x.minimapInSpeed = v; })} /></Row>
+      <Row label={t('settings.raceMap')} desc={t('settings.raceMapDesc')}><Seg label={t('settings.raceMap')} value={s.raceMap ?? 'track'} options={[{ value: 'track', label: t('settings.trackMap') }, { value: 'progress', label: t('settings.progressRail') }]} onChange={(v) => set((x) => { x.raceMap = v; })} /></Row>
       <Row label={t('settings.nameTags')}><Toggle label={t('settings.nameTags')} on={s.nameTags !== false} onChange={(v) => set((x) => { x.nameTags = v; })} /></Row>
       <Row label={t('settings.itemFeed')}><Toggle label={t('settings.itemFeed')} on={s.itemFeed !== false} onChange={(v) => set((x) => { x.itemFeed = v; })} /></Row>
       <div class="hud-preview" style={{ '--hud-scale': String(s.hudScale) } as Record<string, string>} aria-hidden="true">

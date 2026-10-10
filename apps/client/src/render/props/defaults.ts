@@ -1,9 +1,19 @@
 // Default prop factories (vertex-coloured, merged, instanced). ThemeKits override kinds with their own looks.
 import * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../materials/library.ts';
-import { merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../util/geo.ts';
+import { cosmetic, merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../util/geo.ts';
 
-export interface PropFactory { build(pal: readonly string[]): { geometry: THREE.BufferGeometry; material: THREE.Material; castShadow?: boolean }; maxInstances?: number }
+export interface PropFactory {
+  build(pal: readonly string[]): {
+    geometry: THREE.BufferGeometry; material: THREE.Material; castShadow?: boolean;
+    /** Explicitly flexible suspension, separate from the rigid body fitted to a HAZ collider. */
+    hazardDecoration?: THREE.BufferGeometry;
+    hazardDecorationRole?: 'flexible-suspension';
+    /** A custom trigger body must look fluid/energy-like and use a translucent, nonmetallic material. */
+    hazardBodyRole?: 'fluid-trigger';
+  };
+  maxInstances?: number;
+}
 
 const lit = (): THREE.Material => MaterialLibrary.vertexLit(0.8, 0);
 /** Trees and bushes sway in the wind (positionNode, masked by height so trunks stay planted). */
@@ -14,8 +24,8 @@ export const DEFAULT_PROPS: Record<string, PropFactory> = {
     build: (pal) => ({
       geometry: merge([
         paint(place(cyl(0.25, 0.35, 2.4, 7), 0, 1.2, 0), '#6b4a33'),
-        paint(place(ico(1.9, 1), 0, 3.6, 0, 0, 0, 0, 1, 0.9, 1), pal[2] ?? '#6fae4b', 0.12, 3),
-        paint(place(ico(1.3, 1), 0.9, 4.4, 0.4), pal[2] ?? '#7cbd55', 0.12, 5),
+        cosmetic(paint(place(ico(1.9, 1), 0, 3.6, 0, 0, 0, 0, 1, 0.9, 1), pal[2] ?? '#6fae4b', 0.12, 3)),
+        cosmetic(paint(place(ico(1.3, 1), 0.9, 4.4, 0.4), pal[2] ?? '#7cbd55', 0.12, 5)),
       ]), material: leafy(), castShadow: true,
     }),
   },
@@ -23,9 +33,9 @@ export const DEFAULT_PROPS: Record<string, PropFactory> = {
     build: () => ({
       geometry: merge([
         paint(place(cyl(0.2, 0.3, 1.6, 6), 0, 0.8, 0), '#5b3d2a'),
-        paint(place(cone(1.7, 2.6, 7), 0, 2.4, 0), '#3f7d45', 0.1, 7),
-        paint(place(cone(1.3, 2.2, 7), 0, 3.6, 0), '#4a8f4f', 0.1, 9),
-        paint(place(cone(0.8, 1.6, 7), 0, 4.7, 0), '#56a05a', 0.1, 11),
+        cosmetic(paint(place(cone(1.7, 2.6, 7), 0, 2.4, 0), '#3f7d45', 0.1, 7)),
+        cosmetic(paint(place(cone(1.3, 2.2, 7), 0, 3.6, 0), '#4a8f4f', 0.1, 9)),
+        cosmetic(paint(place(cone(0.8, 1.6, 7), 0, 4.7, 0), '#56a05a', 0.1, 11)),
       ]), material: leafy(), castShadow: true,
     }),
   },

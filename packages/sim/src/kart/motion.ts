@@ -5,7 +5,7 @@ import { DT } from '../core/units.ts';
 import { SIN } from '../core/math.ts';
 import type { StepContext } from '../api.ts';
 import type { SurfaceDef } from '@cr/content';
-import type { Contact } from '../track/BakedTrack.ts';
+import type { Contact, GroundHit } from '../track/BakedTrack.ts';
 import { TFLAG } from '../track/format.ts';
 import type { KartParams } from './params.ts';
 import { evKey } from './evkey.ts';
@@ -22,6 +22,7 @@ const COS65 = 0.42261826174069944;
 const SNAP = 0.35;
 /** Coyote grace, written +1 because it is set in phase 4 (10-sim-spec §1.3). */
 const COYOTE_WRITE = 7;
+const SWEPT_GROUND: GroundHit = { t: 0, x: 0, y: 0, z: 0, nx: 0, ny: 1, nz: 0, surf: 0, tri: 0, flags: 0 };
 
 export interface MotionState { impactThisTick: boolean; contactThisTick: boolean; tx: number; ty: number; tz: number }
 
@@ -50,8 +51,28 @@ export function halfStep(w: WorldState, k: KartState, P: KartParams, ctx: StepCo
   const b = k.body;
   if (b.attachKind === Attach.RAIL) { railHalfStep(k, ctx); return; }
   if (b.attachKind === Attach.WARP) return; // frozen at the gate
-  const dt2 = DT / 2, T = ctx.track, hit = ctx.scratch.hit;
+  const dt2 = DT / 2;
+  const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
+  const maxMove = KART_R * 0.5;
+  if (speed * dt2 <= maxMove || !Number.isFinite(speed)) {
+    motionSegment(w, k, P, ctx, ms, dt2);
+    return;
+  }
+  // Forces are still integrated once per tick. Only high-speed collision movement is subdivided;
+  // resolved velocity (or a newly entered pad) determines the next segment, with no swept-distance gaps.
+  let remaining = dt2;
+  while (remaining > 1e-10) {
+    const v = Math.sqrt(b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
+    const dt = Math.min(remaining, v > 0 ? maxMove / v : remaining);
+    motionSegment(w, k, P, ctx, ms, dt);
+    remaining -= dt;
+  }
+}
+
+function motionSegment(w: WorldState, k: KartState, P: KartParams, ctx: StepContext, ms: MotionState, dt2: number): void {
+  const b = k.body, T = ctx.track, hit = ctx.scratch.hit;
   if (hasZones(T)) gravityFor(T, k.race.loc, ctx.scratch.grav);
+  const previousX = b.px, previousY = b.py, previousZ = b.pz;
   b.px += b.vx * dt2; b.py += b.vy * dt2; b.pz += b.vz * dt2;
 
   // ---------------------------------------------------------------- ground (§10.2)
@@ -60,13 +81,38 @@ export function halfStep(w: WorldState, k: KartState, P: KartParams, ctx: StepCo
   if (was) { ux = b.nx; uy = b.ny; uz = b.nz; }
   else { const g = ctx.scratch.grav; const gl = Math.sqrt(g.x * g.x + g.y * g.y + g.z * g.z) || 1; ux = -g.x / gl; uy = -g.y / gl; uz = -g.z / gl; }
   let accept = false;
-  if (T.groundRay(b.px + ux, b.py + uy, b.pz + uz, -ux, -uy, -uz, 2.0, hit) && hit.nx * ux + hit.ny * uy + hit.nz * uz > COS65) {
-    const dd = hit.t - 1.0; // + = kart above the surface
+  let foundGround = T.groundRay(b.px + ux, b.py + uy, b.pz + uz, -ux, -uy, -uz, 2.0, hit);
+  if (!foundGround && was === 1) {
+    // At a junction, the old bank normal can miss a supporting deck that is reached along gravity.
+    // Retry only lost contact, never a rejected hit or an airborne approach from underneath a road.
+    gravityFor(T, k.race.loc, ctx.scratch.grav);
+    const g = ctx.scratch.grav, gl = Math.sqrt(g.x * g.x + g.y * g.y + g.z * g.z) || 1;
+    const gx = -g.x / gl, gy = -g.y / gl, gz = -g.z / gl;
+    if (ux * gx + uy * gy + uz * gz > COS65
+      && T.groundRay(b.px + gx, b.py + gy, b.pz + gz, -gx, -gy, -gz, 2.0, hit)
+      && hit.nx * ux + hit.ny * uy + hit.nz * uz > COS65) {
+      ux = gx; uy = gy; uz = gz; foundGround = true;
+    }
+  }
+  let sweptLanding = false;
+  if (!was) {
+    const dx = b.px - previousX, dy = b.py - previousY, dz = b.pz - previousZ;
+    const length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    if (length > 1e-9 && T.groundRay(previousX, previousY, previousZ, dx / length, dy / length, dz / length, length + 1e-7, SWEPT_GROUND)
+      && SWEPT_GROUND.nx * ux + SWEPT_GROUND.ny * uy + SWEPT_GROUND.nz * uz > COS65
+      && (previousX - SWEPT_GROUND.x) * SWEPT_GROUND.nx + (previousY - SWEPT_GROUND.y) * SWEPT_GROUND.ny + (previousZ - SWEPT_GROUND.z) * SWEPT_GROUND.nz >= -1e-6) {
+      // Use the actual foot segment, not the kart's pitched visual up, and preserve one-sided landing.
+      // This catches a crossed deck before its outward underside can correctly expel the sphere downward.
+      Object.assign(hit, SWEPT_GROUND); foundGround = true; sweptLanding = true;
+    }
+  }
+  if (foundGround && hit.nx * ux + hit.ny * uy + hit.nz * uz > COS65) {
+    const dd = sweptLanding ? 0 : hit.t - 1.0; // + = kart above the surface
     const vnh = b.vx * hit.nx + b.vy * hit.ny + b.vz * hit.nz;
     // Ground is one-sided. The ray starts 1 m above the kart, so an airborne kart rising from underneath a road
     // edge would otherwise be pulled up onto it; it lands only if half a step ago it was on or above the surface
     // (its distance along the hit normal was ≥ −5 cm).
-    const fromAbove = was === 1 || dd * (hit.nx * ux + hit.ny * uy + hit.nz * uz) - vnh * dt2 >= -0.05;
+    const fromAbove = was === 1 || (previousX - hit.x) * hit.nx + (previousY - hit.y) * hit.ny + (previousZ - hit.z) * hit.nz >= -0.05;
     accept = (dd <= 0 && fromAbove) || (was === 1 && dd <= SNAP && vnh <= 2.0);
     if (accept) {
       if (!was && b.airTicks > 0) land(w, k, P, ctx, vnh, hit.nx, hit.ny, hit.nz);
@@ -93,7 +139,30 @@ export function halfStep(w: WorldState, k: KartState, P: KartParams, ctx: StepCo
   }
 
   // ---------------------------------------------------------------- walls (§10.4)
-  walls(w, k, P, ctx, ms);
+  const beforeWallX = b.px, beforeWallY = b.py, beforeWallZ = b.pz;
+  walls(w, k, P, ctx, ms, dt2);
+  // A tilted airborne sphere can meet the deck's underside before its foot reaches the top. The outward
+  // response is correct for an approach from below, but must not carry a foot that started above through the
+  // drivable surface. Sweep the complete corrected displacement, with the same front-face/previous-side gate.
+  const dx = b.px - previousX, dy = b.py - previousY, dz = b.pz - previousZ;
+  const length = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  if (!was && (b.px !== beforeWallX || b.py !== beforeWallY || b.pz !== beforeWallZ) && length > 1e-9 && T.groundRay(previousX, previousY, previousZ, dx / length, dy / length, dz / length, length + 1e-7, SWEPT_GROUND)
+    && SWEPT_GROUND.t > 1e-7
+    && (previousX - SWEPT_GROUND.x) * SWEPT_GROUND.nx + (previousY - SWEPT_GROUND.y) * SWEPT_GROUND.ny + (previousZ - SWEPT_GROUND.z) * SWEPT_GROUND.nz >= -1e-6) {
+    const g = ctx.scratch.grav, gl = Math.sqrt(g.x * g.x + g.y * g.y + g.z * g.z) || 1;
+    const alignment = was ? SWEPT_GROUND.nx * ux + SWEPT_GROUND.ny * uy + SWEPT_GROUND.nz * uz
+      : -(SWEPT_GROUND.nx * g.x + SWEPT_GROUND.ny * g.y + SWEPT_GROUND.nz * g.z) / gl;
+    if (alignment > COS65) {
+      const h = SWEPT_GROUND, vn = b.vx * h.nx + b.vy * h.ny + b.vz * h.nz;
+      if (!b.grounded && b.airTicks > 0) land(w, k, P, ctx, vn, h.nx, h.ny, h.nz);
+      else { b.vx -= vn * h.nx; b.vy -= vn * h.ny; b.vz -= vn * h.nz; }
+      const prevSurf = b.surf;
+      b.px = h.x; b.py = h.y; b.pz = h.z; b.nx = h.nx; b.ny = h.ny; b.nz = h.nz;
+      b.surf = h.surf; b.grounded = 1; b.coyote = COYOTE_WRITE; orthoForward(k);
+      if (b.surf !== prevSurf) surfaceEntry(w, k, P, ctx, surfDef(ctx, b.surf));
+      if ((h.flags & TFLAG.KILL) !== 0 || surfDef(ctx, b.surf)?.kill) KILL_FLAG[k.slot] = 1;
+    }
+  }
 }
 
 /**
@@ -115,7 +184,7 @@ function land(w: WorldState, k: KartState, P: KartParams, ctx: StepContext, vnh:
 
 /** Pad surfaces act when the kart enters them (§7.6, §10.3). Set in phase 4, so durations are written +1. */
 function surfaceEntry(w: WorldState, k: KartState, P: KartParams, ctx: StepContext, def: SurfaceDef | undefined): void {
-  if (!def) return;
+  if (!def || k.race.finishTick >= 0 || k.race.retired) return;
   const b = k.body, d = k.drive;
   if (def.id === 'boost_pad') {
     if (d.boostTicks < P.padBoostTicks + 1) d.boostTicks = P.padBoostTicks + 1;
@@ -132,7 +201,7 @@ function surfaceEntry(w: WorldState, k: KartState, P: KartParams, ctx: StepConte
 
 const CONTACTS_SORTED: Contact[] = [];
 
-function walls(w: WorldState, k: KartState, P: KartParams, ctx: StepContext, ms: MotionState): void {
+function walls(w: WorldState, k: KartState, P: KartParams, ctx: StepContext, ms: MotionState, dt: number): void {
   const b = k.body, T = ctx.track, cs = ctx.scratch.contacts;
   const cx = b.px + b.nx * KART_CY, cy = b.py + b.ny * KART_CY, cz = b.pz + b.nz * KART_CY;
   const n = T.sphereWalls(cx, cy, cz, KART_R, cs, cs.length);
@@ -158,17 +227,27 @@ function walls(w: WorldState, k: KartState, P: KartParams, ctx: StepContext, ms:
       const ex = b.px + b.nx * KART_CY - c.x, ey = b.py + b.ny * KART_CY - c.y, ez = b.pz + b.nz * KART_CY - c.z;
       const d = Math.sqrt(ex * ex + ey * ey + ez * ez);
       if (d >= KART_R) continue;
-      depth = KART_R - d;
-      if (d > 1e-9) { nx = ex / d; ny = ey / d; nz = ez / d; }
+      if ((c.flags & TFLAG.ORIENTED) !== 0) {
+        // Closed deck skins have an authored outward normal. Radial recomputation can turn an underside
+        // response upward once the sphere centre is inside the deck and pull an airborne kart through it.
+        depth = KART_R - (ex * c.nx + ey * c.ny + ez * c.nz);
+      } else {
+        depth = KART_R - d;
+        if (d > 1e-9) { nx = ex / d; ny = ey / d; nz = ez / d; }
+      }
     }
     b.px += nx * depth; b.py += ny * depth; b.pz += nz * depth;
     // wall normal in the kart's tangent plane; floor/ceiling-like contacts only fix the position
     const dn = nx * b.nx + ny * b.ny + nz * b.nz;
     let hx = nx - dn * b.nx, hy = ny - dn * b.ny, hz = nz - dn * b.nz;
     const hl = Math.sqrt(hx * hx + hy * hy + hz * hz);
-    if (hl < 0.3) continue;
+    if (hl < 0.3) {
+      const into = b.vx * nx + b.vy * ny + b.vz * nz;
+      if (into < 0) { b.vx -= nx * into; b.vy -= ny * into; b.vz -= nz * into; }
+      continue;
+    }
     hx /= hl; hy /= hl; hz /= hl;
-    wallResponse(w, k, P, ctx, ms, hx, hy, hz, (c.flags & (TFLAG.SOFT | TFLAG.GORE)) !== 0);
+    wallResponse(w, k, P, ctx, ms, hx, hy, hz, (c.flags & (TFLAG.SOFT | TFLAG.GORE)) !== 0, dt);
   }
 }
 
@@ -176,7 +255,7 @@ function walls(w: WorldState, k: KartState, P: KartParams, ctx: StepContext, ms:
  * Wall response for one contact (§10.4). Soft walls (junction gore cushions, TFLAG.SOFT/GORE) never count as an
  * impact: the kart grinds along them whatever the angle [P].
  */
-function wallResponse(w: WorldState, k: KartState, P: KartParams, ctx: StepContext, ms: MotionState, nx: number, ny: number, nz: number, soft: boolean): void {
+function wallResponse(w: WorldState, k: KartState, P: KartParams, ctx: StepContext, ms: MotionState, nx: number, ny: number, nz: number, soft: boolean, dt: number): void {
   const b = k.body, d = k.drive;
   const vn = b.vx * nx + b.vy * ny + b.vz * nz;
   if (vn >= 0) return;
@@ -193,18 +272,16 @@ function wallResponse(w: WorldState, k: KartState, P: KartParams, ctx: StepConte
     tx *= f; ty *= f; tz *= f;
     b.vx = tx - P.wallE * vn * nx; b.vy = ty - P.wallE * vn * ny; b.vz = tz - P.wallE * vn * nz;
     if (d.drift === 1) {
-      d.gauge *= P.wallGaugeKeep;
       d.drift = 0; d.reDriftLock = P.reDriftTicks; d.driftDir = 1; d.driftTicks = 0; d.driftPeak = 0;
       ctx.events.push({ t: 'driftEnd', kart: k.slot, tick: w.tick, key: evKey(w.tick, 4, k.slot) });
-      clearDriftTech(w, k, ctx);
     }
-    d.instTicks = 0; d.instWindow = 0;
+    clearDriftTech(w, k, ctx);
+    d.instWindow = 0;
     const hard = sinT >= SIN.d45;
     if (hard) {
       k.stats.hardHits++;
       d.stunTicks = P.wallStunTicks + 1;
-      if (d.boostTicks > 0) ctx.events.push({ t: 'boostEnd', kart: k.slot, kind: d.boostKind, tick: w.tick, key: evKey(w.tick, 1, k.slot) });
-      d.boostTicks = 0; d.boostKind = Boost.NONE; d.startTicks = 0; d.postTicks = 0; // a cancelled boost never bleeds
+      // Wall contact changes momentum, never earned charge, stored boosters or an active boost timer.
       b.yawRate = 0;
       // nose realigned along the track tangent (projected on the ground plane), toward the side the kart faced,
       // turned slightly away from the wall
@@ -228,7 +305,7 @@ function wallResponse(w: WorldState, k: KartState, P: KartParams, ctx: StepConte
     ctx.events.push({ t: 'wall', kart: k.slot, severity: hard ? 2 : 1, x: b.px, y: b.py, z: b.pz, speed: -vn, tick: w.tick, key: evKey(w.tick, 22, k.slot) });
   } else {
     // grinding (벽 비비기): remove the into-wall velocity, 10 m/s² friction along the wall; the drift is kept
-    let f = tsp > 0.01 ? 1 - (P.wallGrind * (DT / 2)) / tsp : 0;
+    let f = tsp > 0.01 ? 1 - (P.wallGrind * dt) / tsp : 0;
     if (f < 0) f = 0;
     b.vx = tx * f; b.vy = ty * f; b.vz = tz * f;
     if (fresh) {
@@ -254,7 +331,7 @@ function boosting(k: Readonly<KartState>, ctx: StepContext): boolean {
 }
 
 function contactable(k: Readonly<KartState>): boolean {
-  return k.active === 1 && k.body.ghostTicks <= 0 && k.race.respawnPhase === 0 && k.race.finishTick < 0 && k.body.attachKind !== Attach.WARP;
+  return k.active === 1 && k.body.ghostTicks <= 0 && k.race.respawnPhase === 0 && k.race.finishTick < 0 && !k.race.retired && k.body.attachKind !== Attach.WARP;
 }
 
 const DV_MAX = 6;

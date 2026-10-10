@@ -2,7 +2,7 @@
 // tick. Brake and throttle presses shorter than a tick (a 1-frame tap at 144 Hz, a sample whose frame advanced no
 // tick at 60 Hz) must still reach a tick, and a frame that advances two ticks must not stretch its sample over both.
 import { describe, expect, it } from 'vitest';
-import { makeInput, type InputFrame } from '@cr/sim';
+import { Edge, Held, hashWorld, makeInput, type InputFrame } from '@cr/sim';
 import { NetClient, type Transport } from '../src/index.ts';
 import { mulberry, raceConfig, testContent, testTrack } from './helpers.ts';
 
@@ -48,6 +48,52 @@ const pressed = (xs: number[]): number => xs.filter((x) => x > 0).length;
 const runs = (xs: number[]): number => xs.filter((x, i) => x > 0 && !(xs[i - 1]! > 0)).length;
 
 describe('NetClient.submit: every sample reaches one tick', () => {
+  it('merges a sub-tick drift press/release into exactly one latched edge while retaining the released held state', () => {
+    let now = 0;
+    const got: InputFrame[] = [];
+    const nc = new NetClient({ transport: nowhere(), track, content, cfg, slot: 0, nowMs: () => now,
+      mode: 'free', maxSteps: 5, onOwnInput: (_t, f) => { got.push({ ...f }); },
+    });
+    const send = (ms: number, held = 0, edges = 0): void => {
+      now = ms; nc.submit({ ...makeInput(), steer: 127, throttle: 15, held, edges }); nc.update(now);
+    };
+    send(0); send(5, Held.DRIFT, Edge.DRIFT); send(10); send(17);
+    expect(got).toHaveLength(1);
+    expect(got[0]).toMatchObject({ steer: 127, throttle: 15, held: 0, edges: Edge.DRIFT });
+    send(34); send(67);
+    expect(got.slice(1).every((f) => f.edges === 0 && f.held === 0)).toBe(true);
+    nc.close();
+  });
+
+  it('entering a menu clears unsent Drift/steering and held fallback without changing the world or sent tick history', () => {
+    let now = 0;
+    const got: { tick: number; input: InputFrame }[] = [];
+    const nc = new NetClient({ transport: nowhere(), track, content, cfg, slot: 0, nowMs: () => now,
+      mode: 'free', maxSteps: 5, onOwnInput: (tick, f) => { got.push({ tick, input: { ...f } }); },
+    });
+    const advance = (ms: number): void => { now = ms; nc.update(now); };
+    advance(0);
+    nc.submit({ ...makeInput(), steer: 127, throttle: 15, held: Held.DRIFT, edges: Edge.DRIFT });
+    advance(17);
+    expect(got).toHaveLength(1);
+    nc.submit({ ...makeInput(), steer: -127, throttle: 15, held: Held.DRIFT, edges: Edge.DRIFT | Edge.USE_ITEM });
+    advance(22); // no tick: this sample is still queued when Escape opens the menu
+    const stateBefore = hashWorld(nc.world), tickBefore = nc.world.tick;
+    const sentBefore = structuredClone(got);
+    nc.clearPendingInput();
+    expect(hashWorld(nc.world)).toBe(stateBefore);
+    expect(nc.world.tick).toBe(tickBefore);
+    expect(got).toEqual(sentBefore);
+    advance(67); // no new sample: every fallback tick after the menu must now be neutral
+    expect(got.slice(1).map((entry) => entry.tick)).toEqual([tickBefore + 1, tickBefore + 2, tickBefore + 3]);
+    for (const entry of got.slice(1)) expect(entry.input).toEqual(makeInput());
+    expect(got[0]).toEqual(sentBefore[0]);
+    nc.submit({ ...makeInput(), steer: -127, throttle: 15, edges: Edge.DRIFT });
+    advance(84);
+    expect(got.at(-1)?.input).toMatchObject({ steer: -127, throttle: 15, edges: Edge.DRIFT });
+    nc.close();
+  });
+
   it('a 1-frame tap in a frame that advanced no tick is merged into the next tick, not lost', () => {
     // free clock (the first update only starts it): 16.7 ms → one tick; +10 ms → 0.6 ticks (none); +23.4 ms → two:
     // A goes to the first of them, B to the second

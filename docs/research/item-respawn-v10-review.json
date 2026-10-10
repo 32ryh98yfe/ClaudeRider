@@ -1,0 +1,1764 @@
+{
+  "version": 1,
+  "simulationVersion": 10,
+  "scope": "Final source-stable release matrix: all 20 item respawns, not merely selected examples. Raw per-tick states and media remain external.",
+  "reproduce": {
+    "matrix": "Generate the final matrix with tools/reference/map-matrix.ts, then provide its path.",
+    "command": "node tools/reference/review-item-respawns.mjs --matrix /tmp/matrix-release.json --baseline /tmp/baseline-matrix.json --output-dir /tmp/item-respawn-review",
+    "outputs": [
+      "review.json: exact identity, event, speed and counterfactual checks",
+      "traces.json: external detailed per-tick states/events; do not commit"
+    ]
+  },
+  "provenance": {
+    "matrixSha256": "9c08e740e528f432877275a5683598646c0ecb0514132ce1815a683efab4be86",
+    "matrixSourceTreeSha256": "4d39ce92f02974413a80c9473d241dd10b60e87993ff81cabdddea400b303263",
+    "matrixSourceStable": true,
+    "baselineMatrixSha256": "6a8fd23aa3f20f7dfd374cb43b66d0c456308b118b3486c087921c7e88b49807",
+    "reviewedIdentitiesMatchEarlierAudit": true
+  },
+  "comparison": {
+    "baselineRespawns": 12,
+    "finalRespawns": 20,
+    "increase": 8,
+    "finishedKarts": 1764,
+    "totalKarts": 1764,
+    "maximumStallTicks": 198,
+    "soloAndNonItemRespawns": 0
+  },
+  "classificationCounts": {
+    "combat": 13,
+    "combat-residual": 5,
+    "body-contact-proven": 2
+  },
+  "interpretation": "The increase from 12 to 20 remains explicit. These cases have observed combat/body-contact mechanisms; that is not a blanket claim that combat losses are unavoidable. No unexplained clean-input geometry or AI-braking failure remained in this reviewed set.",
+  "counterfactualMethod": "Capture the exact pre-impact world once. Remove other karts and pending external projectiles/hazards to prevent retargeting; retain target state/effects, recorded controls, real ground/collisions/gravity. Apply normal step(), with no repeated position/speed injection. Both target windows contain no new target damage.",
+  "counterfactuals": [
+    {
+      "id": "pumpkin_lane-7301-slot5",
+      "scenario": "pumpkin_lane/item/pack/7301",
+      "slot": 5,
+      "snapshotTick": 1170,
+      "respawnTick": 1214,
+      "expected": {
+        "takeoffTick": 1173,
+        "takeoffSpeedMps": 25.581457420829786,
+        "landingTick": 1195,
+        "landingS": 417.522705078125,
+        "respawns": 0
+      }
+    },
+    {
+      "id": "sunset_arena_rally-4242-slot2",
+      "scenario": "sunset_arena_rally/item/pack/4242",
+      "slot": 2,
+      "snapshotTick": 3641,
+      "respawnTick": 3693,
+      "expected": {
+        "takeoffTick": 3642,
+        "takeoffSpeedMps": 25.8597340446509,
+        "landingTick": 3677,
+        "landingS": 1410.195556640625,
+        "respawns": 0
+      }
+    }
+  ],
+  "cases": [
+    {
+      "scenario": "cascade_slalom/item/pack/2026",
+      "slot": 5,
+      "respawnTick": 2796,
+      "classification": "combat",
+      "evidence": "Clean takeoff 2714 at 28.24 m/s; trap_bug from slot 3 at 2737 arrests flight, followed by body impulses 16.55/9.40 at 2748/2749. No wall before kill-floor recovery 2796.",
+      "takeoff": {
+        "tick": 2714,
+        "s": 952.484130859375,
+        "speedMps": 28.240379329430475,
+        "cc": 0,
+        "modMask": 0
+      },
+      "trackHash": "9cc822ab",
+      "ctrkSha256": "c411438f24e5669c90d53b674d0f9ab8393ea4e3bf74ab3492e99a2fe1168d69",
+      "keyEvents": [
+        {
+          "t": "air",
+          "kart": 5,
+          "impact": 0,
+          "tick": 2714
+        },
+        {
+          "t": "effect",
+          "victim": 5,
+          "effect": 3,
+          "source": 3,
+          "result": "hit",
+          "tick": 2737,
+          "effectName": "trap_bug"
+        },
+        {
+          "t": "bump",
+          "a": 3,
+          "b": 5,
+          "impulse": 16.5473596263473,
+          "tick": 2748
+        },
+        {
+          "t": "effectEnd",
+          "victim": 5,
+          "effect": 3,
+          "tick": 2784,
+          "effectName": "trap_bug"
+        },
+        {
+          "t": "effect",
+          "victim": 5,
+          "effect": 12,
+          "source": 5,
+          "result": "hit",
+          "tick": 2785,
+          "effectName": "escape_boost"
+        },
+        {
+          "t": "land",
+          "kart": 5,
+          "impact": 15.106654572091399,
+          "tick": 2796
+        },
+        {
+          "t": "respawn",
+          "kart": 5,
+          "phase": "out",
+          "tick": 2796
+        }
+      ]
+    },
+    {
+      "scenario": "cascade_slalom/item/pack/2026",
+      "slot": 0,
+      "respawnTick": 2818,
+      "classification": "combat",
+      "evidence": "Spin from slot 5 at 2745 remains active at 2747 takeoff; landing-face hit 2796 precedes spin end 2804 and recovery 2818.",
+      "takeoff": {
+        "tick": 2747,
+        "s": 952.539306640625,
+        "speedMps": 28.391400058435266,
+        "cc": 4,
+        "modMask": 8
+      },
+      "trackHash": "9cc822ab",
+      "ctrkSha256": "c411438f24e5669c90d53b674d0f9ab8393ea4e3bf74ab3492e99a2fe1168d69",
+      "keyEvents": [
+        {
+          "t": "effect",
+          "victim": 0,
+          "effect": 4,
+          "source": 5,
+          "result": "hit",
+          "tick": 2745,
+          "effectName": "spin"
+        },
+        {
+          "t": "air",
+          "kart": 0,
+          "impact": 0,
+          "tick": 2747
+        },
+        {
+          "t": "wall",
+          "kart": 0,
+          "severity": 2,
+          "x": -266.7344565078601,
+          "y": -6.639943305121527,
+          "z": -176.29031277231383,
+          "speed": 23.206460371584534,
+          "tick": 2796
+        },
+        {
+          "t": "effectEnd",
+          "victim": 0,
+          "effect": 4,
+          "tick": 2804,
+          "effectName": "spin"
+        },
+        {
+          "t": "land",
+          "kart": 0,
+          "impact": 11.638795330584909,
+          "tick": 2818
+        },
+        {
+          "t": "respawn",
+          "kart": 0,
+          "phase": "out",
+          "tick": 2818
+        }
+      ]
+    },
+    {
+      "scenario": "cascade_slalom/item/pack/7301",
+      "slot": 4,
+      "respawnTick": 2741,
+      "classification": "combat",
+      "evidence": "Clean 29.18 m/s takeoff 2669; spin 2679 and repeated body collisions 2687–2695 alter flight before landing-wall 2709.",
+      "takeoff": {
+        "tick": 2669,
+        "s": 952.5439453125,
+        "speedMps": 29.177099986935843,
+        "cc": 0,
+        "modMask": 0
+      },
+      "trackHash": "9cc822ab",
+      "ctrkSha256": "c411438f24e5669c90d53b674d0f9ab8393ea4e3bf74ab3492e99a2fe1168d69",
+      "keyEvents": [
+        {
+          "t": "bump",
+          "a": 4,
+          "b": 7,
+          "impulse": 1.1270578331032797,
+          "tick": 2625
+        },
+        {
+          "t": "air",
+          "kart": 4,
+          "impact": 0,
+          "tick": 2669
+        },
+        {
+          "t": "effect",
+          "victim": 4,
+          "effect": 4,
+          "source": 2,
+          "result": "hit",
+          "tick": 2679,
+          "effectName": "spin"
+        },
+        {
+          "t": "bump",
+          "a": 4,
+          "b": 7,
+          "impulse": 4.1391771517095854,
+          "tick": 2687
+        },
+        {
+          "t": "wall",
+          "kart": 4,
+          "severity": 2,
+          "x": -266.95521096546025,
+          "y": -3.7172325998632085,
+          "z": -175.73490736604072,
+          "speed": 17.854013611828364,
+          "tick": 2709
+        },
+        {
+          "t": "effectEnd",
+          "victim": 4,
+          "effect": 4,
+          "tick": 2738,
+          "effectName": "spin"
+        },
+        {
+          "t": "land",
+          "kart": 4,
+          "impact": 17.50500907944188,
+          "tick": 2741
+        },
+        {
+          "t": "respawn",
+          "kart": 4,
+          "phase": "out",
+          "tick": 2741
+        }
+      ]
+    },
+    {
+      "scenario": "coral_cove_docks/item/pack/4242",
+      "slot": 2,
+      "respawnTick": 1318,
+      "classification": "combat",
+      "evidence": "Spin 1231 is active at 1261 takeoff 13.07 m/s, vy−0.90; first landing-wall 1286 occurs before later mirror 1298.",
+      "takeoff": {
+        "tick": 1261,
+        "s": 422.84033203125,
+        "speedMps": 13.071852856042076,
+        "cc": 4,
+        "modMask": 8
+      },
+      "trackHash": "153ce45b",
+      "ctrkSha256": "951925a36e79612a4c0b97253ff3c2b6ce55e81cc1235aa549897eef99121283",
+      "keyEvents": [
+        {
+          "t": "effectEnd",
+          "victim": 2,
+          "effect": 7,
+          "tick": 1008,
+          "effectName": "throttle"
+        },
+        {
+          "t": "effect",
+          "victim": 2,
+          "effect": 4,
+          "source": 3,
+          "result": "hit",
+          "tick": 1231,
+          "effectName": "spin"
+        },
+        {
+          "t": "air",
+          "kart": 2,
+          "impact": 0,
+          "tick": 1261
+        },
+        {
+          "t": "wall",
+          "kart": 2,
+          "severity": 2,
+          "x": 130.02977905273437,
+          "y": 0.07721643141998834,
+          "z": -302.0309728249322,
+          "speed": 16.918789843683886,
+          "tick": 1286
+        },
+        {
+          "t": "effectEnd",
+          "victim": 2,
+          "effect": 4,
+          "tick": 1290,
+          "effectName": "spin"
+        },
+        {
+          "t": "effect",
+          "victim": 2,
+          "effect": 14,
+          "source": 7,
+          "result": "hit",
+          "tick": 1298,
+          "effectName": "mirror"
+        },
+        {
+          "t": "land",
+          "kart": 2,
+          "impact": 16.91391791490032,
+          "tick": 1318
+        },
+        {
+          "t": "respawn",
+          "kart": 2,
+          "phase": "out",
+          "tick": 1318
+        }
+      ]
+    },
+    {
+      "scenario": "coral_cove_docks/item/pack/7301",
+      "slot": 7,
+      "respawnTick": 1352,
+      "classification": "combat",
+      "evidence": "Spin 1276 precedes 1294 takeoff 11.71 m/s and remains active. Collisions 1284–1290 also impede approach. Landing-wall 1320, recovery 1352.",
+      "takeoff": {
+        "tick": 1294,
+        "s": 422.937744140625,
+        "speedMps": 11.714829699592775,
+        "cc": 4,
+        "modMask": 8
+      },
+      "trackHash": "153ce45b",
+      "ctrkSha256": "951925a36e79612a4c0b97253ff3c2b6ce55e81cc1235aa549897eef99121283",
+      "keyEvents": [
+        {
+          "t": "effect",
+          "victim": 7,
+          "effect": 11,
+          "source": 7,
+          "result": "hit",
+          "tick": 1129,
+          "effectName": "turbo"
+        },
+        {
+          "t": "effect",
+          "victim": 7,
+          "effect": 4,
+          "source": 4,
+          "result": "hit",
+          "tick": 1276,
+          "effectName": "spin"
+        },
+        {
+          "t": "bump",
+          "a": 4,
+          "b": 7,
+          "impulse": 4.398555998855473,
+          "tick": 1284
+        },
+        {
+          "t": "air",
+          "kart": 7,
+          "impact": 0,
+          "tick": 1294
+        },
+        {
+          "t": "wall",
+          "kart": 7,
+          "severity": 2,
+          "x": 130.31292317708335,
+          "y": -0.2720373279187188,
+          "z": -301.75106653070645,
+          "speed": 15.924536632316915,
+          "tick": 1320
+        },
+        {
+          "t": "effectEnd",
+          "victim": 7,
+          "effect": 4,
+          "tick": 1335,
+          "effectName": "spin"
+        },
+        {
+          "t": "land",
+          "kart": 7,
+          "impact": 16.33041076784389,
+          "tick": 1352
+        },
+        {
+          "t": "respawn",
+          "kart": 7,
+          "phase": "out",
+          "tick": 1352
+        }
+      ]
+    },
+    {
+      "scenario": "meadow_loop/item/pack/4242",
+      "slot": 5,
+      "respawnTick": 1826,
+      "classification": "combat-residual",
+      "evidence": "Trap 1653–1700 immobilizes kart at station 570.8, only about 0.6 m before lip 571.39. It cannot regain launch speed in that distance; repeated body contacts cause failed launch attempts. Throttle 15/brake 0 throughout last approach; final takeoff 1770 at 6.17 m/s, recovery 1826.",
+      "takeoff": {
+        "tick": 1770,
+        "s": 571.3994140625,
+        "speedMps": 6.168635785862999,
+        "cc": 0,
+        "modMask": 0
+      },
+      "trackHash": "f0058d90",
+      "ctrkSha256": "be370783f8fe701378ae47e6ec27b6cacbac7e2c07473d457ff0e7635165674c",
+      "keyEvents": [
+        {
+          "t": "effectEnd",
+          "victim": 5,
+          "effect": 13,
+          "tick": 1587,
+          "effectName": "redaction"
+        },
+        {
+          "t": "effect",
+          "victim": 5,
+          "effect": 3,
+          "source": 1,
+          "result": "hit",
+          "tick": 1653,
+          "effectName": "trap_bug"
+        },
+        {
+          "t": "effectEnd",
+          "victim": 5,
+          "effect": 3,
+          "tick": 1700,
+          "effectName": "trap_bug"
+        },
+        {
+          "t": "effect",
+          "victim": 5,
+          "effect": 12,
+          "source": 5,
+          "result": "hit",
+          "tick": 1701,
+          "effectName": "escape_boost"
+        },
+        {
+          "t": "air",
+          "kart": 5,
+          "impact": 0,
+          "tick": 1752
+        },
+        {
+          "t": "wall",
+          "kart": 5,
+          "severity": 2,
+          "x": 112.5470312947878,
+          "y": 2.411609224344879,
+          "z": -306.5940371095991,
+          "speed": 2.9444459960816562,
+          "tick": 1754
+        },
+        {
+          "t": "land",
+          "kart": 5,
+          "impact": 2.2267804835619507,
+          "tick": 1758
+        },
+        {
+          "t": "bump",
+          "a": 3,
+          "b": 5,
+          "impulse": 10.976881842768526,
+          "tick": 1762
+        },
+        {
+          "t": "air",
+          "kart": 5,
+          "impact": 0,
+          "tick": 1770
+        },
+        {
+          "t": "bump",
+          "a": 3,
+          "b": 5,
+          "impulse": 0.23112349921697034,
+          "tick": 1771
+        },
+        {
+          "t": "land",
+          "kart": 5,
+          "impact": 16.56991535853939,
+          "tick": 1826
+        },
+        {
+          "t": "respawn",
+          "kart": 5,
+          "phase": "out",
+          "tick": 1826
+        }
+      ]
+    },
+    {
+      "scenario": "pumpkin_lane/item/pack/7301",
+      "slot": 1,
+      "respawnTick": 1205,
+      "classification": "combat",
+      "evidence": "Airborne 1125, spin 1132, body contacts 1149–1172, then trap_bug 1161. Takeoff 1151 is already under spin; recovery 1205 follows altered flight.",
+      "takeoff": {
+        "tick": 1151,
+        "s": 408.044677734375,
+        "speedMps": 14.853274281363767,
+        "cc": 4,
+        "modMask": 8
+      },
+      "trackHash": "0c6316f0",
+      "ctrkSha256": "3a952183c8061cdbf7bc29c96dfdca24bb72a3091edc6b2acb39634a9769f724",
+      "keyEvents": [
+        {
+          "t": "effect",
+          "victim": 1,
+          "effect": 1,
+          "source": 4,
+          "result": "hit",
+          "tick": 1125,
+          "effectName": "airborne"
+        },
+        {
+          "t": "effect",
+          "victim": 1,
+          "effect": 4,
+          "source": 2,
+          "result": "hit",
+          "tick": 1132,
+          "effectName": "spin"
+        },
+        {
+          "t": "bump",
+          "a": 1,
+          "b": 3,
+          "impulse": 10.231277903127737,
+          "tick": 1149
+        },
+        {
+          "t": "air",
+          "kart": 1,
+          "impact": 0,
+          "tick": 1151
+        },
+        {
+          "t": "effect",
+          "victim": 1,
+          "effect": 3,
+          "source": 3,
+          "result": "hit",
+          "tick": 1161,
+          "effectName": "trap_bug"
+        },
+        {
+          "t": "bump",
+          "a": 1,
+          "b": 3,
+          "impulse": 4.185485727683077,
+          "tick": 1171
+        },
+        {
+          "t": "wall",
+          "kart": 1,
+          "severity": 0,
+          "x": 225.75297423661476,
+          "y": -3.2513686647907214,
+          "z": -232.54121305545786,
+          "speed": 1.7763568394002505e-15,
+          "tick": 1190
+        },
+        {
+          "t": "land",
+          "kart": 1,
+          "impact": 5.0281211723912085,
+          "tick": 1205
+        },
+        {
+          "t": "respawn",
+          "kart": 1,
+          "phase": "out",
+          "tick": 1205
+        }
+      ]
+    },
+    {
+      "scenario": "pumpkin_lane/item/pack/7301",
+      "slot": 5,
+      "respawnTick": 1214,
+      "classification": "body-contact-proven",
+      "evidence": "No enemy hit. Kart has 25.62 m/s at 1170, enough for this jump; collision with slot 6 at 1171 has impulse 7.12 and lowers takeoff 1173 to 18.32 m/s. Isolated same-snapshot, same recorded controls launch 25.58 and land safely 1195 at station 417.52, versus recovery 1214 in pack.",
+      "takeoff": {
+        "tick": 1173,
+        "s": 407.987548828125,
+        "speedMps": 18.316344842138687,
+        "cc": 0,
+        "modMask": 0
+      },
+      "trackHash": "0c6316f0",
+      "ctrkSha256": "3a952183c8061cdbf7bc29c96dfdca24bb72a3091edc6b2acb39634a9769f724",
+      "keyEvents": [
+        {
+          "t": "bump",
+          "a": 5,
+          "b": 6,
+          "impulse": 7.122585808335747,
+          "tick": 1171
+        },
+        {
+          "t": "air",
+          "kart": 5,
+          "impact": 0,
+          "tick": 1173
+        },
+        {
+          "t": "wall",
+          "kart": 5,
+          "severity": 2,
+          "x": 227.86161104817378,
+          "y": 0.07527485089533668,
+          "z": -239.09865842722678,
+          "speed": 19.095383351764667,
+          "tick": 1191
+        },
+        {
+          "t": "bump",
+          "a": 5,
+          "b": 7,
+          "impulse": 19.72021697633845,
+          "tick": 1193
+        },
+        {
+          "t": "land",
+          "kart": 5,
+          "impact": 19.326404041467505,
+          "tick": 1214
+        },
+        {
+          "t": "respawn",
+          "kart": 5,
+          "phase": "out",
+          "tick": 1214
+        }
+      ]
+    },
+    {
+      "scenario": "sandglass_canyon/item/pack/2026",
+      "slot": 3,
+      "respawnTick": 2700,
+      "classification": "combat-residual",
+      "evidence": "Throttle effect from slot 7 starts 2344 and ends 2553, clamping approach near 17.12 m/s. With full throttle/no brake, only 13.5 m remains to recover; launch 2595 is 21.53 m/s versus declared 26. First landing-wall 2643 is BEFORE trap 2644, so the late trap is not credited as the initial cause.",
+      "takeoff": {
+        "tick": 2595,
+        "s": 866.470947265625,
+        "speedMps": 21.52572186734967,
+        "cc": 0,
+        "modMask": 0
+      },
+      "trackHash": "fae71605",
+      "ctrkSha256": "dacc74183a4681d0df38b1f06642f18665e17e49eb893a74354583b058ce187c",
+      "keyEvents": [
+        {
+          "t": "effect",
+          "victim": 3,
+          "effect": 7,
+          "source": 7,
+          "result": "hit",
+          "tick": 2344,
+          "effectName": "throttle"
+        },
+        {
+          "t": "effectEnd",
+          "victim": 3,
+          "effect": 7,
+          "tick": 2553,
+          "effectName": "throttle"
+        },
+        {
+          "t": "air",
+          "kart": 3,
+          "impact": 0,
+          "tick": 2595
+        },
+        {
+          "t": "wall",
+          "kart": 3,
+          "severity": 2,
+          "x": 138.6247572944216,
+          "y": -4.718415242178672,
+          "z": -37.79260942331602,
+          "speed": 28.48087044361835,
+          "tick": 2643
+        },
+        {
+          "t": "effect",
+          "victim": 3,
+          "effect": 3,
+          "source": 4,
+          "result": "hit",
+          "tick": 2644,
+          "effectName": "trap_bug"
+        },
+        {
+          "t": "effectEnd",
+          "victim": 3,
+          "effect": 3,
+          "tick": 2691,
+          "effectName": "trap_bug"
+        },
+        {
+          "t": "effect",
+          "victim": 3,
+          "effect": 12,
+          "source": 3,
+          "result": "hit",
+          "tick": 2692,
+          "effectName": "escape_boost"
+        },
+        {
+          "t": "land",
+          "kart": 3,
+          "impact": 9.651339628267221,
+          "tick": 2700
+        },
+        {
+          "t": "respawn",
+          "kart": 3,
+          "phase": "out",
+          "tick": 2700
+        }
+      ]
+    },
+    {
+      "scenario": "sandglass_canyon/item/pack/7301",
+      "slot": 0,
+      "respawnTick": 2681,
+      "classification": "combat",
+      "evidence": "Spin from slot 2 at 2619, one tick before 28.42 m/s takeoff 2620. The kart falls to the kill floor 2681 without a preceding wall collision.",
+      "takeoff": {
+        "tick": 2620,
+        "s": 866.678466796875,
+        "speedMps": 28.41790259809103,
+        "cc": 4,
+        "modMask": 8
+      },
+      "trackHash": "fae71605",
+      "ctrkSha256": "dacc74183a4681d0df38b1f06642f18665e17e49eb893a74354583b058ce187c",
+      "keyEvents": [
+        {
+          "t": "effectEnd",
+          "victim": 0,
+          "effect": 13,
+          "tick": 2383,
+          "effectName": "redaction"
+        },
+        {
+          "t": "effect",
+          "victim": 0,
+          "effect": 4,
+          "source": 2,
+          "result": "hit",
+          "tick": 2619,
+          "effectName": "spin"
+        },
+        {
+          "t": "air",
+          "kart": 0,
+          "impact": 0,
+          "tick": 2620
+        },
+        {
+          "t": "effectEnd",
+          "victim": 0,
+          "effect": 4,
+          "tick": 2678,
+          "effectName": "spin"
+        },
+        {
+          "t": "land",
+          "kart": 0,
+          "impact": 25.895147867594446,
+          "tick": 2681
+        },
+        {
+          "t": "respawn",
+          "kart": 0,
+          "phase": "out",
+          "tick": 2681
+        }
+      ]
+    },
+    {
+      "scenario": "skyway_interchange/item/pack/7301",
+      "slot": 4,
+      "respawnTick": 2475,
+      "classification": "combat",
+      "evidence": "Stun 2376 is active at takeoff 2409 (20.50 m/s). Landing-wall 2455 then body impacts 2458/2459 precede recovery 2475.",
+      "takeoff": {
+        "tick": 2409,
+        "s": 880.248046875,
+        "speedMps": 20.497349646252164,
+        "cc": 5,
+        "modMask": 131088
+      },
+      "trackHash": "7a6f48cf",
+      "ctrkSha256": "f86e9ad803bdf1a083924ecf4440e36bc416a416ac7f4de8fb7d2474443e9c5f",
+      "keyEvents": [
+        {
+          "t": "effectEnd",
+          "victim": 4,
+          "effect": 1,
+          "tick": 2151,
+          "effectName": "airborne"
+        },
+        {
+          "t": "effect",
+          "victim": 4,
+          "effect": 12,
+          "source": 4,
+          "result": "hit",
+          "tick": 2152,
+          "effectName": "escape_boost"
+        },
+        {
+          "t": "effectEnd",
+          "victim": 4,
+          "effect": 7,
+          "tick": 2166,
+          "effectName": "throttle"
+        },
+        {
+          "t": "effect",
+          "victim": 4,
+          "effect": 18,
+          "source": 4,
+          "result": "hit",
+          "tick": 2342,
+          "effectName": "pulse_guard"
+        },
+        {
+          "t": "effect",
+          "victim": 4,
+          "effect": 5,
+          "source": 0,
+          "result": "hit",
+          "tick": 2376,
+          "effectName": "stun"
+        },
+        {
+          "t": "air",
+          "kart": 4,
+          "impact": 0,
+          "tick": 2409
+        },
+        {
+          "t": "effectEnd",
+          "victim": 4,
+          "effect": 5,
+          "tick": 2429,
+          "effectName": "stun"
+        },
+        {
+          "t": "effect",
+          "victim": 4,
+          "effect": 6,
+          "source": 4,
+          "result": "hit",
+          "tick": 2430,
+          "effectName": "post_stun_slow"
+        },
+        {
+          "t": "effectEnd",
+          "victim": 4,
+          "effect": 18,
+          "tick": 2431,
+          "effectName": "pulse_guard"
+        },
+        {
+          "t": "wall",
+          "kart": 4,
+          "severity": 2,
+          "x": -125.09623926489242,
+          "y": 13.91174801099527,
+          "z": -97.77533569335938,
+          "speed": 26.786603234760907,
+          "tick": 2455
+        },
+        {
+          "t": "bump",
+          "a": 2,
+          "b": 4,
+          "impulse": 16.0244675428002,
+          "tick": 2458
+        },
+        {
+          "t": "land",
+          "kart": 4,
+          "impact": 20.05460581857523,
+          "tick": 2475
+        },
+        {
+          "t": "respawn",
+          "kart": 4,
+          "phase": "out",
+          "tick": 2475
+        }
+      ]
+    },
+    {
+      "scenario": "skyway_interchange/item/pack/7301",
+      "slot": 2,
+      "respawnTick": 2496,
+      "classification": "combat",
+      "evidence": "Stun 2376 is active at takeoff 2415 (19.72 m/s). Body impact 16.02 at 2458 precedes landing-wall 2472 and recovery 2496.",
+      "takeoff": {
+        "tick": 2415,
+        "s": 880.15283203125,
+        "speedMps": 19.72386215763368,
+        "cc": 5,
+        "modMask": 16
+      },
+      "trackHash": "7a6f48cf",
+      "ctrkSha256": "f86e9ad803bdf1a083924ecf4440e36bc416a416ac7f4de8fb7d2474443e9c5f",
+      "keyEvents": [
+        {
+          "t": "effect",
+          "victim": 2,
+          "effect": 13,
+          "source": 4,
+          "result": "hit",
+          "tick": 2195,
+          "effectName": "redaction"
+        },
+        {
+          "t": "effectEnd",
+          "victim": 2,
+          "effect": 13,
+          "tick": 2374,
+          "effectName": "redaction"
+        },
+        {
+          "t": "effect",
+          "victim": 2,
+          "effect": 5,
+          "source": 0,
+          "result": "hit",
+          "tick": 2376,
+          "effectName": "stun"
+        },
+        {
+          "t": "air",
+          "kart": 2,
+          "impact": 0,
+          "tick": 2415
+        },
+        {
+          "t": "effectEnd",
+          "victim": 2,
+          "effect": 5,
+          "tick": 2429,
+          "effectName": "stun"
+        },
+        {
+          "t": "effect",
+          "victim": 2,
+          "effect": 6,
+          "source": 2,
+          "result": "hit",
+          "tick": 2430,
+          "effectName": "post_stun_slow"
+        },
+        {
+          "t": "bump",
+          "a": 2,
+          "b": 4,
+          "impulse": 16.0244675428002,
+          "tick": 2458
+        },
+        {
+          "t": "wall",
+          "kart": 2,
+          "severity": 2,
+          "x": -124.83618750314555,
+          "y": 12.20302232530382,
+          "z": -96.74959716796874,
+          "speed": 13.451910762857228,
+          "tick": 2472
+        },
+        {
+          "t": "effectEnd",
+          "victim": 2,
+          "effect": 6,
+          "tick": 2477,
+          "effectName": "post_stun_slow"
+        },
+        {
+          "t": "effect",
+          "victim": 2,
+          "effect": 16,
+          "source": 2,
+          "result": "hit",
+          "tick": 2490,
+          "effectName": "shield"
+        },
+        {
+          "t": "land",
+          "kart": 2,
+          "impact": 14.300838339605706,
+          "tick": 2496
+        },
+        {
+          "t": "respawn",
+          "kart": 2,
+          "phase": "out",
+          "tick": 2496
+        }
+      ]
+    },
+    {
+      "scenario": "skyway_interchange/item/pack/7301",
+      "slot": 6,
+      "respawnTick": 2497,
+      "classification": "combat-residual",
+      "evidence": "Stun 2376 ends 2429; takeoff 2430 still has post_stun_slow (mask 32), speed 19.81 m/s. Full throttle/no brake at lip; body contacts also disrupt flight.",
+      "takeoff": {
+        "tick": 2430,
+        "s": 880.277587890625,
+        "speedMps": 19.80658022923351,
+        "cc": 0,
+        "modMask": 32
+      },
+      "trackHash": "7a6f48cf",
+      "ctrkSha256": "f86e9ad803bdf1a083924ecf4440e36bc416a416ac7f4de8fb7d2474443e9c5f",
+      "keyEvents": [
+        {
+          "t": "effect",
+          "victim": 6,
+          "effect": 13,
+          "source": 4,
+          "result": "hit",
+          "tick": 2212,
+          "effectName": "redaction"
+        },
+        {
+          "t": "effect",
+          "victim": 6,
+          "effect": 11,
+          "source": 6,
+          "result": "hit",
+          "tick": 2236,
+          "effectName": "turbo"
+        },
+        {
+          "t": "effect",
+          "victim": 6,
+          "effect": 5,
+          "source": 0,
+          "result": "hit",
+          "tick": 2376,
+          "effectName": "stun"
+        },
+        {
+          "t": "effectEnd",
+          "victim": 6,
+          "effect": 13,
+          "tick": 2391,
+          "effectName": "redaction"
+        },
+        {
+          "t": "bump",
+          "a": 3,
+          "b": 6,
+          "impulse": 1.70455948460985,
+          "tick": 2414
+        },
+        {
+          "t": "effectEnd",
+          "victim": 6,
+          "effect": 5,
+          "tick": 2429,
+          "effectName": "stun"
+        },
+        {
+          "t": "air",
+          "kart": 6,
+          "impact": 0,
+          "tick": 2430
+        },
+        {
+          "t": "effect",
+          "victim": 6,
+          "effect": 6,
+          "source": 6,
+          "result": "hit",
+          "tick": 2430,
+          "effectName": "post_stun_slow"
+        },
+        {
+          "t": "wall",
+          "kart": 6,
+          "severity": 2,
+          "x": -125.17424036362935,
+          "y": 14.012193188838394,
+          "z": -97.45186767578124,
+          "speed": 26.924859939881024,
+          "tick": 2476
+        },
+        {
+          "t": "bump",
+          "a": 3,
+          "b": 6,
+          "impulse": 16.93419518979875,
+          "tick": 2477
+        },
+        {
+          "t": "effectEnd",
+          "victim": 6,
+          "effect": 6,
+          "tick": 2477,
+          "effectName": "post_stun_slow"
+        },
+        {
+          "t": "land",
+          "kart": 6,
+          "impact": 17.033130750479955,
+          "tick": 2497
+        },
+        {
+          "t": "respawn",
+          "kart": 6,
+          "phase": "out",
+          "tick": 2497
+        }
+      ]
+    },
+    {
+      "scenario": "skyway_interchange/item/pack/7301",
+      "slot": 3,
+      "respawnTick": 2519,
+      "classification": "combat-residual",
+      "evidence": "Stun 2376 ends 2429; takeoff 2435 still has post_stun_slow (mask 32), speed 18.71 m/s. Full throttle/no brake at lip; body contacts also disrupt flight.",
+      "takeoff": {
+        "tick": 2435,
+        "s": 880.255126953125,
+        "speedMps": 18.708785096925258,
+        "cc": 0,
+        "modMask": 32
+      },
+      "trackHash": "7a6f48cf",
+      "ctrkSha256": "f86e9ad803bdf1a083924ecf4440e36bc416a416ac7f4de8fb7d2474443e9c5f",
+      "keyEvents": [
+        {
+          "t": "effect",
+          "victim": 3,
+          "effect": 13,
+          "source": 4,
+          "result": "hit",
+          "tick": 2219,
+          "effectName": "redaction"
+        },
+        {
+          "t": "effect",
+          "victim": 3,
+          "effect": 11,
+          "source": 3,
+          "result": "hit",
+          "tick": 2304,
+          "effectName": "turbo"
+        },
+        {
+          "t": "effect",
+          "victim": 3,
+          "effect": 5,
+          "source": 0,
+          "result": "hit",
+          "tick": 2376,
+          "effectName": "stun"
+        },
+        {
+          "t": "effectEnd",
+          "victim": 3,
+          "effect": 13,
+          "tick": 2398,
+          "effectName": "redaction"
+        },
+        {
+          "t": "bump",
+          "a": 3,
+          "b": 6,
+          "impulse": 1.70455948460985,
+          "tick": 2414
+        },
+        {
+          "t": "effectEnd",
+          "victim": 3,
+          "effect": 5,
+          "tick": 2429,
+          "effectName": "stun"
+        },
+        {
+          "t": "effect",
+          "victim": 3,
+          "effect": 6,
+          "source": 3,
+          "result": "hit",
+          "tick": 2430,
+          "effectName": "post_stun_slow"
+        },
+        {
+          "t": "air",
+          "kart": 3,
+          "impact": 0,
+          "tick": 2435
+        },
+        {
+          "t": "bump",
+          "a": 3,
+          "b": 6,
+          "impulse": 16.93419518979875,
+          "tick": 2477
+        },
+        {
+          "t": "effectEnd",
+          "victim": 3,
+          "effect": 6,
+          "tick": 2477,
+          "effectName": "post_stun_slow"
+        },
+        {
+          "t": "wall",
+          "kart": 3,
+          "severity": 2,
+          "x": -124.80516420961958,
+          "y": 11.64728502061632,
+          "z": -96.36219278971355,
+          "speed": 13.248677290037296,
+          "tick": 2495
+        },
+        {
+          "t": "effect",
+          "victim": 3,
+          "effect": 16,
+          "source": 3,
+          "result": "hit",
+          "tick": 2502,
+          "effectName": "shield"
+        },
+        {
+          "t": "land",
+          "kart": 3,
+          "impact": 11.928061151268167,
+          "tick": 2519
+        },
+        {
+          "t": "respawn",
+          "kart": 3,
+          "phase": "out",
+          "tick": 2519
+        }
+      ]
+    },
+    {
+      "scenario": "skyway_interchange/item/pack/7301",
+      "slot": 7,
+      "respawnTick": 2626,
+      "classification": "combat",
+      "evidence": "Post-stun low-speed takeoff 2476 (20.97 m/s), then trap_bomb 2501 arrests flight. Falls below killY 2626, without a preceding static wall collision.",
+      "takeoff": {
+        "tick": 2476,
+        "s": 880.307861328125,
+        "speedMps": 20.968081197860325,
+        "cc": 0,
+        "modMask": 32
+      },
+      "trackHash": "7a6f48cf",
+      "ctrkSha256": "f86e9ad803bdf1a083924ecf4440e36bc416a416ac7f4de8fb7d2474443e9c5f",
+      "keyEvents": [
+        {
+          "t": "effect",
+          "victim": 7,
+          "effect": 13,
+          "source": 4,
+          "result": "hit",
+          "tick": 2246,
+          "effectName": "redaction"
+        },
+        {
+          "t": "effect",
+          "victim": 7,
+          "effect": 5,
+          "source": 0,
+          "result": "hit",
+          "tick": 2376,
+          "effectName": "stun"
+        },
+        {
+          "t": "effectEnd",
+          "victim": 7,
+          "effect": 13,
+          "tick": 2425,
+          "effectName": "redaction"
+        },
+        {
+          "t": "effectEnd",
+          "victim": 7,
+          "effect": 5,
+          "tick": 2429,
+          "effectName": "stun"
+        },
+        {
+          "t": "effect",
+          "victim": 7,
+          "effect": 6,
+          "source": 7,
+          "result": "hit",
+          "tick": 2430,
+          "effectName": "post_stun_slow"
+        },
+        {
+          "t": "effect",
+          "victim": 7,
+          "effect": 11,
+          "source": 7,
+          "result": "hit",
+          "tick": 2468,
+          "effectName": "turbo"
+        },
+        {
+          "t": "air",
+          "kart": 7,
+          "impact": 0,
+          "tick": 2476
+        },
+        {
+          "t": "effectEnd",
+          "victim": 7,
+          "effect": 6,
+          "tick": 2477,
+          "effectName": "post_stun_slow"
+        },
+        {
+          "t": "effect",
+          "victim": 7,
+          "effect": 2,
+          "source": 5,
+          "result": "hit",
+          "tick": 2501,
+          "effectName": "trap_bomb"
+        },
+        {
+          "t": "effectEnd",
+          "victim": 7,
+          "effect": 2,
+          "tick": 2567,
+          "effectName": "trap_bomb"
+        },
+        {
+          "t": "effect",
+          "victim": 7,
+          "effect": 12,
+          "source": 7,
+          "result": "hit",
+          "tick": 2568,
+          "effectName": "escape_boost"
+        },
+        {
+          "t": "respawn",
+          "kart": 7,
+          "phase": "out",
+          "tick": 2626
+        }
+      ]
+    },
+    {
+      "scenario": "sunset_arena_rally/item/pack/4242",
+      "slot": 2,
+      "respawnTick": 3693,
+      "classification": "body-contact-proven",
+      "evidence": "No recent enemy hit. Speed 26.17 m/s at 3639, then repeated contact with trappedslot 0 at 3642–3648 (first impulse 6.78). Isolated snapshot 3641 plus same recorded coast/steer inputs launches 25.86 and lands safely 3677 at station 1410.20. Pack flight instead ends in recovery 3693 without first hitting a wall.",
+      "takeoff": {
+        "tick": 3642,
+        "s": 1395.426025390625,
+        "speedMps": 21.089546988629053,
+        "cc": 0,
+        "modMask": 0
+      },
+      "trackHash": "f919b5a9",
+      "ctrkSha256": "f40eb613af7ba48bb3a7a7edad0d5bca7f1c128a83fb4d9059dc97611aa8bba9",
+      "keyEvents": [
+        {
+          "t": "effect",
+          "victim": 2,
+          "effect": 11,
+          "source": 2,
+          "result": "hit",
+          "tick": 3553,
+          "effectName": "turbo"
+        },
+        {
+          "t": "bump",
+          "a": 0,
+          "b": 2,
+          "impulse": 3.1268897436467142,
+          "tick": 3583
+        },
+        {
+          "t": "air",
+          "kart": 2,
+          "impact": 0,
+          "tick": 3642
+        },
+        {
+          "t": "bump",
+          "a": 0,
+          "b": 2,
+          "impulse": 6.783615395647218,
+          "tick": 3642
+        },
+        {
+          "t": "land",
+          "kart": 2,
+          "impact": 20.967259550249224,
+          "tick": 3693
+        },
+        {
+          "t": "respawn",
+          "kart": 2,
+          "phase": "out",
+          "tick": 3693
+        }
+      ]
+    },
+    {
+      "scenario": "sunset_arena_rally/item/pack/4242",
+      "slot": 0,
+      "respawnTick": 3704,
+      "classification": "combat",
+      "evidence": "Trap_bug 3637, one tick before takeoff 3638; repeated collisions with slot 2 alter flight. Recovery 3704 follows the trap, not a preexisting scenery blocker.",
+      "takeoff": {
+        "tick": 3638,
+        "s": 1395.51708984375,
+        "speedMps": 27.05857112394003,
+        "cc": 3,
+        "modMask": 4
+      },
+      "trackHash": "f919b5a9",
+      "ctrkSha256": "f40eb613af7ba48bb3a7a7edad0d5bca7f1c128a83fb4d9059dc97611aa8bba9",
+      "keyEvents": [
+        {
+          "t": "bump",
+          "a": 0,
+          "b": 2,
+          "impulse": 3.1268897436467142,
+          "tick": 3583
+        },
+        {
+          "t": "effect",
+          "victim": 0,
+          "effect": 3,
+          "source": 2,
+          "result": "hit",
+          "tick": 3637,
+          "effectName": "trap_bug"
+        },
+        {
+          "t": "air",
+          "kart": 0,
+          "impact": 0,
+          "tick": 3638
+        },
+        {
+          "t": "bump",
+          "a": 0,
+          "b": 2,
+          "impulse": 6.783615395647218,
+          "tick": 3642
+        },
+        {
+          "t": "wall",
+          "kart": 0,
+          "severity": 0,
+          "x": -24.82970400090934,
+          "y": 0.7689100047419533,
+          "z": -363.473974910488,
+          "speed": 1.8596235662471372e-15,
+          "tick": 3670
+        },
+        {
+          "t": "effectEnd",
+          "victim": 0,
+          "effect": 3,
+          "tick": 3684,
+          "effectName": "trap_bug"
+        },
+        {
+          "t": "effect",
+          "victim": 0,
+          "effect": 12,
+          "source": 0,
+          "result": "hit",
+          "tick": 3685,
+          "effectName": "escape_boost"
+        },
+        {
+          "t": "land",
+          "kart": 0,
+          "impact": 14.355252819195632,
+          "tick": 3704
+        },
+        {
+          "t": "respawn",
+          "kart": 0,
+          "phase": "out",
+          "tick": 3704
+        }
+      ]
+    },
+    {
+      "scenario": "sunset_arena_rally/item/pack/2026",
+      "slot": 7,
+      "respawnTick": 3682,
+      "classification": "combat",
+      "evidence": "Clean 26.65 m/s takeoff 3586; trap_bug 3588 arrests flight, then recovery 3682 below killY.",
+      "takeoff": {
+        "tick": 3586,
+        "s": 1395.314453125,
+        "speedMps": 26.64513945937459,
+        "cc": 0,
+        "modMask": 0
+      },
+      "trackHash": "f919b5a9",
+      "ctrkSha256": "f40eb613af7ba48bb3a7a7edad0d5bca7f1c128a83fb4d9059dc97611aa8bba9",
+      "keyEvents": [
+        {
+          "t": "air",
+          "kart": 7,
+          "impact": 0,
+          "tick": 3586
+        },
+        {
+          "t": "effect",
+          "victim": 7,
+          "effect": 3,
+          "source": 1,
+          "result": "hit",
+          "tick": 3588,
+          "effectName": "trap_bug"
+        },
+        {
+          "t": "effectEnd",
+          "victim": 7,
+          "effect": 3,
+          "tick": 3635,
+          "effectName": "trap_bug"
+        },
+        {
+          "t": "effect",
+          "victim": 7,
+          "effect": 12,
+          "source": 7,
+          "result": "hit",
+          "tick": 3636,
+          "effectName": "escape_boost"
+        },
+        {
+          "t": "respawn",
+          "kart": 7,
+          "phase": "out",
+          "tick": 3682
+        }
+      ]
+    },
+    {
+      "scenario": "sunset_arena_rally/item/pack/2026",
+      "slot": 0,
+      "respawnTick": 3757,
+      "classification": "combat",
+      "evidence": "Clean 27.75 m/s takeoff 3662; trap_bug 3667 arrests flight, followed by body impact 15.25 at 3682. Recovery 3757 below killY.",
+      "takeoff": {
+        "tick": 3662,
+        "s": 1395.54296875,
+        "speedMps": 27.74986849895456,
+        "cc": 0,
+        "modMask": 0
+      },
+      "trackHash": "f919b5a9",
+      "ctrkSha256": "f40eb613af7ba48bb3a7a7edad0d5bca7f1c128a83fb4d9059dc97611aa8bba9",
+      "keyEvents": [
+        {
+          "t": "air",
+          "kart": 0,
+          "impact": 0,
+          "tick": 3662
+        },
+        {
+          "t": "effect",
+          "victim": 0,
+          "effect": 3,
+          "source": 2,
+          "result": "hit",
+          "tick": 3667,
+          "effectName": "trap_bug"
+        },
+        {
+          "t": "bump",
+          "a": 0,
+          "b": 2,
+          "impulse": 15.246012796260949,
+          "tick": 3682
+        },
+        {
+          "t": "effectEnd",
+          "victim": 0,
+          "effect": 3,
+          "tick": 3714,
+          "effectName": "trap_bug"
+        },
+        {
+          "t": "effect",
+          "victim": 0,
+          "effect": 12,
+          "source": 0,
+          "result": "hit",
+          "tick": 3715,
+          "effectName": "escape_boost"
+        },
+        {
+          "t": "respawn",
+          "kart": 0,
+          "phase": "out",
+          "tick": 3757
+        }
+      ]
+    },
+    {
+      "scenario": "sunstone_bazaar/item/pack/4242",
+      "slot": 5,
+      "respawnTick": 1515,
+      "classification": "combat-residual",
+      "evidence": "Trap 1378–1425 holds kart stationary at station 496.86, about 4.1 m before lip 500.97. Escape boost 1426 and rear impact 1430 cannot restore enough speed before takeoff 1447 (15.86 m/s). Throttle 15/brake 0 throughout; landing-wall 1482, recovery 1515.",
+      "takeoff": {
+        "tick": 1447,
+        "s": 501.092041015625,
+        "speedMps": 15.858522403518402,
+        "cc": 0,
+        "modMask": 4096
+      },
+      "trackHash": "f4045f4d",
+      "ctrkSha256": "695459d7a5cccd533ca6de35653cc3b72a7c6590dc6bc897dee9eebd0dcdfc09",
+      "keyEvents": [
+        {
+          "t": "effect",
+          "victim": 5,
+          "effect": 13,
+          "source": 1,
+          "result": "hit",
+          "tick": 1304,
+          "effectName": "redaction"
+        },
+        {
+          "t": "effect",
+          "victim": 5,
+          "effect": 3,
+          "source": 4,
+          "result": "hit",
+          "tick": 1378,
+          "effectName": "trap_bug"
+        },
+        {
+          "t": "effectEnd",
+          "victim": 5,
+          "effect": 3,
+          "tick": 1425,
+          "effectName": "trap_bug"
+        },
+        {
+          "t": "effect",
+          "victim": 5,
+          "effect": 12,
+          "source": 5,
+          "result": "hit",
+          "tick": 1426,
+          "effectName": "escape_boost"
+        },
+        {
+          "t": "bump",
+          "a": 0,
+          "b": 5,
+          "impulse": 15.645988481905325,
+          "tick": 1430
+        },
+        {
+          "t": "air",
+          "kart": 5,
+          "impact": 0,
+          "tick": 1447
+        },
+        {
+          "t": "wall",
+          "kart": 5,
+          "severity": 2,
+          "x": 191.50399958168566,
+          "y": -0.7772750953686759,
+          "z": -275.23579883909866,
+          "speed": 20.618882248960716,
+          "tick": 1482
+        },
+        {
+          "t": "effectEnd",
+          "victim": 5,
+          "effect": 13,
+          "tick": 1483,
+          "effectName": "redaction"
+        },
+        {
+          "t": "land",
+          "kart": 5,
+          "impact": 17.4773790873904,
+          "tick": 1515
+        },
+        {
+          "t": "respawn",
+          "kart": 5,
+          "phase": "out",
+          "tick": 1515
+        }
+      ]
+    }
+  ]
+}

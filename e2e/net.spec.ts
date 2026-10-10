@@ -65,6 +65,15 @@ test('two contexts join a custom room by code, race 1 lap online and both see re
   // both load the track, the server starts the race when both reported `loaded`
   for (const p of [a, b]) await p.waitForFunction(() => window.__cr?.race === 'running', null, { timeout: 120_000 });
   expect(await a.evaluate(() => (window.__cr!['session'] as { authorityKind: string }).authorityKind)).toBe('server');
+  // Online Escape opens a local menu; it cannot stop the shared authority clock.
+  await a.keyboard.press('Escape');
+  await expect(a.locator('.pause-scrim')).toBeVisible();
+  await expect(a.locator('.pause-note')).toBeVisible();
+  const menuTick = await a.evaluate(() => (window.__cr!['session'] as { world(): { tick: number } }).world().tick);
+  expect(await a.evaluate(() => (window.__cr!['session'] as { isPaused: boolean }).isPaused)).toBe(false);
+  await a.waitForFunction((tick) => (window.__cr!['session'] as { world(): { tick: number } }).world().tick > tick + 10, menuTick);
+  await a.keyboard.press('Escape');
+  await expect(a.locator('.pause-scrim')).toHaveCount(0);
   // watch both pages at once: online results stay up for 12 s before the room screen returns, so a page that
   // finished first must be checked while its results are still showing
   try {

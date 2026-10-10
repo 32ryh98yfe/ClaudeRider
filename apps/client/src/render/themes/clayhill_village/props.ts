@@ -4,7 +4,7 @@
 import * as THREE from 'three/webgpu';
 import { MaterialLibrary } from '../../materials/library.ts';
 import type { PropFactory } from '../../props/defaults.ts';
-import { merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../../util/geo.ts';
+import { cosmetic, merge, paint, place, rbox, box, cyl, cone, ico, sph, sparkleGeometry } from '../../util/geo.ts';
 import { buntingLine, dome, lathe, part, pennant, prism, seeded } from './toyshapes.ts';
 
 const TERRACOTTA = '#d97757', CREAM = '#f4efe6', SAGE = '#8fb573', SKY = '#9fd3f5', SLATE = '#5a6b7b';
@@ -119,7 +119,7 @@ export const CLAYHILL_PROPS: Record<string, PropFactory> = {
         part(cyl(0.3, 0.3, 1.2, 8), GOLD, 0, 8, 0),
       ];
       for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; p.push(part(cyl(0.18, 0.18, 4, 6), IVORY, Math.cos(a) * 4.4, 3, Math.sin(a) * 4.4)); }
-      p.push(...buntingLine(-4.4, 4.4, 4.7, 0.6, 0, FLAGS, 8));
+      p.push(...buntingLine(-4.4, 4.4, 4.7, 0.6, 0, FLAGS, 8).map(cosmetic));
       return { geometry: merge(p), material: lit(), castShadow: true };
     },
   },
@@ -151,7 +151,7 @@ export const CLAYHILL_PROPS: Record<string, PropFactory> = {
         p.push(part(key ? box(2.5, 2.3, 3.0) : box(2.0, 2.45, 2.6), key ? STONE_DK : i % 2 ? STONE : '#d6c3a1', Math.cos(a) * r, CY + Math.sin(a) * r, 0, 0, 0, a));
       }
       for (const x of [-14, 14]) p.push(part(box(3.5, 0.6, 3.5), STONE_DK, x, 8.0, 0));
-      p.push(...buntingLine(-12.5, 12.5, 9.6, 1.6, 0, FLAGS, 16));
+      p.push(...buntingLine(-12.5, 12.5, 9.6, 1.6, 0, FLAGS, 16).map(cosmetic));
       return { geometry: merge(p), material: lit(), castShadow: true };
     },
   },
@@ -206,7 +206,7 @@ export const CLAYHILL_PROPS: Record<string, PropFactory> = {
       ];
       for (const [x, z] of [[-1.05, -1.75], [-1.05, 1.75], [1.05, -1.75], [1.05, 1.75]] as const) p.push(part(cyl(0.07, 0.07, 2.8, 6), WOOD_DK, x, 1.4, z));
       // striped awning sloping toward the road
-      for (let i = 0; i < 6; i++) p.push(part(box(2.8, 0.08, 0.64), i % 2 ? CREAM : TERRACOTTA, 0.3, 2.85, -1.6 + i * 0.64, 0, 0, -0.22));
+      for (let i = 0; i < 6; i++) p.push(cosmetic(part(box(2.8, 0.08, 0.64), i % 2 ? CREAM : TERRACOTTA, 0.3, 2.85, -1.6 + i * 0.64, 0, 0, -0.22)));
       const r = seeded(17);
       const fruit = ['#e84a3c', '#f2c14e', '#8fb573', '#f28b3c', '#b04a7a'];
       for (let i = 0; i < 12; i++) p.push(part(sph(0.17, 6, 4), fruit[i % 5]!, -0.6 + r() * 1.3, 1.2, -1.5 + r() * 3));
@@ -219,7 +219,7 @@ export const CLAYHILL_PROPS: Record<string, PropFactory> = {
     build: () => ({
       geometry: merge([
         part(cyl(0.6, 0.6, 0.06, 12), IVORY, 0, 0.78, 0), part(cyl(0.05, 0.05, 0.78, 6), INK, 0, 0.39, 0),
-        part(cyl(0.05, 0.05, 2.5, 6), INK, 0, 1.25, 0), part(cone(1.6, 0.7, 10), TERRACOTTA, 0, 2.55, 0),
+        part(cyl(0.05, 0.05, 2.5, 6), INK, 0, 1.25, 0), cosmetic(part(cone(1.6, 0.7, 10), TERRACOTTA, 0, 2.55, 0)),
         part(rbox(0.5, 0.08, 0.5, 0.03, 1), SAGE, 0.9, 0.46, 0), part(rbox(0.5, 0.6, 0.08, 0.03, 1), SAGE, 1.12, 0.75, 0, 0, Math.PI / 2, 0),
         part(rbox(0.5, 0.08, 0.5, 0.03, 1), SAGE, -0.9, 0.46, 0), part(rbox(0.5, 0.6, 0.08, 0.03, 1), SAGE, -1.12, 0.75, 0, 0, Math.PI / 2, 0),
       ]), material: lit(),
@@ -230,7 +230,7 @@ export const CLAYHILL_PROPS: Record<string, PropFactory> = {
     maxInstances: 30,
     build: () => {
       const p: THREE.BufferGeometry[] = [part(cyl(0.12, 0.15, 7.5, 6), WOOD_DK, -13, 3.5, 0), part(cyl(0.12, 0.15, 7.5, 6), WOOD_DK, 13, 3.5, 0)];
-      p.push(...buntingLine(-13, 13, 7, 1.4, 0, FLAGS, 18));
+      p.push(...buntingLine(-13, 13, 7, 1.4, 0, FLAGS, 18).map(cosmetic));
       return { geometry: merge(p), material: lit() };
     },
   },
@@ -239,8 +239,8 @@ export const CLAYHILL_PROPS: Record<string, PropFactory> = {
     build: () => {
       const p: THREE.BufferGeometry[] = [part(rbox(2.2, 0.6, 0.8, 0.08, 1), WOOD, 0, 0.3, 0)];
       const r = seeded(5), cols = ['#f25f7a', '#f2c14e', '#ffffff', '#b57cff', '#f28b3c'];
-      for (let i = 0; i < 9; i++) p.push(part(ico(0.2, 0), cols[i % 5]!, -0.9 + i * 0.22, 0.75 + r() * 0.1, (r() - 0.5) * 0.4));
-      p.push(part(box(2.0, 0.2, 0.6), SAGE, 0, 0.6, 0));
+      for (let i = 0; i < 9; i++) p.push(cosmetic(part(ico(0.2, 0), cols[i % 5]!, -0.9 + i * 0.22, 0.75 + r() * 0.1, (r() - 0.5) * 0.4)));
+      p.push(cosmetic(part(box(2.0, 0.2, 0.6), SAGE, 0, 0.6, 0)));
       return { geometry: merge(p), material: lit() };
     },
   },
@@ -306,7 +306,7 @@ export const CLAYHILL_PROPS: Record<string, PropFactory> = {
     build: () => ({
       geometry: merge([
         part(cyl(0.2, 0.28, 3, 6), WOOD_DK, 0, -0.5, 0),
-        part(lathe([[0, 0], [1.1, 0.8], [1.3, 3], [1.0, 6], [0.5, 8], [0, 9.2]], 8), '#4a7f42', 0, 0.6, 0, 0, 0, 0, 1, 1, 1, 0.1, 7),
+        cosmetic(part(lathe([[0, 0], [1.1, 0.8], [1.3, 3], [1.0, 6], [0.5, 8], [0, 9.2]], 8), '#4a7f42', 0, 0.6, 0, 0, 0, 0, 1, 1, 1, 0.1, 7)),
       ]), material: lit(), castShadow: true,
     }),
   },
@@ -315,9 +315,9 @@ export const CLAYHILL_PROPS: Record<string, PropFactory> = {
     build: () => ({
       geometry: merge([
         part(cyl(0.22, 0.32, 3.6, 7), WOOD_DK, 0, 0.6, 0),
-        part(ico(1.9, 1), '#5e9a45', 0, 3.8, 0, 0, 0, 0, 1.1, 0.85, 1.1, 0.1, 3),
-        part(ico(1.2, 1), '#74ad52', 0.9, 4.5, 0.5, 0, 0, 0, 1, 1, 1, 0.1, 5),
-        part(sph(0.18, 6, 4), '#e84a3c', 1.6, 3.6, 0.6), part(sph(0.18, 6, 4), '#e84a3c', -1.2, 3.3, 1.1), part(sph(0.18, 6, 4), '#f2c14e', 0.3, 3.1, -1.6),
+        cosmetic(part(ico(1.9, 1), '#5e9a45', 0, 3.8, 0, 0, 0, 0, 1.1, 0.85, 1.1, 0.1, 3)),
+        cosmetic(part(ico(1.2, 1), '#74ad52', 0.9, 4.5, 0.5, 0, 0, 0, 1, 1, 1, 0.1, 5)),
+        cosmetic(part(sph(0.18, 6, 4), '#e84a3c', 1.6, 3.6, 0.6)), cosmetic(part(sph(0.18, 6, 4), '#e84a3c', -1.2, 3.3, 1.1)), cosmetic(part(sph(0.18, 6, 4), '#f2c14e', 0.3, 3.1, -1.6)),
       ]), material: lit(), castShadow: true,
     }),
   },
@@ -326,7 +326,7 @@ export const CLAYHILL_PROPS: Record<string, PropFactory> = {
     maxInstances: 2,
     build: () => ({
       geometry: merge([
-        part(box(90, 0.1, 9), '#5fb3d9', 0, -3.2, 0), part(box(90, 0.3, 1.2), '#c9b08c', 0, -3.1, 5), part(box(90, 0.3, 1.2), '#c9b08c', 0, -3.1, -5),
+        cosmetic(part(box(90, 0.1, 9), '#5fb3d9', 0, -3.2, 0)), part(box(90, 0.3, 1.2), '#c9b08c', 0, -3.1, 5), part(box(90, 0.3, 1.2), '#c9b08c', 0, -3.1, -5),
       ]), material: MaterialLibrary.vertexLit(0.15, 0.1),
     }),
   },
@@ -336,7 +336,7 @@ export const CLAYHILL_PROPS: Record<string, PropFactory> = {
       geometry: merge([
         part(rbox(1.6, 0.7, 5.5, 0.3, 2), '#2f6fa6', 0, -0.4, 0), part(rbox(1.3, 0.2, 5.0, 0.1, 1), WOOD, 0, 0, 0),
         part(prism(1.4, 0.8, 1.2), TERRACOTTA, 0, 0.1, 1.9), part(cyl(0.06, 0.06, 2.4, 6), WOOD_DK, 0, 1.2, -1.2),
-        part(pennant(0.8, 0.6), TERRACOTTA, 0.02, 2.3, -1.2, 0, Math.PI / 2, 0),
+        cosmetic(part(pennant(0.8, 0.6), TERRACOTTA, 0.02, 2.3, -1.2, 0, Math.PI / 2, 0)),
       ]), material: lit(),
     }),
   },

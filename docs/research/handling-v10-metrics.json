@@ -1,0 +1,508 @@
+{
+  "schemaVersion": 1,
+  "simVersion": 10,
+  "generatedAtUtc": "2026-10-03T12:23:07.332Z",
+  "physicsSourceSha256": "af654bbdfbbcda0115efaac51c7ab3ef35223880aa564bc537eab6115308b629",
+  "sourceFiles": [
+    "apps/client/src/input/actionFilter.ts",
+    "docs/research/handling-keyboard-scenarios.json",
+    "packages/content/src/karts/arrowhead.ts",
+    "packages/content/src/karts/clay_comet.ts",
+    "packages/content/src/karts/crown_cruiser.ts",
+    "packages/content/src/karts/glacier_sled.ts",
+    "packages/content/src/karts/jet_kettle.ts",
+    "packages/content/src/karts/neon_blade.ts",
+    "packages/content/src/karts/pebble.ts",
+    "packages/content/src/karts/tugboat.ts",
+    "packages/sim/src/core/state.ts",
+    "packages/sim/src/core/units.ts",
+    "packages/sim/src/kart/dynamics.ts",
+    "packages/sim/src/kart/handling.ts",
+    "packages/sim/src/kart/motion.ts",
+    "packages/sim/src/kart/params.ts",
+    "packages/sim/src/step.ts",
+    "packages/sim/src/track/BakedTrack.ts",
+    "packages/sim/test/fixtures/builder.ts",
+    "packages/sim/test/fixtures/kits.ts",
+    "tools/reference/measure-handling.ts"
+  ],
+  "method": "60Hz authority on flat/corner fixtures; same keyboard filter for timed short presses and fixed U-turns; initial pose set once; no AI or subsequent world overrides. Times are measured from the control transition to the resulting physics tick.",
+  "kart": "pebble",
+  "tickMs": 16.666666666666668,
+  "normalSpeedMps": 28.9,
+  "motorBoostCapMps": 32.591975,
+  "counter": [
+    {
+      "direction": "right",
+      "boost": false,
+      "shiftHeldDuringCounter": false,
+      "initialSlipDeg": 8.205995,
+      "initialYawRadPerSec": -1.885742,
+      "yawReversalMs": 83.333333,
+      "restorationMs": 116.666667,
+      "alignmentWithin3DegMs": 66.666667,
+      "minSpeedMps": 26.176123,
+      "newUnrequestedDrifts": 0,
+      "target": {
+        "yawReversalMaxMs": 150,
+        "restorationMaxMs": 500,
+        "newUnrequestedDrifts": 0
+      },
+      "pass": true
+    },
+    {
+      "direction": "right",
+      "boost": false,
+      "shiftHeldDuringCounter": true,
+      "initialSlipDeg": 8.205995,
+      "initialYawRadPerSec": -1.885742,
+      "yawReversalMs": 83.333333,
+      "restorationMs": 116.666667,
+      "alignmentWithin3DegMs": 66.666667,
+      "minSpeedMps": 26.176123,
+      "newUnrequestedDrifts": 0,
+      "target": {
+        "yawReversalMaxMs": 150,
+        "restorationMaxMs": 500,
+        "newUnrequestedDrifts": 0
+      },
+      "pass": true
+    },
+    {
+      "direction": "right",
+      "boost": true,
+      "shiftHeldDuringCounter": false,
+      "initialSlipDeg": 8.190875,
+      "initialYawRadPerSec": -1.904053,
+      "yawReversalMs": 83.333333,
+      "restorationMs": 116.666667,
+      "alignmentWithin3DegMs": 66.666667,
+      "minSpeedMps": 29.304189,
+      "newUnrequestedDrifts": 0,
+      "target": {
+        "yawReversalMaxMs": 150,
+        "restorationMaxMs": 500,
+        "newUnrequestedDrifts": 0
+      },
+      "pass": true
+    },
+    {
+      "direction": "right",
+      "boost": true,
+      "shiftHeldDuringCounter": true,
+      "initialSlipDeg": 8.190875,
+      "initialYawRadPerSec": -1.904053,
+      "yawReversalMs": 83.333333,
+      "restorationMs": 116.666667,
+      "alignmentWithin3DegMs": 66.666667,
+      "minSpeedMps": 29.304189,
+      "newUnrequestedDrifts": 0,
+      "target": {
+        "yawReversalMaxMs": 150,
+        "restorationMaxMs": 500,
+        "newUnrequestedDrifts": 0
+      },
+      "pass": true
+    },
+    {
+      "direction": "left",
+      "boost": false,
+      "shiftHeldDuringCounter": false,
+      "initialSlipDeg": 8.205995,
+      "initialYawRadPerSec": 1.885742,
+      "yawReversalMs": 83.333333,
+      "restorationMs": 116.666667,
+      "alignmentWithin3DegMs": 66.666667,
+      "minSpeedMps": 26.176123,
+      "newUnrequestedDrifts": 0,
+      "target": {
+        "yawReversalMaxMs": 150,
+        "restorationMaxMs": 500,
+        "newUnrequestedDrifts": 0
+      },
+      "pass": true
+    },
+    {
+      "direction": "left",
+      "boost": false,
+      "shiftHeldDuringCounter": true,
+      "initialSlipDeg": 8.205995,
+      "initialYawRadPerSec": 1.885742,
+      "yawReversalMs": 83.333333,
+      "restorationMs": 116.666667,
+      "alignmentWithin3DegMs": 66.666667,
+      "minSpeedMps": 26.176123,
+      "newUnrequestedDrifts": 0,
+      "target": {
+        "yawReversalMaxMs": 150,
+        "restorationMaxMs": 500,
+        "newUnrequestedDrifts": 0
+      },
+      "pass": true
+    },
+    {
+      "direction": "left",
+      "boost": true,
+      "shiftHeldDuringCounter": false,
+      "initialSlipDeg": 8.190875,
+      "initialYawRadPerSec": 1.904053,
+      "yawReversalMs": 83.333333,
+      "restorationMs": 116.666667,
+      "alignmentWithin3DegMs": 66.666667,
+      "minSpeedMps": 29.304189,
+      "newUnrequestedDrifts": 0,
+      "target": {
+        "yawReversalMaxMs": 150,
+        "restorationMaxMs": 500,
+        "newUnrequestedDrifts": 0
+      },
+      "pass": true
+    },
+    {
+      "direction": "left",
+      "boost": true,
+      "shiftHeldDuringCounter": true,
+      "initialSlipDeg": 8.190875,
+      "initialYawRadPerSec": 1.904053,
+      "yawReversalMs": 83.333333,
+      "restorationMs": 116.666667,
+      "alignmentWithin3DegMs": 66.666667,
+      "minSpeedMps": 29.304189,
+      "newUnrequestedDrifts": 0,
+      "target": {
+        "yawReversalMaxMs": 150,
+        "restorationMaxMs": 500,
+        "newUnrequestedDrifts": 0
+      },
+      "pass": true
+    }
+  ],
+  "repeatPress": {
+    "rows": [
+      {
+        "presses": 1,
+        "measurementWindowSeconds": [
+          1,
+          2
+        ],
+        "meanVelocityCurveRadiusM": 12.364866,
+        "distanceM": 23.008084,
+        "velocityTurnDeg": 106.613863,
+        "maxYawAccelerationRadPerSec2": 5.493164
+      },
+      {
+        "presses": 2,
+        "measurementWindowSeconds": [
+          1,
+          2
+        ],
+        "meanVelocityCurveRadiusM": 10.399223,
+        "distanceM": 21.491556,
+        "velocityTurnDeg": 118.410336,
+        "maxYawAccelerationRadPerSec2": 5.493164
+      },
+      {
+        "presses": 3,
+        "measurementWindowSeconds": [
+          1,
+          2
+        ],
+        "meanVelocityCurveRadiusM": 8.858071,
+        "distanceM": 20.098669,
+        "velocityTurnDeg": 130.002225,
+        "maxYawAccelerationRadPerSec2": 5.493164
+      }
+    ],
+    "target": "each extra press reduces radius by at least 3%, with bounded yaw acceleration",
+    "maximumYawAccelerationRadPerSec2": 5.5,
+    "quantizationAllowanceRadPerSec2": 0.0146484375,
+    "pass": true
+  },
+  "shortPress": [
+    {
+      "pressMs": 20,
+      "driftStateDurationMs": 850,
+      "physicalSkidThresholdDeg": 3,
+      "physicalSkidDurationMs": 600,
+      "pathTravelDuringSkidM": 16.520956,
+      "lateralTravelDuringSkidM": 1.809201,
+      "peakSlipDeg": 8.123389,
+      "peakLateralSpeedMps": 3.831875,
+      "minSpeedMps": 26.300898,
+      "target": {
+        "minimumPhysicalSkidMs": 500,
+        "driftStateDurationMs": [
+          800,
+          950
+        ]
+      },
+      "pass": true
+    },
+    {
+      "pressMs": 50,
+      "driftStateDurationMs": 850,
+      "physicalSkidThresholdDeg": 3,
+      "physicalSkidDurationMs": 600,
+      "pathTravelDuringSkidM": 16.520956,
+      "lateralTravelDuringSkidM": 1.809201,
+      "peakSlipDeg": 8.123389,
+      "peakLateralSpeedMps": 3.831875,
+      "minSpeedMps": 26.300898,
+      "target": {
+        "minimumPhysicalSkidMs": 500,
+        "driftStateDurationMs": [
+          800,
+          950
+        ]
+      },
+      "pass": true
+    },
+    {
+      "pressMs": 100,
+      "driftStateDurationMs": 850,
+      "physicalSkidThresholdDeg": 3,
+      "physicalSkidDurationMs": 600,
+      "pathTravelDuringSkidM": 16.520956,
+      "lateralTravelDuringSkidM": 1.809201,
+      "peakSlipDeg": 8.123389,
+      "peakLateralSpeedMps": 3.831875,
+      "minSpeedMps": 26.300898,
+      "target": {
+        "minimumPhysicalSkidMs": 500,
+        "driftStateDurationMs": [
+          800,
+          950
+        ]
+      },
+      "pass": true
+    }
+  ],
+  "boost": {
+    "curve": [
+      {
+        "ms": 16.666667,
+        "speedMps": 29.010742,
+        "hudKmh": 174.91771
+      },
+      {
+        "ms": 200,
+        "speedMps": 30.030518,
+        "hudKmh": 181.066356
+      },
+      {
+        "ms": 500,
+        "speedMps": 31.111328,
+        "hudKmh": 187.583008
+      },
+      {
+        "ms": 1000,
+        "speedMps": 31.997803,
+        "hudKmh": 192.927928
+      },
+      {
+        "ms": 1500,
+        "speedMps": 32.353516,
+        "hudKmh": 195.072668
+      },
+      {
+        "ms": 2500,
+        "speedMps": 32.553467,
+        "hudKmh": 196.278256
+      },
+      {
+        "ms": 3000,
+        "speedMps": 32.576172,
+        "hudKmh": 196.415154
+      }
+    ],
+    "timeTo90PercentGainMs": 1266.666667,
+    "maximumSpeedMps": 32.576172,
+    "maximumPerTickGainMps": 0.110742,
+    "targetCapMps": 32.591975,
+    "capIsMotorOnly": true
+  },
+  "uTurns": [
+    {
+      "radiusM": 9,
+      "widthM": 12,
+      "direction": "right",
+      "schedule": {
+        "radiusM": 9,
+        "initialU": 4.5,
+        "entryTick": 71,
+        "turnTicks": 117,
+        "counterTicks": 16
+      },
+      "durationMs": 5250,
+      "minSpeedMps": 21.207365,
+      "maxAbsRoadOffsetM": 4.55835,
+      "velocityHeadingDeg": 178.956585,
+      "headingErrorDeg": 1.043415,
+      "contacts": 0,
+      "respawns": 0,
+      "completed": true,
+      "target": {
+        "contacts": 0,
+        "respawns": 0,
+        "headingErrorMaxDeg": 2,
+        "mustPassArcExitByM": 60
+      },
+      "pass": true
+    },
+    {
+      "radiusM": 12,
+      "widthM": 12,
+      "direction": "right",
+      "schedule": {
+        "radiusM": 12,
+        "initialU": 2,
+        "entryTick": 79,
+        "turnTicks": 117,
+        "counterTicks": 16
+      },
+      "durationMs": 5516.666667,
+      "minSpeedMps": 21.207365,
+      "maxAbsRoadOffsetM": 2.254883,
+      "velocityHeadingDeg": 178.956594,
+      "headingErrorDeg": 1.043406,
+      "contacts": 0,
+      "respawns": 0,
+      "completed": true,
+      "target": {
+        "contacts": 0,
+        "respawns": 0,
+        "headingErrorMaxDeg": 2,
+        "mustPassArcExitByM": 60
+      },
+      "pass": true
+    },
+    {
+      "radiusM": 16,
+      "widthM": 12,
+      "direction": "right",
+      "schedule": {
+        "radiusM": 16,
+        "initialU": -2,
+        "entryTick": 91,
+        "turnTicks": 112,
+        "counterTicks": 8
+      },
+      "durationMs": 5883.333333,
+      "minSpeedMps": 21.484707,
+      "maxAbsRoadOffsetM": 3.307129,
+      "velocityHeadingDeg": 179.874733,
+      "headingErrorDeg": 0.125267,
+      "contacts": 0,
+      "respawns": 0,
+      "completed": true,
+      "target": {
+        "contacts": 0,
+        "respawns": 0,
+        "headingErrorMaxDeg": 2,
+        "mustPassArcExitByM": 60
+      },
+      "pass": true
+    },
+    {
+      "radiusM": 9,
+      "widthM": 12,
+      "direction": "left",
+      "schedule": {
+        "radiusM": 9,
+        "initialU": 4.5,
+        "entryTick": 71,
+        "turnTicks": 117,
+        "counterTicks": 16
+      },
+      "durationMs": 5250,
+      "minSpeedMps": 21.207365,
+      "maxAbsRoadOffsetM": 4.55835,
+      "velocityHeadingDeg": -178.953073,
+      "headingErrorDeg": 1.046927,
+      "contacts": 0,
+      "respawns": 0,
+      "completed": true,
+      "target": {
+        "contacts": 0,
+        "respawns": 0,
+        "headingErrorMaxDeg": 2,
+        "mustPassArcExitByM": 60
+      },
+      "pass": true
+    },
+    {
+      "radiusM": 12,
+      "widthM": 12,
+      "direction": "left",
+      "schedule": {
+        "radiusM": 12,
+        "initialU": 2,
+        "entryTick": 79,
+        "turnTicks": 117,
+        "counterTicks": 16
+      },
+      "durationMs": 5516.666667,
+      "minSpeedMps": 21.207365,
+      "maxAbsRoadOffsetM": 2.254883,
+      "velocityHeadingDeg": -178.953098,
+      "headingErrorDeg": 1.046902,
+      "contacts": 0,
+      "respawns": 0,
+      "completed": true,
+      "target": {
+        "contacts": 0,
+        "respawns": 0,
+        "headingErrorMaxDeg": 2,
+        "mustPassArcExitByM": 60
+      },
+      "pass": true
+    },
+    {
+      "radiusM": 16,
+      "widthM": 12,
+      "direction": "left",
+      "schedule": {
+        "radiusM": 16,
+        "initialU": -2,
+        "entryTick": 91,
+        "turnTicks": 112,
+        "counterTicks": 8
+      },
+      "durationMs": 5883.333333,
+      "minSpeedMps": 21.484707,
+      "maxAbsRoadOffsetM": 3.307129,
+      "velocityHeadingDeg": -179.871267,
+      "headingErrorDeg": 0.128733,
+      "contacts": 0,
+      "respawns": 0,
+      "completed": true,
+      "target": {
+        "contacts": 0,
+        "respawns": 0,
+        "headingErrorMaxDeg": 2,
+        "mustPassArcExitByM": 60
+      },
+      "pass": true
+    }
+  ],
+  "strongerTractionComparison": {
+    "input": "same flat 28.9m/s start; left held for 117ticks, counter for16, then neutral; one Shift held117ticks",
+    "before": {
+      "gripLateralDampingPerSec": 18,
+      "driftLateralDampingPerSec": 6,
+      "counterLateralDampingPerSec": 9,
+      "slipDragCoefficient": 2.2,
+      "peakSlipDeg": 17.891357664,
+      "lateralTravelM": 12.004340931
+    },
+    "after": {
+      "gripLateralDampingPerSec": 24,
+      "driftLateralDampingPerSec": 12,
+      "counterLateralDampingPerSec": 24,
+      "slipDragCoefficient": 11,
+      "peakSlipDeg": 8.208199718,
+      "lateralTravelM": 5.936694784
+    }
+  },
+  "pass": true
+}
